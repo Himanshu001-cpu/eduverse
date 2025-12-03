@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/study/study_data.dart';
+import 'batch_section_page.dart';
 
 class MyCoursesPage extends StatelessWidget {
   const MyCoursesPage({Key? key}) : super(key: key);
@@ -81,8 +82,14 @@ class MyCoursesPage extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Navigating to lessons...')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BatchSectionPage(
+                            course: course,
+                            batchId: '${course.id}-B1', // Mock batch ID
+                          ),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
