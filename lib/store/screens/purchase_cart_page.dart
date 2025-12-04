@@ -1,8 +1,10 @@
 // file: lib/store/screens/purchase_cart_page.dart
 import 'package:flutter/material.dart';
-import '../purchase_data.dart';
-import '../widgets/cart_item_tile.dart';
-import 'checkout_page.dart';
+import 'package:eduverse/store/models/store_models.dart';
+import 'package:eduverse/store/store_data.dart';
+import 'package:eduverse/store/widgets/cart_item_tile.dart';
+import 'package:eduverse/store/screens/checkout_page.dart';
+import 'package:eduverse/common/persistence/purchase_storage.dart';
 
 // QA Checklist:
 // [ ] Add a course to cart and open Cart page - item visible with correct price.
@@ -16,14 +18,14 @@ import 'checkout_page.dart';
 class PurchaseCartPage extends StatefulWidget {
   final List<CartItem> initialItems;
 
-  const PurchaseCartPage({Key? key, this.initialItems = const []}) : super(key: key);
+  const PurchaseCartPage({super.key, this.initialItems = const []});
 
   @override
   State<PurchaseCartPage> createState() => _PurchaseCartPageState();
 }
 
 class _PurchaseCartPageState extends State<PurchaseCartPage> {
-  late List<CartItem> _cartItems;
+  List<CartItem> _cartItems = [];
   final TextEditingController _couponController = TextEditingController();
   double _discount = 0.0;
   String? _couponError;
@@ -33,16 +35,21 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
   void initState() {
     super.initState();
     _cartItems = List.from(widget.initialItems);
-    
-    // Mock: If empty, add a sample item for testing if not provided
+    _loadCart();
+  }
+
+  Future<void> _loadCart() async {
+    // Merge initial items with persisted cart if needed, or just use initial for this flow
+    // For this implementation, we'll assume the passed items ARE the cart for the "Buy Now" flow.
+    // If we wanted a persistent cart across sessions, we'd load here.
     if (_cartItems.isEmpty) {
-      _cartItems.add(CartItem(
-        id: 'c1',
-        title: 'UPSC Foundation Batch',
-        subtitle: 'Complete Prelims + Mains',
-        price: 4999.0,
-        emoji: '🏛️',
-      ));
+       final savedCart = await PurchaseStorage.readCart();
+       setState(() {
+         _cartItems = savedCart;
+       });
+    } else {
+      // Save the passed items as the current cart
+      await PurchaseStorage.saveCart(_cartItems);
     }
   }
 
@@ -56,9 +63,9 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
     final removedItem = _cartItems[index];
     setState(() {
       _cartItems.removeAt(index);
-      // Reset discount if cart becomes empty or logic requires re-validation
       if (_cartItems.isEmpty) _discount = 0.0;
     });
+    PurchaseStorage.saveCart(_cartItems);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -69,6 +76,7 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
             setState(() {
               _cartItems.insert(index, removedItem);
             });
+            PurchaseStorage.saveCart(_cartItems);
           },
         ),
       ),
@@ -79,9 +87,9 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
     final code = _couponController.text.trim().toUpperCase();
     if (code.isEmpty) return;
 
-    if (PurchaseData.coupons.containsKey(code)) {
+    if (StoreData.coupons.containsKey(code)) {
       setState(() {
-        _discount = PurchaseData.coupons[code]!;
+        _discount = StoreData.coupons[code]!;
         _couponError = null;
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -157,7 +165,7 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -169,7 +177,6 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Coupon Input
             Row(
               children: [
                 Expanded(
@@ -197,18 +204,13 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
               ],
             ),
             const SizedBox(height: 24),
-
-            // Breakdown
             _buildPriceRow('Subtotal', _subtotal),
             if (_discount > 0)
               _buildPriceRow('Discount', -_discount, color: Colors.green),
             _buildPriceRow('Tax (18%)', _tax),
             const Divider(height: 24),
             _buildPriceRow('Total', _total, isTotal: true),
-            
             const SizedBox(height: 24),
-
-            // Checkout Button
             ElevatedButton(
               onPressed: () {
                 Navigator.push(

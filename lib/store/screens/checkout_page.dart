@@ -1,19 +1,22 @@
-// file: lib/store/screens/checkout_page.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../purchase_data.dart';
-import '../widgets/payment_method_tile.dart';
-import 'payment_result_page.dart';
+import 'package:eduverse/store/models/store_models.dart';
+import 'package:eduverse/store/store_data.dart';
+import 'package:eduverse/store/widgets/payment_method_tile.dart';
+import 'package:eduverse/store/screens/payment_result_page.dart';
+import 'package:eduverse/common/persistence/purchase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eduverse/store/services/store_repository.dart';
 
 class CheckoutPage extends StatefulWidget {
   final List<CartItem> items;
   final double totalAmount;
 
   const CheckoutPage({
-    Key? key,
+    super.key,
     required this.items,
     required this.totalAmount,
-  }) : super(key: key);
+  });
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -23,12 +26,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _selectedMethodId = 'card';
   final _formKey = GlobalKey<FormState>();
 
-  // Card Controllers
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
-
-  // UPI Controller
   final _upiIdController = TextEditingController();
 
   bool _isProcessing = false;
@@ -47,7 +47,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     setState(() => _isProcessing = true);
 
-    // Show Progress Dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -55,37 +54,46 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
 
     try {
-      final success = await PurchaseData.processPayment();
+      // Simulate Payment Gateway delay
+      await Future.delayed(const Duration(seconds: 2));
       
-      // Create Purchase Record
-      final purchase = Purchase(
-        id: 'TXN${Random().nextInt(999999)}',
-        date: DateTime.now(),
-        amount: widget.totalAmount,
-        items: widget.items,
-        paymentMethod: _selectedMethodId,
-        status: success ? 'Success' : 'Failed',
-      );
+      // In a real app, integrate Stripe/Razorpay here.
+      // For this demo, we assume payment is successful.
+      final success = true; 
 
       if (success) {
-        await PurchaseData.savePurchase(purchase);
-      } else {
-        // Also save failed transactions? Prompt says "logged status is Failed"
-        await PurchaseData.savePurchase(purchase);
-      }
+        final user = FirebaseAuth.instance.currentUser;
+        final userId = user?.uid ?? 'guest_${DateTime.now().millisecondsSinceEpoch}';
 
-      if (mounted) {
-        Navigator.pop(context); // Close dialog
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PaymentResultPage(purchase: purchase),
-          ),
+        final purchase = Purchase(
+          userId: userId,
+          id: 'TXN${Random().nextInt(999999)}',
+          timestamp: DateTime.now(),
+          amount: widget.totalAmount,
+          items: widget.items,
+          paymentMethod: _selectedMethodId,
+          status: 'Pending', // Cloud Function will update to Success/Failed
         );
+
+        // Save to Firestore (triggers Cloud Function)
+        await StoreRepository().createPurchase(purchase);
+
+        // Clear local cart
+        await PurchaseStorage.saveCart([]);
+
+        if (mounted) {
+          Navigator.pop(context); // Close dialog
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PaymentResultPage(purchase: purchase),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // Close dialog
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
@@ -105,7 +113,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Order Summary
               _buildSectionTitle('Order Summary'),
               Card(
                 elevation: 0,
@@ -130,23 +137,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Payment Methods
               _buildSectionTitle('Payment Method'),
-              ...PurchaseData.paymentMethods.map((method) => PaymentMethodTile(
+              ...StoreData.paymentMethods.map((method) => PaymentMethodTile(
                     method: method,
                     isSelected: _selectedMethodId == method.id,
                     onTap: () => setState(() => _selectedMethodId = method.id),
                   )),
               const SizedBox(height: 24),
-
-              // Payment Details Input
               _buildSectionTitle('Payment Details'),
               _buildPaymentDetailsInput(),
-
               const SizedBox(height: 32),
-
-              // Pay Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -274,7 +274,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 }
 
 class _PaymentProgressDialog extends StatelessWidget {
-  const _PaymentProgressDialog({Key? key}) : super(key: key);
+  const _PaymentProgressDialog();
 
   @override
   Widget build(BuildContext context) {

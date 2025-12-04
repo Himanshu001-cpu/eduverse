@@ -1,130 +1,150 @@
+// file: lib/store/store_data.dart
 import 'package:flutter/material.dart';
-import 'models/store_models.dart';
+import 'package:eduverse/store/models/store_models.dart';
+
+// README:
+// This file contains mock data for the Store.
+// Persistence keys used: 'purchase_history_v1', 'cart_v1', 'bookmarks_v1'.
+// To test flows:
+// 1. Use 'WELCOME50' coupon in cart.
+// 2. Use any valid card format (16 digits) in checkout.
+// 3. Purchase updates 'seatsLeft' in-memory (reset on restart).
 
 class StoreData {
-  // -------------------------
-  // BANNERS
-  // -------------------------
-  static final List<StoreBanner> banners = [
-    StoreBanner(
-      title: 'New Batch Alert!',
-      subtitle: 'UPSC 2027 Foundation Course Starting Soon',
-      emoji: '🎯',
-      colors: [
-        Colors.purpleAccent,
-        Colors.deepPurple,
-      ],
-    ),
-    StoreBanner(
-      title: 'Limited Seats',
-      subtitle: 'Prelims 2025 Crash Course - Enroll Now',
-      emoji: '⚡',
-      colors: [
-        Colors.orange,
-        Colors.deepOrange,
-      ],
-    ),
-    StoreBanner(
-      title: 'Expert Faculty',
-      subtitle: 'Optional Subjects with Top Rankers',
-      emoji: '👨‍🏫',
-      colors: [
-        Colors.blueAccent,
-        Colors.indigo,
-      ],
-    ),
-    StoreBanner(
-      title: 'Study Anytime',
-      subtitle: 'Record + Live Classes Available',
-      emoji: '📱',
-      colors: [
-        Colors.teal,
-        Colors.green,
-      ],
-    ),
-  ];
-
-  // -------------------------
-  // HINGLISH BATCHES
-  // -------------------------
-  static final List<Course> hinglishBatches = [
-    Course(
-      title: 'UPSC CSE 2026 - Complete Foundation to Advanced',
-      batchInfo: 'Hinglish Medium | Live + Recorded',
-      metadata: 'Batch Starting: 1st Dec 2025',
-      emoji: '📚',
-      colors: [Colors.purple, Colors.deepPurple],
-      tag: 'NEW',
-    ),
-    Course(
-      title: 'Prelims to Mains Complete Course',
-      batchInfo: 'GS + CSAT + Optional',
-      metadata: 'Admissions Closing: 25th Nov 2025',
-      emoji: '🎓',
-      colors: [Colors.indigo, Colors.blue],
-    ),
-    Course(
-      title: 'Foundation Batch for Beginners',
-      batchInfo: 'Hinglish Medium | 18 Months Program',
-      metadata: 'Batch Starting: 15th Dec 2025',
-      emoji: '🌟',
-      colors: [Colors.pink, Colors.purple],
-    ),
-  ];
-
-  // -------------------------
-  // TARGET 2027
-  // -------------------------
-  static final List<Course> target2027 = [
-    Course(
-      title: 'UPSC 2027 Long Term Strategy Course',
-      batchInfo: 'Comprehensive 24 Months Mentorship',
-      metadata: 'Early Bird Offer Till: 30th Nov',
-      emoji: '🎯',
-      colors: [Colors.orange, Colors.deepOrange],
-      tag: 'POPULAR',
-    ),
-    Course(
-      title: 'Foundation + Current Affairs 2027',
-      batchInfo: 'Daily Updates + Weekly Tests',
-      metadata: 'Batch Starting: 5th Jan 2026',
-      emoji: '📰',
+  static final List<BannerModel> banners = [
+    BannerModel(
+      title: 'UPSC 2025 Foundation',
+      subtitle: 'Start your journey today',
+      emoji: '🏛️',
       colors: [Colors.blue, Colors.indigo],
     ),
-    Course(
-      title: 'Complete Prelims + Mains 2027',
-      batchInfo: 'All Subjects Covered | Expert Faculty',
-      metadata: 'Registrations Open Now',
-      emoji: '✍️',
-      colors: [Colors.teal, Colors.green],
+    BannerModel(
+      title: 'CSAT Mastery',
+      subtitle: 'Crack the aptitude test',
+      emoji: '🧮',
+      colors: [Colors.orange, Colors.deepOrange],
+    ),
+    BannerModel(
+      title: 'NCERT Summary',
+      subtitle: 'Build strong basics',
+      emoji: '📚',
+      colors: [Colors.green, Colors.teal],
     ),
   ];
 
-  // -------------------------
-  // OPTIONAL BATCHES
-  // -------------------------
-  static final List<Course> optionalBatches = [
+  static final List<Course> courses = [
     Course(
-      title: 'Geography Optional - Complete Course',
-      batchInfo: 'Paper 1 + Paper 2 | Maps Included',
-      metadata: 'Batch Starting: 10th Dec 2025',
-      emoji: '🗺️',
-      colors: [Colors.green, Colors.teal],
-      tag: 'TOP RATED',
-    ),
-    Course(
-      title: 'Public Administration Optional',
-      batchInfo: 'Theory + Case Studies',
-      metadata: 'Admissions Closing: 20th Nov',
+      id: 'c1',
+      title: 'UPSC IAS Foundation',
+      subtitle: 'Prelims + Mains + Interview',
       emoji: '🏛️',
-      colors: [Colors.blue, Colors.lightBlue],
+      gradientColors: [Colors.blue, Colors.lightBlueAccent],
+      priceDefault: 25000,
+      batches: [
+        Batch(
+          id: 'b1_1',
+          name: 'Morning Batch A',
+          startDate: DateTime.now().add(const Duration(days: 5)),
+          price: 25000,
+          seatsLeft: 15,
+          duration: '12 Months',
+        ),
+        Batch(
+          id: 'b1_2',
+          name: 'Evening Batch B',
+          startDate: DateTime.now().add(const Duration(days: 12)),
+          price: 25000,
+          seatsLeft: 50,
+          duration: '12 Months',
+        ),
+      ],
     ),
     Course(
-      title: 'History Optional - Ancient to Modern',
-      batchInfo: 'Comprehensive Coverage | Notes',
-      metadata: 'Batch Starting: 1st Jan 2026',
-      emoji: '📜',
-      colors: [Colors.amber, Colors.orange],
+      id: 'c2',
+      title: 'CSAT Special',
+      subtitle: 'Maths, Reasoning, English',
+      emoji: '🧮',
+      gradientColors: [Colors.orange, Colors.deepOrangeAccent],
+      priceDefault: 5000,
+      batches: [
+        Batch(
+          id: 'b2_1',
+          name: 'Weekend Batch',
+          startDate: DateTime.now().add(const Duration(days: 2)),
+          price: 5000,
+          seatsLeft: 5,
+          duration: '3 Months',
+        ),
+      ],
+    ),
+    Course(
+      id: 'c3',
+      title: 'Ethics Integrity & Aptitude',
+      subtitle: 'GS Paper 4 Complete',
+      emoji: '⚖️',
+      gradientColors: [Colors.purple, Colors.deepPurpleAccent],
+      priceDefault: 8000,
+      batches: [
+        Batch(
+          id: 'b3_1',
+          name: 'Fast Track',
+          startDate: DateTime.now().add(const Duration(days: 7)),
+          price: 8000,
+          seatsLeft: 20,
+          duration: '2 Months',
+        ),
+      ],
+    ),
+    Course(
+      id: 'c4',
+      title: 'Essay Writing',
+      subtitle: 'Master the art of expression',
+      emoji: '✍️',
+      gradientColors: [Colors.pink, Colors.redAccent],
+      priceDefault: 3000,
+      batches: [
+        Batch(
+          id: 'b4_1',
+          name: 'Weekly Workshop',
+          startDate: DateTime.now().add(const Duration(days: 1)),
+          price: 3000,
+          seatsLeft: 100,
+          duration: '1 Month',
+        ),
+      ],
+    ),
+  ];
+
+  static const Map<String, double> coupons = {
+    'WELCOME50': 500.0, // Fixed amount discount
+    'STUDY10': 100.0,
+    'FLUTTER20': 200.0,
+  };
+
+  static const List<PaymentMethod> paymentMethods = [
+    PaymentMethod(
+      id: 'card',
+      name: 'Credit / Debit Card',
+      description: 'Visa, Mastercard, Rupay',
+      icon: Icons.credit_card,
+    ),
+    PaymentMethod(
+      id: 'upi',
+      name: 'UPI',
+      description: 'Google Pay, PhonePe, Paytm',
+      icon: Icons.qr_code,
+    ),
+    PaymentMethod(
+      id: 'netbanking',
+      name: 'Net Banking',
+      description: 'All Indian banks',
+      icon: Icons.account_balance,
+    ),
+    PaymentMethod(
+      id: 'wallet',
+      name: 'Wallets',
+      description: 'Amazon Pay, Paytm, etc.',
+      icon: Icons.account_balance_wallet,
     ),
   ];
 }

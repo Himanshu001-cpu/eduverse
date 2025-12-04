@@ -2,17 +2,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../purchase_data.dart';
+import 'package:eduverse/store/models/store_models.dart';
+import 'package:eduverse/common/persistence/purchase_storage.dart';
+
+import 'package:eduverse/store/services/store_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PurchaseHistoryPage extends StatelessWidget {
-  const PurchaseHistoryPage({Key? key}) : super(key: key);
+  const PurchaseHistoryPage({super.key});
+
+  Future<List<Purchase>> _fetchPurchases() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+    return StoreRepository().getPurchases(user.uid);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Purchase History')),
       body: FutureBuilder<List<Purchase>>(
-        future: PurchaseData.getPurchaseHistory(),
+        future: _fetchPurchases(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -68,7 +78,7 @@ class PurchaseHistoryPage extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
-                    DateFormat('MMM d, y • h:mm a').format(purchase.date),
+                    DateFormat('MMM d, y • h:mm a').format(purchase.timestamp),
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
@@ -140,7 +150,7 @@ class PurchaseHistoryPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _buildDetailRow('ID', purchase.id),
-              _buildDetailRow('Date', DateFormat('yyyy-MM-dd HH:mm').format(purchase.date)),
+              _buildDetailRow('Date', DateFormat('yyyy-MM-dd HH:mm').format(purchase.timestamp)),
               _buildDetailRow('Method', purchase.paymentMethod.toUpperCase()),
               const Divider(height: 32),
               const Text('Items', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -175,7 +185,6 @@ class PurchaseHistoryPage extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // Mock Invoice Download
                     Clipboard.setData(ClipboardData(text: purchase.toJson().toString()));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Invoice JSON copied to clipboard')),

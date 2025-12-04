@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role in ['superadmin', 'admin', 'content_manager', 'support'];
+    }
+    
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.role == 'superadmin';
+    }
+
+    // Courses: Public read if published, Admin write
+    match /courses/{courseId} {
+      allow read: if resource.data.visibility == 'published' || isAdmin();
+      allow write: if isAdmin();
+      
+      match /batches/{batchId} {
+        allow read: if isAdmin() || get(/databases/$(database)/documents/courses/$(courseId)).data.visibility == 'published';
+        allow write: if isAdmin();
+        
+        match /lectures/{lectureId} {
+          allow read: if isAdmin() || (
+            // Check enrollment exists (simplified, real app would check enrollments collection)
+            exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + batchId))
+          );
+          allow write: if isAdmin();
+        }
+      }
+    }
+
+    // Purchases: User create own, Admin read/write
+    match /purchases/{purchaseId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Enrollments: Read own, Write only via Admin/Functions
+    match /enrollments/{enrollmentId} {
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if false; // Only via Cloud Functions
+    }
+
+    // Audits: Admin read/write
+    match /audits/{auditId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Admins collection (if used instead of custom claims)
+    match /admins/{adminId} {
+      allow read: if request.auth != null;
+      allow write: if isSuperAdmin();
+    }
+  }
+}

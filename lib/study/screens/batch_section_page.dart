@@ -5,16 +5,6 @@ import '../study_data.dart';
 import '../widgets/batch_header.dart';
 import '../widgets/batch_lesson_tile.dart';
 
-// QA Checklist:
-// [ ] Open batch for a course; header shows title, progress, and actions.
-// [ ] Expand Modules -> lesson bottom sheet opens; Mark Complete updates tile and progress.
-// [ ] Download all flow shows progress modal and completes; undo via Snackbar clears offline state.
-// [ ] Notes can be added, edited, and deleted; note badge visible on tile.
-// [ ] Switch to Resources / Quizzes / Discussion tabs - all render and animate.
-// [ ] On narrow device (360x800) no RenderFlex or bottom overflow markers.
-// [ ] On wide screens, right-hand column appears and layout adapts.
-// [ ] All modals are scrollable and keyboard-safe.
-
 class BatchSectionPage extends StatefulWidget {
   final CourseModel course;
   final String batchId;

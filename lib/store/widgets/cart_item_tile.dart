@@ -1,16 +1,16 @@
 // file: lib/store/widgets/cart_item_tile.dart
 import 'package:flutter/material.dart';
-import '../purchase_data.dart';
+import '../models/store_models.dart';
 
 class CartItemTile extends StatelessWidget {
   final CartItem item;
   final VoidCallback onRemove;
 
   const CartItemTile({
-    Key? key,
+    super.key,
     required this.item,
     required this.onRemove,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +25,7 @@ class CartItemTile extends StatelessWidget {
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
-            // Thumbnail / Emoji
+            // Thumbnail / Icon
             Container(
               width: 60,
               height: 60,
@@ -34,10 +34,7 @@ class CartItemTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
-              child: Text(
-                item.emoji,
-                style: const TextStyle(fontSize: 28),
-              ),
+              child: const Icon(Icons.school, size: 28, color: Colors.blue),
             ),
             const SizedBox(width: 16),
             
@@ -52,12 +49,12 @@ class CartItemTile extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    item.subtitle,
+                    'Batch ID: ${item.batchId}',
                     style: TextStyle(
                       color: Colors.grey.shade600,
                       fontSize: 12,
@@ -77,16 +74,16 @@ class CartItemTile extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      // Quantity (Fixed 1 for now)
+                      // Quantity
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'Qty: 1',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        child: Text(
+                          'Qty: ${item.quantity}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],

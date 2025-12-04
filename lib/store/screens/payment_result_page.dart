@@ -1,13 +1,15 @@
 // file: lib/store/screens/payment_result_page.dart
 import 'package:flutter/material.dart';
-import '../purchase_data.dart';
-import 'purchase_history_page.dart';
-import 'checkout_page.dart';
+import 'package:eduverse/store/models/store_models.dart';
+import 'package:eduverse/store/screens/purchase_history_page.dart';
+import 'package:eduverse/store/screens/checkout_page.dart';
+import 'package:eduverse/study/screens/batch_section_page.dart';
+import 'package:eduverse/study/study_data.dart' as study_data;
 
 class PaymentResultPage extends StatelessWidget {
   final Purchase purchase;
 
-  const PaymentResultPage({Key? key, required this.purchase}) : super(key: key);
+  const PaymentResultPage({super.key, required this.purchase});
 
   bool get _isSuccess => purchase.status == 'Success';
 
@@ -22,7 +24,6 @@ class PaymentResultPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              // Status Icon
               Container(
                 width: 100,
                 height: 100,
@@ -37,15 +38,11 @@ class PaymentResultPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              
-              // Title
               Text(
                 _isSuccess ? 'Payment Successful!' : 'Payment Failed',
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              
-              // Message
               Text(
                 _isSuccess
                     ? 'Thank you for your purchase. You can now access your courses.'
@@ -54,8 +51,6 @@ class PaymentResultPage extends StatelessWidget {
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
               ),
               const SizedBox(height: 32),
-
-              // Details Card
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -69,49 +64,64 @@ class PaymentResultPage extends StatelessWidget {
                     const Divider(),
                     _buildDetailRow('Amount', '₹${purchase.amount.toStringAsFixed(2)}'),
                     const Divider(),
-                    _buildDetailRow('Date', '${purchase.date.day}/${purchase.date.month}/${purchase.date.year}'),
-                    const Divider(),
-                    _buildDetailRow('Payment Method', purchase.paymentMethod.toUpperCase()),
+                    _buildDetailRow('Date', '${purchase.timestamp.day}/${purchase.timestamp.month}/${purchase.timestamp.year}'),
                   ],
                 ),
               ),
-              
               const Spacer(),
-
-              // Actions
               if (_isSuccess) ...[
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Navigate to Purchase History
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const PurchaseHistoryPage()),
-                      );
+                      // Navigate to the batch page of the first item
+                      if (purchase.items.isNotEmpty) {
+                        final item = purchase.items.first;
+                        // Mock conversion to study course
+                        final studyCourse = study_data.CourseModel(
+                          id: item.courseId,
+                          title: 'Purchased Course',
+                          subtitle: '',
+                          gradientColors: [Colors.blue, Colors.purple],
+                        );
+                        
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BatchSectionPage(
+                              course: studyCourse,
+                              batchId: item.batchId,
+                            ),
+                          ),
+                          (route) => route.isFirst,
+                        );
+                      } else {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Theme.of(context).primaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Go to Purchases', style: TextStyle(color: Colors.white)),
+                    child: const Text('Go to Course', style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () {
-                    // Pop until back to app root or store
-                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PurchaseHistoryPage()),
+                    );
                   },
-                  child: const Text('Continue Studying'),
+                  child: const Text('View Purchases'),
                 ),
               ] else ...[
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Retry: Open Checkout again
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(

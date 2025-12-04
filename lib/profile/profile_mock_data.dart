@@ -287,12 +287,12 @@ class ProfileMockData {
       type: BookmarkType.course,
       dateAdded: DateTime.now().subtract(const Duration(days: 2)),
       courseData: Course(
+        id: 'upsc-2025',
         title: 'UPSC 2025 Complete Course',
-        batchInfo: 'Starts June 1',
-        metadata: 'Hinglish | 12 Months',
+        subtitle: 'Starts June 1 | Hinglish | 12 Months',
         emoji: '📚',
-        colors: [Colors.blue, Colors.lightBlueAccent],
-        tag: 'Bestseller',
+        gradientColors: [Colors.blue, Colors.lightBlueAccent],
+        priceDefault: 4999.0,
       ),
     ),
     BookmarkItem(

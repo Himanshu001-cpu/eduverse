@@ -1,6 +1,6 @@
 // file: lib/store/widgets/payment_method_tile.dart
 import 'package:flutter/material.dart';
-import '../purchase_data.dart';
+import '../models/store_models.dart';
 
 class PaymentMethodTile extends StatelessWidget {
   final PaymentMethod method;
@@ -8,11 +8,11 @@ class PaymentMethodTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const PaymentMethodTile({
-    Key? key,
+    super.key,
     required this.method,
     required this.isSelected,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
