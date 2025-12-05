@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'store/store_page.dart';
-import 'feed/feed_page.dart';
-import 'study/study_page.dart';
-import 'profile/profile_page.dart';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'auth/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,53 +17,13 @@ class LearningApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Feed',
+      title: 'EduVerse',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
-      home: const MainNavigationPage(),
-    );
-  }
-}
-
-class MainNavigationPage extends StatefulWidget {
-  const MainNavigationPage({Key? key}) : super(key: key);
-
-  @override
-  State<MainNavigationPage> createState() => _MainNavigationPageState();
-}
-
-class _MainNavigationPageState extends State<MainNavigationPage> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = const [
-    FeedPage(),
-    StudyPage(),
-    StorePage(),
-    ProfilePage(),  
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() => _currentIndex = index);
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.feed_outlined), label: 'Feed'),
-          NavigationDestination(icon: Icon(Icons.school), label: 'Study'),
-          NavigationDestination(icon: Icon(Icons.store), label: 'Store'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
+      home: const AuthWrapper(),
     );
   }
 }

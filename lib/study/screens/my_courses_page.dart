@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:eduverse/study/study_data.dart';
+import 'package:eduverse/study/study_repository.dart';
+import 'package:eduverse/study/models/study_models.dart';
 import 'batch_section_page.dart';
 
 class MyCoursesPage extends StatelessWidget {
   const MyCoursesPage({Key? key}) : super(key: key);
 
-  void _showCourseDetail(BuildContext context, CourseModel course) {
+  void _showCourseDetail(BuildContext context, StudyCourseModel course) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -113,6 +114,8 @@ class MyCoursesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final repository = StudyRepository();
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -141,29 +144,46 @@ class MyCoursesPage extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  int crossAxisCount = 1;
-                  if (constraints.maxWidth > 1000) {
-                    crossAxisCount = 3;
-                  } else if (constraints.maxWidth > 600) {
-                    crossAxisCount = 2;
+              child: StreamBuilder<List<StudyCourseModel>>(
+                stream: repository.getEnrolledCourses(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
                   }
 
-                  return GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      childAspectRatio: 1.5,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount: StudyData.userCourses.length,
-                    itemBuilder: (context, index) {
-                      final course = StudyData.userCourses[index];
-                      return _CourseGridCard(
-                        course: course,
-                        onTap: () => _showCourseDetail(context, course),
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text('No courses found. Enroll in a course to see it here.'),
+                    );
+                  }
+
+                  final courses = snapshot.data!;
+
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      int crossAxisCount = 1;
+                      if (constraints.maxWidth > 1000) {
+                        crossAxisCount = 3;
+                      } else if (constraints.maxWidth > 600) {
+                        crossAxisCount = 2;
+                      }
+
+                      return GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          childAspectRatio: 1.5,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
+                        itemCount: courses.length,
+                        itemBuilder: (context, index) {
+                          final course = courses[index];
+                          return _CourseGridCard(
+                            course: course,
+                            onTap: () => _showCourseDetail(context, course),
+                          );
+                        },
                       );
                     },
                   );
@@ -178,7 +198,7 @@ class MyCoursesPage extends StatelessWidget {
 }
 
 class _CourseGridCard extends StatelessWidget {
-  final CourseModel course;
+  final StudyCourseModel course;
   final VoidCallback onTap;
 
   const _CourseGridCard({Key? key, required this.course, required this.onTap})

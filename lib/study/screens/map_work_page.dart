@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:eduverse/study/study_data.dart';
+import 'package:eduverse/study/study_repository.dart';
+import 'package:eduverse/study/models/study_models.dart';
 
 class MapWorkPage extends StatelessWidget {
   const MapWorkPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final repository = StudyRepository();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Topic Map'),
@@ -14,40 +17,59 @@ class MapWorkPage extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: InteractiveViewer(
-          boundaryMargin: const EdgeInsets.all(double.infinity),
-          minScale: 0.5,
-          maxScale: 2.0,
-          child: Container(
-            width: 1000,
-            height: 1000,
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              // Removed NetworkImage to prevent potential crashes if offline or invalid URL
-              // Using a simple gradient or solid color instead for stability
-              gradient: LinearGradient(
-                colors: [Colors.grey[50]!, Colors.grey[100]!],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Stack(
-              children: [
-                // Draw connecting lines (simplified)
-                CustomPaint(
-                  size: const Size(1000, 1000),
-                  painter: _ConnectionPainter(),
+        child: StreamBuilder<List<TopicNodeModel>>(
+          stream: repository.getTopics(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No topics available.'));
+            }
+
+            final topics = snapshot.data!;
+            
+            // Hardcoded positions matching the visual tree structure
+            final positions = [
+              const Offset(400, 100),
+              const Offset(200, 300),
+              const Offset(600, 300),
+              const Offset(400, 500),
+              const Offset(200, 700),
+              const Offset(600, 700),
+            ];
+
+            return InteractiveViewer(
+              boundaryMargin: const EdgeInsets.all(double.infinity),
+              minScale: 0.5,
+              maxScale: 2.0,
+              child: Container(
+                width: 1000,
+                height: 1000,
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  gradient: LinearGradient(
+                    colors: [Colors.grey[50]!, Colors.grey[100]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
-                // Place Topic Nodes
-                _buildNode(context, StudyData.mapTopics[0], 400, 100),
-                _buildNode(context, StudyData.mapTopics[1], 200, 300),
-                _buildNode(context, StudyData.mapTopics[2], 600, 300),
-                _buildNode(context, StudyData.mapTopics[3], 400, 500),
-                _buildNode(context, StudyData.mapTopics[4], 200, 700),
-                _buildNode(context, StudyData.mapTopics[5], 600, 700),
-              ],
-            ),
-          ),
+                child: Stack(
+                  children: [
+                    CustomPaint(
+                      size: const Size(1000, 1000),
+                      painter: _ConnectionPainter(),
+                    ),
+                    ...topics.take(positions.length).map((topic) {
+                      final index = topics.indexOf(topic);
+                      final pos = positions[index];
+                      return _buildNode(context, topic, pos.dx, pos.dy);
+                    }).toList(),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

@@ -4,7 +4,7 @@ import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/store/screens/purchase_history_page.dart';
 import 'package:eduverse/store/screens/checkout_page.dart';
 import 'package:eduverse/study/screens/batch_section_page.dart';
-import 'package:eduverse/study/study_data.dart' as study_data;
+import 'package:eduverse/study/models/study_models.dart';
 
 class PaymentResultPage extends StatelessWidget {
   final Purchase purchase;
@@ -78,7 +78,7 @@ class PaymentResultPage extends StatelessWidget {
                       if (purchase.items.isNotEmpty) {
                         final item = purchase.items.first;
                         // Mock conversion to study course
-                        final studyCourse = study_data.CourseModel(
+                        final studyCourse = StudyCourseModel(
                           id: item.courseId,
                           title: 'Purchased Course',
                           subtitle: '',

@@ -1,6 +1,5 @@
 // file: lib/store/store_page.dart
 import 'package:flutter/material.dart';
-import 'package:eduverse/store/store_data.dart';
 import 'package:eduverse/store/widgets/banner_slider.dart';
 import 'package:eduverse/store/widgets/course_card.dart';
 import 'package:eduverse/store/see_all_courses_page.dart';
@@ -48,7 +47,8 @@ class StorePage extends StatelessWidget {
                   
                   final courses = snapshot.data!;
                   if (courses.isEmpty) {
-                     // Trigger seeding if empty (for demo purposes)
+                     // Update visibility on existing courses and trigger seeding if needed
+                     StoreRepository().updateExistingCoursesVisibility();
                      StoreRepository().seedInitialData();
                      return const Center(child: CircularProgressIndicator());
                   }
@@ -89,20 +89,38 @@ class StorePage extends StatelessWidget {
             }),
             SizedBox(
               height: 180,
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: StoreData.courses.reversed.toList().length,
-                itemBuilder: (context, index) {
-                  final course = StoreData.courses.reversed.toList()[index];
-                  return CourseCard(
-                    course: course,
-                    onTap: () {
-                       Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CourseDetailPage(course: course),
-                        ),
+              child: StreamBuilder<List<Course>>(
+                stream: StoreRepository().getCourses(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  // Reverse order for trending (most recent first)
+                  final courses = snapshot.data!.reversed.toList();
+                  if (courses.isEmpty) {
+                    return const Center(child: Text('No trending courses'));
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: courses.length,
+                    itemBuilder: (context, index) {
+                      final course = courses[index];
+                      return CourseCard(
+                        course: course,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CourseDetailPage(course: course),
+                            ),
+                          );
+                        },
                       );
                     },
                   );

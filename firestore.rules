@@ -11,6 +11,17 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.role == 'superadmin';
     }
 
+    // User profiles: Users can read/write their own profile
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if isAdmin();
+      
+      // User's cart subcollection
+      match /cart/{itemId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
     // Courses: Public read if published, Admin write
     match /courses/{courseId} {
       allow read: if resource.data.visibility == 'published' || isAdmin();
@@ -51,7 +62,39 @@ service cloud.firestore {
     // Admins collection (if used instead of custom claims)
     match /admins/{adminId} {
       allow read: if request.auth != null;
-      allow write: if isSuperAdmin();
+      allow write: if isAdmin();
+    }
+
+    // --- STUDY MODULE RULES ---
+
+    // Live Classes: Public/Auth read, Admin write
+    match /live_classes/{classId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Mock Tests: Public/Auth read, Admin write
+    match /mock_tests/{testId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Questions: Public/Auth read, Admin write
+    match /questions/{questionId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    // Topic Nodes (Map Work): Public/Auth read, Admin write
+    match /topics/{topicId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Workbooks: User specific
+    match /workbooks/{workbookId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }
 }

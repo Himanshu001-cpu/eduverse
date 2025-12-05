@@ -14,37 +14,97 @@ class StoreRepository {
 
   // --- Courses ---
 
+  /// Get all published courses (filtered for public visibility)
   Stream<List<Course>> getCourses() {
-    return _coursesRef.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
+    return _coursesRef
+        .where('visibility', isEqualTo: 'published')
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final courses = <Course>[];
+      
+      for (final doc in snapshot.docs) {
         final data = doc.data();
-        // Manual mapping because Course has complex nested objects (Batch)
-        // In a real app, you might use json_serializable or similar
-        return Course(
+        
+        // Handle gradient colors - support both formats
+        List<Color> gradientColors;
+        if (data['gradientColors'] != null) {
+          gradientColors = (data['gradientColors'] as List<dynamic>)
+              .map((c) => Color(c as int))
+              .toList();
+        } else {
+          gradientColors = [Colors.blue, Colors.blueAccent];
+        }
+        
+        // Try to get batches from embedded array first, then from subcollection
+        List<Batch> batches = [];
+        if (data['batches'] != null && (data['batches'] as List).isNotEmpty) {
+          batches = (data['batches'] as List<dynamic>).map((b) {
+            return Batch(
+              id: b['id'] ?? '',
+              name: b['name'] ?? '',
+              startDate: b['startDate'] != null 
+                  ? DateTime.parse(b['startDate']) 
+                  : DateTime.now(),
+              price: (b['price'] as num?)?.toDouble() ?? 0.0,
+              seatsLeft: b['seatsLeft'] ?? 0,
+              duration: b['duration'] ?? '',
+              isEnrolled: b['isEnrolled'] ?? false,
+            );
+          }).toList();
+        } else {
+          // Fetch from subcollection (admin-created courses)
+          try {
+            final batchSnapshot = await _firestore
+                .collection('courses')
+                .doc(doc.id)
+                .collection('batches')
+                .get();
+            
+            for (final batchDoc in batchSnapshot.docs) {
+              final b = batchDoc.data();
+              batches.add(Batch(
+                id: batchDoc.id,
+                name: b['name'] ?? 'Default Batch',
+                startDate: (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+                price: (b['price'] as num?)?.toDouble() ?? (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
+                seatsLeft: b['seatsLeft'] ?? 0,
+                duration: _calculateDuration(
+                  (b['startDate'] as Timestamp?)?.toDate(),
+                  (b['endDate'] as Timestamp?)?.toDate(),
+                ),
+                isEnrolled: false,
+              ));
+            }
+          } catch (e) {
+            debugPrint('Failed to fetch batches for course ${doc.id}: $e');
+          }
+        }
+        
+        courses.add(Course(
           id: doc.id,
           title: data['title'] ?? '',
           subtitle: data['subtitle'] ?? '',
-          emoji: data['emoji'] ?? '',
-          gradientColors: (data['gradientColors'] as List<dynamic>?)
-                  ?.map((c) => Color(c))
-                  .toList() ??
-              [Colors.blue, Colors.blueAccent],
+          emoji: data['emoji'] ?? '📚', // Default emoji if not set
+          gradientColors: gradientColors.length >= 2 
+              ? gradientColors 
+              : [Colors.blue, Colors.blueAccent],
           priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
-          batches: (data['batches'] as List<dynamic>?)?.map((b) {
-                return Batch(
-                  id: b['id'],
-                  name: b['name'],
-                  startDate: DateTime.parse(b['startDate']),
-                  price: (b['price'] as num).toDouble(),
-                  seatsLeft: b['seatsLeft'],
-                  duration: b['duration'],
-                  isEnrolled: b['isEnrolled'] ?? false,
-                );
-              }).toList() ??
-              [],
-        );
-      }).toList();
+          batches: batches,
+        ));
+      }
+      
+      return courses;
     });
+  }
+  
+  // Helper to calculate duration string from start and end dates
+  String _calculateDuration(DateTime? start, DateTime? end) {
+    if (start == null || end == null) return '3 months';
+    final days = end.difference(start).inDays;
+    if (days > 30) {
+      return '${(days / 30).round()} months';
+    }
+    return '$days days';
   }
 
   // --- Purchases ---
@@ -62,6 +122,57 @@ class StoreRepository {
     return snapshot.docs.map((doc) => Purchase.fromJson(doc.data())).toList();
   }
 
+  // --- Enrollment Tracking ---
+
+  /// Get list of course IDs the user has purchased
+  Future<List<String>> getEnrolledCourseIds(String userId) async {
+    try {
+      final purchases = await getPurchases(userId);
+      final courseIds = <String>{};
+      for (final purchase in purchases) {
+        if (purchase.status == 'completed' || purchase.status == 'paid') {
+          for (final item in purchase.items) {
+            courseIds.add(item.courseId);
+          }
+        }
+      }
+      return courseIds.toList();
+    } catch (e) {
+      debugPrint('Failed to get enrolled courses: $e');
+      return [];
+    }
+  }
+
+  /// Check if user is enrolled in a specific course/batch
+  Future<bool> isEnrolled(String userId, String courseId, String batchId) async {
+    try {
+      final purchases = await getPurchases(userId);
+      for (final purchase in purchases) {
+        if (purchase.status == 'completed' || purchase.status == 'paid') {
+          for (final item in purchase.items) {
+            if (item.courseId == courseId && item.batchId == batchId) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Failed to check enrollment: $e');
+      return false;
+    }
+  }
+
+  /// Get user's enrollments with course details
+  Stream<List<Purchase>> watchUserPurchases(String userId) {
+    return _purchasesRef
+        .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => Purchase.fromJson(doc.data())).toList());
+  }
+
   // --- Seeding ---
 
   Future<void> seedInitialData() async {
@@ -75,6 +186,7 @@ class StoreRepository {
         'emoji': course.emoji,
         'gradientColors': course.gradientColors.map((c) => c.toARGB32()).toList(),
         'priceDefault': course.priceDefault,
+        'visibility': 'published', // Required for public read access
         'batches': course.batches
             .map((b) => {
                   'id': b.id,
@@ -89,4 +201,38 @@ class StoreRepository {
       });
     }
   }
+
+  /// Update existing courses to add visibility field (one-time migration)
+  Future<void> updateExistingCoursesVisibility() async {
+    try {
+      final snapshot = await _coursesRef.get();
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['visibility'] == null) {
+          await doc.reference.update({'visibility': 'published'});
+          debugPrint('Updated visibility for course: ${doc.id}');
+        }
+      }
+      debugPrint('All courses updated with visibility field');
+    } catch (e) {
+      debugPrint('Failed to update courses visibility: $e');
+    }
+  }
+
+  /// Force reseed data (deletes existing and recreates)
+  Future<void> forceReseedData() async {
+    try {
+      // Delete existing courses
+      final snapshot = await _coursesRef.get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+      // Reseed
+      await seedInitialData();
+      debugPrint('Force reseed completed');
+    } catch (e) {
+      debugPrint('Force reseed failed: $e');
+    }
+  }
 }
+

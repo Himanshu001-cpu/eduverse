@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:eduverse/study/study_data.dart';
+import 'package:eduverse/study/models/study_models.dart';
 import 'package:eduverse/study/screens/practice_question_page.dart';
 
 class TestDetailPage extends StatelessWidget {

@@ -5,9 +5,47 @@ import 'package:eduverse/profile/screens/transactions_page.dart';
 import 'package:eduverse/profile/screens/bookmarks_page.dart';
 import 'package:eduverse/profile/screens/notifications_page.dart';
 import 'package:eduverse/profile/profile_mock_data.dart';
+import 'package:eduverse/auth/auth_service.dart';
+import 'package:eduverse/admin/admin_entry_page.dart';
 
 class MenuGrid extends StatelessWidget {
   const MenuGrid({Key? key}) : super(key: key);
+
+  void _handleLogout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: Colors.red),
+            SizedBox(width: 12),
+            Text('Logout'),
+          ],
+        ),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true) {
+      await AuthService().signOut();
+      // AuthWrapper will automatically redirect to login page
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,10 +137,48 @@ class MenuGrid extends StatelessWidget {
                   },
                 ),
               ),
-              // Spacer to keep the Notifications card same width as others in the grid
               const SizedBox(width: 12),
-              const Expanded(child: SizedBox()), 
+              Expanded(
+                child: card(
+                  Icons.logout,
+                  Colors.red,
+                  'Logout',
+                  () => _handleLogout(context),
+                ),
+              ),
             ],
+          ),
+          
+          // Admin Panel - only visible for admin users
+          FutureBuilder<bool>(
+            future: AuthService().isAdmin(),
+            builder: (context, snapshot) {
+              if (snapshot.data == true) {
+                return Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: card(
+                            Icons.admin_panel_settings,
+                            Colors.teal,
+                            'Admin Panel',
+                            () => Navigator.push(
+                              context, 
+                              MaterialPageRoute(builder: (_) => const AdminEntryPage()),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(child: SizedBox()), // Spacer
+                      ],
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ],
       ),

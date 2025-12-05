@@ -6,11 +6,13 @@ class AdminCourse {
   final String slug;
   final String subtitle;
   final String description;
+  final String emoji; // For course card display
   final List<String> tags;
   final String language;
   final String level;
   final String thumbnailUrl;
-  final List<String> coverGradient;
+  final List<int> gradientColors; // Store as int ARGB values for compatibility
+  final double priceDefault; // Base price for the course
   final String visibility; // draft, published, archived
   final DateTime createdAt;
 
@@ -20,27 +22,45 @@ class AdminCourse {
     required this.slug,
     required this.subtitle,
     required this.description,
+    this.emoji = '📚',
     required this.tags,
     required this.language,
     required this.level,
     required this.thumbnailUrl,
-    required this.coverGradient,
+    required this.gradientColors,
+    this.priceDefault = 0.0,
     required this.visibility,
     required this.createdAt,
   });
 
   factory AdminCourse.fromMap(Map<String, dynamic> data, String id) {
+    // Handle both old format (coverGradient as strings) and new format (gradientColors as ints)
+    List<int> colors = [];
+    if (data['gradientColors'] != null) {
+      colors = List<int>.from(data['gradientColors']);
+    } else if (data['coverGradient'] != null) {
+      // Legacy format conversion (hex strings to int)
+      colors = (data['coverGradient'] as List)
+          .map((c) => int.tryParse(c.toString().replaceFirst('#', '0xFF')) ?? 0xFF2196F3)
+          .toList();
+    }
+    if (colors.isEmpty) {
+      colors = [0xFF2196F3, 0xFF1976D2]; // Default blue gradient
+    }
+
     return AdminCourse(
       id: id,
       title: data['title'] ?? '',
       slug: data['slug'] ?? '',
       subtitle: data['subtitle'] ?? '',
       description: data['description'] ?? '',
+      emoji: data['emoji'] ?? '📚',
       tags: List<String>.from(data['tags'] ?? []),
       language: data['language'] ?? 'en',
       level: data['level'] ?? 'beginner',
       thumbnailUrl: data['thumbnailUrl'] ?? '',
-      coverGradient: List<String>.from(data['coverGradient'] ?? []),
+      gradientColors: colors,
+      priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
       visibility: data['visibility'] ?? 'draft',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -52,11 +72,13 @@ class AdminCourse {
       'slug': slug,
       'subtitle': subtitle,
       'description': description,
+      'emoji': emoji,
       'tags': tags,
       'language': language,
       'level': level,
       'thumbnailUrl': thumbnailUrl,
-      'coverGradient': coverGradient,
+      'gradientColors': gradientColors, // Store as int array for store compatibility
+      'priceDefault': priceDefault,
       'visibility': visibility,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -97,7 +119,7 @@ class AdminBatch {
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
       seatsTotal: data['seatsTotal'] ?? 0,
       seatsLeft: data['seatsLeft'] ?? 0,
-      isActive: data['isActive'] ?? false,
+      isActive: data['isActive'] ?? true,
     );
   }
 

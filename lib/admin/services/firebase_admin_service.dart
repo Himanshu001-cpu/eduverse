@@ -67,6 +67,12 @@ class FirebaseAdminService {
     } else {
       await _db.collection('courses').doc(courseId).collection('batches').doc(batch.id).update(data);
     }
+    await _logAudit(isNew ? 'create_batch' : 'update_batch', 'batch', batch.id, data);
+  }
+
+  Future<void> deleteBatch(String courseId, String batchId) async {
+    await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).delete();
+    await _logAudit('delete_batch', 'batch', batchId, {});
   }
 
   // Lectures

@@ -1,9 +1,8 @@
-// file: lib/study/widgets/batch_header.dart
 import 'package:flutter/material.dart';
-import '../study_data.dart';
+import 'package:eduverse/study/models/study_models.dart';
 
 class BatchHeader extends StatefulWidget {
-  final CourseModel course;
+  final StudyCourseModel course;
   final String batchId;
   final VoidCallback onDownloadAll;
   final VoidCallback onShare;

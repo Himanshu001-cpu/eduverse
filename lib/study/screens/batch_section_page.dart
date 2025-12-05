@@ -1,12 +1,12 @@
-// file: lib/study/screens/batch_section_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../study_data.dart';
+import 'package:eduverse/study/models/study_models.dart';
 import '../widgets/batch_header.dart';
 import '../widgets/batch_lesson_tile.dart';
+import 'lecture_player_page.dart';
 
 class BatchSectionPage extends StatefulWidget {
-  final CourseModel course;
+  final StudyCourseModel course;
   final String batchId;
 
   const BatchSectionPage({
@@ -32,7 +32,7 @@ class _BatchSectionPageState extends State<BatchSectionPage>
     {
       'title': 'Module 1: Foundations',
       'lessons': [
-        {'id': 'l1', 'title': 'Introduction to the Course', 'duration': '10m', 'type': 'video', 'locked': false},
+        {'id': 'l1', 'title': 'Introduction to the Course', 'duration': '10m', 'type': 'video', 'locked': false, 'videoUrl': 'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'},
         {'id': 'l2', 'title': 'Basic Concepts Overview', 'duration': '25m', 'type': 'article', 'locked': false},
         {'id': 'l3', 'title': 'Historical Context', 'duration': '40m', 'type': 'video', 'locked': false},
         {'id': 'l4', 'title': 'Module 1 Quiz', 'duration': '15m', 'type': 'quiz', 'locked': true},
@@ -743,14 +743,11 @@ class _LessonDetailSheet extends StatelessWidget {
               const SizedBox(height: 24),
             ],
             const Spacer(),
-            Row(
+              Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      // Add/Edit Note Logic
-                      // For simplicity, we just close and let the user use the tile menu for now,
-                      // or we could implement a dialog here.
                       Navigator.pop(context);
                     },
                     style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
@@ -760,12 +757,31 @@ class _LessonDetailSheet extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: onComplete,
+                    onPressed: () {
+                      if (lesson['type'] == 'video' && lesson['videoUrl'] != null) {
+                         Navigator.pop(context); // Close sheet
+                         Navigator.push(
+                           context,
+                           MaterialPageRoute(
+                             builder: (context) => LecturePlayerPage(
+                               videoUrl: lesson['videoUrl'],
+                               title: lesson['title'],
+                               description: 'This is a detailed description of the lesson...',
+                             ),
+                           ),
+                         );
+                      } else {
+                         onComplete();
+                      }
+                    },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Colors.blue,
                     ),
-                    child: const Text('Mark Complete', style: TextStyle(color: Colors.white)),
+                    child: Text(
+                      lesson['type'] == 'video' ? 'Watch Now' : 'Mark Complete', 
+                      style: const TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
               ],

@@ -1,156 +1,17 @@
 import 'package:flutter/material.dart';
-
-// --- MODELS ---
-
-class ContinueLearningModel {
-  final String title;
-  final String emoji;
-  final double progress; // 0.0 to 1.0
-
-  const ContinueLearningModel({
-    required this.title,
-    required this.emoji,
-    required this.progress,
-  });
-}
-
-class CourseModel {
-  final String id;
-  final String title;
-  final String subtitle;
-  final String emoji;
-  final List<Color> gradientColors;
-  final int lessonCount;
-  final double progress;
-
-  const CourseModel({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    this.emoji = '📚',
-    required this.gradientColors,
-    this.lessonCount = 0,
-    this.progress = 0.0,
-  });
-}
-
-class DailyPracticeModel {
-  final String title;
-  final String description;
-  final IconData icon;
-  final Color color;
-
-  const DailyPracticeModel({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.color,
-  });
-}
-
-class LiveClassModel {
-  final String title;
-  final DateTime dateTime;
-  final String emoji;
-
-  const LiveClassModel({
-    required this.title,
-    required this.dateTime,
-    required this.emoji,
-  });
-}
-
-class QuestionModel {
-  final String id;
-  final String text;
-  final List<String> options;
-  final int answerIndex;
-  final String explanation;
-
-  const QuestionModel({
-    required this.id,
-    required this.text,
-    required this.options,
-    required this.answerIndex,
-    required this.explanation,
-  });
-}
-
-class TestModel {
-  final String id;
-  final String title;
-  final String duration;
-  final String difficulty;
-  final int questionCount;
-  final int bestScore;
-  final List<QuestionModel> questions;
-
-  const TestModel({
-    required this.id,
-    required this.title,
-    required this.duration,
-    required this.difficulty,
-    this.questionCount = 50,
-    this.bestScore = 0,
-    this.questions = const [],
-  });
-}
-
-class TopicNodeModel {
-  final String id;
-  final String title;
-  final String description;
-  final Color color;
-
-  const TopicNodeModel({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.color,
-  });
-}
-
-class TaskModel {
-  final String id;
-  final String title;
-  bool isCompleted;
-
-  TaskModel({
-    required this.id,
-    required this.title,
-    this.isCompleted = false,
-  });
-}
-
-class WorkbookModel {
-  final String id;
-  final String title;
-  final DateTime dueDate;
-  final String status; // Not Started, In Progress, Submitted
-  final double progress;
-  final List<TaskModel> tasks;
-
-  const WorkbookModel({
-    required this.id,
-    required this.title,
-    required this.dueDate,
-    required this.status,
-    required this.progress,
-    this.tasks = const [],
-  });
-}
+import 'package:eduverse/study/models/study_models.dart';
 
 // --- MOCK DATA ---
 
 class StudyData {
   static const List<ContinueLearningModel> continueLearning = [
-    ContinueLearningModel(title: 'Polity Basics', emoji: '🏛️', progress: 0.75),
-    ContinueLearningModel(title: 'Economy 101', emoji: '💰', progress: 0.30),
-    ContinueLearningModel(title: 'Modern History', emoji: '📜', progress: 0.10),
+    ContinueLearningModel(id: 'cl1', title: 'Polity Basics', emoji: '🏛️', progress: 0.75),
+    ContinueLearningModel(id: 'cl2', title: 'Economy 101', emoji: '💰', progress: 0.30),
+    ContinueLearningModel(id: 'cl3', title: 'Modern History', emoji: '📜', progress: 0.10),
   ];
 
-  static const List<CourseModel> userCourses = [
-    CourseModel(
+  static const List<StudyCourseModel> userCourses = [
+    StudyCourseModel(
       id: 'c1',
       title: 'UPSC Foundation',
       subtitle: '120 lessons',
@@ -159,7 +20,7 @@ class StudyData {
       lessonCount: 120,
       progress: 0.45,
     ),
-    CourseModel(
+    StudyCourseModel(
       id: 'c2',
       title: 'CSAT Mastery',
       subtitle: '45 lessons',
@@ -168,7 +29,7 @@ class StudyData {
       lessonCount: 45,
       progress: 0.10,
     ),
-    CourseModel(
+    StudyCourseModel(
       id: 'c3',
       title: 'NCERT Summary',
       subtitle: '60 lessons',
@@ -177,7 +38,7 @@ class StudyData {
       lessonCount: 60,
       progress: 0.80,
     ),
-    CourseModel(
+    StudyCourseModel(
       id: 'c4',
       title: 'Ethics & Integrity',
       subtitle: '30 lessons',
@@ -190,43 +51,50 @@ class StudyData {
 
   static const List<DailyPracticeModel> dailyPractice = [
     DailyPracticeModel(
+      id: 'dp1',
       title: 'Daily Quiz',
       description: '10 Questions',
       icon: Icons.quiz,
-      color: Colors.purple,
+      colorValue: 0xFF9C27B0, // Colors.purple.value
     ),
     DailyPracticeModel(
+      id: 'dp2',
       title: 'Mains Answer',
       description: '1 Question',
       icon: Icons.edit_note,
-      color: Colors.blue,
+      colorValue: 0xFF2196F3, // Colors.blue.value
     ),
     DailyPracticeModel(
+      id: 'dp3',
       title: 'Vocab',
       description: '5 Words',
       icon: Icons.book,
-      color: Colors.orange,
+      colorValue: 0xFFFF9800, // Colors.orange.value
     ),
     DailyPracticeModel(
+      id: 'dp4',
       title: 'Map Work',
       description: 'India Map',
       icon: Icons.map,
-      color: Colors.green,
+      colorValue: 0xFF4CAF50, // Colors.green.value
     ),
   ];
 
   static final List<LiveClassModel> liveClasses = [
     LiveClassModel(
+      id: 'lc1',
       title: 'Current Affairs Analysis',
       dateTime: DateTime.now().add(const Duration(minutes: 5)),
       emoji: '📰',
     ),
     LiveClassModel(
+      id: 'lc2',
       title: 'Geography Mapping',
       dateTime: DateTime.now().add(const Duration(hours: 4)),
       emoji: '🌍',
     ),
     LiveClassModel(
+      id: 'lc3',
       title: 'Ethics Case Studies',
       dateTime: DateTime.now().add(const Duration(days: 1, hours: 10)),
       emoji: '⚖️',
@@ -288,17 +156,18 @@ class StudyData {
   ];
 
   static const List<TopicNodeModel> mapTopics = [
-    TopicNodeModel(id: 'tp1', title: 'Polity', description: 'Constitution & Governance', color: Colors.blue),
-    TopicNodeModel(id: 'tp2', title: 'History', description: 'Ancient, Medieval, Modern', color: Colors.orange),
-    TopicNodeModel(id: 'tp3', title: 'Geography', description: 'Physical & Human', color: Colors.green),
-    TopicNodeModel(id: 'tp4', title: 'Economy', description: 'Macro & Micro', color: Colors.purple),
-    TopicNodeModel(id: 'tp5', title: 'Science', description: 'Physics, Chem, Bio', color: Colors.red),
-    TopicNodeModel(id: 'tp6', title: 'Environment', description: 'Ecology & Biodiversity', color: Colors.teal),
+    TopicNodeModel(id: 'tp1', title: 'Polity', description: 'Constitution & Governance', colorValue: 0xFF2196F3),
+    TopicNodeModel(id: 'tp2', title: 'History', description: 'Ancient, Medieval, Modern', colorValue: 0xFFFF9800),
+    TopicNodeModel(id: 'tp3', title: 'Geography', description: 'Physical & Human', colorValue: 0xFF4CAF50),
+    TopicNodeModel(id: 'tp4', title: 'Economy', description: 'Macro & Micro', colorValue: 0xFF9C27B0),
+    TopicNodeModel(id: 'tp5', title: 'Science', description: 'Physics, Chem, Bio', colorValue: 0xFFF44336),
+    TopicNodeModel(id: 'tp6', title: 'Environment', description: 'Ecology & Biodiversity', colorValue: 0xFF009688),
   ];
 
   static final List<WorkbookModel> workbooks = [
     WorkbookModel(
       id: 'w1',
+      userId: 'user1',
       title: 'Answer Writing Week 1',
       dueDate: DateTime.now().add(const Duration(days: 2)),
       status: 'In Progress',
@@ -307,6 +176,7 @@ class StudyData {
     ),
     WorkbookModel(
       id: 'w2',
+      userId: 'user1',
       title: 'Map Marking Assignment',
       dueDate: DateTime.now().subtract(const Duration(days: 1)),
       status: 'Overdue',
@@ -315,6 +185,7 @@ class StudyData {
     ),
     WorkbookModel(
       id: 'w3',
+      userId: 'user1',
       title: 'Ethics Case Study 1',
       dueDate: DateTime.now().add(const Duration(days: 5)),
       status: 'Not Started',
@@ -323,6 +194,7 @@ class StudyData {
     ),
     WorkbookModel(
       id: 'w4',
+      userId: 'user1',
       title: 'Essay Writing',
       dueDate: DateTime.now().subtract(const Duration(days: 5)),
       status: 'Submitted',

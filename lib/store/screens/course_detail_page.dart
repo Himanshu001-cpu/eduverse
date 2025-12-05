@@ -5,7 +5,7 @@ import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/store/widgets/batch_badge.dart';
 import 'package:eduverse/study/screens/batch_section_page.dart';
 import 'package:eduverse/store/screens/purchase_cart_page.dart';
-import 'package:eduverse/study/study_data.dart' as study_data; // For CourseModel conversion if needed
+import 'package:eduverse/study/models/study_models.dart'; // For StudyCourseModel conversion
 
 class CourseDetailPage extends StatelessWidget {
   final Course course;
@@ -145,7 +145,7 @@ class CourseDetailPage extends StatelessWidget {
 
   void _navigateToBatch(BuildContext context, Batch batch) {
     // Convert store Course to study CourseModel for compatibility
-    final studyCourse = study_data.CourseModel(
+    final studyCourse = StudyCourseModel(
       id: course.id,
       title: course.title,
       subtitle: course.subtitle,

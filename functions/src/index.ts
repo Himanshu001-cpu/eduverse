@@ -56,8 +56,9 @@ export const onPurchaseCreate = functions.firestore
             await snap.ref.update({ status: "success" });
 
         } catch (error) {
-            console.error("Enrollment failed", error);
-            await snap.ref.update({ status: "failed", error: error.toString() });
+            const err = error as Error;
+            console.error("Enrollment failed", err);
+            await snap.ref.update({ status: "failed", error: err.message });
         }
     });
 
@@ -67,7 +68,7 @@ export const enrollStudent = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('permission-denied', 'Not an admin');
     }
 
-    const { userId, courseId, batchId } = data;
+    const { userId: _userId, courseId: _courseId, batchId: _batchId } = data;
     // Similar transaction logic as above...
     // Stub for brevity
     return { success: true };
@@ -87,7 +88,119 @@ export const generateInvoice = functions.https.onCall(async (data, context) => {
     return { url: "https://storage.googleapis.com/bucket/invoice_123.pdf" };
 });
 
-// 5. backupFirestoreToStorage
+// 5. setAdminRole: Callable to set admin custom claims
+// Call this from Firebase Console, Admin SDK, or a secure admin interface
+export const setAdminRole = functions.https.onCall(async (data, context) => {
+    // Check if the caller is a superadmin (or first-time bootstrap)
+    const callerRole = context.auth?.token?.role;
+
+    // For first-time setup, allow if no superadmin exists yet
+    // After that, only superadmin can assign roles
+    if (callerRole && callerRole !== 'superadmin') {
+        throw new functions.https.HttpsError(
+            'permission-denied',
+            'Only superadmin can assign admin roles'
+        );
+    }
+
+    const { uid, role } = data;
+
+    if (!uid || typeof uid !== 'string') {
+        throw new functions.https.HttpsError(
+            'invalid-argument',
+            'User UID is required'
+        );
+    }
+
+    const validRoles = ['superadmin', 'admin', 'content_manager', 'support', 'user'];
+    if (!role || !validRoles.includes(role)) {
+        throw new functions.https.HttpsError(
+            'invalid-argument',
+            `Role must be one of: ${validRoles.join(', ')}`
+        );
+    }
+
+    try {
+        // Set custom claims on the user
+        await admin.auth().setCustomUserClaims(uid, { role });
+
+        // Also update the users collection for app-level checks
+        await db.collection('users').doc(uid).set(
+            { role, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+            { merge: true }
+        );
+
+        // Create audit log
+        await db.collection('audits').add({
+            action: 'set_admin_role',
+            entityType: 'user',
+            entityId: uid,
+            performedBy: context.auth?.uid || 'system',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            details: { newRole: role }
+        });
+
+        console.log(`Successfully set role '${role}' for user ${uid}`);
+        return {
+            success: true,
+            message: `Role '${role}' assigned to user ${uid}. User must re-login for changes to take effect.`
+        };
+    } catch (error) {
+        console.error('Error setting admin role:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to set admin role');
+    }
+});
+
+// 6. removeAdminRole: Revoke admin privileges
+export const removeAdminRole = functions.https.onCall(async (data, context) => {
+    // Only superadmin can remove roles
+    if (context.auth?.token?.role !== 'superadmin') {
+        throw new functions.https.HttpsError(
+            'permission-denied',
+            'Only superadmin can remove admin roles'
+        );
+    }
+
+    const { uid } = data;
+
+    if (!uid || typeof uid !== 'string') {
+        throw new functions.https.HttpsError(
+            'invalid-argument',
+            'User UID is required'
+        );
+    }
+
+    try {
+        // Set role to 'user' (remove admin privileges)
+        await admin.auth().setCustomUserClaims(uid, { role: 'user' });
+
+        // Update users collection
+        await db.collection('users').doc(uid).set(
+            { role: 'user', updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+            { merge: true }
+        );
+
+        // Audit log
+        await db.collection('audits').add({
+            action: 'remove_admin_role',
+            entityType: 'user',
+            entityId: uid,
+            performedBy: context.auth?.uid || 'system',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            details: { previousAction: 'role_revoked' }
+        });
+
+        return {
+            success: true,
+            message: `Admin role removed from user ${uid}. User must re-login.`
+        };
+    } catch (error) {
+        console.error('Error removing admin role:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to remove admin role');
+    }
+});
+
+// 7. backupFirestoreToStorage
 export const backupFirestoreToStorage = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
     const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
     const bucketName = `gs://${projectId}-backups`;
