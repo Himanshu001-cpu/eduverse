@@ -35,10 +35,10 @@ class StoreRepository {
           gradientColors = [Colors.blue, Colors.blueAccent];
         }
         
-        // Try to get batches from embedded array first, then from subcollection
+        // 1. Fetch batches from embedded array (Legacy/Seeded)
         List<Batch> batches = [];
         if (data['batches'] != null && (data['batches'] as List).isNotEmpty) {
-          batches = (data['batches'] as List<dynamic>).map((b) {
+          batches.addAll((data['batches'] as List<dynamic>).map((b) {
             return Batch(
               id: b['id'] ?? '',
               name: b['name'] ?? '',
@@ -48,37 +48,66 @@ class StoreRepository {
               price: (b['price'] as num?)?.toDouble() ?? 0.0,
               seatsLeft: b['seatsLeft'] ?? 0,
               duration: b['duration'] ?? '',
-              isEnrolled: b['isEnrolled'] ?? false,
+              isEnrolled: b['isEnrolled'] ?? false, // Will be updated later
             );
-          }).toList();
-        } else {
-          // Fetch from subcollection (admin-created courses)
-          try {
-            final batchSnapshot = await _firestore
-                .collection('courses')
-                .doc(doc.id)
-                .collection('batches')
-                .get();
-            
-            for (final batchDoc in batchSnapshot.docs) {
-              final b = batchDoc.data();
-              batches.add(Batch(
-                id: batchDoc.id,
-                name: b['name'] ?? 'Default Batch',
-                startDate: (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-                price: (b['price'] as num?)?.toDouble() ?? (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
-                seatsLeft: b['seatsLeft'] ?? 0,
-                duration: _calculateDuration(
-                  (b['startDate'] as Timestamp?)?.toDate(),
-                  (b['endDate'] as Timestamp?)?.toDate(),
-                ),
-                isEnrolled: false,
-              ));
-            }
-          } catch (e) {
-            debugPrint('Failed to fetch batches for course ${doc.id}: $e');
-          }
+          }));
         }
+
+        // 2. Fetch from subcollection (Admin-created) and merge
+        try {
+          final batchSnapshot = await _firestore
+              .collection('courses')
+              .doc(doc.id)
+              .collection('batches')
+              .get();
+          
+          for (final batchDoc in batchSnapshot.docs) {
+            final b = batchDoc.data();
+            
+            // Filter out inactive batches (default to true if missing, e.g. legacy data)
+            final bool isActive = b['isActive'] ?? true;
+            if (!isActive) continue;
+
+            final batchId = batchDoc.id;
+
+            // Check if this batch is already in the list (avoid duplicates if migration happened)
+            final existingIndex = batches.indexWhere((element) => element.id == batchId);
+            
+            final newBatch = Batch(
+              id: batchId,
+              name: b['name'] ?? 'Default Batch',
+              startDate: (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+              price: (b['price'] as num?)?.toDouble() ?? (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
+              seatsLeft: b['seatsLeft'] ?? 0,
+              duration: _calculateDuration(
+                (b['startDate'] as Timestamp?)?.toDate(),
+                (b['endDate'] as Timestamp?)?.toDate(),
+              ),
+              isEnrolled: false, // Will be updated later
+            );
+
+            if (existingIndex != -1) {
+              // Update existing
+              batches[existingIndex] = newBatch;
+            } else {
+              // Add new
+              batches.add(newBatch);
+            }
+          }
+        } catch (e) {
+          debugPrint('Failed to fetch batches for course ${doc.id}: $e');
+        }
+
+        // 3. Update Enrollment Status for all batches
+        // Optimization: Fetch user purchases once outside the loop if possible, 
+        // but here we are inside the course loop. 
+        // We'll rely on the UI to check enrollment or do it here if we have userId.
+        // The previous code had `isEnrolled` in the model, but it was just reading from JSON or defaulting to false.
+        // We really should check against real purchases if we want it to be accurate.
+        // However, `getCourses` doesn't take a userId. 
+        // The UI (CourseDetailScreen/StorePage) handles "Enroll Now" vs "Go to Course" logic often by checking purchases again or the user passing logic.
+        // But let's keep the `isEnrolled` as false by default here, as strictly `getCourses` is public data.
+        // The StorePage or DetailPage can update the state.
         
         courses.add(Course(
           id: doc.id,

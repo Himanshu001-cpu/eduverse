@@ -5,11 +5,24 @@ import 'package:eduverse/profile/screens/transactions_page.dart';
 import 'package:eduverse/profile/screens/bookmarks_page.dart';
 import 'package:eduverse/profile/screens/notifications_page.dart';
 import 'package:eduverse/profile/profile_mock_data.dart';
-import 'package:eduverse/auth/auth_service.dart';
+import 'package:eduverse/core/firebase/auth_service.dart';
 import 'package:eduverse/admin/admin_entry_page.dart';
 
-class MenuGrid extends StatelessWidget {
+class MenuGrid extends StatefulWidget {
   const MenuGrid({Key? key}) : super(key: key);
+
+  @override
+  State<MenuGrid> createState() => _MenuGridState();
+}
+
+class _MenuGridState extends State<MenuGrid> {
+  late Future<bool> _isAdminFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _isAdminFuture = AuthService().isAdmin();
+  }
 
   void _handleLogout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
@@ -151,8 +164,20 @@ class MenuGrid extends StatelessWidget {
           
           // Admin Panel - only visible for admin users
           FutureBuilder<bool>(
-            future: AuthService().isAdmin(),
+            future: _isAdminFuture,
             builder: (context, snapshot) {
+              debugPrint('Admin FutureBuilder - connectionState: ${snapshot.connectionState}, data: ${snapshot.data}, error: ${snapshot.error}');
+              
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                // Show a small loading indicator while checking admin status
+                return const SizedBox.shrink();
+              }
+              
+              if (snapshot.hasError) {
+                debugPrint('Error checking admin status: ${snapshot.error}');
+                return const SizedBox.shrink();
+              }
+              
               if (snapshot.data == true) {
                 return Column(
                   children: [

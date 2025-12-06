@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'auth_service.dart';
+import 'package:eduverse/core/firebase/auth_service.dart';
 import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {

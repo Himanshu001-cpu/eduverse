@@ -7,8 +7,11 @@ import 'screens/lecture_editor_screen.dart';
 import 'screens/users_screen.dart';
 import 'screens/enrollments_screen.dart';
 import 'screens/purchases_screen.dart';
+import 'screens/feed_editor_screen.dart';
+import 'screens/quiz_editor_screen.dart';
 import 'screens/settings_screen.dart';
 import 'models/admin_models.dart';
+import 'package:eduverse/feed/models.dart';
 
 class AdminRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -32,6 +35,11 @@ class AdminRouter {
         return MaterialPageRoute(builder: (_) => const EnrollmentsScreen());
       case '/purchases':
         return MaterialPageRoute(builder: (_) => const PurchasesScreen());
+      case '/feed_editor':
+        return MaterialPageRoute(builder: (_) => const FeedEditorScreen());
+      case '/quiz_editor':
+        final feedItem = settings.arguments as FeedItem?;
+        return MaterialPageRoute(builder: (_) => QuizEditorScreen(feedItem: feedItem));
       case '/settings':
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
       default:

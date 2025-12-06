@@ -80,9 +80,87 @@ class StudyRepository {
       });
   }
 
+  // --- LESSONS ---
+
+  Stream<List<LessonModel>> getLessons(String courseId, String batchId) {
+    return _firestore
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('lessons')
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final List<LessonModel> lessons = [];
+          if (_userId.isEmpty) {
+             return snapshot.docs.map((doc) => LessonModel.fromMap(doc.data(), doc.id)).toList();
+          }
+
+          for (final doc in snapshot.docs) {
+             // Check progress for each lesson
+             // This is N+1, but for lessons in a batch (usually <50) it's acceptable for MVP.
+             // Ideally fetch all progress for user once.
+             bool isCompleted = false;
+             try {
+               final progressDoc = await _firestore
+                   .collection('users')
+                   .doc(_userId)
+                   .collection('progress')
+                   .doc(doc.id)
+                   .get();
+               if (progressDoc.exists && progressDoc.data()?['completed'] == true) {
+                 isCompleted = true;
+               }
+             } catch (e) {
+               // ignore
+             }
+             lessons.add(LessonModel.fromMap(doc.data(), doc.id, isCompleted: isCompleted));
+          }
+          return lessons;
+        });
+  }
+
+  Future<void> updateLessonProgress(String lessonId, bool completed) async {
+    if (_userId.isEmpty) return;
+    
+    await _firestore
+        .collection('users')
+        .doc(_userId)
+        .collection('progress')
+        .doc(lessonId)
+        .set({
+          'completed': completed,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+  }
+
+  // --- TESTS ---
+
+  Future<void> saveTestResult(String testId, int score) async {
+    if (_userId.isEmpty) return;
+
+    await _firestore
+        .collection('users')
+        .doc(_userId)
+        .collection('tests')
+        .doc(testId)
+        .set({
+          'score': score,
+          'completedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+  }
+
   Stream<List<DailyPracticeModel>> getDailyPractice() {
-    // These are usually static config but can be dynamic
-     return Stream.value(StudyData.dailyPractice);
+    return _firestore.collection('daily_practice')
+      .snapshots()
+      .map((snapshot) {
+        if (snapshot.docs.isEmpty) {
+          return StudyData.dailyPractice; // Fallback
+        }
+        return snapshot.docs
+            .map((doc) => DailyPracticeModel.fromMap(doc.data(), doc.id))
+            .toList();
+      });
   }
 
   Stream<List<TestModel>> getMockTests() {

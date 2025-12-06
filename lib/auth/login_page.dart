@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth_service.dart';
+import 'package:eduverse/core/firebase/auth_service.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
 import 'phone_login_page.dart';

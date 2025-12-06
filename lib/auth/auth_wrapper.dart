@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'auth_service.dart';
+import 'package:eduverse/core/firebase/auth_service.dart';
 import 'login_page.dart';
 import '../navigation/main_navigation_page.dart';
 

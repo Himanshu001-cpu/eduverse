@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../auth/auth_service.dart';
+import 'package:eduverse/core/firebase/auth_service.dart';
 import 'admin_router.dart';
 import 'services/firebase_admin_service.dart';
+import 'screens/admin_login_screen.dart';
 
 /// Entry point for Admin panel from the main app.
 /// Checks if user is admin before showing admin UI.
@@ -27,7 +28,23 @@ class _AdminEntryPageState extends State<AdminEntryPage> {
 
   Future<void> _checkAdminStatus() async {
     try {
+      if (_authService.currentUser == null) {
+         if (mounted) {
+           Navigator.pushReplacement(
+             context,
+             MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+           );
+         }
+         return;
+      }
+
       final isAdmin = await _authService.isAdmin();
+
+      // Ensure Firestore data matches for the hardcoded admin
+      if (isAdmin && _authService.currentUser?.email == 'admin@eduverse.com') {
+         await _authService.syncAdminRole();
+      }
+
       if (mounted) {
         setState(() {
           _isAdmin = isAdmin;

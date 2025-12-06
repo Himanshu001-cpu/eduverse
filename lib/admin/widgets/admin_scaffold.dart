@@ -34,6 +34,7 @@ class AdminScaffold extends StatelessWidget {
             _navItem(context, 'Courses', '/courses', Icons.school),
             _navItem(context, 'Users', '/users', Icons.people),
             _navItem(context, 'Purchases', '/purchases', Icons.shopping_cart),
+            _navItem(context, 'Feed Editor', '/feed_editor', Icons.feed),
             _navItem(context, 'Settings', '/settings', Icons.settings),
           ],
         ),

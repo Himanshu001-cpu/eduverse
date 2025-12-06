@@ -141,6 +141,50 @@ class StudyCourseModel {
   }
 }
 
+class LessonModel {
+  final String id;
+  final String title;
+  final String description;
+  final String videoUrl;
+  final String pdfUrl;
+  final int durationMinutes;
+  final bool isCompleted;
+
+  const LessonModel({
+    required this.id,
+    required this.title,
+    this.description = '',
+    this.videoUrl = '',
+    this.pdfUrl = '',
+    this.durationMinutes = 0,
+    this.isCompleted = false,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'videoUrl': videoUrl,
+      'pdfUrl': pdfUrl,
+      'durationMinutes': durationMinutes,
+      // isCompleted is usually stored in user progress, not lesson doc, 
+      // but if we merge valid data, it's fine to have it here for UI model.
+    };
+  }
+
+  factory LessonModel.fromMap(Map<String, dynamic> map, String id, {bool isCompleted = false}) {
+    return LessonModel(
+      id: id,
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      videoUrl: map['videoUrl'] ?? '',
+      pdfUrl: map['pdfUrl'] ?? '',
+      durationMinutes: map['durationMinutes'] ?? 0,
+      isCompleted: isCompleted,
+    );
+  }
+}
+
 class DailyPracticeModel {
   final String id;
   final String title;

@@ -207,10 +207,15 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                     _buildSectionHeader('Appearance'),
                     const SizedBox(height: 12),
                     
-                    Row(
+                    // Emoji field and quick picker
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         // Emoji Field
-                        Expanded(
+                        SizedBox(
+                          width: 100,
                           child: TextFormField(
                             controller: _emojiController,
                             decoration: const InputDecoration(
@@ -223,27 +228,22 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                             onChanged: (_) => setState(() {}),
                           ),
                         ),
-                        const SizedBox(width: 16),
                         // Quick emoji picker
-                        Wrap(
-                          spacing: 8,
-                          children: ['📚', '✍️', '📊', '⚖️', '🏛️', '🧮', '🌍', '💼']
-                              .map((e) => InkWell(
-                                    onTap: () {
-                                      _emojiController.text = e;
-                                      setState(() {});
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.grey.shade300),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(e, style: const TextStyle(fontSize: 20)),
+                        ...['📚', '✍️', '📊', '⚖️', '🏛️', '🧮', '🌍', '💼']
+                            .map((e) => InkWell(
+                                  onTap: () {
+                                    _emojiController.text = e;
+                                    setState(() {});
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                  ))
-                              .toList(),
-                        ),
+                                    child: Text(e, style: const TextStyle(fontSize: 20)),
+                                  ),
+                                )),
                       ],
                     ),
                     const SizedBox(height: 16),

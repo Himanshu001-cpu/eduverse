@@ -7,6 +7,8 @@ import 'package:eduverse/store/screens/payment_result_page.dart';
 import 'package:eduverse/common/persistence/purchase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:eduverse/store/services/store_repository.dart';
+import 'package:eduverse/core/firebase/purchase_service.dart';
+import 'package:eduverse/core/firebase/cart_service.dart';
 
 class CheckoutPage extends StatefulWidget {
   final List<CartItem> items;
@@ -63,23 +65,39 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
       if (success) {
         final user = FirebaseAuth.instance.currentUser;
-        final userId = user?.uid ?? 'guest_${DateTime.now().millisecondsSinceEpoch}';
+        if (user == null) throw Exception('User not logged in');
 
+        final purchaseService = PurchaseService();
+        final cartService = CartService();
+
+        // Convert CartItems to Maps
+        final itemsMap = widget.items.map((e) => e.toJson()).toList();
+
+        final purchaseId = await purchaseService.createPurchase(
+          uid: user.uid,
+          amount: widget.totalAmount,
+          paymentId: 'TXN${Random().nextInt(999999)}',
+          items: itemsMap,
+          method: _selectedMethodId,
+          status: 'pending', // Cloud function will handle enrollment
+        );
+
+        // Clear subcollection cart
+        await cartService.clearCart(user.uid);
+
+        // Update local storage just in case
+        await PurchaseStorage.saveCart([]);
+
+        // Create a Purchase object for the result page
         final purchase = Purchase(
-          userId: userId,
-          id: 'TXN${Random().nextInt(999999)}',
+          userId: user.uid,
+          id: purchaseId,
           timestamp: DateTime.now(),
           amount: widget.totalAmount,
           items: widget.items,
           paymentMethod: _selectedMethodId,
-          status: 'Pending', // Cloud Function will update to Success/Failed
+          status: 'pending',
         );
-
-        // Save to Firestore (triggers Cloud Function)
-        await StoreRepository().createPurchase(purchase);
-
-        // Clear local cart
-        await PurchaseStorage.saveCart([]);
 
         if (mounted) {
           Navigator.pop(context); // Close dialog

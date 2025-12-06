@@ -75,9 +75,9 @@ class FirebaseAdminService {
     await _logAudit('delete_batch', 'batch', batchId, {});
   }
 
-  // Lectures
+  // Lessons
   Stream<List<AdminLecture>> getLectures(String courseId, String batchId) {
-    return _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('lectures')
+    return _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('lessons')
         .orderBy('orderIndex')
         .snapshots()
         .map((s) => s.docs.map((d) => AdminLecture.fromMap(d.data(), d.id)).toList());
@@ -86,9 +86,9 @@ class FirebaseAdminService {
   Future<void> saveLecture(String courseId, String batchId, AdminLecture lecture, {bool isNew = false}) async {
     final data = lecture.toMap();
     if (isNew) {
-      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('lectures').add(data);
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('lessons').add(data);
     } else {
-      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('lectures').doc(lecture.id).update(data);
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('lessons').doc(lecture.id).update(data);
     }
   }
 

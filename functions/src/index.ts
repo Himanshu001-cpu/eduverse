@@ -200,7 +200,31 @@ export const removeAdminRole = functions.https.onCall(async (data, context) => {
     }
 });
 
-// 7. backupFirestoreToStorage
+// 7. incrementLessonView: Callable to increment view count
+export const incrementLessonView = functions.https.onCall(async (data, context) => {
+    const { courseId, batchId, lessonId } = data;
+
+    if (!courseId || !batchId || !lessonId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing IDs');
+    }
+
+    const lessonRef = db.collection('courses').doc(courseId)
+        .collection('batches').doc(batchId)
+        .collection('lessons').doc(lessonId);
+
+    try {
+        await lessonRef.update({
+            views: admin.firestore.FieldValue.increment(1)
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to increment view", error);
+        // Fail silently or throw? 
+        return { success: false };
+    }
+});
+
+// 8. backupFirestoreToStorage
 export const backupFirestoreToStorage = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
     const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
     const bucketName = `gs://${projectId}-backups`;

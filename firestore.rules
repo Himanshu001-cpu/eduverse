@@ -4,7 +4,10 @@ service cloud.firestore {
     
     // Helper functions
     function isAdmin() {
-      return request.auth != null && request.auth.token.role in ['superadmin', 'admin', 'content_manager', 'support'];
+      // Check if user has 'admin' or 'superadmin' role in their user profile
+      return request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin']
+      );
     }
     
     function isSuperAdmin() {
@@ -20,18 +23,37 @@ service cloud.firestore {
       match /cart/{itemId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // Progress subcollection
+      match /progress/{lessonId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+      
+      // Tests subcollection
+      match /tests/{testId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // Course Progress subcollection
+      match /courseProgress/{courseId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // Courses: Public read if published, Admin write
     match /courses/{courseId} {
-      allow read: if resource.data.visibility == 'published' || isAdmin();
+      allow read: if request.auth != null && (
+        !('visibility' in resource.data) || 
+        resource.data.visibility == 'published' || 
+        isAdmin()
+      );
       allow write: if isAdmin();
       
       match /batches/{batchId} {
         allow read: if isAdmin() || get(/databases/$(database)/documents/courses/$(courseId)).data.visibility == 'published';
         allow write: if isAdmin();
         
-        match /lectures/{lectureId} {
+        match /lessons/{lessonId} {
           allow read: if isAdmin() || (
             // Check enrollment exists (simplified, real app would check enrollments collection)
             exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + batchId))
@@ -52,6 +74,12 @@ service cloud.firestore {
     match /enrollments/{enrollmentId} {
       allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if false; // Only via Cloud Functions
+    }
+
+    // Feed: Public/Auth read, Admin write
+    match /feed/{feedId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     // Audits: Admin read/write
@@ -87,6 +115,12 @@ service cloud.firestore {
     
     // Topic Nodes (Map Work): Public/Auth read, Admin write
     match /topics/{topicId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    // Daily Practice: Public/Auth read, Admin write
+    match /daily_practice/{practiceId} {
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }

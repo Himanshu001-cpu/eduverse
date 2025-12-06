@@ -3,6 +3,8 @@ import 'trending_section.dart';
 import 'feed_content.dart';
 import 'models.dart';
 
+import 'repository/feed_repository.dart';
+
 class FeedPage extends StatefulWidget {
   const FeedPage({Key? key}) : super(key: key);
 
@@ -18,6 +20,8 @@ class _FeedPageState extends State<FeedPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
+    // Seed/Fix data ensuring isPublic field exists
+    FeedRepository().seedFeedData();
   }
 
   @override
