@@ -4,6 +4,7 @@ import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
+import 'package:eduverse/common/services/download_service.dart';
 
 class BatchDetailScreen extends StatefulWidget {
   final StudyBatch batch;
@@ -378,24 +379,10 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: notes.length,
-              separatorBuilder: (_, __) => const Divider(),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final note = notes[index];
-                return ListTile(
-                  leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-                  title: Text(note.title),
-                  subtitle: Text('Added ${_formatDate(note.createdAt)}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.download_rounded),
-                    onPressed: () {
-                      if (note.fileUrl != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Opening ${note.title}...')),
-                        );
-                      }
-                    },
-                  ),
-                );
+                return _NoteCard(note: note);
               },
             );
           },
@@ -437,41 +424,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final item = items[index];
-                return Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blue.shade100,
-                      child: const Icon(Icons.event, color: Colors.blue),
-                    ),
-                    title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (item.description != null && item.description!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(item.description!, maxLines: 2, overflow: TextOverflow.ellipsis),
-                          ),
-                        if (item.dueDate != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text('Due: ${_formatDate(item.dueDate!)}', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                          ),
-                      ],
-                    ),
-                    trailing: item.fileUrl != null
-                        ? IconButton(
-                            icon: const Icon(Icons.attachment),
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Opening attachment for ${item.title}...')),
-                              );
-                            },
-                          )
-                        : null,
-                  ),
-                );
+                return _PlannerCard(item: item);
               },
             );
           },
@@ -509,3 +462,257 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
+/// Card widget for displaying notes with download/open functionality
+class _NoteCard extends StatefulWidget {
+  final StudyNote note;
+  const _NoteCard({required this.note});
+
+  @override
+  State<_NoteCard> createState() => _NoteCardState();
+}
+
+class _NoteCardState extends State<_NoteCard> {
+  final _downloadService = DownloadService();
+  final _isDownloading = ValueNotifier<bool>(false);
+  final _progress = ValueNotifier<double>(0.0);
+  String? _localPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfDownloaded();
+  }
+
+  Future<void> _checkIfDownloaded() async {
+    if (widget.note.fileUrl != null) {
+      _localPath = await _downloadService.getLocalPath(widget.note.fileUrl!);
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _download() async {
+    if (widget.note.fileUrl == null) return;
+    _isDownloading.value = true;
+    _progress.value = 0.0;
+
+    final fileName = '${widget.note.id}_${widget.note.title.replaceAll(' ', '_')}.pdf';
+    final path = await _downloadService.downloadFile(
+      url: widget.note.fileUrl!,
+      fileName: fileName,
+      title: widget.note.title,
+      type: 'pdf',
+      onProgress: (p) => _progress.value = p,
+    );
+
+    _isDownloading.value = false;
+    if (path != null) {
+      _localPath = path;
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _open() async {
+    if (_localPath != null) {
+      await _downloadService.openFile(_localPath!);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.orange.shade100,
+                  child: const Icon(Icons.picture_as_pdf, color: Colors.deepOrange),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.note.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('Added ${widget.note.createdAt.day}/${widget.note.createdAt.month}/${widget.note.createdAt.year}',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ValueListenableBuilder<bool>(
+              valueListenable: _isDownloading,
+              builder: (context, isDownloading, _) {
+                if (!isDownloading) return const SizedBox.shrink();
+                return ValueListenableBuilder<double>(
+                  valueListenable: _progress,
+                  builder: (context, progress, _) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: LinearProgressIndicator(value: progress, minHeight: 4),
+                  ),
+                );
+              },
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_localPath == null && widget.note.fileUrl != null)
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _isDownloading,
+                    builder: (context, isDownloading, _) => TextButton.icon(
+                      onPressed: isDownloading ? null : _download,
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('Download'),
+                    ),
+                  ),
+                if (_localPath != null)
+                  TextButton.icon(
+                    onPressed: _open,
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: const Text('Open'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.green),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Card widget for displaying planner items with download/open functionality
+class _PlannerCard extends StatefulWidget {
+  final StudyPlannerItem item;
+  const _PlannerCard({required this.item});
+
+  @override
+  State<_PlannerCard> createState() => _PlannerCardState();
+}
+
+class _PlannerCardState extends State<_PlannerCard> {
+  final _downloadService = DownloadService();
+  final _isDownloading = ValueNotifier<bool>(false);
+  final _progress = ValueNotifier<double>(0.0);
+  String? _localPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfDownloaded();
+  }
+
+  Future<void> _checkIfDownloaded() async {
+    if (widget.item.fileUrl != null) {
+      _localPath = await _downloadService.getLocalPath(widget.item.fileUrl!);
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _download() async {
+    if (widget.item.fileUrl == null) return;
+    _isDownloading.value = true;
+    _progress.value = 0.0;
+
+    final fileName = '${widget.item.id}_${widget.item.title.replaceAll(' ', '_')}.pdf';
+    final path = await _downloadService.downloadFile(
+      url: widget.item.fileUrl!,
+      fileName: fileName,
+      title: widget.item.title,
+      type: 'pdf',
+      onProgress: (p) => _progress.value = p,
+    );
+
+    _isDownloading.value = false;
+    if (path != null) {
+      _localPath = path;
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _open() async {
+    if (_localPath != null) {
+      await _downloadService.openFile(_localPath!);
+    }
+  }
+
+  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.blue.shade100,
+                  child: const Icon(Icons.event, color: Colors.blue),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.item.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      if (widget.item.description != null && widget.item.description!.isNotEmpty)
+                        Text(widget.item.description!, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                      if (widget.item.dueDate != null)
+                        Text('Date: ${_formatDate(widget.item.dueDate!)}',
+                            style: TextStyle(color: Colors.orange[700], fontSize: 12, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ValueListenableBuilder<bool>(
+              valueListenable: _isDownloading,
+              builder: (context, isDownloading, _) {
+                if (!isDownloading) return const SizedBox.shrink();
+                return ValueListenableBuilder<double>(
+                  valueListenable: _progress,
+                  builder: (context, progress, _) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: LinearProgressIndicator(value: progress, minHeight: 4),
+                  ),
+                );
+              },
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_localPath == null && widget.item.fileUrl != null)
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _isDownloading,
+                    builder: (context, isDownloading, _) => TextButton.icon(
+                      onPressed: isDownloading ? null : _download,
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('Download'),
+                    ),
+                  ),
+                if (_localPath != null)
+                  TextButton.icon(
+                    onPressed: _open,
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: const Text('Open'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.green),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

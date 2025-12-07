@@ -322,7 +322,7 @@ class StudyRepositoryImpl implements IStudyRepository {
         return StudyNote(
           id: doc.id,
           title: data['title'] ?? 'Untitled Note',
-          fileUrl: data['fileUrl'] as String?,
+          fileUrl: data['pdfUrl'] as String?,
           createdAt: (data['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
         );
       }).toList();
@@ -335,25 +335,32 @@ class StudyRepositoryImpl implements IStudyRepository {
   @override
   Future<List<StudyPlannerItem>> getBatchPlanner(String courseId, String batchId) async {
     try {
+      debugPrint('Fetching planner for course: $courseId, batch: $batchId');
       final snapshot = await _firestore
           .collection('courses')
           .doc(courseId)
           .collection('batches')
           .doc(batchId)
           .collection('planner')
-          .orderBy('dueDate', descending: false)
-          .get();
+          .get(); // Removed orderBy to avoid index issues
 
-      return snapshot.docs.map((doc) {
+      debugPrint('Planner query returned ${snapshot.docs.length} documents');
+      
+      final items = snapshot.docs.map((doc) {
         final data = doc.data();
+        debugPrint('Planner doc ${doc.id}: $data');
         return StudyPlannerItem(
           id: doc.id,
           title: data['title'] ?? 'Untitled Item',
-          description: data['description'] as String?,
-          dueDate: (data['dueDate'] as dynamic)?.toDate(),
-          fileUrl: data['fileUrl'] as String?,
+          description: data['subtitle'] as String?,
+          dueDate: (data['date'] as Timestamp?)?.toDate(),
+          fileUrl: data['pdfUrl'] as String?,
         );
       }).toList();
+      
+      // Sort client-side
+      items.sort((a, b) => (a.dueDate ?? DateTime.now()).compareTo(b.dueDate ?? DateTime.now()));
+      return items;
     } catch (e) {
       debugPrint('Error fetching batch planner: $e');
       return [];
