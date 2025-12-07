@@ -16,9 +16,11 @@ class StudyHomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('My Learning'),
+        title: Image.asset('assets/icon.png', height: 40),
         centerTitle: false,
         elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
       ),
       body: Consumer<StudyController>(
         builder: (context, controller, child) {
@@ -31,11 +33,17 @@ class StudyHomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Error: ${controller.error}'),
-                  ElevatedButton(
+                   const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                   const SizedBox(height: 16),
+                   Text('Error: ${controller.error}', style: const TextStyle(color: Colors.red)),
+                   const SizedBox(height: 16),
+                   ElevatedButton(
                     onPressed: () { 
-                       // Trigger refresh if we add a refresh method
+                       // Trigger refresh logic if implemented
                     },
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
                     child: const Text('Retry'),
                   )
                 ],
@@ -46,19 +54,38 @@ class StudyHomeScreen extends StatelessWidget {
           final courses = controller.enrolledCourses;
 
           if (courses.isEmpty) {
-            return const Center(
-              child: Text(
-                'No enrolled courses yet.\nVisit the Store to enroll!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.school_rounded, size: 64, color: Colors.blue[700]),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'No enrolled courses yet',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Visit the Store to enroll in your first course!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
               ),
             );
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             itemCount: courses.length,
-            separatorBuilder: (c, i) => const SizedBox(height: 16),
+            separatorBuilder: (c, i) => const SizedBox(height: 20),
             itemBuilder: (context, index) {
               final course = courses[index];
               return _CourseCard(context: context, course: course);
@@ -81,101 +108,160 @@ class _CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => CourseDetailScreen(course: course),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // Emoji / Icon
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: course.gradientColors.isNotEmpty 
-                        ? course.gradientColors 
-                        : [Colors.blue, Colors.blueAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    course.emoji,
-                    style: const TextStyle(fontSize: 28),
-                  ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChangeNotifierProvider.value(
+                  value: Provider.of<StudyController>(context, listen: false),
+                  child: CourseDetailScreen(course: course),
                 ),
               ),
-              const SizedBox(width: 16),
-              
-              // Details
-              Expanded(
-                child: Column(
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    // Emoji / Icon
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: course.gradientColors.isNotEmpty 
+                              ? course.gradientColors 
+                              : [Colors.blue, Colors.blueAccent],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                           BoxShadow(
+                             color: (course.gradientColors.isNotEmpty ? course.gradientColors.first : Colors.blue).withOpacity(0.3),
+                             blurRadius: 10,
+                             offset: const Offset(0, 4),
+                           ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          course.emoji,
+                          style: const TextStyle(fontSize: 30),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    
+                    // Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            course.title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            course.subtitle,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                              height: 1.4,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // Custom Progress Bar
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      course.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      course.subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    
-                    // Progress Bar
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: LinearProgressIndicator(
-                            value: course.progress,
-                            backgroundColor: Colors.grey[200],
-                            color: Colors.green, // Done color
-                            minHeight: 4,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
+                        const Text(
+                          'Progress',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey),
                         ),
-                        const SizedBox(width: 8),
                         Text(
                           '${(course.progress * 100).toInt()}%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green,
+                            color: Colors.blue[700],
                           ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Stack(
+                      children: [
+                        Container(
+                          height: 8,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Container(
+                              height: 8,
+                              width: constraints.maxWidth * course.progress,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Colors.blue[400]!, Colors.blue[700]!],
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.blue.withOpacity(0.3),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
-              
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
+              ],
+            ),
           ),
         ),
       ),

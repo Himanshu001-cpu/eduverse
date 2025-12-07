@@ -6,12 +6,14 @@ class AdminScaffold extends StatelessWidget {
   final String title;
   final Widget body;
   final Widget? floatingActionButton;
+  final List<Widget>? actions;
 
   const AdminScaffold({
     Key? key,
     required this.title,
     required this.body,
     this.floatingActionButton,
+    this.actions,
   }) : super(key: key);
 
   @override
@@ -20,6 +22,7 @@ class AdminScaffold extends StatelessWidget {
       appBar: AppBar(
         title: Text('Eduverse Admin: $title'),
         actions: [
+          ...?actions,
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => context.read<FirebaseAdminService>().signOut(),

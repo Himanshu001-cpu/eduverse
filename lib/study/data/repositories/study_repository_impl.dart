@@ -14,71 +14,97 @@ class StudyRepositoryImpl implements IStudyRepository {
   Stream<List<StudyCourse>> getEnrolledCourses(String userId) {
     if (userId.isEmpty) return Stream.value([]);
 
-    // 1. Listen to purchases collection
-    return _firestore
-        .collection('purchases')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .asyncMap((snapshot) async {
-          if (snapshot.docs.isEmpty) return [];
+    // We can't easily perform the async admin check inside the stream creation without rxdart or Stream.fromFuture
+    // So we use Stream.fromFuture to perform the check then switch to the appropriate stream
+    
+    return Stream.fromFuture(_checkIsAdmin(userId)).asyncExpand((isAdmin) {
+       if (isAdmin) {
+         // Admin: Listen to ALL courses
+         // Note: Real-time updates for "ALL" courses might be heavy if there are thousands, 
+         // but for an admin panel/app manageable.
+         return _firestore.collection('courses').snapshots().asyncMap((snapshot) async {
+            List<StudyCourse> studyCourses = [];
+            for (var doc in snapshot.docs) {
+               final courseData = doc.data();
+               // Fetch progress for this admin user
+               final progressData = await _fetchProgress(userId, doc.id);
+               studyCourses.add(_mapToStudyCourse(doc.id, courseData, progressData.progress, progressData.completed));
+            }
+            return studyCourses;
+         });
+       } else {
+         // Standard User: Listen to Purchases
+         return _firestore
+          .collection('purchases')
+          .where('userId', isEqualTo: userId)
+          .snapshots()
+          .asyncMap((snapshot) async {
+            if (snapshot.docs.isEmpty) return [];
 
-          final Set<String> courseIds = {};
-          
-          for (var doc in snapshot.docs) {
-            final data = doc.data();
-            final items = (data['items'] as List<dynamic>?) ?? [];
-            for (var item in items) {
-              if (item['courseId'] != null) {
-                courseIds.add(item['courseId']);
+            final Set<String> courseIds = {};
+            for (var doc in snapshot.docs) {
+              final data = doc.data();
+              final items = (data['items'] as List<dynamic>?) ?? [];
+              for (var item in items) {
+                if (item['courseId'] != null) {
+                  courseIds.add(item['courseId']);
+                }
               }
             }
-          }
 
-          if (courseIds.isEmpty) return [];
+            if (courseIds.isEmpty) return [];
 
-          // 2. Fetch Course details and Progress
-          // Note: Ideally, we should batch fetch or use a separate 'enrollments' collection for better query perf.
-          // For now, we fetch details individually or based on cache. 
-          // Optimization: Create a 'users/{uid}/enrollments' collection which denormalizes this data.
-          // BUT, adhering to "Use my existing project structure" -> keeping it simple logic here.
-          
-          List<StudyCourse> studyCourses = [];
+            List<StudyCourse> studyCourses = [];
+            for (var courseId in courseIds) {
+              try {
+                final courseDoc = await _firestore.collection('courses').doc(courseId).get();
+                if (!courseDoc.exists) continue;
 
-          for (var courseId in courseIds) {
-            try {
-              // Fetch course details
-              final courseDoc = await _firestore.collection('courses').doc(courseId).get();
-              if (!courseDoc.exists) continue;
-
-              final courseData = courseDoc.data()!;
-              
-              // Fetch progress
-              final progressDoc = await _firestore
-                  .collection('users')
-                  .doc(userId)
-                  .collection('courseProgress')
-                  .doc(courseId)
-                  .get();
-                  
-              double progress = 0.0;
-              int completed = 0;
-              
-              if (progressDoc.exists) {
-                final pData = progressDoc.data()!;
-                progress = (pData['progressPercent'] as num?)?.toDouble() ?? 0.0;
-                completed = pData['completedLectures'] as int? ?? 0;
+                final courseData = courseDoc.data()!;
+                final progressData = await _fetchProgress(userId, courseId);
+                
+                studyCourses.add(_mapToStudyCourse(courseId, courseData, progressData.progress, progressData.completed));
+              } catch (e) {
+                debugPrint('Error loading course $courseId: $e');
               }
-
-              // Map to StudyCourse
-              studyCourses.add(_mapToStudyCourse(courseDoc.id, courseData, progress, completed));
-              
-            } catch (e) {
-              debugPrint('Error loading course $courseId: $e');
             }
-          }
-          
-          return studyCourses;
-        });
+            return studyCourses;
+          });
+       }
+    });
+  }
+
+  Future<bool> _checkIsAdmin(String userId) async {
+    try {
+      final doc = await _firestore.collection('users').doc(userId).get();
+      if (!doc.exists) return false;
+      final role = doc.data()?['role'];
+      return role == 'admin' || role == 'superadmin';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<({double progress, int completed})> _fetchProgress(String userId, String courseId) async {
+      try {
+        final progressDoc = await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('courseProgress')
+            .doc(courseId)
+            .get();
+        
+        if (progressDoc.exists) {
+            final pData = progressDoc.data()!;
+            return (
+              progress: (pData['progressPercent'] as num?)?.toDouble() ?? 0.0,
+              completed: pData['completedLectures'] as int? ?? 0
+            );
+        }
+      } catch (e) {
+        // ignore
+      }
+      return (progress: 0.0, completed: 0);
   }
 
   StudyCourse _mapToStudyCourse(String id, Map<String, dynamic> data, double progress, int completed) {
@@ -103,18 +129,43 @@ class StudyRepositoryImpl implements IStudyRepository {
 
   @override
   Future<List<StudyLecture>> getCourseLectures(String userId, String courseId) async {
-    final snapshot = await _firestore
+    List<StudyLecture> allLectures = [];
+    
+    // 1. Fetch Course Level Lectures (Legacy)
+    final courseSnapshot = await _firestore
         .collection('courses')
         .doc(courseId)
         .collection('lectures')
         .orderBy('order')
         .get();
+        
+    allLectures.addAll(await _mapLectures(courseSnapshot, userId, courseId, checkProgress: true));
 
-    return _mapLectures(snapshot, userId, courseId, checkProgress: true);
+    // 2. Fetch Batch Level Lectures (New)
+    // iterate all batches
+    final batchesSnap = await _firestore
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .get();
+        
+    for (var batchDoc in batchesSnap.docs) {
+       final lessonsSnap = await batchDoc.reference
+           .collection('lessons')
+           .orderBy('orderIndex')
+           .get();
+           
+       allLectures.addAll(await _mapLectures(lessonsSnap, userId, courseId, checkProgress: true));
+    }
+
+    return allLectures;
   }
   
   @override
   Stream<List<StudyLecture>> getCourseLecturesStream(String userId, String courseId) {
+     // For stream, we'll just stick to the course level for now as combining streams dynamically is complex
+     // or we could implementing a simplified CombineLatest if needed.
+     // But since the UI primarily uses the Future method for the Detail screen, this is lower priority.
      return _firestore
         .collection('courses')
         .doc(courseId)
@@ -145,15 +196,16 @@ class StudyRepositoryImpl implements IStudyRepository {
 
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
+      // Map Admin fields (storagePath, orderIndex) to Study fields (videoUrl, order)
       lectures.add(StudyLecture(
         id: doc.id,
         title: data['title'] ?? 'Untitled Lecture',
-        videoUrl: data['videoUrl'] ?? '',
+        videoUrl: data['videoUrl'] ?? data['storagePath'] ?? '',
         contentUrl: data['contentUrl'] ?? '',
         description: data['description'] ?? '',
-        order: data['order'] ?? 0,
+        order: data['order'] ?? data['orderIndex'] ?? 0,
         isWatched: watchedStatus[doc.id] ?? false,
-        duration: null, // Parse duration if stored
+        duration: null, 
       ));
     }
     return lectures;
@@ -216,5 +268,34 @@ class StudyRepositoryImpl implements IStudyRepository {
           'completedLectures': watchedCount,
           'lastUpdated': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
+  }
+
+  @override
+  Future<List<StudyQuiz>> getBatchQuizzes(String courseId, String batchId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('batches')
+          .doc(batchId)
+          .collection('quizzes')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        final questions = (data['questions'] as List<dynamic>?) ?? [];
+        return StudyQuiz(
+          id: doc.id,
+          title: data['title'] ?? 'Untitled Quiz',
+          description: data['description'] ?? '',
+          questionCount: questions.length,
+          durationMinutes: data['durationMinutes'] ?? 30, // Default or fetch if available
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching batch quizzes: $e');
+      return [];
+    }
   }
 }

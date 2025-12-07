@@ -129,4 +129,67 @@ class FirebaseAdminService {
       'diff': diff,
     });
   }
+
+  // Batch Resources: Notes
+  Stream<List<AdminNote>> getBatchNotes(String courseId, String batchId) {
+    return _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('notes')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map((d) => AdminNote.fromMap(d.data(), d.id)).toList());
+  }
+
+  Future<void> saveBatchNote(String courseId, String batchId, AdminNote note, {bool isNew = false}) async {
+    final data = note.toMap();
+    if (isNew) {
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('notes').add(data);
+    } else {
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('notes').doc(note.id).update(data);
+    }
+  }
+
+  Future<void> deleteBatchNote(String courseId, String batchId, String noteId) async {
+     await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('notes').doc(noteId).delete();
+  }
+
+  // Batch Resources: Planner
+  Stream<List<AdminPlannerItem>> getBatchPlanner(String courseId, String batchId) {
+    return _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('planner')
+        .orderBy('date')
+        .snapshots()
+        .map((s) => s.docs.map((d) => AdminPlannerItem.fromMap(d.data(), d.id)).toList());
+  }
+
+  Future<void> saveBatchPlannerItem(String courseId, String batchId, AdminPlannerItem item, {bool isNew = false}) async {
+    final data = item.toMap();
+    if (isNew) {
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('planner').add(data);
+    } else {
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('planner').doc(item.id).update(data);
+    }
+  }
+
+  Future<void> deleteBatchPlannerItem(String courseId, String batchId, String itemId) async {
+     await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('planner').doc(itemId).delete();
+  }
+
+  // Batch Resources: Quizzes
+  Stream<List<AdminQuiz>> getBatchQuizzes(String courseId, String batchId) {
+    return _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('quizzes')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map((d) => AdminQuiz.fromMap(d.data(), d.id)).toList());
+  }
+
+  Future<void> saveBatchQuiz(String courseId, String batchId, AdminQuiz quiz, {bool isNew = false}) async {
+    final data = quiz.toMap();
+    if (isNew) {
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('quizzes').add(data);
+    } else {
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('quizzes').doc(quiz.id).update(data);
+    }
+  }
+
+  Future<void> deleteBatchQuiz(String courseId, String batchId, String quizId) async {
+     await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('quizzes').doc(quizId).delete();
+  }
 }

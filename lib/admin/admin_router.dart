@@ -12,6 +12,10 @@ import 'screens/quiz_editor_screen.dart';
 import 'screens/settings_screen.dart';
 import 'models/admin_models.dart';
 import 'package:eduverse/feed/models.dart';
+import 'screens/batch_detail_screen.dart';
+import 'screens/batch_notes_screen.dart';
+import 'screens/batch_planner_screen.dart';
+import 'screens/batch_quiz_screen.dart';
 
 class AdminRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -26,6 +30,18 @@ class AdminRouter {
       case '/batch_editor':
         final courseId = settings.arguments as String;
         return MaterialPageRoute(builder: (_) => BatchEditorScreen(courseId: courseId));
+      case '/batch_detail':
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(builder: (_) => BatchDetailScreen(courseId: args['courseId'], batch: args['batch']));
+      case '/batch_notes':
+         final args = settings.arguments as Map<String, String>;
+        return MaterialPageRoute(builder: (_) => BatchNotesScreen(courseId: args['courseId']!, batchId: args['batchId']!));
+      case '/batch_planner':
+         final args = settings.arguments as Map<String, String>;
+        return MaterialPageRoute(builder: (_) => BatchPlannerScreen(courseId: args['courseId']!, batchId: args['batchId']!));
+      case '/batch_quizzes':
+         final args = settings.arguments as Map<String, String>;
+        return MaterialPageRoute(builder: (_) => BatchQuizScreen(courseId: args['courseId']!, batchId: args['batchId']!));
       case '/lecture_editor':
         final args = settings.arguments as Map<String, String>;
         return MaterialPageRoute(builder: (_) => LectureEditorScreen(courseId: args['courseId']!, batchId: args['batchId']!));
@@ -47,3 +63,4 @@ class AdminRouter {
     }
   }
 }
+

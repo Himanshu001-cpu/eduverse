@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eduverse/feed/models/feed_models.dart';
 
 class AdminCourse {
   final String id;
@@ -258,5 +259,113 @@ class AdminAudit {
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       diff: Map<String, dynamic>.from(data['diff'] ?? {}),
     );
+  }
+}
+
+class AdminNote {
+  final String id;
+  final String title;
+  final String subtitle;
+  final String pdfUrl;
+  final DateTime createdAt;
+
+  AdminNote({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.pdfUrl,
+    required this.createdAt,
+  });
+
+  factory AdminNote.fromMap(Map<String, dynamic> data, String id) {
+    return AdminNote(
+      id: id,
+      title: data['title'] ?? '',
+      subtitle: data['subtitle'] ?? '',
+      pdfUrl: data['pdfUrl'] ?? data['url'] ?? '', // Fallback to old url
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'subtitle': subtitle,
+      'pdfUrl': pdfUrl,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+}
+
+class AdminPlannerItem {
+  final String id;
+  final String title;
+  final String subtitle;
+  final String pdfUrl;
+  final DateTime date;
+
+  AdminPlannerItem({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.pdfUrl,
+    required this.date,
+  });
+
+  factory AdminPlannerItem.fromMap(Map<String, dynamic> data, String id) {
+    return AdminPlannerItem(
+      id: id,
+      title: data['title'] ?? data['topic'] ?? '',
+      subtitle: data['subtitle'] ?? data['subject'] ?? '',
+      pdfUrl: data['pdfUrl'] ?? '',
+      date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'subtitle': subtitle,
+      'pdfUrl': pdfUrl,
+      'date': Timestamp.fromDate(date),
+    };
+  }
+}
+
+class AdminQuiz {
+  final String id;
+  final String title;
+  final String description;
+  final List<QuizQuestion> questions;
+  final DateTime createdAt;
+
+  AdminQuiz({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.questions,
+    required this.createdAt,
+  });
+
+  factory AdminQuiz.fromMap(Map<String, dynamic> data, String id) {
+    return AdminQuiz(
+      id: id,
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      questions: (data['questions'] as List<dynamic>?)
+          ?.map((q) => QuizQuestion.fromJson(q as Map<String, dynamic>))
+          .toList() ?? [],
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'questions': questions.map((q) => q.toJson()).toList(),
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
   }
 }

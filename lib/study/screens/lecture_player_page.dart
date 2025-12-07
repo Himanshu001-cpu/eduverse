@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:flutter/services.dart';
 
 class LecturePlayerPage extends StatefulWidget {
@@ -20,8 +21,14 @@ class LecturePlayerPage extends StatefulWidget {
 }
 
 class _LecturePlayerPageState extends State<LecturePlayerPage> {
-  late VideoPlayerController _videoPlayerController;
+  // Video Player / Chewie
+  VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
+  
+  // YouTube Player
+  YoutubePlayerController? _youtubeController;
+  bool _isYoutube = false;
+  
   bool _isError = false;
 
   @override
@@ -32,26 +39,31 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
 
   Future<void> _initializePlayer() async {
     try {
-      _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-      await _videoPlayerController.initialize();
-      
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController,
-        autoPlay: true,
-        looping: false,
-        aspectRatio: 16 / 9,
-        allowFullScreen: true,
-        allowMuting: true,
-        errorBuilder: (context, errorMessage) {
-          return Center(
-            child: Text(
-              'Error playing video: $errorMessage',
-              style: const TextStyle(color: Colors.white),
+        final videoId = YoutubePlayer.convertUrlToId(widget.videoUrl);
+        if (videoId != null) {
+          _isYoutube = true;
+          _youtubeController = YoutubePlayerController(
+            initialVideoId: videoId,
+            flags: const YoutubePlayerFlags(
+              autoPlay: true,
+              mute: false,
             ),
           );
-        },
-      );
-      setState(() {});
+        } else {
+          _isYoutube = false;
+          _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+          await _videoPlayerController!.initialize();
+          
+          _chewieController = ChewieController(
+            videoPlayerController: _videoPlayerController!,
+            autoPlay: true,
+            looping: false,
+            aspectRatio: 16 / 9,
+            allowFullScreen: true,
+            allowMuting: true,
+          );
+        }
+        setState(() {});
     } catch (e) {
       debugPrint('Error initializing video player: $e');
       setState(() {
@@ -62,9 +74,9 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
 
   @override
   void dispose() {
-    _videoPlayerController.dispose();
+    _videoPlayerController?.dispose();
     _chewieController?.dispose();
-    // Revert to portrait if exiting from fullscreen video might have changed it
+    _youtubeController?.dispose();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
@@ -73,6 +85,20 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine the player widget
+    Widget playerWidget;
+    if (_isError) {
+      playerWidget = const Center(child: Text('Could not load video', style: TextStyle(color: Colors.white)));
+    } else if (_isYoutube) {
+      playerWidget = _youtubeController != null 
+          ? YoutubePlayer(controller: _youtubeController!) 
+          : const CircularProgressIndicator(color: Colors.white);
+    } else {
+      playerWidget = _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized
+          ? Chewie(controller: _chewieController!)
+          : const CircularProgressIndicator(color: Colors.white);
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -86,13 +112,7 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
           children: [
             Expanded(
               flex: 2,
-              child: Center(
-                child: _isError 
-                    ? const Text('Could not load video', style: TextStyle(color: Colors.white))
-                    : _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized
-                        ? Chewie(controller: _chewieController!)
-                        : const CircularProgressIndicator(color: Colors.white),
-              ),
+              child: Center(child: playerWidget),
             ),
             Expanded(
               flex: 3,
@@ -127,27 +147,6 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
                       ),
                       const SizedBox(height: 24),
                       const Divider(),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Up Next',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      // Placeholder for "Up Next" list
-                      const SizedBox(height: 16),
-                      ListTile(
-                        leading: Container(
-                          width: 60,
-                          height: 40,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.play_circle_outline),
-                        ),
-                        title: const Text('Next Lesson: Advanced Concepts'),
-                        subtitle: const Text('15 mins'),
-                        onTap: () {},
-                      ),
                     ],
                   ),
                 ),

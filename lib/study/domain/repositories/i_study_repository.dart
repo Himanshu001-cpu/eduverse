@@ -15,4 +15,7 @@ abstract class IStudyRepository {
 
   /// Update course progress (calculated usually on backend or client side agg).
   Future<void> updateCourseProgress(String userId, String courseId);
+
+  /// Get list of quizzes for a specific batch.
+  Future<List<StudyQuiz>> getBatchQuizzes(String courseId, String batchId);
 }

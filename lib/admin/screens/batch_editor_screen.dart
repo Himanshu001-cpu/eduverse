@@ -112,8 +112,8 @@ class BatchEditorScreen extends StatelessWidget {
                         ),
                         onTap: () => Navigator.pushNamed(
                           context,
-                          '/lecture_editor',
-                          arguments: {'courseId': courseId, 'batchId': batch.id},
+                          '/batch_detail',
+                          arguments: {'courseId': courseId, 'batch': batch},
                         ),
                       ),
                     );

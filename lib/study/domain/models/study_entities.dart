@@ -99,3 +99,19 @@ class UserStudyOverview {
     this.lastStudiedLecture,
   });
 }
+
+class StudyQuiz {
+  final String id;
+  final String title;
+  final String description;
+  final int questionCount;
+  final int durationMinutes;
+
+  const StudyQuiz({
+    required this.id,
+    required this.title,
+    required this.description,
+    this.questionCount = 0,
+    this.durationMinutes = 0,
+  });
+}

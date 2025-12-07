@@ -63,6 +63,16 @@ class StudyController extends ChangeNotifier {
     }
   }
 
+  /// Get quizzes for a specific batch
+  Future<List<StudyQuiz>> getBatchQuizzes(String courseId, String batchId) async {
+    try {
+      return await _repository.getBatchQuizzes(courseId, batchId);
+    } catch (e) {
+      debugPrint('Error getting quizzes: $e');
+      rethrow;
+    }
+  }
+
   /// Mark lecture as watched and update UI
   Future<void> markLectureWatched(String courseId, String lectureId, bool isWatched) async {
     try {

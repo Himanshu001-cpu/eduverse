@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:eduverse/study/models/study_models.dart';
+import 'package:eduverse/study/domain/models/study_entities.dart';
+import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import '../widgets/batch_header.dart';
 import '../widgets/batch_lesson_tile.dart';
 import 'lecture_player_page.dart';
@@ -514,33 +517,61 @@ class _BatchSectionPageState extends State<BatchSectionPage>
   }
 
   Widget _buildQuizzesTab() {
-    final quizzes = [
-      {'title': 'Weekly Quiz 1', 'questions': '20 Qs', 'time': '30 mins'},
-      {'title': 'Module 1 Assessment', 'questions': '50 Qs', 'time': '60 mins'},
-    ];
+    return Consumer<StudyController>(
+      builder: (context, controller, child) {
+        return FutureBuilder<List<StudyQuiz>>(
+          future: controller.getBatchQuizzes(widget.course.id, widget.batchId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: quizzes.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final quiz = quizzes[index];
-        return Card(
-          child: ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: Colors.purple,
-              child: Icon(Icons.quiz, color: Colors.white),
-            ),
-            title: Text(quiz['title']!),
-            subtitle: Text('${quiz['questions']} • ${quiz['time']}'),
-            trailing: ElevatedButton(
-              onPressed: () {
-                // Navigate to existing TestDetailPage
-                // Navigator.push(context, MaterialPageRoute(builder: (_) => TestDetailPage(testId: 'mock')));
+            final quizzes = snapshot.data ?? [];
+
+            if (quizzes.isEmpty) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.quiz_outlined, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('No quizzes available yet.', style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: quizzes.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final quiz = quizzes[index];
+                return Card(
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Colors.purple,
+                      child: Icon(Icons.quiz, color: Colors.white),
+                    ),
+                    title: Text(quiz.title),
+                    subtitle: Text('${quiz.questionCount} Questions • ${quiz.durationMinutes} mins'),
+                    trailing: ElevatedButton(
+                      onPressed: () {
+                        // TODO: Navigate to Quiz Taking Screen
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Starting quiz... (Implementation pending)')),
+                        );
+                      },
+                      child: const Text('Start'),
+                    ),
+                  ),
+                );
               },
-              child: const Text('Start'),
-            ),
-          ),
+            );
+          },
         );
       },
     );
