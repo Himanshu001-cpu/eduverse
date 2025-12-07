@@ -61,9 +61,11 @@ class BatchPlannerScreen extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Add Plan PDF'),
+      builder: (context) => Provider.value(
+        value: service,
+        child: StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Add Plan PDF'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -126,6 +128,6 @@ class BatchPlannerScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }

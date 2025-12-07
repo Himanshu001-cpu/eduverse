@@ -59,9 +59,11 @@ class BatchNotesScreen extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Add PDF Note'),
+      builder: (context) => Provider.value(
+        value: service,
+        child: StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Add PDF Note'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -112,6 +114,6 @@ class BatchNotesScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }

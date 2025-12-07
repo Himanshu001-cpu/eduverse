@@ -1,13 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:mime/mime.dart';
 import '../services/firebase_admin_service.dart';
 
 class MediaUploader extends StatefulWidget {
   final String path;
   final Function(String url) onUploadComplete;
 
-  const MediaUploader({Key? key, required this.path, required this.onUploadComplete}) : super(key: key);
+  const MediaUploader({super.key, required this.path, required this.onUploadComplete});
 
   @override
   State<MediaUploader> createState() => _MediaUploaderState();
@@ -17,22 +19,64 @@ class _MediaUploaderState extends State<MediaUploader> {
   bool _uploading = false;
 
   Future<void> _pickAndUpload() async {
-    final result = await FilePicker.platform.pickFiles(withData: true);
+    final result = await FilePicker.platform.pickFiles(
+      withData: true, // Optimistic: try to get bytes
+    );
+
+    if (!mounted) return;
+
     if (result != null && result.files.isNotEmpty) {
       setState(() => _uploading = true);
       try {
         final file = result.files.first;
         final service = context.read<FirebaseAdminService>();
+        
+        // 1. Get bytes (robust handling for Desktop/Web)
+        var bytes = file.bytes;
+        if (bytes == null && file.path != null) {
+          // On Windows/Desktop, bytes might be null even with withData: true
+          final ioFile = File(file.path!);
+          bytes = await ioFile.readAsBytes();
+        }
+
+        if (bytes == null) {
+          throw 'Could not read file data. bytes is null and path is ${file.path}';
+        }
+
+        print('Debug: File size: ${bytes.length} bytes');
+
+        // 2. Detect Mime Type
+        final mimeType = lookupMimeType(file.name) ?? 'application/octet-stream';
+        print('Debug: Detected Mime Type: $mimeType');
+
+        // 3. Upload
+        print('Debug: Starting upload to ${widget.path}/${file.name}');
         final url = await service.uploadMedia(
           '${widget.path}/${file.name}',
-          file.bytes!,
-          'application/octet-stream',
+          bytes,
+          mimeType,
         );
+        print('Debug: Upload successful, URL: $url');
         widget.onUploadComplete(url);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      } catch (e, stackTrace) {
+        print('Error uploading: $e');
+        print(stackTrace);
+        if(mounted) {
+             showDialog(
+               context: context,
+               builder: (ctx) => AlertDialog(
+                 title: const Text('Upload Failed'),
+                 content: SingleChildScrollView(
+                   child: SelectableText('Error: $e\n\nStack:\n$stackTrace'),
+                 ),
+                 actions: [
+                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                 ],
+               ),
+             );
+        }
       } finally {
-        setState(() => _uploading = false);
+        if (mounted) setState(() => _uploading = false);
       }
     }
   }
