@@ -84,6 +84,8 @@ class DownloadItem {
   final String size;
   final double progress; // 0.0 to 1.0
   final DownloadStatus status;
+  final String? filePath; // Local file path
+  final String? url; // Source URL
 
   const DownloadItem({
     required this.id,
@@ -92,6 +94,8 @@ class DownloadItem {
     required this.size,
     this.progress = 0.0,
     this.status = DownloadStatus.queued,
+    this.filePath,
+    this.url,
   });
 }
 

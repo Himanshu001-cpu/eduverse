@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:eduverse/profile/profile_mock_data.dart';
 import 'package:eduverse/common/widgets/empty_state.dart';
 import 'package:eduverse/common/widgets/cards.dart';
@@ -24,7 +26,7 @@ class _MyDownloadsPageState extends State<MyDownloadsPage> {
     _loadDownloads();
   }
 
-  // Load downloads from SharedPreferences or use mock data if empty/first run
+  // Load downloads from SharedPreferences, filter out fake/missing files
   Future<void> _loadDownloads() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -32,17 +34,31 @@ class _MyDownloadsPageState extends State<MyDownloadsPage> {
 
       if (jsonString != null) {
         final List<dynamic> jsonList = jsonDecode(jsonString);
+        final allDownloads = jsonList.map((e) => _fromJson(e)).toList();
+        
+        // Filter out entries without real files
+        final validDownloads = <DownloadItem>[];
+        for (final item in allDownloads) {
+          if (item.filePath != null && await File(item.filePath!).exists()) {
+            validDownloads.add(item);
+          }
+        }
+        
         setState(() {
-          _downloads = jsonList.map((e) => _fromJson(e)).toList();
+          _downloads = validDownloads;
           _isLoading = false;
         });
+        
+        // Save filtered list
+        if (validDownloads.length != allDownloads.length) {
+          _saveDownloads();
+        }
       } else {
-        // First run: use mock data
+        // First run: start with empty list (no mock data)
         setState(() {
-          _downloads = List.from(ProfileMockData.downloads);
+          _downloads = [];
           _isLoading = false;
         });
-        _saveDownloads(); // Save mock data for persistence
       }
     } catch (e) {
       debugPrint('Error loading downloads: $e');
@@ -71,7 +87,9 @@ class _MyDownloadsPageState extends State<MyDownloadsPage> {
       'type': item.type,
       'size': item.size,
       'progress': item.progress,
-      'status': item.status.index, // Store enum index
+      'status': item.status.index,
+      'filePath': item.filePath,
+      'url': item.url,
     };
   }
 
@@ -83,29 +101,34 @@ class _MyDownloadsPageState extends State<MyDownloadsPage> {
       size: json['size'],
       progress: (json['progress'] as num).toDouble(),
       status: DownloadStatus.values[json['status'] as int],
+      filePath: json['filePath'] as String?,
+      url: json['url'] as String?,
     );
   }
 
-  void _deleteItem(int index) {
+  Future<void> _deleteItem(int index) async {
     final deletedItem = _downloads[index];
+    
+    // Delete actual file from device
+    if (deletedItem.filePath != null) {
+      try {
+        final file = File(deletedItem.filePath!);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        debugPrint('Error deleting file: $e');
+      }
+    }
+    
     setState(() {
       _downloads.removeAt(index);
     });
     _saveDownloads();
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Download removed'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () {
-            setState(() {
-              _downloads.insert(index, deletedItem);
-            });
-            _saveDownloads();
-          },
-        ),
-      ),
+      const SnackBar(content: Text('Download deleted permanently')),
     );
   }
 
@@ -185,6 +208,38 @@ class _DownloadItemCard extends StatelessWidget {
 
   const _DownloadItemCard({Key? key, required this.item}) : super(key: key);
 
+  Future<void> _openFile(BuildContext context) async {
+    if (item.filePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('File path not available')),
+      );
+      return;
+    }
+    
+    final file = File(item.filePath!);
+    if (!await file.exists()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('File not found on device')),
+      );
+      return;
+    }
+
+    try {
+      final result = await OpenFilex.open(item.filePath!);
+      if (result.type != ResultType.done && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open file: ${result.message}')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening file: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     IconData icon;
@@ -208,58 +263,66 @@ class _DownloadItemCard extends StatelessWidget {
         color = Colors.grey;
     }
 
-    return AppCard(
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+    return InkWell(
+      onTap: item.status == DownloadStatus.completed ? () => _openFile(context) : null,
+      borderRadius: BorderRadius.circular(12),
+      child: AppCard(
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 28),
             ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                ),
-                const SizedBox(height: 4),
-                if (item.status == DownloadStatus.downloading)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      LinearProgressIndicator(value: item.progress, minHeight: 4),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Downloading... ${(item.progress * 100).toInt()}%',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  )
-                else if (item.status == DownloadStatus.failed)
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    'Failed • Tap to retry',
-                    style: TextStyle(fontSize: 12, color: Colors.red[400]),
-                  )
-                else
-                  Text(
-                    '${item.size} • ${item.type.toUpperCase()}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    item.title,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
-              ],
+                  const SizedBox(height: 4),
+                  if (item.status == DownloadStatus.downloading)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LinearProgressIndicator(value: item.progress, minHeight: 4),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Downloading... ${(item.progress * 100).toInt()}%',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                      ],
+                    )
+                  else if (item.status == DownloadStatus.failed)
+                    Text(
+                      'Failed • Tap to retry',
+                      style: TextStyle(fontSize: 12, color: Colors.red[400]),
+                    )
+                  else
+                    Text(
+                      '${item.size} • ${item.type.toUpperCase()}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                ],
+              ),
             ),
-          ),
-          if (item.status == DownloadStatus.completed)
-            const Icon(Icons.check_circle, color: Colors.green, size: 20)
-          else if (item.status == DownloadStatus.failed)
-            const Icon(Icons.refresh, color: Colors.red, size: 20),
-        ],
+            if (item.status == DownloadStatus.completed)
+              IconButton(
+                icon: const Icon(Icons.open_in_new, color: Colors.green),
+                onPressed: () => _openFile(context),
+                tooltip: 'Open',
+              )
+            else if (item.status == DownloadStatus.failed)
+              const Icon(Icons.refresh, color: Colors.red, size: 20),
+          ],
+        ),
       ),
     );
   }
