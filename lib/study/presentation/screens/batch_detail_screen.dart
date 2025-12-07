@@ -4,16 +4,16 @@ import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
 
-class CourseDetailScreen extends StatefulWidget {
-  final StudyCourse course;
+class BatchDetailScreen extends StatefulWidget {
+  final StudyBatch batch;
 
-  const CourseDetailScreen({Key? key, required this.course}) : super(key: key);
+  const BatchDetailScreen({Key? key, required this.batch}) : super(key: key);
 
   @override
-  State<CourseDetailScreen> createState() => _CourseDetailScreenState();
+  State<BatchDetailScreen> createState() => _BatchDetailScreenState();
 }
 
-class _CourseDetailScreenState extends State<CourseDetailScreen> {
+class _BatchDetailScreenState extends State<BatchDetailScreen> {
   late Future<List<StudyLecture>> _lecturesFuture;
 
   @override
@@ -21,7 +21,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     super.initState();
     // Fetch lectures when screen loads
     _lecturesFuture = Provider.of<StudyController>(context, listen: false)
-        .getLectures(widget.course.id);
+        .getLectures(widget.batch.courseId, widget.batch.id);
   }
 
   @override
@@ -29,7 +29,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-         title: Text(widget.course.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+         title: Text(widget.batch.name, style: const TextStyle(fontWeight: FontWeight.bold)),
          backgroundColor: Colors.white,
          foregroundColor: Colors.black,
          elevation: 0,
@@ -47,15 +47,15 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
                 gradient: LinearGradient(
-                  colors: widget.course.gradientColors.isNotEmpty
-                      ? widget.course.gradientColors
+                  colors: widget.batch.gradientColors.isNotEmpty
+                      ? widget.batch.gradientColors
                       : [Colors.blue, Colors.purple],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: (widget.course.gradientColors.isNotEmpty ? widget.course.gradientColors.first : Colors.blue).withOpacity(0.4),
+                    color: (widget.batch.gradientColors.isNotEmpty ? widget.batch.gradientColors.first : Colors.blue).withOpacity(0.4),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -65,7 +65,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 children: [
                    Center(
                      child: Text(
-                       widget.course.emoji,
+                       widget.batch.emoji,
                        style: const TextStyle(fontSize: 80),
                      ),
                    ),
@@ -74,7 +74,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                      left: 20,
                      right: 20,
                      child: Text(
-                       widget.course.subtitle,
+                       widget.batch.courseName,
                        style: const TextStyle(
                          color: Colors.white,
                          fontSize: 16,
@@ -108,7 +108,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          "${(widget.course.progress * 100).toInt()}% Completed",
+                          "${(widget.batch.progress * 100).toInt()}% Completed",
                           style: const TextStyle(
                             color: Colors.green,
                             fontWeight: FontWeight.bold,
@@ -122,7 +122,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(6),
                     child: LinearProgressIndicator(
-                      value: widget.course.progress,
+                      value: widget.batch.progress,
                       backgroundColor: Colors.grey[100],
                       color: Colors.green,
                       minHeight: 12,
@@ -143,7 +143,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 children: [
                   const Icon(Icons.play_circle_outline_rounded, color: Colors.blueAccent),
                   const SizedBox(width: 8),
-                  const Text("Course Content", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text("Batch Content", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -191,7 +191,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                             builder: (context) => ChangeNotifierProvider.value(
                               value: studyController,
                               child: LecturePlayerScreen(
-                                courseId: widget.course.id,
+                                courseId: widget.batch.courseId,
+                                batchId: widget.batch.id,
                                 lecture: lecture,
                               ),
                             ),
@@ -200,7 +201,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                         // Refresh lectures on return to update watched status
                         setState(() {
                            _lecturesFuture = Provider.of<StudyController>(context, listen: false)
-                              .getLectures(widget.course.id);
+                              .getLectures(widget.batch.courseId, widget.batch.id);
                         });
                       },
                       borderRadius: BorderRadius.circular(16),

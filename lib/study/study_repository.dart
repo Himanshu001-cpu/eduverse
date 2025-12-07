@@ -10,59 +10,73 @@ class StudyRepository {
 
   String get _userId => _auth.currentUser?.uid ?? '';
 
-  // Stream of enrolled courses
-  Stream<List<StudyCourseModel>> getEnrolledCourses() {
+  // Stream of enrolled batches (user's purchased batches)
+  Stream<List<StudyBatchModel>> getEnrolledBatches() {
     if (_userId.isEmpty) return Stream.value([]);
 
     return _firestore.collection('purchases')
         .where('userId', isEqualTo: _userId)
-        // .where('status', isEqualTo: 'success') // Uncomment if 'success' status is strictly enforced
         .snapshots()
         .asyncMap((purchaseSnap) async {
           if (purchaseSnap.docs.isEmpty) {
-            return StudyData.userCourses; // Fallback for dev/demo if no purchases
+            return <StudyBatchModel>[];
           }
 
-          final Set<String> courseIds = {};
+          // Extract unique batch references (courseId + batchId)
+          final List<({String courseId, String batchId})> batchRefs = [];
           for (var doc in purchaseSnap.docs) {
             final data = doc.data();
             final items = (data['items'] as List?) ?? [];
             for (var item in items) {
-              // CartItem item
-              if (item['courseId'] != null) {
-                courseIds.add(item['courseId']);
+              final courseId = item['courseId'] as String?;
+              final batchId = item['batchId'] as String?;
+              if (courseId != null && batchId != null) {
+                final exists = batchRefs.any((ref) => ref.courseId == courseId && ref.batchId == batchId);
+                if (!exists) {
+                  batchRefs.add((courseId: courseId, batchId: batchId));
+                }
               }
             }
           }
 
-          if (courseIds.isEmpty) {
-             return StudyData.userCourses;
+          if (batchRefs.isEmpty) {
+            return <StudyBatchModel>[];
           }
 
-          final List<StudyCourseModel> courses = [];
-          for (var id in courseIds) {
+          final List<StudyBatchModel> batches = [];
+          for (var ref in batchRefs) {
             try {
-              final courseDoc = await _firestore.collection('courses').doc(id).get();
-              if (courseDoc.exists) {
-                // Map Store Course data to StudyCourseModel
-                // Store course has 'gradientColors' as List<int> usually
-                courses.add(StudyCourseModel.fromMap(courseDoc.data()!, courseDoc.id));
-              }
+              // Fetch course data
+              final courseDoc = await _firestore.collection('courses').doc(ref.courseId).get();
+              if (!courseDoc.exists) continue;
+              final courseData = courseDoc.data()!;
+
+              // Fetch batch data
+              final batchDoc = await courseDoc.reference.collection('batches').doc(ref.batchId).get();
+              if (!batchDoc.exists) continue;
+
+              batches.add(StudyBatchModel.fromMap(
+                batchDoc.data()!,
+                ref.batchId,
+                courseData: {...courseData, 'id': ref.courseId},
+              ));
             } catch (e) {
-              debugPrint('Error fetching course $id: $e');
+              debugPrint('Error fetching batch ${ref.batchId}: $e');
             }
           }
-           
-          // If we found real courses, return them. If purely errors or none found, fallback?
-          // Better to return what we found.
-          if (courses.isEmpty) return StudyData.userCourses; 
-          
-          return courses;
+          return batches;
         });
   }
 
+  // Legacy method - returns empty but keeps compatibility
+  Stream<List<StudyCourseModel>> getEnrolledCourses() {
+    if (_userId.isEmpty) return Stream.value([]);
+
+    // Legacy: Return mock data for compatibility
+    return Stream.value(StudyData.userCourses);
+  }
+
   Stream<List<ContinueLearningModel>> getContinueLearning() {
-     // TODO: Implement progress tracking in Firestore
      return Stream.value(StudyData.continueLearning);
   }
 
@@ -72,7 +86,7 @@ class StudyRepository {
       .snapshots()
       .map((snapshot) {
         if (snapshot.docs.isEmpty) {
-          return StudyData.liveClasses; // Fallback to mock
+          return StudyData.liveClasses;
         }
         return snapshot.docs
             .map((doc) => LiveClassModel.fromMap(doc.data(), doc.id))
@@ -97,18 +111,17 @@ class StudyRepository {
           }
 
           for (final doc in snapshot.docs) {
-             // Check progress for each lesson
-             // This is N+1, but for lessons in a batch (usually <50) it's acceptable for MVP.
-             // Ideally fetch all progress for user once.
              bool isCompleted = false;
              try {
                final progressDoc = await _firestore
                    .collection('users')
                    .doc(_userId)
-                   .collection('progress')
+                   .collection('batchProgress')
+                   .doc('${courseId}_$batchId')
+                   .collection('lectures')
                    .doc(doc.id)
                    .get();
-               if (progressDoc.exists && progressDoc.data()?['completed'] == true) {
+               if (progressDoc.exists && progressDoc.data()?['watched'] == true) {
                  isCompleted = true;
                }
              } catch (e) {
@@ -120,16 +133,18 @@ class StudyRepository {
         });
   }
 
-  Future<void> updateLessonProgress(String lessonId, bool completed) async {
+  Future<void> updateLessonProgress(String courseId, String batchId, String lessonId, bool completed) async {
     if (_userId.isEmpty) return;
     
     await _firestore
         .collection('users')
         .doc(_userId)
-        .collection('progress')
+        .collection('batchProgress')
+        .doc('${courseId}_$batchId')
+        .collection('lectures')
         .doc(lessonId)
         .set({
-          'completed': completed,
+          'watched': completed,
           'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
   }
@@ -155,7 +170,7 @@ class StudyRepository {
       .snapshots()
       .map((snapshot) {
         if (snapshot.docs.isEmpty) {
-          return StudyData.dailyPractice; // Fallback
+          return StudyData.dailyPractice;
         }
         return snapshot.docs
             .map((doc) => DailyPracticeModel.fromMap(doc.data(), doc.id))
@@ -168,7 +183,7 @@ class StudyRepository {
       .snapshots()
       .map((snapshot) {
         if (snapshot.docs.isEmpty) {
-           return StudyData.mockTests; // Fallback
+           return StudyData.mockTests;
         }
         return snapshot.docs
             .map((doc) => TestModel.fromMap(doc.data(), doc.id))
@@ -184,7 +199,7 @@ class StudyRepository {
        .snapshots()
        .map((snapshot) {
           if (snapshot.docs.isEmpty) {
-             return StudyData.workbooks; // Fallback
+             return StudyData.workbooks;
           }
            return snapshot.docs
             .map((doc) => WorkbookModel.fromMap(doc.data(), doc.id))
@@ -197,7 +212,7 @@ class StudyRepository {
       .snapshots()
       .map((snapshot) {
         if (snapshot.docs.isEmpty) {
-          return StudyData.mapTopics; // Fallback
+          return StudyData.mapTopics;
         }
         return snapshot.docs
             .map((doc) => TopicNodeModel.fromMap(doc.data(), doc.id))
@@ -206,7 +221,6 @@ class StudyRepository {
   }
 
   // --- SEEDING ---
-  // One-time functions to push mock data to Firestore
   
   Future<void> seedLiveClasses() async {
     final classes = await _firestore.collection('live_classes').get();

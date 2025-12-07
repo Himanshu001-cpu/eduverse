@@ -1,6 +1,6 @@
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
-import 'package:eduverse/study/presentation/screens/course_detail_screen.dart';
+import 'package:eduverse/study/presentation/screens/batch_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,10 +9,6 @@ class StudyHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Access controller provided by parent or higher up
-    // In this clean architecture, we consume the controller.
-    // Ensure ChangeNotifierProvider<StudyController> is up in the tree.
-    
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -51,9 +47,9 @@ class StudyHomeScreen extends StatelessWidget {
             );
           }
 
-          final courses = controller.enrolledCourses;
+          final batches = controller.enrolledBatches;
 
-          if (courses.isEmpty) {
+          if (batches.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -68,12 +64,12 @@ class StudyHomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'No enrolled courses yet',
+                    'No enrolled batches yet',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Visit the Store to enroll in your first course!',
+                    'Visit the Store to enroll in your first batch!',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
@@ -84,11 +80,11 @@ class StudyHomeScreen extends StatelessWidget {
 
           return ListView.separated(
             padding: const EdgeInsets.all(20),
-            itemCount: courses.length,
+            itemCount: batches.length,
             separatorBuilder: (c, i) => const SizedBox(height: 20),
             itemBuilder: (context, index) {
-              final course = courses[index];
-              return _CourseCard(context: context, course: course);
+              final batch = batches[index];
+              return _BatchCard(context: context, batch: batch);
             },
           );
         },
@@ -97,13 +93,13 @@ class StudyHomeScreen extends StatelessWidget {
   }
 }
 
-class _CourseCard extends StatelessWidget {
+class _BatchCard extends StatelessWidget {
   final BuildContext context;
-  final StudyCourse course;
+  final StudyBatch batch;
 
-  const _CourseCard({
+  const _BatchCard({
     required this.context,
-    required this.course,
+    required this.batch,
   });
 
   @override
@@ -130,7 +126,7 @@ class _CourseCard extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => ChangeNotifierProvider.value(
                   value: Provider.of<StudyController>(context, listen: false),
-                  child: CourseDetailScreen(course: course),
+                  child: BatchDetailScreen(batch: batch),
                 ),
               ),
             );
@@ -147,8 +143,8 @@ class _CourseCard extends StatelessWidget {
                       height: 64,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: course.gradientColors.isNotEmpty 
-                              ? course.gradientColors 
+                          colors: batch.gradientColors.isNotEmpty 
+                              ? batch.gradientColors 
                               : [Colors.blue, Colors.blueAccent],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -156,7 +152,7 @@ class _CourseCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                            BoxShadow(
-                             color: (course.gradientColors.isNotEmpty ? course.gradientColors.first : Colors.blue).withOpacity(0.3),
+                             color: (batch.gradientColors.isNotEmpty ? batch.gradientColors.first : Colors.blue).withOpacity(0.3),
                              blurRadius: 10,
                              offset: const Offset(0, 4),
                            ),
@@ -164,7 +160,7 @@ class _CourseCard extends StatelessWidget {
                       ),
                       child: Center(
                         child: Text(
-                          course.emoji,
+                          batch.emoji,
                           style: const TextStyle(fontSize: 30),
                         ),
                       ),
@@ -177,7 +173,7 @@ class _CourseCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            course.title,
+                            batch.name,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -188,7 +184,7 @@ class _CourseCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            course.subtitle,
+                            batch.courseName,
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey[600],
@@ -215,7 +211,7 @@ class _CourseCard extends StatelessWidget {
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey),
                         ),
                         Text(
-                          '${(course.progress * 100).toInt()}%',
+                          '${(batch.progress * 100).toInt()}%',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -239,7 +235,7 @@ class _CourseCard extends StatelessWidget {
                           builder: (context, constraints) {
                             return Container(
                               height: 8,
-                              width: constraints.maxWidth * course.progress,
+                              width: constraints.maxWidth * batch.progress,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [Colors.blue[400]!, Colors.blue[700]!],

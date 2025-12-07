@@ -11,29 +11,33 @@ class StudyRepositoryImpl implements IStudyRepository {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   @override
-  Stream<List<StudyCourse>> getEnrolledCourses(String userId) {
+  Stream<List<StudyBatch>> getEnrolledBatches(String userId) {
     if (userId.isEmpty) return Stream.value([]);
 
-    // We can't easily perform the async admin check inside the stream creation without rxdart or Stream.fromFuture
-    // So we use Stream.fromFuture to perform the check then switch to the appropriate stream
-    
     return Stream.fromFuture(_checkIsAdmin(userId)).asyncExpand((isAdmin) {
        if (isAdmin) {
-         // Admin: Listen to ALL courses
-         // Note: Real-time updates for "ALL" courses might be heavy if there are thousands, 
-         // but for an admin panel/app manageable.
-         return _firestore.collection('courses').snapshots().asyncMap((snapshot) async {
-            List<StudyCourse> studyCourses = [];
-            for (var doc in snapshot.docs) {
-               final courseData = doc.data();
-               // Fetch progress for this admin user
-               final progressData = await _fetchProgress(userId, doc.id);
-               studyCourses.add(_mapToStudyCourse(doc.id, courseData, progressData.progress, progressData.completed));
+         // Admin: Listen to ALL batches across all courses
+         return _firestore.collection('courses').snapshots().asyncMap((coursesSnap) async {
+            List<StudyBatch> allBatches = [];
+            for (var courseDoc in coursesSnap.docs) {
+               final courseData = courseDoc.data();
+               final batchesSnap = await courseDoc.reference.collection('batches').get();
+               for (var batchDoc in batchesSnap.docs) {
+                  final progressData = await _fetchBatchProgress(userId, courseDoc.id, batchDoc.id);
+                  allBatches.add(_mapToStudyBatch(
+                    batchDoc.id, 
+                    courseDoc.id, 
+                    batchDoc.data(), 
+                    courseData,
+                    progressData.progress, 
+                    progressData.completed
+                  ));
+               }
             }
-            return studyCourses;
+            return allBatches;
          });
        } else {
-         // Standard User: Listen to Purchases
+         // Standard User: Listen to Purchases and extract batches
          return _firestore
           .collection('purchases')
           .where('userId', isEqualTo: userId)
@@ -41,34 +45,53 @@ class StudyRepositoryImpl implements IStudyRepository {
           .asyncMap((snapshot) async {
             if (snapshot.docs.isEmpty) return [];
 
-            final Set<String> courseIds = {};
+            // Extract unique batch references (courseId + batchId)
+            final List<({String courseId, String batchId})> batchRefs = [];
             for (var doc in snapshot.docs) {
               final data = doc.data();
               final items = (data['items'] as List<dynamic>?) ?? [];
               for (var item in items) {
-                if (item['courseId'] != null) {
-                  courseIds.add(item['courseId']);
+                final courseId = item['courseId'] as String?;
+                final batchId = item['batchId'] as String?;
+                if (courseId != null && batchId != null) {
+                  // Check for duplicates
+                  final exists = batchRefs.any((ref) => ref.courseId == courseId && ref.batchId == batchId);
+                  if (!exists) {
+                    batchRefs.add((courseId: courseId, batchId: batchId));
+                  }
                 }
               }
             }
 
-            if (courseIds.isEmpty) return [];
+            if (batchRefs.isEmpty) return [];
 
-            List<StudyCourse> studyCourses = [];
-            for (var courseId in courseIds) {
+            List<StudyBatch> studyBatches = [];
+            for (var ref in batchRefs) {
               try {
-                final courseDoc = await _firestore.collection('courses').doc(courseId).get();
+                // Fetch course data
+                final courseDoc = await _firestore.collection('courses').doc(ref.courseId).get();
                 if (!courseDoc.exists) continue;
-
                 final courseData = courseDoc.data()!;
-                final progressData = await _fetchProgress(userId, courseId);
+
+                // Fetch batch data
+                final batchDoc = await courseDoc.reference.collection('batches').doc(ref.batchId).get();
+                if (!batchDoc.exists) continue;
                 
-                studyCourses.add(_mapToStudyCourse(courseId, courseData, progressData.progress, progressData.completed));
+                final progressData = await _fetchBatchProgress(userId, ref.courseId, ref.batchId);
+                
+                studyBatches.add(_mapToStudyBatch(
+                  ref.batchId,
+                  ref.courseId,
+                  batchDoc.data()!,
+                  courseData,
+                  progressData.progress,
+                  progressData.completed
+                ));
               } catch (e) {
-                debugPrint('Error loading course $courseId: $e');
+                debugPrint('Error loading batch ${ref.batchId}: $e');
               }
             }
-            return studyCourses;
+            return studyBatches;
           });
        }
     });
@@ -85,13 +108,13 @@ class StudyRepositoryImpl implements IStudyRepository {
     }
   }
 
-  Future<({double progress, int completed})> _fetchProgress(String userId, String courseId) async {
+  Future<({double progress, int completed})> _fetchBatchProgress(String userId, String courseId, String batchId) async {
       try {
         final progressDoc = await _firestore
             .collection('users')
             .doc(userId)
-            .collection('courseProgress')
-            .doc(courseId)
+            .collection('batchProgress')
+            .doc('${courseId}_$batchId')
             .get();
         
         if (progressDoc.exists) {
@@ -107,75 +130,63 @@ class StudyRepositoryImpl implements IStudyRepository {
       return (progress: 0.0, completed: 0);
   }
 
-  StudyCourse _mapToStudyCourse(String id, Map<String, dynamic> data, double progress, int completed) {
+  StudyBatch _mapToStudyBatch(
+    String batchId, 
+    String courseId, 
+    Map<String, dynamic> batchData, 
+    Map<String, dynamic> courseData,
+    double progress, 
+    int completed
+  ) {
     List<Color> gradient = [const Color(0xFF4A90E2), const Color(0xFF002966)];
-    if (data['gradientColors'] != null) {
-      gradient = (data['gradientColors'] as List)
+    if (courseData['gradientColors'] != null) {
+      gradient = (courseData['gradientColors'] as List)
           .map((c) => Color(c as int))
           .toList();
     }
 
-    return StudyCourse(
-      id: id,
-      title: data['title'] ?? 'Untitled Course',
-      subtitle: data['subtitle'] ?? '',
-      emoji: data['emoji'] ?? '🎓',
+    return StudyBatch(
+      id: batchId,
+      courseId: courseId,
+      name: batchData['name'] ?? 'Untitled Batch',
+      courseName: courseData['title'] ?? 'Untitled Course',
+      emoji: courseData['emoji'] ?? '🎓',
       gradientColors: gradient,
-      totalLectures: data['totalLectures'] ?? 0, 
+      startDate: (batchData['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      totalLectures: batchData['totalLectures'] ?? courseData['totalLectures'] ?? 0, 
       completedLectures: completed,
       progress: progress,
     );
   }
 
   @override
-  Future<List<StudyLecture>> getCourseLectures(String userId, String courseId) async {
-    List<StudyLecture> allLectures = [];
-    
-    // 1. Fetch Course Level Lectures (Legacy)
-    final courseSnapshot = await _firestore
-        .collection('courses')
-        .doc(courseId)
-        .collection('lectures')
-        .orderBy('order')
-        .get();
-        
-    allLectures.addAll(await _mapLectures(courseSnapshot, userId, courseId, checkProgress: true));
-
-    // 2. Fetch Batch Level Lectures (New)
-    // iterate all batches
-    final batchesSnap = await _firestore
+  Future<List<StudyLecture>> getBatchLectures(String userId, String courseId, String batchId) async {
+    final snapshot = await _firestore
         .collection('courses')
         .doc(courseId)
         .collection('batches')
+        .doc(batchId)
+        .collection('lessons')
+        .orderBy('orderIndex')
         .get();
         
-    for (var batchDoc in batchesSnap.docs) {
-       final lessonsSnap = await batchDoc.reference
-           .collection('lessons')
-           .orderBy('orderIndex')
-           .get();
-           
-       allLectures.addAll(await _mapLectures(lessonsSnap, userId, courseId, checkProgress: true));
-    }
-
-    return allLectures;
+    return await _mapLectures(snapshot, userId, courseId, batchId, checkProgress: true);
   }
   
   @override
-  Stream<List<StudyLecture>> getCourseLecturesStream(String userId, String courseId) {
-     // For stream, we'll just stick to the course level for now as combining streams dynamically is complex
-     // or we could implementing a simplified CombineLatest if needed.
-     // But since the UI primarily uses the Future method for the Detail screen, this is lower priority.
+  Stream<List<StudyLecture>> getBatchLecturesStream(String userId, String courseId, String batchId) {
      return _firestore
         .collection('courses')
         .doc(courseId)
-        .collection('lectures')
-        .orderBy('order')
+        .collection('batches')
+        .doc(batchId)
+        .collection('lessons')
+        .orderBy('orderIndex')
         .snapshots()
-        .asyncMap((snapshot) => _mapLectures(snapshot, userId, courseId, checkProgress: true));
+        .asyncMap((snapshot) => _mapLectures(snapshot, userId, courseId, batchId, checkProgress: true));
   }
 
-  Future<List<StudyLecture>> _mapLectures(QuerySnapshot snapshot, String userId, String courseId, {bool checkProgress = false}) async {
+  Future<List<StudyLecture>> _mapLectures(QuerySnapshot snapshot, String userId, String courseId, String batchId, {bool checkProgress = false}) async {
     List<StudyLecture> lectures = [];
     
     // If checking progress, we need to fetch user's watched status
@@ -184,8 +195,8 @@ class StudyRepositoryImpl implements IStudyRepository {
        final progressSnap = await _firestore
           .collection('users')
           .doc(userId)
-          .collection('courseProgress')
-          .doc(courseId)
+          .collection('batchProgress')
+          .doc('${courseId}_$batchId')
           .collection('lectures')
           .get();
           
@@ -196,7 +207,6 @@ class StudyRepositoryImpl implements IStudyRepository {
 
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
-      // Map Admin fields (storagePath, orderIndex) to Study fields (videoUrl, order)
       lectures.add(StudyLecture(
         id: doc.id,
         title: data['title'] ?? 'Untitled Lecture',
@@ -212,10 +222,10 @@ class StudyRepositoryImpl implements IStudyRepository {
   }
 
   @override
-  Future<void> markLectureWatched(String userId, String courseId, String lectureId, bool isWatched) async {
+  Future<void> markLectureWatched(String userId, String courseId, String batchId, String lectureId, bool isWatched) async {
     final userRef = _firestore.collection('users').doc(userId);
-    final courseProgressRef = userRef.collection('courseProgress').doc(courseId);
-    final lectureProgressRef = courseProgressRef.collection('lectures').doc(lectureId);
+    final batchProgressRef = userRef.collection('batchProgress').doc('${courseId}_$batchId');
+    final lectureProgressRef = batchProgressRef.collection('lectures').doc(lectureId);
 
     final batch = _firestore.batch();
 
@@ -229,27 +239,23 @@ class StudyRepositoryImpl implements IStudyRepository {
     await batch.commit();
 
     // 3. Trigger recalculation of total progress
-    await updateCourseProgress(userId, courseId);
+    await updateBatchProgress(userId, courseId, batchId);
   }
 
   @override
-  Future<void> updateCourseProgress(String userId, String courseId) async {
-    // 1. Get all course lectures count
-    final courseRef = _firestore.collection('courses').doc(courseId);
-    final courseSnap = await courseRef.get();
-    if (!courseSnap.exists) return;
-    
-    // Trust the totalLectures field if accurate, or count subcollection (costly)
-    // For now, let's assume 'totalLectures' field is maintained in Course document
-    int total = courseSnap.data()?['totalLectures'] ?? 1;
+  Future<void> updateBatchProgress(String userId, String courseId, String batchId) async {
+    // 1. Get total lessons count from batch
+    final batchRef = _firestore.collection('courses').doc(courseId).collection('batches').doc(batchId);
+    final lessonsSnap = await batchRef.collection('lessons').get();
+    int total = lessonsSnap.docs.length;
     if (total == 0) total = 1; // Avoid div by zero
 
     // 2. Count watched lectures
     final watchedSnap = await _firestore
         .collection('users')
         .doc(userId)
-        .collection('courseProgress')
-        .doc(courseId)
+        .collection('batchProgress')
+        .doc('${courseId}_$batchId')
         .collection('lectures')
         .where('watched', isEqualTo: true)
         .get();
@@ -257,12 +263,12 @@ class StudyRepositoryImpl implements IStudyRepository {
     int watchedCount = watchedSnap.docs.length;
     double percent = (watchedCount / total).clamp(0.0, 1.0);
 
-    // 3. Update Course Progress doc
+    // 3. Update Batch Progress doc
     await _firestore
         .collection('users')
         .doc(userId)
-        .collection('courseProgress')
-        .doc(courseId)
+        .collection('batchProgress')
+        .doc('${courseId}_$batchId')
         .set({
           'progressPercent': percent,
           'completedLectures': watchedCount,
@@ -290,11 +296,66 @@ class StudyRepositoryImpl implements IStudyRepository {
           title: data['title'] ?? 'Untitled Quiz',
           description: data['description'] ?? '',
           questionCount: questions.length,
-          durationMinutes: data['durationMinutes'] ?? 30, // Default or fetch if available
+          durationMinutes: data['durationMinutes'] ?? 30,
         );
       }).toList();
     } catch (e) {
       debugPrint('Error fetching batch quizzes: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<StudyNote>> getBatchNotes(String courseId, String batchId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('batches')
+          .doc(batchId)
+          .collection('notes')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return StudyNote(
+          id: doc.id,
+          title: data['title'] ?? 'Untitled Note',
+          fileUrl: data['fileUrl'] as String?,
+          createdAt: (data['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching batch notes: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<StudyPlannerItem>> getBatchPlanner(String courseId, String batchId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('batches')
+          .doc(batchId)
+          .collection('planner')
+          .orderBy('dueDate', descending: false)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return StudyPlannerItem(
+          id: doc.id,
+          title: data['title'] ?? 'Untitled Item',
+          description: data['description'] as String?,
+          dueDate: (data['dueDate'] as dynamic)?.toDate(),
+          fileUrl: data['fileUrl'] as String?,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching batch planner: $e');
       return [];
     }
   }

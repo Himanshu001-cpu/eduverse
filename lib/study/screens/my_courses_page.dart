@@ -119,7 +119,7 @@ class MyCoursesPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('My Courses'),
+        title: const Text('My Batches'),
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
@@ -131,7 +131,7 @@ class MyCoursesPage extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search courses...',
+                  hintText: 'Search batches...',
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Colors.white,
@@ -153,7 +153,7 @@ class MyCoursesPage extends StatelessWidget {
 
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(
-                      child: Text('No courses found. Enroll in a course to see it here.'),
+                      child: Text('No batches found. Enroll in a batch to see it here.'),
                     );
                   }
 

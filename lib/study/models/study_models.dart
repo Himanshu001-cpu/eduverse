@@ -141,6 +141,65 @@ class StudyCourseModel {
   }
 }
 
+/// Represents a batch in the Study section for users who purchased it.
+class StudyBatchModel {
+  final String id;
+  final String courseId;
+  final String name;
+  final String courseName;
+  final String emoji;
+  final List<Color> gradientColors;
+  final DateTime startDate;
+  final int lessonCount;
+  final double progress;
+
+  const StudyBatchModel({
+    required this.id,
+    required this.courseId,
+    required this.name,
+    required this.courseName,
+    this.emoji = '📚',
+    required this.gradientColors,
+    required this.startDate,
+    this.lessonCount = 0,
+    this.progress = 0.0,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'courseId': courseId,
+      'name': name,
+      'courseName': courseName,
+      'emoji': emoji,
+      'gradientColors': gradientColors.map((c) => c.value).toList(),
+      'startDate': startDate.toIso8601String(),
+      'lessonCount': lessonCount,
+      'progress': progress,
+    };
+  }
+
+  factory StudyBatchModel.fromMap(Map<String, dynamic> map, String id, {Map<String, dynamic>? courseData}) {
+    List<Color> colors = [Colors.blue, Colors.lightBlueAccent];
+    if (map['gradientColors'] != null) {
+      colors = (map['gradientColors'] as List).map((c) => Color(c)).toList();
+    } else if (courseData != null && courseData['gradientColors'] != null) {
+      colors = (courseData['gradientColors'] as List).map((c) => Color(c)).toList();
+    }
+    return StudyBatchModel(
+      id: id,
+      courseId: map['courseId'] ?? courseData?['id'] ?? '',
+      name: map['name'] ?? '',
+      courseName: map['courseName'] ?? courseData?['title'] ?? '',
+      emoji: courseData?['emoji'] ?? map['emoji'] ?? '📚',
+      gradientColors: colors,
+      startDate: DateTime.tryParse(map['startDate'] ?? '') ?? 
+                 (map['startDate'] is Timestamp ? (map['startDate'] as Timestamp).toDate() : DateTime.now()),
+      lessonCount: map['lessonCount'] ?? 0,
+      progress: (map['progress'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
 class LessonModel {
   final String id;
   final String title;

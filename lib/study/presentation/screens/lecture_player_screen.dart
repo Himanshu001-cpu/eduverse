@@ -9,11 +9,13 @@ import 'package:flutter/services.dart';
 
 class LecturePlayerScreen extends StatefulWidget {
   final String courseId;
+  final String batchId;
   final StudyLecture lecture;
 
   const LecturePlayerScreen({
     Key? key,
     required this.courseId,
+    required this.batchId,
     required this.lecture,
   }) : super(key: key);
 
@@ -85,7 +87,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
 
   void _markAsWatched() {
     final controller = Provider.of<StudyController>(context, listen: false);
-    controller.markLectureWatched(widget.courseId, widget.lecture.id, !_isWatched);
+    controller.markLectureWatched(widget.courseId, widget.batchId, widget.lecture.id, !_isWatched);
     
     setState(() {
       _isWatched = !_isWatched;

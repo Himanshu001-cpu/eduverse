@@ -44,6 +44,60 @@ class StudyCourse {
   }
 }
 
+/// Represents an enrolled batch in the Study section.
+/// This is the primary entity users interact with after purchasing.
+class StudyBatch {
+  final String id;
+  final String courseId;
+  final String name;
+  final String courseName; // Parent course title for context
+  final String emoji;
+  final List<Color> gradientColors;
+  final DateTime startDate;
+  final int totalLectures;
+  final int completedLectures;
+  final double progress; // 0.0 to 1.0
+
+  const StudyBatch({
+    required this.id,
+    required this.courseId,
+    required this.name,
+    required this.courseName,
+    this.emoji = '📚',
+    required this.gradientColors,
+    required this.startDate,
+    this.totalLectures = 0,
+    this.completedLectures = 0,
+    this.progress = 0.0,
+  });
+
+  StudyBatch copyWith({
+    String? id,
+    String? courseId,
+    String? name,
+    String? courseName,
+    String? emoji,
+    List<Color>? gradientColors,
+    DateTime? startDate,
+    int? totalLectures,
+    int? completedLectures,
+    double? progress,
+  }) {
+    return StudyBatch(
+      id: id ?? this.id,
+      courseId: courseId ?? this.courseId,
+      name: name ?? this.name,
+      courseName: courseName ?? this.courseName,
+      emoji: emoji ?? this.emoji,
+      gradientColors: gradientColors ?? this.gradientColors,
+      startDate: startDate ?? this.startDate,
+      totalLectures: totalLectures ?? this.totalLectures,
+      completedLectures: completedLectures ?? this.completedLectures,
+      progress: progress ?? this.progress,
+    );
+  }
+}
+
 class StudyLecture {
   final String id;
   final String title;
@@ -113,5 +167,35 @@ class StudyQuiz {
     required this.description,
     this.questionCount = 0,
     this.durationMinutes = 0,
+  });
+}
+
+class StudyNote {
+  final String id;
+  final String title;
+  final String? fileUrl;
+  final DateTime createdAt;
+
+  const StudyNote({
+    required this.id,
+    required this.title,
+    this.fileUrl,
+    required this.createdAt,
+  });
+}
+
+class StudyPlannerItem {
+  final String id;
+  final String title;
+  final String? description;
+  final DateTime? dueDate;
+  final String? fileUrl;
+
+  const StudyPlannerItem({
+    required this.id,
+    required this.title,
+    this.description,
+    this.dueDate,
+    this.fileUrl,
   });
 }

@@ -209,6 +209,23 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                                    ReorderableDragStartListener(index: index, child: const Icon(Icons.drag_indicator)),
                                    const SizedBox(width: 8),
                                    Text('Question ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                   const SizedBox(width: 16),
+                                   // Question Type Dropdown
+                                   DropdownButton<AnswerType>(
+                                     value: _questions[index].answerType,
+                                     items: const [
+                                       DropdownMenuItem(value: AnswerType.multipleChoice, child: Text("Multiple Choice")),
+                                       DropdownMenuItem(value: AnswerType.trueFalse, child: Text("True / False")),
+                                     ],
+                                     onChanged: (AnswerType? newValue) {
+                                       if (newValue != null) {
+                                         _updateQuestion(index, _questions[index].copyWith(answerType: newValue));
+                                       }
+                                     },
+                                     underline: Container(), // Remove default underline
+                                     icon: const Icon(Icons.arrow_drop_down, color: Colors.blue),
+                                     style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
+                                   ),
                                    const Spacer(),
                                     IconButton(
                                       icon: const Icon(Icons.delete, color: Colors.red),
@@ -216,16 +233,58 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                                     ),
                                  ],
                                ),
-                               const SizedBox(height: 8),
+                               const SizedBox(height: 16),
+                               
+                               // Question Text
                                TextFormField(
                                  initialValue: _questions[index].questionText,
-                                 decoration: const InputDecoration(labelText: 'Question Text', border: OutlineInputBorder()),
+                                 decoration: const InputDecoration(
+                                   labelText: 'Question Text', 
+                                   border: OutlineInputBorder(),
+                                   prefixIcon: Icon(Icons.help_outline),
+                                 ),
+                                 maxLines: 2,
+                                 minLines: 1,
                                  onChanged: (v) => _updateQuestion(index, _questions[index].copyWith(questionText: v)),
                                ),
-                               const SizedBox(height: 12),
-                               // Options (Simplified for brevity, assuming Multiple Choice default)
-                               // Ideally reuse components from QuizEditorScreen, but for simplicity re-implementing basic logic here.
-                               if (_questions[index].answerType == AnswerType.multipleChoice)
+                               const SizedBox(height: 16),
+                               
+                               // Answer Section based on Type
+                               if (_questions[index].answerType == AnswerType.trueFalse) ...[
+                                 const Text('Correct Answer:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                 const SizedBox(height: 8),
+                                 Row(
+                                   children: [
+                                     Expanded(
+                                       child: RadioListTile<bool>(
+                                         title: const Text('True'),
+                                         value: true,
+                                         groupValue: _questions[index].correctBooleanAnswer,
+                                         onChanged: (v) {
+                                           _updateQuestion(index, _questions[index].copyWith(correctBooleanAnswer: v));
+                                         },
+                                         activeColor: Colors.green,
+                                         contentPadding: EdgeInsets.zero,
+                                       ),
+                                     ),
+                                     Expanded(
+                                       child: RadioListTile<bool>(
+                                         title: const Text('False'),
+                                         value: false,
+                                         groupValue: _questions[index].correctBooleanAnswer,
+                                         onChanged: (v) {
+                                           _updateQuestion(index, _questions[index].copyWith(correctBooleanAnswer: v));
+                                         },
+                                         activeColor: Colors.red,
+                                         contentPadding: EdgeInsets.zero,
+                                       ),
+                                     ),
+                                   ],
+                                 ),
+                               ] 
+                               else if (_questions[index].answerType == AnswerType.multipleChoice) ...[
+                                 const Text('Options (Check correct answer):', style: TextStyle(fontWeight: FontWeight.bold)),
+                                 const SizedBox(height: 8),
                                  ...List.generate(4, (optIndex) {
                                    final options = _questions[index].options;
                                    // Fix bounds if options are missing/corrupted
@@ -251,8 +310,9 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                                            child: TextFormField(
                                              initialValue: option.text,
                                              decoration: InputDecoration(
-                                               hintText: 'Option ${String.fromCharCode(65 + optIndex)}',
+                                               labelText: 'Option ${String.fromCharCode(65 + optIndex)}',
                                                border: const OutlineInputBorder(),
+                                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                              ),
                                              onChanged: (v) {
                                                final newOptions = List<AnswerOption>.from(options);
@@ -264,7 +324,24 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                                        ],
                                      ),
                                    );
-                                 })
+                                 }),
+                               ],
+
+                               const SizedBox(height: 16),
+                               
+                               // Explanation Field
+                               TextFormField(
+                                 initialValue: _questions[index].explanation,
+                                 decoration: const InputDecoration(
+                                   labelText: 'Explanation (Optional)',
+                                   hintText: 'Explain why the answer is correct...',
+                                   border: OutlineInputBorder(),
+                                   prefixIcon: Icon(Icons.lightbulb_outline),
+                                 ),
+                                 maxLines: 3,
+                                 minLines: 1,
+                                 onChanged: (v) => _updateQuestion(index, _questions[index].copyWith(explanation: v)),
+                               ),
                              ],
                            ),
                          ),

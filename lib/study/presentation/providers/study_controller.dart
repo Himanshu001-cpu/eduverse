@@ -16,16 +16,16 @@ class StudyController extends ChangeNotifier {
   }
 
   // State
-  List<StudyCourse> _enrolledCourses = [];
+  List<StudyBatch> _enrolledBatches = [];
   bool _isLoading = true;
   String? _error;
 
   // Getters
-  List<StudyCourse> get enrolledCourses => _enrolledCourses;
+  List<StudyBatch> get enrolledBatches => _enrolledBatches;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  StreamSubscription<List<StudyCourse>>? _coursesSubscription;
+  StreamSubscription<List<StudyBatch>>? _batchesSubscription;
 
   void _init() {
     if (_userId.isEmpty) {
@@ -38,9 +38,9 @@ class StudyController extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    _coursesSubscription = _repository.getEnrolledCourses(_userId).listen(
-      (courses) {
-        _enrolledCourses = courses;
+    _batchesSubscription = _repository.getEnrolledBatches(_userId).listen(
+      (batches) {
+        _enrolledBatches = batches;
         _isLoading = false;
         _error = null;
         notifyListeners();
@@ -53,10 +53,10 @@ class StudyController extends ChangeNotifier {
     );
   }
 
-  /// Get lectures for a specific course
-  Future<List<StudyLecture>> getLectures(String courseId) async {
+  /// Get lectures for a specific batch
+  Future<List<StudyLecture>> getLectures(String courseId, String batchId) async {
     try {
-      return await _repository.getCourseLectures(_userId, courseId);
+      return await _repository.getBatchLectures(_userId, courseId, batchId);
     } catch (e) {
       debugPrint('Error getting lectures: $e');
       rethrow;
@@ -73,12 +73,30 @@ class StudyController extends ChangeNotifier {
     }
   }
 
-  /// Mark lecture as watched and update UI
-  Future<void> markLectureWatched(String courseId, String lectureId, bool isWatched) async {
+  /// Get notes for a specific batch
+  Future<List<StudyNote>> getBatchNotes(String courseId, String batchId) async {
     try {
-      // Optimistic update if we were caching lectures list locally in controller, 
-      // but here we just call repo. The separate Stream/Future for lectures will update.
-      await _repository.markLectureWatched(_userId, courseId, lectureId, isWatched);
+      return await _repository.getBatchNotes(courseId, batchId);
+    } catch (e) {
+      debugPrint('Error getting notes: $e');
+      rethrow;
+    }
+  }
+
+  /// Get planner items for a specific batch
+  Future<List<StudyPlannerItem>> getBatchPlanner(String courseId, String batchId) async {
+    try {
+      return await _repository.getBatchPlanner(courseId, batchId);
+    } catch (e) {
+      debugPrint('Error getting planner: $e');
+      rethrow;
+    }
+  }
+
+  /// Mark lecture as watched and update UI
+  Future<void> markLectureWatched(String courseId, String batchId, String lectureId, bool isWatched) async {
+    try {
+      await _repository.markLectureWatched(_userId, courseId, batchId, lectureId, isWatched);
     } catch (e) {
       debugPrint('Error marking watched: $e');
       rethrow;
@@ -87,7 +105,7 @@ class StudyController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _coursesSubscription?.cancel();
+    _batchesSubscription?.cancel();
     super.dispose();
   }
 }

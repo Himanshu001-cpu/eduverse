@@ -235,9 +235,9 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                   indicatorColor: Theme.of(context).primaryColor,
                   tabs: const [
                     Tab(text: 'Lessons'),
-                    Tab(text: 'Resources'),
+                    Tab(text: 'Notes'),
+                    Tab(text: 'Planner'),
                     Tab(text: 'Quizzes'),
-                    Tab(text: 'Discussion'),
                   ],
                 ),
               ),
@@ -247,9 +247,9 @@ class _BatchSectionPageState extends State<BatchSectionPage>
             controller: _tabController,
             children: [
               _buildLessonsTab(isWideScreen),
-              _buildResourcesTab(),
+              _buildNotesTab(),
+              _buildPlannerTab(),
               _buildQuizzesTab(),
-              _buildDiscussionTab(),
             ],
           ),
         ),
@@ -486,34 +486,142 @@ class _BatchSectionPageState extends State<BatchSectionPage>
     );
   }
 
-  Widget _buildResourcesTab() {
-    final resources = [
-      {'title': 'Polity Notes - Chapter 1', 'type': 'PDF', 'size': '2.4 MB'},
-      {'title': 'Constitution Overview', 'type': 'Link', 'size': '-'},
-      {'title': 'Previous Year Questions', 'type': 'PDF', 'size': '1.1 MB'},
-    ];
+  Widget _buildNotesTab() {
+    return Consumer<StudyController>(
+      builder: (context, controller, child) {
+        return FutureBuilder<List<StudyNote>>(
+          future: controller.getBatchNotes(widget.course.id, widget.batchId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: resources.length,
-      separatorBuilder: (_, __) => const Divider(),
-      itemBuilder: (context, index) {
-        final res = resources[index];
-        return ListTile(
-          leading: Icon(res['type'] == 'PDF' ? Icons.picture_as_pdf : Icons.link, color: Colors.red),
-          title: Text(res['title']!),
-          subtitle: Text('${res['type']} • ${res['size']}'),
-          trailing: IconButton(
-            icon: const Icon(Icons.download_rounded),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Downloading ${res['title']}...')),
+            final notes = snapshot.data ?? [];
+
+            if (notes.isEmpty) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.note_outlined, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('No notes available yet.', style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
               );
-            },
-          ),
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: notes.length,
+              separatorBuilder: (_, __) => const Divider(),
+              itemBuilder: (context, index) {
+                final note = notes[index];
+                return ListTile(
+                  leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                  title: Text(note.title),
+                  subtitle: Text('Added ${_formatDate(note.createdAt)}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.download_rounded),
+                    onPressed: () {
+                      if (note.fileUrl != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Opening ${note.title}...')),
+                        );
+                        // TODO: Open PDF using url_launcher
+                      }
+                    },
+                  ),
+                );
+              },
+            );
+          },
         );
       },
     );
+  }
+
+  Widget _buildPlannerTab() {
+    return Consumer<StudyController>(
+      builder: (context, controller, child) {
+        return FutureBuilder<List<StudyPlannerItem>>(
+          future: controller.getBatchPlanner(widget.course.id, widget.batchId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+
+            final items = snapshot.data ?? [];
+
+            if (items.isEmpty) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('No planner items available yet.', style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.shade100,
+                      child: const Icon(Icons.event, color: Colors.blue),
+                    ),
+                    title: Text(item.title),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (item.description != null && item.description!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(item.description!, maxLines: 2, overflow: TextOverflow.ellipsis),
+                          ),
+                        if (item.dueDate != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text('Due: ${_formatDate(item.dueDate!)}', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                          ),
+                      ],
+                    ),
+                    trailing: item.fileUrl != null
+                        ? IconButton(
+                            icon: const Icon(Icons.attachment),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Opening attachment for ${item.title}...')),
+                              );
+                            },
+                          )
+                        : null,
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   Widget _buildQuizzesTab() {
