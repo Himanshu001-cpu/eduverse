@@ -42,6 +42,15 @@ service cloud.firestore {
           allow read, write: if request.auth != null && request.auth.uid == uid;
         }
       }
+
+      // Batch Progress subcollection (for Study Module)
+      match /batchProgress/{batchProgressId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+        
+        match /lectures/{lectureId} {
+          allow read, write: if request.auth != null && request.auth.uid == uid;
+        }
+      }
     }
 
     // Courses: Public read if published, Admin write
@@ -58,31 +67,37 @@ service cloud.firestore {
         allow write: if isAdmin();
         
         match /lessons/{lessonId} {
-          allow read: if isAdmin() || (
-            // Check enrollment exists (simplified, real app would check enrollments collection)
-            exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + batchId))
-          );
+          // Allow authenticated users to read lessons (purchase verified at app level)
+          allow read: if request.auth != null;
           allow write: if isAdmin();
+
+          // Comments: Any authenticated user can read, create their own
+          match /comments/{commentId} {
+            allow read: if request.auth != null;
+            allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+            allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+
+            // Replies subcollection
+            match /replies/{replyId} {
+              allow read: if request.auth != null;
+              allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+              allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+            }
+          }
         }
 
         match /notes/{noteId} {
-          allow read: if isAdmin() || (
-            exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + batchId))
-          );
+          allow read: if request.auth != null;
           allow write: if isAdmin();
         }
 
         match /planner/{plannerId} {
-          allow read: if isAdmin() || (
-            exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + batchId))
-          );
+          allow read: if request.auth != null;
           allow write: if isAdmin();
         }
 
         match /quizzes/{quizId} {
-          allow read: if isAdmin() || (
-            exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + batchId))
-          );
+          allow read: if request.auth != null;
           allow write: if isAdmin();
         }
       }

@@ -61,6 +61,14 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
             aspectRatio: 16 / 9,
             allowFullScreen: true,
             allowMuting: true,
+            deviceOrientationsOnEnterFullScreen: [
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ],
+            deviceOrientationsAfterFullScreen: [
+              DeviceOrientation.portraitUp,
+              DeviceOrientation.portraitDown,
+            ],
           );
         }
         setState(() {});
@@ -89,15 +97,39 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
     Widget playerWidget;
     if (_isError) {
       playerWidget = const Center(child: Text('Could not load video', style: TextStyle(color: Colors.white)));
-    } else if (_isYoutube) {
-      playerWidget = _youtubeController != null 
-          ? YoutubePlayer(controller: _youtubeController!) 
-          : const CircularProgressIndicator(color: Colors.white);
+    } else if (_isYoutube && _youtubeController != null) {
+      // Use YoutubePlayerBuilder for proper fullscreen handling
+      return YoutubePlayerBuilder(
+        onEnterFullScreen: () {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ]);
+        },
+        onExitFullScreen: () {
+          SystemChrome.setPreferredOrientations([
+            DeviceOrientation.portraitUp,
+            DeviceOrientation.portraitDown,
+          ]);
+        },
+        player: YoutubePlayer(
+          controller: _youtubeController!,
+          showVideoProgressIndicator: true,
+        ),
+        builder: (context, player) {
+          return _buildScaffold(context, player);
+        },
+      );
+    } else if (_chewieController != null && _chewieController!.videoPlayerController.value.isInitialized) {
+      playerWidget = Chewie(controller: _chewieController!);
     } else {
-      playerWidget = _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized
-          ? Chewie(controller: _chewieController!)
-          : const CircularProgressIndicator(color: Colors.white);
+      playerWidget = const CircularProgressIndicator(color: Colors.white);
     }
+
+    return _buildScaffold(context, playerWidget);
+  }
+
+  Widget _buildScaffold(BuildContext context, Widget playerWidget) {
 
     return Scaffold(
       backgroundColor: Colors.black,

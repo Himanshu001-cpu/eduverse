@@ -91,8 +91,19 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
     }
 
     return YoutubePlayerBuilder(
+      onEnterFullScreen: () {
+        // Lock to landscape when entering fullscreen
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      },
       onExitFullScreen: () {
-        SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+        // Return to portrait when exiting fullscreen
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
       },
       player: YoutubePlayer(
         controller: _controller!,
