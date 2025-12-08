@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/widgets/rich_text_block.dart';
+import 'package:eduverse/core/firebase/bookmark_service.dart';
+import 'package:eduverse/profile/models/bookmark_model.dart';
 
 /// Detail page for Article content type.
 /// Shows full article with metadata, body text, and action buttons.
@@ -17,6 +19,18 @@ class ArticleDetailPage extends StatefulWidget {
 class _ArticleDetailPageState extends State<ArticleDetailPage> {
   bool _isMarkedAsRead = false;
   bool _isBookmarked = false;
+  final BookmarkService _bookmarkService = BookmarkService();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBookmarkStatus();
+  }
+
+  Future<void> _checkBookmarkStatus() async {
+    final status = await _bookmarkService.isBookmarked(widget.item.id);
+    if (mounted) setState(() => _isBookmarked = status);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,17 +221,47 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     // TODO: Persist read state to backend/local storage
   }
 
-  void _toggleBookmark() {
-    setState(() {
-      _isBookmarked = !_isBookmarked;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isBookmarked ? 'Added to bookmarks' : 'Removed from bookmarks'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-    // TODO: Persist bookmark state to backend/local storage
+  Future<void> _toggleBookmark() async {
+    // Optimistic UI update
+    setState(() => _isBookmarked = !_isBookmarked);
+
+    try {
+      final bookmarkItem = BookmarkItem(
+        id: widget.item.id,
+        title: widget.item.title,
+        type: BookmarkType.article,
+        dateAdded: DateTime.now(),
+        metadata: {
+          'category': widget.item.categoryLabel,
+          'emoji': widget.item.emoji,
+          // Add essential fields needed for basic rendering in bookmarks list
+        },
+      );
+
+      final isBookmarkedNow = await _bookmarkService.toggleBookmark(bookmarkItem);
+      
+      // Sync state if it differs from optimism (rare but possible)
+      if (mounted && _isBookmarked != isBookmarkedNow) {
+        setState(() => _isBookmarked = isBookmarkedNow);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isBookmarkedNow ? 'Added to bookmarks' : 'Removed from bookmarks'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      // Revert on error
+      if (mounted) setState(() => _isBookmarked = !_isBookmarked);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   String _formatDate(DateTime date) {

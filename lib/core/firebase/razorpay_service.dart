@@ -35,6 +35,8 @@ class RazorpayConfig {
     'companyName': companyName,
     'currency': currency,
   };
+
+  bool get isValid => keyId.isNotEmpty;
 }
 
 /// Service to handle Razorpay payments
@@ -46,6 +48,7 @@ class RazorpayService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Razorpay? _razorpay;
   RazorpayConfig? _config;
+  bool _isInitializing = false;
 
   // Callbacks
   Function(PaymentSuccessResponse)? _onSuccess;
@@ -55,42 +58,36 @@ class RazorpayService {
   /// Initialize Razorpay with config from Firestore
   Future<void> initialize() async {
     if (_razorpay != null) return;
+    if (_isInitializing) return;
 
-    _razorpay = Razorpay();
-    _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    _isInitializing = true;
+    try {
+      _razorpay = Razorpay();
+      _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+      _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+      _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
 
-    await _loadConfig();
+      await _loadConfig();
+    } catch (e) {
+      debugPrint('Error initializing RazorpayService: $e');
+    } finally {
+      _isInitializing = false;
+    }
   }
 
   /// Load Razorpay config from Firestore
   Future<void> _loadConfig() async {
     try {
       final doc = await _firestore.collection('config').doc('razorpay').get();
-      if (doc.exists) {
+      if (doc.exists && doc.data() != null) {
         _config = RazorpayConfig.fromJson(doc.data()!);
       } else {
-        // Create default config if not exists
-        _config = RazorpayConfig(
-          keyId: 'rzp_test_Rp7qTUHfNoqRw',
-          keySecret: '53ptDBzPDv5WGC5jUD6dOqdA',
-          isTestMode: true,
-          companyName: 'Eduverse',
-          currency: 'INR',
-        );
-        await _saveConfig(_config!);
+        debugPrint('Razorpay config not found in Firestore');
+        _config = null;
       }
     } catch (e) {
       debugPrint('Error loading Razorpay config: $e');
-      // Use default test config if error
-      _config = RazorpayConfig(
-        keyId: 'rzp_test_Rp7qTUHfNoqRw',
-        keySecret: '53ptDBzPDv5WGC5jUD6dOqdA',
-        isTestMode: true,
-        companyName: 'Eduverse',
-        currency: 'INR',
-      );
+      _config = null;
     }
   }
 
@@ -121,9 +118,19 @@ class RazorpayService {
       await initialize();
     }
     
-    if (_config == null) {
-      debugPrint('RazorpayService: Config is null, loading...');
-      await _loadConfig();
+    // Refresh config to ensure we have latest keys
+    await _loadConfig();
+
+    if (_config == null || !_config!.isValid) {
+      debugPrint('RazorpayService: Invalid or missing config');
+      if (onFailure != null) {
+        onFailure(PaymentFailureResponse(
+          Razorpay.UNKNOWN_ERROR,
+          'Payment gateway configuration missing. Please contact support.',
+          null,
+        ));
+      }
+      return;
     }
 
     _onSuccess = onSuccess;
@@ -132,17 +139,15 @@ class RazorpayService {
 
     // Amount in paise (smallest currency unit)
     final amountInPaise = (amount * 100).toInt();
-    debugPrint('RazorpayService: Amount in paise: $amountInPaise');
-    debugPrint('RazorpayService: Key ID: ${_config!.keyId}');
-
+    
     final options = {
       'key': _config!.keyId,
       'amount': amountInPaise,
       'name': _config!.companyName,
       'description': description ?? 'Course Purchase',
       'prefill': {
-        'contact': customerPhone.isNotEmpty ? customerPhone : '9999999999',
-        'email': customerEmail.isNotEmpty ? customerEmail : 'user@example.com',
+        'contact': customerPhone,
+        'email': customerEmail,
         'name': customerName,
       },
       'notes': {
@@ -154,11 +159,10 @@ class RazorpayService {
       'currency': _config!.currency,
     };
 
-    debugPrint('RazorpayService: Opening Razorpay with options: $options');
+    debugPrint('RazorpayService: Opening Razorpay');
 
     try {
       _razorpay!.open(options);
-      debugPrint('RazorpayService: Razorpay.open() called successfully');
     } catch (e) {
       debugPrint('RazorpayService: Error opening Razorpay: $e');
       if (_onFailure != null) {
@@ -179,37 +183,12 @@ class RazorpayService {
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
-    // Detailed error logging
     final errorCode = response.code;
     final errorMessage = response.message ?? 'Unknown error';
-    final errorData = response.error;
-    
-    String errorDescription = '';
-    switch (errorCode) {
-      case Razorpay.NETWORK_ERROR:
-        errorDescription = 'NETWORK_ERROR: No internet connection or network timeout';
-        break;
-      case Razorpay.INVALID_OPTIONS:
-        errorDescription = 'INVALID_OPTIONS: Invalid payment options provided';
-        break;
-      case Razorpay.PAYMENT_CANCELLED:
-        errorDescription = 'PAYMENT_CANCELLED: User cancelled the payment';
-        break;
-      case Razorpay.TLS_ERROR:
-        errorDescription = 'TLS_ERROR: SSL/TLS error';
-        break;
-      case Razorpay.UNKNOWN_ERROR:
-        errorDescription = 'UNKNOWN_ERROR: Something went wrong';
-        break;
-      default:
-        errorDescription = 'Error code: $errorCode';
-    }
     
     debugPrint('======== RAZORPAY ERROR ========');
     debugPrint('Error Code: $errorCode');
-    debugPrint('Error Description: $errorDescription');
     debugPrint('Error Message: $errorMessage');
-    debugPrint('Error Data: $errorData');
     debugPrint('================================');
     
     if (_onFailure != null) {

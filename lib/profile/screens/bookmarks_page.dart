@@ -1,11 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'package:eduverse/profile/profile_mock_data.dart';
 import 'package:eduverse/common/widgets/empty_state.dart';
 import 'package:eduverse/common/widgets/cards.dart';
+import 'package:eduverse/core/firebase/bookmark_service.dart';
+import 'package:eduverse/profile/models/bookmark_model.dart';
+import 'package:eduverse/feed/repository/feed_repository.dart';
+import 'package:eduverse/study/study_repository.dart';
+import 'package:eduverse/feed/screens/article_detail_page.dart';
+import 'package:eduverse/study/presentation/screens/batch_detail_screen.dart';
+import 'package:eduverse/feed/models.dart';
+import 'package:eduverse/study/domain/models/study_entities.dart' show StudyBatch;
 
 class BookmarksPage extends StatefulWidget {
   const BookmarksPage({Key? key}) : super(key: key);
@@ -15,72 +21,14 @@ class BookmarksPage extends StatefulWidget {
 }
 
 class _BookmarksPageState extends State<BookmarksPage> {
-  List<BookmarkItem> _bookmarks = [];
-  bool _isLoading = true;
+  final BookmarkService _bookmarkService = BookmarkService();
+  final FeedRepository _feedRepository = FeedRepository();
+  final StudyRepository _studyRepository = StudyRepository();
+  
   bool _isSelectionMode = false;
+  bool _isNavigating = false;
   final Set<String> _selectedIds = {};
   String _sort = 'Newest'; // Newest, Oldest, Type
-
-  final String _prefKey = 'my_bookmarks_list';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBookmarks();
-  }
-
-  Future<void> _loadBookmarks() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? jsonString = prefs.getString(_prefKey);
-
-      if (jsonString != null) {
-        final List<dynamic> jsonList = jsonDecode(jsonString);
-        setState(() {
-          _bookmarks = jsonList.map((e) => _fromJson(e)).toList();
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _bookmarks = List.from(ProfileMockData.bookmarks);
-          _isLoading = false;
-        });
-        _saveBookmarks();
-      }
-    } catch (e) {
-      debugPrint('Error loading bookmarks: $e');
-      setState(() {
-        _bookmarks = [];
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _saveBookmarks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String jsonString = jsonEncode(_bookmarks.map((e) => _toJson(e)).toList());
-    await prefs.setString(_prefKey, jsonString);
-  }
-
-  // Simplified serialization - skipping complex Course object for now or simplifying it
-  Map<String, dynamic> _toJson(BookmarkItem item) {
-    return {
-      'id': item.id,
-      'title': item.title,
-      'type': item.type.index,
-      'dateAdded': item.dateAdded.toIso8601String(),
-      // 'courseData': ... (omitted for simplicity in this mock persistence)
-    };
-  }
-
-  BookmarkItem _fromJson(Map<String, dynamic> json) {
-    return BookmarkItem(
-      id: json['id'],
-      title: json['title'],
-      type: BookmarkType.values[json['type']],
-      dateAdded: DateTime.parse(json['dateAdded']),
-    );
-  }
 
   void _toggleSelection(String id) {
     setState(() {
@@ -93,18 +41,34 @@ class _BookmarksPageState extends State<BookmarksPage> {
     });
   }
 
-  void _deleteSelected() {
+  Future<void> _deleteSelected() async {
+    final idsToDelete = List<String>.from(_selectedIds);
     setState(() {
-      _bookmarks.removeWhere((item) => _selectedIds.contains(item.id));
       _selectedIds.clear();
       _isSelectionMode = false;
     });
-    _saveBookmarks();
+
+    try {
+      for (final id in idsToDelete) {
+        await _bookmarkService.removeBookmark(id);
+      }
+      if(mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Selected bookmarks deleted')),
+          );
+      }
+    } catch (e) {
+      if(mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting bookmarks: $e'), backgroundColor: Colors.red),
+          );
+      }
+    }
   }
 
-  void _exportSelected() {
-    final selectedItems = _bookmarks.where((item) => _selectedIds.contains(item.id)).toList();
-    final jsonStr = jsonEncode(selectedItems.map((e) => _toJson(e)).toList());
+  void _exportSelected(List<BookmarkItem> allBookmarks) {
+    final selectedItems = allBookmarks.where((item) => _selectedIds.contains(item.id)).toList();
+    final jsonStr = jsonEncode(selectedItems.map((e) => e.toMap()).toList()); // Use toMap from model
     Clipboard.setData(ClipboardData(text: jsonStr));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Exported to clipboard')),
@@ -114,9 +78,9 @@ class _BookmarksPageState extends State<BookmarksPage> {
       _isSelectionMode = false;
     });
   }
-
-  List<BookmarkItem> get _sortedBookmarks {
-    List<BookmarkItem> list = List.from(_bookmarks);
+  
+  List<BookmarkItem> _getSortedBookmarks(List<BookmarkItem> bookmarks) {
+    List<BookmarkItem> list = List.from(bookmarks);
     switch (_sort) {
       case 'Newest':
         list.sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
@@ -131,11 +95,71 @@ class _BookmarksPageState extends State<BookmarksPage> {
     return list;
   }
 
+  Future<void> _handleNavigation(BookmarkItem item) async {
+    if (_isNavigating) return;
+    setState(() => _isNavigating = true);
+
+    try {
+      debugPrint('Navigating for item: ${item.id}, Type: ${item.type}, Metadata: ${item.metadata}');
+      if (item.type == BookmarkType.article || item.type == BookmarkType.video) {
+        final feedItem = await _feedRepository.getFeedItem(item.id);
+        debugPrint('Feed item fetch result: ${feedItem != null}');
+        if (feedItem != null && mounted) {
+           Navigator.push(
+             context,
+             MaterialPageRoute(builder: (_) => ArticleDetailPage(item: feedItem)),
+           );
+        } else if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Content not found')));
+        }
+      } else if (item.type == BookmarkType.batch) {
+        final courseId = item.metadata?['courseId'];
+        debugPrint('Batch navigation - CourseId: $courseId');
+        if (courseId != null) {
+           final batchModel = await _studyRepository.getBatch(item.id, courseId: courseId);
+           debugPrint('Batch fetch result: ${batchModel != null}');
+           if (batchModel != null && mounted) {
+             // Map Model to Entity
+             final batch = StudyBatch(
+                id: batchModel.id,
+                courseId: batchModel.courseId,
+                name: batchModel.name,
+                courseName: batchModel.courseName,
+                emoji: batchModel.emoji,
+                gradientColors: batchModel.gradientColors,
+                thumbnailUrl: item.metadata?['thumbnailUrl'] ?? '', 
+                startDate: batchModel.startDate,
+                totalLectures: batchModel.lessonCount,
+                completedLectures: (batchModel.progress * batchModel.lessonCount).round(),
+                progress: batchModel.progress,
+             );
+
+             Navigator.push(
+               context,
+               MaterialPageRoute(builder: (_) => BatchDetailScreen(batch: batch)),
+             );
+           } else if (mounted) {
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Batch not found')));
+           }
+        } else if (mounted) {
+             // Fallback or error for legacy bookmarks
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to open batch (Missing course info)')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isNavigating = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final list = _sortedBookmarks;
-
-    return Scaffold(
+    return Stack(
+      children: [
+        Scaffold(
       appBar: AppBar(
         title: Text(_isSelectionMode ? '${_selectedIds.length} Selected' : 'Bookmarks'),
         leading: _isSelectionMode
@@ -148,75 +172,110 @@ class _BookmarksPageState extends State<BookmarksPage> {
               )
             : null,
         actions: [
-          if (_isSelectionMode) ...[
-            IconButton(icon: const Icon(Icons.copy), onPressed: _exportSelected),
-            IconButton(icon: const Icon(Icons.delete), onPressed: _deleteSelected),
-          ] else ...[
-             PopupMenuButton<String>(
-               onSelected: (val) => setState(() => _sort = val),
-               itemBuilder: (context) => ['Newest', 'Oldest', 'Type']
-                   .map((s) => PopupMenuItem(value: s, child: Text(s)))
-                   .toList(),
-               icon: const Icon(Icons.sort),
-             ),
-          ],
+          StreamBuilder<List<BookmarkItem>>(
+             stream: _bookmarkService.getBookmarksStream(),
+             builder: (context, snapshot) {
+                 final bookmarks = snapshot.data ?? [];
+                 if (_isSelectionMode) {
+                   return Row(
+                     mainAxisSize: MainAxisSize.min,
+                     children: [
+                       IconButton(icon: const Icon(Icons.copy), onPressed: () => _exportSelected(bookmarks)),
+                       IconButton(icon: const Icon(Icons.delete), onPressed: _deleteSelected),
+                     ],
+                   );
+                 } else {
+                   return PopupMenuButton<String>(
+                     onSelected: (val) => setState(() => _sort = val),
+                     itemBuilder: (context) => ['Newest', 'Oldest', 'Type']
+                         .map((s) => PopupMenuItem(value: s, child: Text(s)))
+                         .toList(),
+                     icon: const Icon(Icons.sort),
+                   );
+                 }
+             },
+          ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : list.isEmpty
-              ? const EmptyState(title: 'No bookmarks yet', icon: Icons.bookmark_border)
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: list.length,
-                  itemBuilder: (context, index) {
-                    final item = list[index];
-                    final isSelected = _selectedIds.contains(item.id);
+      body: StreamBuilder<List<BookmarkItem>>(
+        stream: _bookmarkService.getBookmarksStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+             return Center(child: Text('Error: ${snapshot.error}'));
+          }
 
-                    return AppCard(
-                      color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
-                      onTap: _isSelectionMode
-                          ? () => _toggleSelection(item.id)
-                          : () {
-                              // Navigate to details
-                            },
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: _isSelectionMode
-                            ? Checkbox(
-                                value: isSelected,
-                                onChanged: (_) => _toggleSelection(item.id),
-                              )
-                            : Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  item.type == BookmarkType.course
-                                      ? Icons.school
-                                      : item.type == BookmarkType.video
-                                          ? Icons.play_circle
-                                          : Icons.article,
-                                  color: Colors.indigo,
-                                ),
-                              ),
-                        title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(
-                          '${item.type.name.toUpperCase()} • ${DateFormat('MMM d').format(item.dateAdded)}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          final rawBookmarks = snapshot.data ?? [];
+          final list = _getSortedBookmarks(rawBookmarks);
+
+          if (list.isEmpty) {
+            return const EmptyState(title: 'No bookmarks yet', icon: Icons.bookmark_border);
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: list.length,
+            itemBuilder: (context, index) {
+              final item = list[index];
+              final isSelected = _selectedIds.contains(item.id);
+
+              return AppCard(
+                color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+                child: ListTile(
+                  onTap: _isSelectionMode
+                      ? () => _toggleSelection(item.id)
+                      : () => _handleNavigation(item),
+                  contentPadding: EdgeInsets.zero,
+                  leading: _isSelectionMode
+                      ? Checkbox(
+                          value: isSelected,
+                          onChanged: (_) => _toggleSelection(item.id),
+                        )
+                      : Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            _getIconForType(item.type),
+                            color: Colors.indigo,
+                          ),
                         ),
-                        onLongPress: () {
-                          setState(() {
-                            _isSelectionMode = true;
-                            _toggleSelection(item.id);
-                          });
-                        },
-                      ),
-                    );
+                  title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    '${item.type.name.toUpperCase()} • ${DateFormat('MMM d').format(item.dateAdded)}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  onLongPress: () {
+                    setState(() {
+                      _isSelectionMode = true;
+                      _toggleSelection(item.id);
+                    });
                   },
                 ),
+              );
+            },
+          );
+        },
+      ),
+      ),
+      if (_isNavigating)
+          Container(
+            color: Colors.black26,
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+      ],
     );
+  }
+
+  IconData _getIconForType(BookmarkType type) {
+      switch (type) {
+        case BookmarkType.video: return Icons.play_circle;
+        case BookmarkType.article: return Icons.article;
+        default: return Icons.bookmark;
+      }
   }
 }

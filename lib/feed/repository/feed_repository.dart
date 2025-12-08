@@ -29,6 +29,22 @@ class FeedRepository {
     });
   }
 
+  Future<FeedItem?> getFeedItem(String id) async {
+    try {
+      final doc = await _firestore.collection(FirestorePaths.feed).doc(id).get();
+      if (!doc.exists || doc.data() == null) return null;
+      
+      final data = doc.data()!;
+      // Ensure ID is present for fromJson
+      data['id'] = doc.id;
+      
+      return FeedItem.fromJson(data);
+    } catch (e) {
+      print('Error getting feed item $id: $e');
+      return null;
+    }
+  }
+
   Future<void> addFeedItem(FeedItem item) async {
     await _firestore.collection(FirestorePaths.feed).doc(item.id).set(item.toJson());
   }

@@ -94,6 +94,30 @@ class StudyRepository {
       });
   }
 
+  Future<StudyBatchModel?> getBatch(String batchId, {String? courseId}) async {
+    try {
+        if (courseId != null) {
+            final doc = await _firestore
+                .collection('courses')
+                .doc(courseId)
+                .collection('batches')
+                .doc(batchId)
+                .get();
+            if (doc.exists) {
+                // Fetch course data for complete model
+                final courseDoc = await _firestore.collection('courses').doc(courseId).get();
+                return StudyBatchModel.fromMap(doc.data()!, doc.id, courseData: courseDoc.data());
+            }
+        }
+        // Fallback: This would need a Collection Group Index on 'id' matching documentId which isn't standard
+        // For now, we rely on courseId being known.
+        return null;
+    } catch (e) {
+        debugPrint('Error fetching batch $batchId: $e');
+        return null;
+    }
+  }
+
   // --- LESSONS ---
 
   Stream<List<LessonModel>> getLessons(String courseId, String batchId) {

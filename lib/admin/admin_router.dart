@@ -17,6 +17,7 @@ import 'screens/batch_detail_screen.dart';
 import 'screens/batch_notes_screen.dart';
 import 'screens/batch_planner_screen.dart';
 import 'screens/batch_quiz_screen.dart';
+import 'screens/payment_settings_screen.dart';
 
 class AdminRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -62,6 +63,8 @@ class AdminRouter {
         return MaterialPageRoute(builder: (_) => QuizEditorScreen(feedItem: feedItem));
       case '/settings':
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
+      case '/payment_settings':
+        return MaterialPageRoute(builder: (_) => const PaymentSettingsScreen());
       default:
         return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text('404'))));
     }

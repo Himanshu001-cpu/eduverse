@@ -6,6 +6,8 @@ import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
 import 'package:eduverse/common/services/download_service.dart';
+import 'package:eduverse/core/firebase/bookmark_service.dart';
+import 'package:eduverse/profile/models/bookmark_model.dart';
 
 class BatchDetailScreen extends StatefulWidget {
   final StudyBatch batch;
@@ -21,11 +23,18 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   late TabController _tabController;
   int _refreshKey = 0; // Used to force FutureBuilder refresh
   bool _isBookmarked = false; // Bookmark state
+  final BookmarkService _bookmarkService = BookmarkService();
 
   @override
   void initState() {
     super.initState();
+    _checkBookmarkStatus();
     _tabController = TabController(length: 4, vsync: this);
+  }
+
+  Future<void> _checkBookmarkStatus() async {
+    final status = await _bookmarkService.isBookmarked(widget.batch.id);
+    if (mounted) setState(() => _isBookmarked = status);
   }
 
   @override
@@ -162,14 +171,46 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                 child: _QuickActionButton(
                   icon: _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                   label: 'Bookmark',
-                  onTap: () {
+                  onTap: () async {
+                    // Optimistic update
                     setState(() => _isBookmarked = !_isBookmarked);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(_isBookmarked ? 'Batch bookmarked' : 'Bookmark removed'),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
+                    
+                    try {
+                      final bookmark = BookmarkItem(
+                        id: widget.batch.id,
+                        title: widget.batch.name,
+                        type: BookmarkType.batch,
+                        dateAdded: DateTime.now(),
+                        metadata: {
+                           'courseId': widget.batch.courseId,
+                           'batchName': widget.batch.courseName,
+                           'thumbnailUrl': widget.batch.thumbnailUrl,
+                        }
+                      );
+                      
+                      final result = await _bookmarkService.toggleBookmark(bookmark);
+                      
+                      // Sync state
+                      if (mounted && result != _isBookmarked) {
+                        setState(() => _isBookmarked = result);
+                      }
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(result ? 'Batch bookmarked' : 'Bookmark removed'),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) setState(() => _isBookmarked = !_isBookmarked);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                    }
                   },
                 ),
               ),

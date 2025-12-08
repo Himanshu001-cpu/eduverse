@@ -77,6 +77,11 @@ service cloud.firestore {
         allow create: if request.auth != null && request.auth.uid == uid;
         // No update/delete to preserve history
       }
+
+      // User bookmarks
+      match /bookmarks/{bookmarkId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // Config collection (payment settings, etc.)
@@ -84,7 +89,7 @@ service cloud.firestore {
       // All authenticated users can read keyId for payment
       allow read: if request.auth != null;
       // Only admins can write config
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow write: if isAdmin();
     }
 
     // Courses: Public read if published, Admin write
