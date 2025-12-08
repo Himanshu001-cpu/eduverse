@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models/feed_models.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
+import 'package:eduverse/core/firebase/quiz_stats_service.dart';
 
 /// Quiz result screen for Study section.
-class StudyQuizResultScreen extends StatelessWidget {
+class StudyQuizResultScreen extends StatefulWidget {
   final String quizTitle;
   final List<QuizQuestion> questions;
   final List<int?> userAnswers;
   final int correctCount;
   final Color themeColor;
+  final String? quizId;
+  final String source; // 'batch' or 'feed'
 
   const StudyQuizResultScreen({
     Key? key,
@@ -17,9 +20,18 @@ class StudyQuizResultScreen extends StatelessWidget {
     required this.userAnswers,
     required this.correctCount,
     this.themeColor = Colors.purple,
+    this.quizId,
+    this.source = 'batch',
   }) : super(key: key);
 
-  double get _percentage => (correctCount / questions.length) * 100;
+  @override
+  State<StudyQuizResultScreen> createState() => _StudyQuizResultScreenState();
+}
+
+class _StudyQuizResultScreenState extends State<StudyQuizResultScreen> {
+  bool _statsSaved = false;
+
+  double get _percentage => (widget.correctCount / widget.questions.length) * 100;
 
   String get _message {
     if (_percentage >= 90) return 'Excellent! Outstanding performance! 🌟';
@@ -27,6 +39,26 @@ class StudyQuizResultScreen extends StatelessWidget {
     if (_percentage >= 50) return 'Good effort! Room for improvement. 📚';
     if (_percentage >= 30) return 'Keep practicing! You can do better. 💪';
     return 'Don\'t give up! Review the concepts. 📖';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _saveQuizStats();
+  }
+
+  Future<void> _saveQuizStats() async {
+    if (_statsSaved) return;
+    _statsSaved = true;
+    
+    await QuizStatsService().saveQuizAttempt(
+      quizId: widget.quizId ?? 'unknown_${DateTime.now().millisecondsSinceEpoch}',
+      quizTitle: widget.quizTitle,
+      questionsAttempted: widget.questions.length,
+      correctAnswers: widget.correctCount,
+      completed: true, // They reached the result screen, so completed
+      source: widget.source,
+    );
   }
 
   @override
@@ -62,7 +94,7 @@ class StudyQuizResultScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           gradient: LinearGradient(
-                            colors: [themeColor, themeColor.withOpacity(0.7)],
+                            colors: [widget.themeColor, widget.themeColor.withOpacity(0.7)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -72,7 +104,7 @@ class StudyQuizResultScreen extends StatelessWidget {
                             const Text('📝', style: TextStyle(fontSize: 48)),
                             const SizedBox(height: 16),
                             Text(
-                              '$correctCount / ${questions.length}',
+                              '${widget.correctCount} / ${widget.questions.length}',
                               style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                             const SizedBox(height: 8),
@@ -97,11 +129,11 @@ class StudyQuizResultScreen extends StatelessWidget {
                     // Statistics row
                     Row(
                       children: [
-                        _buildStatCard(context, 'Correct', correctCount.toString(), Colors.green, Icons.check_circle),
+                        _buildStatCard(context, 'Correct', widget.correctCount.toString(), Colors.green, Icons.check_circle),
                         const SizedBox(width: 12),
-                        _buildStatCard(context, 'Wrong', (questions.length - correctCount).toString(), Colors.red, Icons.cancel),
+                        _buildStatCard(context, 'Wrong', (widget.questions.length - widget.correctCount).toString(), Colors.red, Icons.cancel),
                         const SizedBox(width: 12),
-                        _buildStatCard(context, 'Total', questions.length.toString(), colorScheme.primary, Icons.quiz),
+                        _buildStatCard(context, 'Total', widget.questions.length.toString(), colorScheme.primary, Icons.quiz),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -115,7 +147,7 @@ class StudyQuizResultScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     // Question list
-                    ...List.generate(questions.length, (index) => _buildQuestionReviewCard(context, index)),
+                    ...List.generate(widget.questions.length, (index) => _buildQuestionReviewCard(context, index)),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -168,8 +200,8 @@ class StudyQuizResultScreen extends StatelessWidget {
   }
 
   Widget _buildQuestionReviewCard(BuildContext context, int index) {
-    final question = questions[index];
-    final userAnswer = userAnswers[index];
+    final question = widget.questions[index];
+    final userAnswer = widget.userAnswers[index];
     final isCorrect = userAnswer == question.correctIndex;
     final colorScheme = Theme.of(context).colorScheme;
 

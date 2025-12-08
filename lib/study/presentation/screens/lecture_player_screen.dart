@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:eduverse/core/firebase/watch_stats_service.dart';
 
 class LecturePlayerScreen extends StatefulWidget {
   final String courseId;
@@ -42,11 +43,15 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
   bool _isPostingComment = false;
   String? _replyingToCommentId;
   String? _replyingToUserName;
+  
+  // Watch time tracking
+  DateTime? _watchStartTime;
 
   @override
   void initState() {
     super.initState();
     _isWatched = widget.lecture.isWatched;
+    _watchStartTime = DateTime.now(); // Start tracking watch time
     _initializePlayer();
   }
   
@@ -251,12 +256,29 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
 
   @override
   void dispose() {
+    // Save watch time before disposing
+    _saveWatchTime();
+    
     _videoPlayerController?.dispose();
     _chewieController?.dispose();
     _youtubeController?.dispose();
     _commentController.dispose();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
+  }
+  
+  void _saveWatchTime() {
+    if (_watchStartTime == null) return;
+    
+    final watchedMinutes = DateTime.now().difference(_watchStartTime!).inSeconds / 60.0;
+    if (watchedMinutes < 0.1) return; // Don't save if less than 6 seconds
+    
+    WatchStatsService().recordWatchTime(
+      lectureId: widget.lecture.id,
+      lectureTitle: widget.lecture.title,
+      watchedMinutes: watchedMinutes,
+      batchId: widget.batchId,
+    );
   }
 
   @override

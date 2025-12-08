@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:eduverse/profile/profile_mock_data.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eduverse/core/firebase/purchase_service.dart';
 import 'package:eduverse/common/widgets/empty_state.dart';
 import 'package:eduverse/common/widgets/cards.dart';
+
+enum TransactionStatus { success, failed, pending }
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({Key? key}) : super(key: key);
@@ -12,42 +15,57 @@ class TransactionsPage extends StatefulWidget {
 }
 
 class _TransactionsPageState extends State<TransactionsPage> {
-  String _filter = 'All'; // All, Success, Failed, Pending
+  String _filter = 'All';
   DateTimeRange? _dateRange;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  final _purchaseService = PurchaseService();
 
-  List<Transaction> get _filteredTransactions {
-    List<Transaction> list = ProfileMockData.transactions;
+  TransactionStatus _parseStatus(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'success':
+        return TransactionStatus.success;
+      case 'failed':
+        return TransactionStatus.failed;
+      default:
+        return TransactionStatus.pending;
+    }
+  }
+
+  List<Map<String, dynamic>> _applyFilters(List<Map<String, dynamic>> transactions) {
+    var list = List<Map<String, dynamic>>.from(transactions);
 
     // Filter by status
     if (_filter != 'All') {
-      list = list.where((t) => t.status.name.toLowerCase() == _filter.toLowerCase()).toList();
+      list = list.where((t) => 
+        (t['status'] as String?)?.toLowerCase() == _filter.toLowerCase()
+      ).toList();
     }
 
     // Filter by date range
     if (_dateRange != null) {
       list = list.where((t) {
-        return t.date.isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
-               t.date.isBefore(_dateRange!.end.add(const Duration(days: 1)));
+        final date = (t['date'] as dynamic)?.toDate() as DateTime?;
+        if (date == null) return true;
+        return date.isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
+               date.isBefore(_dateRange!.end.add(const Duration(days: 1)));
       }).toList();
     }
 
     // Filter by search (Order ID)
     if (_searchQuery.isNotEmpty) {
-      list = list.where((t) => t.orderId.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+      list = list.where((t) => 
+        (t['orderId'] as String?)?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false
+      ).toList();
     }
-
-    // Sort by date desc
-    list.sort((a, b) => b.date.compareTo(a.date));
 
     return list;
   }
 
-  double get _totalSpent {
-    return _filteredTransactions
-        .where((t) => t.status == TransactionStatus.success)
-        .fold(0.0, (sum, t) => sum + t.amount);
+  double _calculateTotal(List<Map<String, dynamic>> transactions) {
+    return transactions
+        .where((t) => (t['status'] as String?)?.toLowerCase() == 'success')
+        .fold(0.0, (sum, t) => sum + ((t['amount'] as num?)?.toDouble() ?? 0));
   }
 
   Future<void> _pickDateRange() async {
@@ -58,153 +76,178 @@ class _TransactionsPageState extends State<TransactionsPage> {
       initialDateRange: _dateRange,
     );
     if (picked != null) {
-      setState(() {
-        _dateRange = picked;
-      });
+      setState(() => _dateRange = picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final transactions = _filteredTransactions;
+    final user = FirebaseAuth.instance.currentUser;
+    
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text('Please log in to view transactions')),
+      );
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Transactions'),
-      ),
-      body: Column(
-        children: [
-          // Summary Card
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: AppCard(
-              color: Theme.of(context).primaryColor.withOpacity(0.05),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Total Spent', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      const SizedBox(height: 4),
-                      Text(
-                        '₹${_totalSpent.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text('Transactions', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${transactions.length}',
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+      appBar: AppBar(title: const Text('My Transactions')),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _purchaseService.getTransactionsStream(user.uid),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
 
-          // Filters
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: const InputDecoration(
-                          hintText: 'Search Order ID',
-                          prefixIcon: Icon(Icons.search),
-                          contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                        ),
-                        onChanged: (val) => setState(() => _searchQuery = val),
+          final allTransactions = snapshot.data ?? [];
+          final transactions = _applyFilters(allTransactions);
+          final totalSpent = _calculateTotal(transactions);
+
+          return Column(
+            children: [
+              // Summary Card
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: AppCard(
+                  color: Theme.of(context).primaryColor.withOpacity(0.05),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Total Spent', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          const SizedBox(height: 4),
+                          Text(
+                            '₹${totalSpent.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                        ],
                       ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text('Transactions', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${transactions.length}',
+                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Filters
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: const InputDecoration(
+                              hintText: 'Search Order ID',
+                              prefixIcon: Icon(Icons.search),
+                              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                            ),
+                            onChanged: (val) => setState(() => _searchQuery = val),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(Icons.calendar_today, color: _dateRange != null ? Theme.of(context).primaryColor : Colors.grey),
+                          onPressed: _pickDateRange,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(Icons.calendar_today, color: _dateRange != null ? Theme.of(context).primaryColor : Colors.grey),
-                      onPressed: _pickDateRange,
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: ['All', 'Success', 'Failed', 'Pending'].map((filter) {
+                          final isSelected = _filter == filter;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ChoiceChip(
+                              label: Text(filter),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                if (selected) setState(() => _filter = filter);
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: ['All', 'Success', 'Failed', 'Pending'].map((filter) {
-                      final isSelected = _filter == filter;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: ChoiceChip(
-                          label: Text(filter),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (selected) setState(() => _filter = filter);
-                          },
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
 
-          const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-          // List
-          Expanded(
-            child: transactions.isEmpty
-                ? const EmptyState(title: 'No transactions found', icon: Icons.receipt_long)
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: transactions.length,
-                    itemBuilder: (context, index) {
-                      final item = transactions[index];
-                      return _TransactionCard(item: item);
-                    },
-                  ),
-          ),
-        ],
+              // List
+              Expanded(
+                child: transactions.isEmpty
+                    ? const EmptyState(title: 'No transactions found', icon: Icons.receipt_long)
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: transactions.length,
+                        itemBuilder: (context, index) {
+                          final item = transactions[index];
+                          return _TransactionCard(item: item);
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
 class _TransactionCard extends StatelessWidget {
-  final Transaction item;
+  final Map<String, dynamic> item;
 
   const _TransactionCard({Key? key, required this.item}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final status = (item['status'] as String?)?.toLowerCase() ?? 'pending';
+    final productTitle = item['productTitle'] as String? ?? 'Unknown';
+    final orderId = item['orderId'] as String? ?? '';
+    final amount = (item['amount'] as num?)?.toDouble() ?? 0;
+    final dateTimestamp = item['date'];
+    final date = dateTimestamp != null ? (dateTimestamp as dynamic).toDate() as DateTime : DateTime.now();
+
     Color statusColor;
     IconData statusIcon;
 
-    switch (item.status) {
-      case TransactionStatus.success:
+    switch (status) {
+      case 'success':
         statusColor = Colors.green;
         statusIcon = Icons.check_circle;
         break;
-      case TransactionStatus.failed:
+      case 'failed':
         statusColor = Colors.red;
         statusIcon = Icons.error;
         break;
-      case TransactionStatus.pending:
+      default:
         statusColor = Colors.orange;
         statusIcon = Icons.access_time_filled;
-        break;
     }
 
     return AppCard(
@@ -217,14 +260,14 @@ class _TransactionCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _detailRow('Order ID', item.orderId),
-                _detailRow('Date', DateFormat('MMM d, yyyy h:mm a').format(item.date)),
-                _detailRow('Amount', '₹${item.amount}'),
-                _detailRow('Status', item.status.name.toUpperCase()),
+                _detailRow('Order ID', orderId),
+                _detailRow('Date', DateFormat('MMM d, yyyy h:mm a').format(date)),
+                _detailRow('Amount', '₹$amount'),
+                _detailRow('Status', status.toUpperCase()),
                 const SizedBox(height: 8),
                 const Divider(),
                 const SizedBox(height: 8),
-                Text('Product: ${item.productTitle}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('Product: $productTitle', style: const TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
             actions: [
@@ -249,11 +292,11 @@ class _TransactionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.productTitle,
+                  productTitle,
                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                 ),
                 Text(
-                  DateFormat('MMM d, yyyy').format(item.date),
+                  DateFormat('MMM d, yyyy').format(date),
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
@@ -263,11 +306,11 @@ class _TransactionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₹${item.amount.toStringAsFixed(0)}',
+                '₹${amount.toStringAsFixed(0)}',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               Text(
-                item.status.name.toUpperCase(),
+                status.toUpperCase(),
                 style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
               ),
             ],
@@ -290,3 +333,4 @@ class _TransactionCard extends StatelessWidget {
     );
   }
 }
+

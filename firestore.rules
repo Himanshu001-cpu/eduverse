@@ -51,6 +51,32 @@ service cloud.firestore {
           allow read, write: if request.auth != null && request.auth.uid == uid;
         }
       }
+
+      // User transactions subcollection (payment history)
+      match /transactions/{transactionId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid;
+        // No update/delete to preserve transaction history
+      }
+
+      // User quiz stats (aggregate statistics)
+      match /stats/{statId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // User quiz attempts (individual attempt records)
+      match /quiz_attempts/{attemptId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid;
+        // No update/delete to preserve history
+      }
+
+      // User watch sessions (video viewing records)
+      match /watch_sessions/{sessionId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid;
+        // No update/delete to preserve history
+      }
     }
 
     // Courses: Public read if published, Admin write

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../widgets/admin_scaffold.dart';
 import '../widgets/data_table_card.dart';
+import '../services/admin_stats_service.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // In a real app, fetch stats from a dedicated 'stats' collection or aggregation query
     return AdminScaffold(
       title: 'Dashboard',
       body: SingleChildScrollView(
@@ -16,15 +17,35 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: const [
-                  _StatCard(title: 'Total Users', value: '1,245'),
-                  _StatCard(title: 'Active Courses', value: '12'),
-                  _StatCard(title: 'Enrollments Today', value: '45'),
-                  _StatCard(title: 'Revenue (Today)', value: '\$1,200'),
-                ],
+              child: StreamBuilder<DashboardStats>(
+                stream: AdminStatsService().getDashboardStatsStream(),
+                builder: (context, snapshot) {
+                  final stats = snapshot.data;
+                  final isLoading = !snapshot.hasData;
+                  
+                  return Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: [
+                      _StatCard(
+                        title: 'Total Users',
+                        value: isLoading ? '...' : NumberFormat('#,###').format(stats!.totalUsers),
+                      ),
+                      _StatCard(
+                        title: 'Active Courses',
+                        value: isLoading ? '...' : stats!.activeCourses.toString(),
+                      ),
+                      _StatCard(
+                        title: 'Enrollments Today',
+                        value: isLoading ? '...' : stats!.enrollmentsToday.toString(),
+                      ),
+                      _StatCard(
+                        title: 'Revenue (Today)',
+                        value: isLoading ? '...' : '₹${NumberFormat('#,###').format(stats!.revenueToday)}',
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             const Padding(

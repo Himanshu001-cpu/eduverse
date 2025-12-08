@@ -15,6 +15,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _nameController;
   late TextEditingController _headlineController;
   late TextEditingController _bioController;
+  late TextEditingController _emailController;
+  late TextEditingController _phoneController;
   
   String _medium = 'Hinglish';
   String _avatarType = 'emoji';
@@ -47,6 +49,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _nameController = TextEditingController(text: data.fullName);
     _headlineController = TextEditingController(text: data.headline);
     _bioController = TextEditingController(text: data.bio);
+    _emailController = TextEditingController(text: data.email ?? '');
+    _phoneController = TextEditingController(text: data.phone ?? '');
     _medium = data.medium;
     _avatarType = data.avatarType;
     _avatarValue = data.avatarValue;
@@ -58,6 +62,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _nameController.dispose();
     _headlineController.dispose();
     _bioController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -77,6 +83,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
       avatarType: _avatarType,
       avatarValue: _avatarValue,
       avatarColor: _avatarColor,
+      email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
+      phone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
     );
 
     try {
@@ -218,6 +226,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       decoration: const InputDecoration(labelText: 'Bio', alignLabelWithHint: true),
                       maxLines: 3,
                       maxLength: 250,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone Number',
+                        prefixIcon: Icon(Icons.phone),
+                      ),
+                      keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 24),
 

@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/models/feed_models.dart';
 import 'package:eduverse/feed/screens/quiz_page.dart';
+import 'package:eduverse/core/firebase/quiz_stats_service.dart';
 
 /// Quiz result page showing score summary and question review.
-class QuizResultPage extends StatelessWidget {
+class QuizResultPage extends StatefulWidget {
   final FeedItem item;
   final List<QuizQuestion> questions;
   final List<int?> userAnswers;
@@ -19,7 +20,14 @@ class QuizResultPage extends StatelessWidget {
     required this.correctCount,
   });
 
-  double get _percentage => (correctCount / questions.length) * 100;
+  @override
+  State<QuizResultPage> createState() => _QuizResultPageState();
+}
+
+class _QuizResultPageState extends State<QuizResultPage> {
+  bool _statsSaved = false;
+
+  double get _percentage => (widget.correctCount / widget.questions.length) * 100;
 
   String get _message {
     if (_percentage >= 90) return 'Excellent! Outstanding performance! 🌟';
@@ -33,6 +41,26 @@ class QuizResultPage extends StatelessWidget {
     if (_percentage >= 70) return Colors.green;
     if (_percentage >= 50) return Colors.orange;
     return Colors.red;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _saveQuizStats();
+  }
+
+  Future<void> _saveQuizStats() async {
+    if (_statsSaved) return;
+    _statsSaved = true;
+    
+    await QuizStatsService().saveQuizAttempt(
+      quizId: widget.item.id,
+      quizTitle: widget.item.title,
+      questionsAttempted: widget.questions.length,
+      correctAnswers: widget.correctCount,
+      completed: true,
+      source: 'feed',
+    );
   }
 
   @override
@@ -69,8 +97,8 @@ class QuizResultPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                           gradient: LinearGradient(
                             colors: [
-                              item.color,
-                              item.color.withOpacity(0.7),
+                              widget.item.color,
+                              widget.item.color.withOpacity(0.7),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -79,12 +107,12 @@ class QuizResultPage extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              item.emoji,
+                              widget.item.emoji,
                               style: const TextStyle(fontSize: 48),
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              '$correctCount / ${questions.length}',
+                              '${widget.correctCount} / ${widget.questions.length}',
                               style: const TextStyle(
                                 fontSize: 48,
                                 fontWeight: FontWeight.bold,
@@ -127,7 +155,7 @@ class QuizResultPage extends StatelessWidget {
                         _buildStatCard(
                           context,
                           'Correct',
-                          correctCount.toString(),
+                          widget.correctCount.toString(),
                           Colors.green,
                           Icons.check_circle,
                         ),
@@ -135,7 +163,7 @@ class QuizResultPage extends StatelessWidget {
                         _buildStatCard(
                           context,
                           'Wrong',
-                          (questions.length - correctCount).toString(),
+                          (widget.questions.length - widget.correctCount).toString(),
                           Colors.red,
                           Icons.cancel,
                         ),
@@ -143,7 +171,7 @@ class QuizResultPage extends StatelessWidget {
                         _buildStatCard(
                           context,
                           'Total',
-                          questions.length.toString(),
+                          widget.questions.length.toString(),
                           colorScheme.primary,
                           Icons.quiz,
                         ),
@@ -166,7 +194,7 @@ class QuizResultPage extends StatelessWidget {
                     const SizedBox(height: 16),
                     // Question list
                     ...List.generate(
-                      questions.length,
+                      widget.questions.length,
                       (index) => _buildQuestionReviewCard(context, index),
                     ),
                     const SizedBox(height: 24),
@@ -191,7 +219,7 @@ class QuizResultPage extends StatelessWidget {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => QuizPage(item: item),
+                            builder: (context) => QuizPage(item: widget.item),
                           ),
                         );
                       },
@@ -259,8 +287,8 @@ class QuizResultPage extends StatelessWidget {
   }
 
   Widget _buildQuestionReviewCard(BuildContext context, int index) {
-    final question = questions[index];
-    final userAnswer = userAnswers[index];
+    final question = widget.questions[index];
+    final userAnswer = widget.userAnswers[index];
     final isCorrect = userAnswer == question.correctIndex;
     final colorScheme = Theme.of(context).colorScheme;
 

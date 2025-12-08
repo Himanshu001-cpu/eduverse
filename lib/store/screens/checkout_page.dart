@@ -79,7 +79,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
           paymentId: 'TXN${Random().nextInt(999999)}',
           items: itemsMap,
           method: _selectedMethodId,
-          status: 'pending', // Cloud function will handle enrollment
+          status: 'success',
+        );
+
+        // Generate product title from items
+        final productTitle = widget.items.length == 1
+            ? widget.items.first.title
+            : '${widget.items.length} items';
+
+        // Save transaction record to user's subcollection
+        await purchaseService.saveTransaction(
+          uid: user.uid,
+          orderId: purchaseId,
+          productTitle: productTitle,
+          amount: widget.totalAmount,
+          status: 'success',
+          paymentMethod: _selectedMethodId,
         );
 
         // Clear subcollection cart
@@ -96,7 +111,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           amount: widget.totalAmount,
           items: widget.items,
           paymentMethod: _selectedMethodId,
-          status: 'pending',
+          status: 'success',
         );
 
         if (mounted) {
