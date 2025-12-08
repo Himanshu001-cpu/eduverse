@@ -9,6 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:eduverse/store/services/store_repository.dart';
 import 'package:eduverse/core/firebase/purchase_service.dart';
 import 'package:eduverse/core/firebase/cart_service.dart';
+import 'package:eduverse/core/firebase/razorpay_service.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 class CheckoutPage extends StatefulWidget {
   final List<CartItem> items;
@@ -45,10 +47,57 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _handlePayment() async {
-    if (!_formKey.currentState!.validate()) return;
+    // No form validation needed - Razorpay handles all payment details
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to continue')),
+      );
+      return;
+    }
 
     setState(() => _isProcessing = true);
 
+    try {
+      // Initialize Razorpay service
+      final razorpayService = RazorpayService();
+      await razorpayService.initialize();
+
+      // Generate a temporary order ID
+      final tempOrderId = 'ORD${DateTime.now().millisecondsSinceEpoch}';
+
+      // Open Razorpay checkout
+      await razorpayService.openCheckout(
+        amount: widget.totalAmount,
+        orderId: tempOrderId,
+        customerName: user.displayName ?? 'Customer',
+        customerEmail: user.email ?? '',
+        customerPhone: user.phoneNumber ?? '',
+        description: widget.items.length == 1
+            ? widget.items.first.title
+            : '${widget.items.length} items',
+        onSuccess: (response) => _onPaymentSuccess(response, user, tempOrderId),
+        onFailure: _onPaymentFailure,
+        onExternalWallet: (response) {
+          debugPrint('External wallet: ${response.walletName}');
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  Future<void> _onPaymentSuccess(
+    PaymentSuccessResponse response,
+    User user,
+    String orderId,
+  ) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -56,82 +105,103 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
 
     try {
-      // Simulate Payment Gateway delay
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // In a real app, integrate Stripe/Razorpay here.
-      // For this demo, we assume payment is successful.
-      final success = true; 
+      final purchaseService = PurchaseService();
+      final cartService = CartService();
 
-      if (success) {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) throw Exception('User not logged in');
+      // Convert CartItems to Maps
+      final itemsMap = widget.items.map((e) => e.toJson()).toList();
 
-        final purchaseService = PurchaseService();
-        final cartService = CartService();
+      final purchaseId = await purchaseService.createPurchase(
+        uid: user.uid,
+        amount: widget.totalAmount,
+        paymentId: response.paymentId ?? orderId,
+        items: itemsMap,
+        method: 'razorpay',
+        status: 'success',
+      );
 
-        // Convert CartItems to Maps
-        final itemsMap = widget.items.map((e) => e.toJson()).toList();
+      // Generate product title from items
+      final productTitle = widget.items.length == 1
+          ? widget.items.first.title
+          : '${widget.items.length} items';
 
-        final purchaseId = await purchaseService.createPurchase(
-          uid: user.uid,
-          amount: widget.totalAmount,
-          paymentId: 'TXN${Random().nextInt(999999)}',
-          items: itemsMap,
-          method: _selectedMethodId,
-          status: 'success',
+      // Save transaction record to user's subcollection
+      await purchaseService.saveTransaction(
+        uid: user.uid,
+        orderId: purchaseId,
+        productTitle: productTitle,
+        amount: widget.totalAmount,
+        status: 'success',
+        paymentMethod: 'razorpay',
+      );
+
+      // Clear subcollection cart
+      await cartService.clearCart(user.uid);
+
+      // Update local storage just in case
+      await PurchaseStorage.saveCart([]);
+
+      // Create a Purchase object for the result page
+      final purchase = Purchase(
+        userId: user.uid,
+        id: purchaseId,
+        timestamp: DateTime.now(),
+        amount: widget.totalAmount,
+        items: widget.items,
+        paymentMethod: 'razorpay',
+        status: 'success',
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // Close dialog
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentResultPage(purchase: purchase),
+          ),
         );
-
-        // Generate product title from items
-        final productTitle = widget.items.length == 1
-            ? widget.items.first.title
-            : '${widget.items.length} items';
-
-        // Save transaction record to user's subcollection
-        await purchaseService.saveTransaction(
-          uid: user.uid,
-          orderId: purchaseId,
-          productTitle: productTitle,
-          amount: widget.totalAmount,
-          status: 'success',
-          paymentMethod: _selectedMethodId,
-        );
-
-        // Clear subcollection cart
-        await cartService.clearCart(user.uid);
-
-        // Update local storage just in case
-        await PurchaseStorage.saveCart([]);
-
-        // Create a Purchase object for the result page
-        final purchase = Purchase(
-          userId: user.uid,
-          id: purchaseId,
-          timestamp: DateTime.now(),
-          amount: widget.totalAmount,
-          items: widget.items,
-          paymentMethod: _selectedMethodId,
-          status: 'success',
-        );
-
-        if (mounted) {
-          Navigator.pop(context); // Close dialog
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PaymentResultPage(purchase: purchase),
-            ),
-          );
-        }
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Error saving purchase: $e')),
         );
         setState(() => _isProcessing = false);
       }
+    }
+  }
+
+  void _onPaymentFailure(PaymentFailureResponse response) {
+    if (mounted) {
+      // Show detailed error in a dialog
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Payment Failed'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Error Code: ${response.code}'),
+              const SizedBox(height: 8),
+              Text('Message: ${response.message ?? "Unknown error"}'),
+              if (response.error != null) ...[
+                const SizedBox(height: 8),
+                Text('Details: ${response.error}', 
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      setState(() => _isProcessing = false);
     }
   }
 

@@ -48,6 +48,7 @@ class StoreRepository {
               price: (b['price'] as num?)?.toDouble() ?? 0.0,
               seatsLeft: b['seatsLeft'] ?? 0,
               duration: b['duration'] ?? '',
+              thumbnailUrl: b['thumbnailUrl'] ?? '',
               isEnrolled: b['isEnrolled'] ?? false, // Will be updated later
             );
           }));
@@ -83,6 +84,7 @@ class StoreRepository {
                 (b['startDate'] as Timestamp?)?.toDate(),
                 (b['endDate'] as Timestamp?)?.toDate(),
               ),
+              thumbnailUrl: b['thumbnailUrl'] ?? '',
               isEnrolled: false, // Will be updated later
             );
 
@@ -117,6 +119,7 @@ class StoreRepository {
           gradientColors: gradientColors.length >= 2 
               ? gradientColors 
               : [Colors.blue, Colors.blueAccent],
+          thumbnailUrl: data['thumbnailUrl'] ?? '',
           priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
           batches: batches,
         ));

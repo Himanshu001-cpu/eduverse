@@ -22,21 +22,35 @@ class CourseDetailPage extends StatelessWidget {
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(course.title, style: const TextStyle(fontSize: 16)),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: course.gradientColors,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    course.emoji,
-                    style: const TextStyle(fontSize: 64),
-                  ),
-                ),
-              ),
+              background: course.thumbnailUrl.isNotEmpty
+                  ? Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          course.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => _buildGradientBackground(),
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return _buildGradientBackground(showLoader: true);
+                          },
+                        ),
+                        // Dark overlay for text readability
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.6),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : _buildGradientBackground(),
             ),
           ),
           SliverToBoxAdapter(
@@ -178,6 +192,30 @@ class CourseDetailPage extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => PurchaseCartPage(initialItems: [cartItem]),
+      ),
+    );
+  }
+
+  Widget _buildGradientBackground({bool showLoader = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: course.gradientColors.isNotEmpty
+              ? course.gradientColors
+              : [Colors.blue, Colors.blueAccent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: showLoader
+            ? const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+              )
+            : Text(
+                course.emoji,
+                style: const TextStyle(fontSize: 64),
+              ),
       ),
     );
   }

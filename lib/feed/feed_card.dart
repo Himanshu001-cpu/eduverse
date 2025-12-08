@@ -27,11 +27,32 @@ class FeedCard extends StatelessWidget {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: item.color,
+                        color: item.thumbnailUrl.isEmpty ? item.color : null,
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: item.color.withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      child: Center(
-                        child: Text(item.emoji, style: const TextStyle(fontSize: 32)),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: item.thumbnailUrl.isNotEmpty
+                            ? Image.network(
+                                item.thumbnailUrl,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                errorBuilder: (context, error, stackTrace) => 
+                                    _buildFallback(),
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return _buildFallback(showLoader: true);
+                                },
+                              )
+                            : _buildFallback(),
                       ),
                     ),
                   ),
@@ -78,6 +99,24 @@ class FeedCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFallback({bool showLoader = false}) {
+    return Container(
+      color: item.color,
+      child: Center(
+        child: showLoader
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                ),
+              )
+            : Text(item.emoji, style: const TextStyle(fontSize: 32)),
       ),
     );
   }

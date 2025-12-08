@@ -130,6 +130,125 @@ class FirebaseAdminService {
     });
   }
 
+  // ============ USER MANAGEMENT ============
+
+  // Get all users stream
+  Stream<List<AdminUser>> getUsers() {
+    return _db.collection('users')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => AdminUser.fromMap(doc.data(), doc.id)).toList();
+    });
+  }
+
+  // Get single user by ID
+  Future<AdminUser?> getUserById(String userId) async {
+    final doc = await _db.collection('users').doc(userId).get();
+    if (!doc.exists) return null;
+    return AdminUser.fromMap(doc.data()!, doc.id);
+  }
+
+  // Search users by email or name
+  Stream<List<AdminUser>> searchUsers(String query) {
+    final lowerQuery = query.toLowerCase();
+    return _db.collection('users').snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
+          .where((user) =>
+              user.email.toLowerCase().contains(lowerQuery) ||
+              user.name.toLowerCase().contains(lowerQuery))
+          .toList();
+    });
+  }
+
+  // Get users by role
+  Stream<List<AdminUser>> getUsersByRole(String role) {
+    return _db.collection('users')
+        .where('role', isEqualTo: role)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => AdminUser.fromMap(doc.data(), doc.id)).toList();
+    });
+  }
+
+  // Update user role
+  Future<void> updateUserRole(String userId, String newRole) async {
+    await _db.collection('users').doc(userId).update({
+      'role': newRole,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await _logAudit('update_user_role', 'user', userId, {'newRole': newRole});
+  }
+
+  // Toggle user disabled status
+  Future<void> toggleUserDisabled(String userId, bool disabled) async {
+    await _db.collection('users').doc(userId).update({
+      'disabled': disabled,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await _logAudit('toggle_user_disabled', 'user', userId, {'disabled': disabled});
+  }
+
+  // Update user profile
+  Future<void> updateUser(AdminUser user) async {
+    await _db.collection('users').doc(user.uid).update(user.toMap());
+    await _logAudit('update_user', 'user', user.uid, user.toMap());
+  }
+
+  // Manual enrollment - add batch to user's enrolledCourses
+  Future<void> manualEnrollUser(String userId, String courseId, String batchId) async {
+    final enrollmentId = '${courseId}_$batchId';
+    
+    // Add to user's enrolled courses
+    await _db.collection('users').doc(userId).update({
+      'enrolledCourses': FieldValue.arrayUnion([enrollmentId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    
+    // Create a purchase record for tracking
+    await _db.collection('purchases').add({
+      'userId': userId,
+      'courseId': courseId,
+      'batchId': batchId,
+      'amount': 0.0,
+      'status': 'manual_enrollment',
+      'paymentMethod': 'admin_manual',
+      'createdAt': FieldValue.serverTimestamp(),
+      'enrolledByAdmin': currentUser?.uid,
+    });
+    
+    await _logAudit('manual_enroll_user', 'user', userId, {
+      'courseId': courseId,
+      'batchId': batchId,
+    });
+  }
+
+  // Manual unenrollment - remove batch from user's enrolledCourses
+  Future<void> manualUnenrollUser(String userId, String enrollmentId) async {
+    // Remove from user's enrolled courses
+    await _db.collection('users').doc(userId).update({
+      'enrolledCourses': FieldValue.arrayRemove([enrollmentId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    
+    // Log audit
+    await _logAudit('manual_unenroll_user', 'user', userId, {
+      'enrollmentId': enrollmentId,
+    });
+  }
+
+  // Get user's purchases
+  Stream<List<AdminPurchase>> getUserPurchases(String userId) {
+    return _db.collection('purchases')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => AdminPurchase.fromMap(doc.data(), doc.id)).toList();
+    });
+  }
+
   // Batch Resources: Notes
   Stream<List<AdminNote>> getBatchNotes(String courseId, String batchId) {
     return _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('notes')

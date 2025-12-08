@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
@@ -19,6 +20,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _refreshKey = 0; // Used to force FutureBuilder refresh
+  bool _isBookmarked = false; // Bookmark state
 
   @override
   void initState() {
@@ -80,6 +82,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   }
 
   Widget _buildHeader() {
+    final isWideScreen = MediaQuery.of(context).size.width > 800;
+    
     return Column(
       children: [
         // Header / Banner
@@ -89,13 +93,6 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            gradient: LinearGradient(
-              colors: widget.batch.gradientColors.isNotEmpty
-                  ? widget.batch.gradientColors
-                  : [Colors.blue, Colors.purple],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
             boxShadow: [
               BoxShadow(
                 color: (widget.batch.gradientColors.isNotEmpty ? widget.batch.gradientColors.first : Colors.blue).withOpacity(0.4),
@@ -104,32 +101,106 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
               ),
             ],
           ),
-          child: Stack(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Background: Thumbnail or Gradient
+                widget.batch.thumbnailUrl.isNotEmpty
+                    ? Image.network(
+                        widget.batch.thumbnailUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => _buildGradientBackground(),
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return _buildGradientBackground(showLoader: true);
+                        },
+                      )
+                    : _buildGradientBackground(),
+                // Overlay gradient for text readability
+                if (widget.batch.thumbnailUrl.isNotEmpty)
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.5),
+                        ],
+                      ),
+                    ),
+                  ),
+                // Course name at bottom
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
+                  child: Text(
+                    widget.batch.courseName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      shadows: [Shadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 4)],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        // Quick Actions Row
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
             children: [
-               Center(
-                 child: Text(
-                   widget.batch.emoji,
-                   style: const TextStyle(fontSize: 64),
-                 ),
-               ),
-               Positioned(
-                 bottom: 16,
-                 left: 16,
-                 right: 16,
-                 child: Text(
-                   widget.batch.courseName,
-                   style: const TextStyle(
-                     color: Colors.white,
-                     fontSize: 14,
-                     fontWeight: FontWeight.w600,
-                     shadows: [Shadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 4)],
-                   ),
-                   textAlign: TextAlign.center,
-                 ),
-               )
+              Expanded(
+                child: _QuickActionButton(
+                  icon: _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  label: 'Bookmark',
+                  onTap: () {
+                    setState(() => _isBookmarked = !_isBookmarked);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(_isBookmarked ? 'Batch bookmarked' : 'Bookmark removed'),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _QuickActionButton(
+                  icon: Icons.download_rounded,
+                  label: 'Download All',
+                  onTap: _handleDownloadAll,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _QuickActionButton(
+                  icon: Icons.share_outlined,
+                  label: 'Share',
+                  onTap: () {
+                    SharePlus.instance.share(
+                      ShareParams(
+                        text: 'Check out ${widget.batch.name} - ${widget.batch.courseName} on EduVerse!',
+                        subject: widget.batch.name,
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        
         // Progress Section
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -171,6 +242,362 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           ),
         ),
         const SizedBox(height: 16),
+        
+        // Info Cards Section (Instructor, Schedule, Progress Summary)
+        if (isWideScreen)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _buildInstructorCard()),
+                const SizedBox(width: 12),
+                Expanded(child: _buildScheduleCard()),
+                const SizedBox(width: 12),
+                Expanded(child: _buildProgressSummaryCard()),
+              ],
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                _buildInstructorCard(),
+                const SizedBox(height: 12),
+                _buildScheduleCard(),
+                const SizedBox(height: 12),
+                _buildProgressSummaryCard(),
+              ],
+            ),
+          ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  void _handleDownloadAll() async {
+    final controller = Provider.of<StudyController>(context, listen: false);
+    final downloadService = DownloadService();
+    
+    // Show enhanced progress dialog
+    final progressNotifier = ValueNotifier<double>(0.0);
+    final statusNotifier = ValueNotifier<String>('Fetching resources...');
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _DownloadAllProgressDialog(
+        progressNotifier: progressNotifier,
+        statusNotifier: statusNotifier,
+        onCancel: () => Navigator.pop(dialogContext),
+      ),
+    );
+
+    try {
+      // Fetch notes and planner items
+      statusNotifier.value = 'Loading notes and planner items...';
+      
+      final notes = await controller.getBatchNotes(widget.batch.courseId, widget.batch.id);
+      final plannerItems = await controller.getBatchPlanner(widget.batch.courseId, widget.batch.id);
+      
+      // Filter items with downloadable URLs
+      final downloadableNotes = notes.where((n) => n.fileUrl != null && n.fileUrl!.isNotEmpty).toList();
+      final downloadablePlanner = plannerItems.where((p) => p.fileUrl != null && p.fileUrl!.isNotEmpty).toList();
+      
+      final totalItems = downloadableNotes.length + downloadablePlanner.length;
+      
+      if (totalItems == 0) {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No downloadable files found'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+      
+      int downloadedCount = 0;
+      int failedCount = 0;
+      
+      // Download notes
+      for (final note in downloadableNotes) {
+        statusNotifier.value = 'Downloading: ${note.title}';
+        
+        // Check if already downloaded
+        final existingPath = await downloadService.getLocalPath(note.fileUrl!);
+        if (existingPath != null) {
+          downloadedCount++;
+          progressNotifier.value = downloadedCount / totalItems;
+          continue;
+        }
+        
+        final fileName = '${note.id}_${note.title.replaceAll(' ', '_').replaceAll(RegExp(r'[^\w\-]'), '')}.pdf';
+        final result = await downloadService.downloadFile(
+          url: note.fileUrl!,
+          fileName: fileName,
+          title: note.title,
+          type: 'pdf',
+          onProgress: (p) {
+            // Sub-progress within current item
+            progressNotifier.value = (downloadedCount + p) / totalItems;
+          },
+        );
+        
+        if (result != null) {
+          downloadedCount++;
+        } else {
+          failedCount++;
+        }
+        progressNotifier.value = downloadedCount / totalItems;
+      }
+      
+      // Download planner items
+      for (final item in downloadablePlanner) {
+        statusNotifier.value = 'Downloading: ${item.title}';
+        
+        // Check if already downloaded
+        final existingPath = await downloadService.getLocalPath(item.fileUrl!);
+        if (existingPath != null) {
+          downloadedCount++;
+          progressNotifier.value = downloadedCount / totalItems;
+          continue;
+        }
+        
+        final fileName = '${item.id}_${item.title.replaceAll(' ', '_').replaceAll(RegExp(r'[^\w\-]'), '')}.pdf';
+        final result = await downloadService.downloadFile(
+          url: item.fileUrl!,
+          fileName: fileName,
+          title: item.title,
+          type: 'pdf',
+          onProgress: (p) {
+            progressNotifier.value = (downloadedCount + p) / totalItems;
+          },
+        );
+        
+        if (result != null) {
+          downloadedCount++;
+        } else {
+          failedCount++;
+        }
+        progressNotifier.value = downloadedCount / totalItems;
+      }
+      
+      if (mounted) {
+        Navigator.pop(context);
+        
+        final successCount = downloadedCount;
+        String message;
+        Color bgColor;
+        
+        if (failedCount == 0) {
+          message = '$successCount files downloaded successfully!';
+          bgColor = Colors.green;
+        } else if (successCount > 0) {
+          message = '$successCount downloaded, $failedCount failed';
+          bgColor = Colors.orange;
+        } else {
+          message = 'Download failed';
+          bgColor = Colors.red;
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: bgColor),
+        );
+      }
+    } catch (e) {
+      debugPrint('Download all error: $e');
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildGradientBackground({bool showLoader = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: widget.batch.gradientColors.isNotEmpty
+              ? widget.batch.gradientColors
+              : [Colors.blue, Colors.purple],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: showLoader
+            ? const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+              )
+            : Text(
+                widget.batch.emoji,
+                style: const TextStyle(fontSize: 64),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildInstructorCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Instructor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const CircleAvatar(
+                  backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=11'),
+                  radius: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Dr. Anjali Sharma', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Row(
+                        children: const [
+                          Icon(Icons.star, size: 14, color: Colors.amber),
+                          Text(' 4.8', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Expert educator with 10+ years of experience.',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScheduleCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
+                  child: const Text('View All', style: TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _buildScheduleItem('Mon, Wed, Fri', '10:00 AM - 11:30 AM', true),
+            const Divider(height: 16),
+            _buildScheduleItem('Saturday', '02:00 PM - 04:00 PM', false),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Joining live class...')),
+                  );
+                },
+                icon: const Icon(Icons.videocam, size: 18),
+                label: const Text('Join Live Class'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScheduleItem(String days, String time, bool isNext) {
+    return Row(
+      children: [
+        Icon(Icons.calendar_today, size: 16, color: isNext ? Colors.blue : Colors.grey),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(days, style: TextStyle(fontWeight: isNext ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
+              Text(time, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ],
+          ),
+        ),
+        if (isNext)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text('NEXT', style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildProgressSummaryCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Your Stats', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem('${widget.batch.completedLectures}/${widget.batch.totalLectures}', 'Lessons'),
+                _buildStatItem('5', 'Quizzes'),
+                _buildStatItem('85%', 'Avg Score'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String value, String label) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
@@ -219,59 +646,63 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   }
 
   Widget _buildLectureTile(StudyLecture lecture, StudyController controller) {
-    return InkWell(
-      onTap: () async {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChangeNotifierProvider.value(
-              value: controller,
-              child: LecturePlayerScreen(
-                courseId: widget.batch.courseId,
-                batchId: widget.batch.id,
-                lecture: lecture,
-              ),
-            ),
-          ),
-        );
-        // Increment key to force FutureBuilder to refetch
-        setState(() => _refreshKey++);
-      },
+    return Material(
+      color: Colors.white,
       borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(
-                color: lecture.isWatched ? Colors.green.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                lecture.isWatched ? Icons.check_circle : Icons.play_arrow_rounded,
-                color: lecture.isWatched ? Colors.green : Colors.blue,
+      child: InkWell(
+        onTap: () async {
+          debugPrint('Opening lecture: ${lecture.title}, videoUrl: ${lecture.videoUrl}');
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChangeNotifierProvider.value(
+                value: controller,
+                child: LecturePlayerScreen(
+                  courseId: widget.batch.courseId,
+                  batchId: widget.batch.id,
+                  lecture: lecture,
+                ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(lecture.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Text("Lecture ${lecture.order}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                ],
+          );
+          // Increment key to force FutureBuilder to refetch
+          setState(() => _refreshKey++);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: lecture.isWatched ? Colors.green.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  lecture.isWatched ? Icons.check_circle : Icons.play_arrow_rounded,
+                  color: lecture.isWatched ? Colors.green : Colors.blue,
+                ),
               ),
-            ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
-          ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(lecture.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text("Lecture ${lecture.order}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+            ],
+          ),
         ),
       ),
     );
@@ -709,6 +1140,173 @@ class _PlannerCardState extends State<_PlannerCard> {
                     style: TextButton.styleFrom(foregroundColor: Colors.green),
                   ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Quick Action Button widget for Bookmark, Download All, Share actions
+class _QuickActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.grey.shade100,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.grey[700], size: 22),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Download Progress Dialog for "Download All" action
+class _DownloadProgressDialog extends StatelessWidget {
+  const _DownloadProgressDialog({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text(
+              'Downloading resources...',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Please wait while we prepare your offline content.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Enhanced Download All Progress Dialog with real-time updates
+class _DownloadAllProgressDialog extends StatelessWidget {
+  final ValueNotifier<double> progressNotifier;
+  final ValueNotifier<String> statusNotifier;
+  final VoidCallback onCancel;
+
+  const _DownloadAllProgressDialog({
+    required this.progressNotifier,
+    required this.statusNotifier,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Animated progress indicator
+            ValueListenableBuilder<double>(
+              valueListenable: progressNotifier,
+              builder: (context, progress, _) {
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: CircularProgressIndicator(
+                        value: progress > 0 ? progress : null,
+                        strokeWidth: 6,
+                        backgroundColor: Colors.grey[200],
+                      ),
+                    ),
+                    if (progress > 0)
+                      Text(
+                        '${(progress * 100).toInt()}%',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Downloading Resources',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            ValueListenableBuilder<String>(
+              valueListenable: statusNotifier,
+              builder: (context, status, _) {
+                return Text(
+                  status,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            // Linear progress bar
+            ValueListenableBuilder<double>(
+              valueListenable: progressNotifier,
+              builder: (context, progress, _) {
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress > 0 ? progress : null,
+                    minHeight: 6,
+                    backgroundColor: Colors.grey[200],
+                  ),
+                );
+              },
             ),
           ],
         ),

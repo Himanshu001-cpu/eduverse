@@ -10,6 +10,7 @@ import 'screens/purchases_screen.dart';
 import 'screens/feed_editor_screen.dart';
 import 'screens/quiz_editor_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/user_detail_screen.dart';
 import 'models/admin_models.dart';
 import 'package:eduverse/feed/models.dart';
 import 'screens/batch_detail_screen.dart';
@@ -47,6 +48,9 @@ class AdminRouter {
         return MaterialPageRoute(builder: (_) => LectureEditorScreen(courseId: args['courseId']!, batchId: args['batchId']!));
       case '/users':
         return MaterialPageRoute(builder: (_) => const UsersScreen());
+      case '/user_detail':
+        final userId = settings.arguments as String;
+        return MaterialPageRoute(builder: (_) => UserDetailScreen(userId: userId));
       case '/enrollments':
         return MaterialPageRoute(builder: (_) => const EnrollmentsScreen());
       case '/purchases':

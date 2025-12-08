@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/models/feed_models.dart';
 import 'package:eduverse/feed/repository/feed_repository.dart';
+import 'package:eduverse/admin/widgets/thumbnail_upload_widget.dart';
+import 'package:eduverse/admin/widgets/admin_scaffold.dart';
 import 'package:uuid/uuid.dart';
 
 class FeedEditorScreen extends StatefulWidget {
@@ -36,9 +38,23 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
   // Quiz questions
   List<QuizQuestion> _quizQuestions = [];
 
+  // Current Affairs fields
+  late TextEditingController _contextController;
+  late TextEditingController _whatController;
+  late TextEditingController _whyController;
+  late TextEditingController _relevanceController;
+
+  // Answer Writing fields
+  late TextEditingController _questionController;
+  late TextEditingController _wordLimitController;
+  late TextEditingController _timeLimitController;
+  late TextEditingController _modelAnswerController;
+  late TextEditingController _answerKeyPointsController;
+
   ContentType _selectedType = ContentType.articles;
   String _emoji = '📝';
   Color _selectedColor = Colors.blue;
+  String _thumbnailUrl = '';
   bool _isPublic = true;
   bool _isLoading = false;
 
@@ -66,6 +82,19 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
     // Job controllers
     _applyUrlController = TextEditingController();
     _organizationController = TextEditingController();
+
+    // Current Affairs controllers
+    _contextController = TextEditingController();
+    _whatController = TextEditingController();
+    _whyController = TextEditingController();
+    _relevanceController = TextEditingController();
+
+    // Answer Writing controllers
+    _questionController = TextEditingController();
+    _wordLimitController = TextEditingController(text: '250');
+    _timeLimitController = TextEditingController(text: '7');
+    _modelAnswerController = TextEditingController();
+    _answerKeyPointsController = TextEditingController();
   }
   
   void _loadExistingItem() {
@@ -76,6 +105,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
     _selectedType = item.type;
     _emoji = item.emoji;
     _selectedColor = item.color;
+    _thumbnailUrl = item.thumbnailUrl;
     _isPublic = item.isPublic;
     
     // Load specific content
@@ -91,6 +121,19 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
     if (item.jobContent != null) {
       _organizationController.text = item.jobContent!.organization;
       _applyUrlController.text = item.jobContent!.applyUrl ?? '';
+    }
+    if (item.currentAffairsContent != null) {
+      _contextController.text = item.currentAffairsContent!.context;
+      _whatController.text = item.currentAffairsContent!.whatHappened;
+      _whyController.text = item.currentAffairsContent!.whyItMatters;
+      _relevanceController.text = item.currentAffairsContent!.upscRelevance;
+    }
+    if (item.answerWritingContent != null) {
+      _questionController.text = item.answerWritingContent!.question;
+      _wordLimitController.text = item.answerWritingContent!.wordLimit.toString();
+      _timeLimitController.text = item.answerWritingContent!.timeLimitMinutes.toString();
+      _modelAnswerController.text = item.answerWritingContent!.modelAnswer ?? '';
+      _answerKeyPointsController.text = item.answerWritingContent!.keyPoints.join('\n');
     }
     // Load quiz questions
     if (item.quizQuestions != null) {
@@ -110,6 +153,20 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
     _keyPointsController.dispose();
     _applyUrlController.dispose();
     _organizationController.dispose();
+    
+    // Current Affairs dispose
+    _contextController.dispose();
+    _whatController.dispose();
+    _whyController.dispose();
+    _relevanceController.dispose();
+    
+    // Answer Writing dispose
+    _questionController.dispose();
+    _wordLimitController.dispose();
+    _timeLimitController.dispose();
+    _modelAnswerController.dispose();
+    _answerKeyPointsController.dispose();
+    
     super.dispose();
   }
 
@@ -133,6 +190,8 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
       ArticleContent? articleContent;
       VideoContent? videoContent;
       JobContent? jobContent;
+      CurrentAffairsContent? currentAffairsContent;
+      AnswerWritingContent? answerWritingContent;
 
       if (_selectedType == ContentType.articles) {
         articleContent = ArticleContent(
@@ -158,7 +217,6 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           durationMinutes: int.tryParse(_durationController.text) ?? 0,
           keyPoints: keyPointsList,
         );
-      } else if (_selectedType == ContentType.jobs) {
         jobContent = JobContent(
           id: id,
           title: _titleController.text,
@@ -166,6 +224,31 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           location: 'Remote/Hybrid', // simplified for now
           detailsText: _descriptionController.text,
           applyUrl: _applyUrlController.text,
+        );
+      } else if (_selectedType == ContentType.currentAffairs) {
+        currentAffairsContent = CurrentAffairsContent(
+          id: id,
+          title: _titleController.text,
+          eventDate: DateTime.now(), // Default to now, maybe add date picker later
+          context: _contextController.text,
+          whatHappened: _whatController.text,
+          whyItMatters: _whyController.text,
+          upscRelevance: _relevanceController.text,
+        );
+      } else if (_selectedType == ContentType.answerWriting) {
+        final keyPointsList = _answerKeyPointsController.text
+            .split('\n')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+            
+        answerWritingContent = AnswerWritingContent(
+          id: id,
+          question: _questionController.text,
+          wordLimit: int.tryParse(_wordLimitController.text) ?? 250,
+          timeLimitMinutes: int.tryParse(_timeLimitController.text) ?? 7,
+          modelAnswer: _modelAnswerController.text.isEmpty ? null : _modelAnswerController.text,
+          keyPoints: keyPointsList,
         );
       }
 
@@ -177,10 +260,13 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         categoryLabel: _categoryController.text.isEmpty ? _selectedType.name.toUpperCase() : _categoryController.text,
         emoji: _emoji,
         color: _selectedColor,
+        thumbnailUrl: _thumbnailUrl,
         isPublic: _isPublic,
         articleContent: articleContent,
         videoContent: videoContent,
         jobContent: jobContent,
+        currentAffairsContent: currentAffairsContent,
+        answerWritingContent: answerWritingContent,
         quizQuestions: _selectedType == ContentType.quizzes ? _quizQuestions : null,
       );
 
@@ -231,16 +317,8 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.feedItem == null ? 'Create Feed Item' : 'Edit Feed Item'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: _isLoading ? null : _save,
-          ),
-        ],
-      ),
+    return AdminScaffold(
+      title: widget.feedItem == null ? 'Create Feed Item' : 'Edit Feed Item',
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Form(
@@ -260,6 +338,20 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildTypeSpecificFields(),
+                    const SizedBox(height: 32),
+                    
+                    // Save Button
+                    ElevatedButton.icon(
+                      onPressed: _save,
+                      icon: const Icon(Icons.save),
+                      label: Text(widget.feedItem == null ? 'Create Feed Item' : 'Save Changes'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),
@@ -287,6 +379,17 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           onChanged: widget.feedItem == null
               ? (val) => setState(() => _selectedType = val!)
               : null, // Lock type for editing to prevent schema mismatch
+        ),
+        const SizedBox(height: 16),
+        
+        // Thumbnail Upload Section
+        const Text('Thumbnail Image', style: TextStyle(fontWeight: FontWeight.w500)),
+        const SizedBox(height: 8),
+        ThumbnailUploadWidget(
+          currentUrl: _thumbnailUrl,
+          storagePath: 'feed/thumbnails',
+          onUploaded: (url) => setState(() => _thumbnailUrl = url),
+          height: 150,
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -384,15 +487,6 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
             ),
             const SizedBox(height: 16),
             TextFormField(
-              controller: _thumbnailUrlController,
-              decoration: const InputDecoration(
-                labelText: 'Thumbnail URL (optional)',
-                border: OutlineInputBorder(),
-                hintText: 'https://example.com/thumbnail.jpg',
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
               controller: _durationController,
               decoration: const InputDecoration(
                 labelText: 'Duration (minutes)',
@@ -428,7 +522,14 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
               decoration: const InputDecoration(labelText: 'Application URL', border: OutlineInputBorder()),
             ),
           ],
+
         );
+        
+      case ContentType.currentAffairs:
+        return _buildCurrentAffairsFields();
+        
+      case ContentType.answerWriting:
+        return _buildAnswerWritingFields();
       
       case ContentType.quizzes:
         return _buildQuizFields();
@@ -442,6 +543,116 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           ),
         );
     }
+  }
+
+  Widget _buildCurrentAffairsFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _contextController,
+          decoration: const InputDecoration(
+            labelText: 'Context (e.g., National, International)',
+            border: OutlineInputBorder(),
+          ),
+          validator: (v) => v?.isEmpty == true ? 'Required' : null,
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _whatController,
+          decoration: const InputDecoration(
+            labelText: 'What Happened?',
+            border: OutlineInputBorder(),
+            alignLabelWithHint: true,
+          ),
+          maxLines: 4,
+          validator: (v) => v?.isEmpty == true ? 'Required' : null,
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _whyController,
+          decoration: const InputDecoration(
+            labelText: 'Why It Matters?',
+            border: OutlineInputBorder(),
+            alignLabelWithHint: true,
+          ),
+          maxLines: 4,
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _relevanceController,
+          decoration: const InputDecoration(
+            labelText: 'UPSC Relevance',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnswerWritingFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _questionController,
+          decoration: const InputDecoration(
+            labelText: 'Question',
+            border: OutlineInputBorder(),
+            alignLabelWithHint: true,
+          ),
+          maxLines: 3,
+          validator: (v) => v?.isEmpty == true ? 'Required' : null,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: _wordLimitController,
+                decoration: const InputDecoration(
+                  labelText: 'Word Limit',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: TextFormField(
+                controller: _timeLimitController,
+                decoration: const InputDecoration(
+                  labelText: 'Time Limit (mins)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _modelAnswerController,
+          decoration: const InputDecoration(
+            labelText: 'Model Answer (Markdown supported)',
+            border: OutlineInputBorder(),
+            alignLabelWithHint: true,
+          ),
+          maxLines: 8,
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _answerKeyPointsController,
+          decoration: const InputDecoration(
+            labelText: 'Key Points / Hints (one per line)',
+            border: OutlineInputBorder(),
+            alignLabelWithHint: true,
+            hintText: 'Key point 1\nKey point 2',
+          ),
+          maxLines: 5,
+        ),
+      ],
+    );
   }
 
   Widget _buildQuizFields() {

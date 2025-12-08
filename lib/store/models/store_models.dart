@@ -7,6 +7,7 @@ class Course {
   final String subtitle;
   final String emoji;
   final List<Color> gradientColors;
+  final String thumbnailUrl;
   final double priceDefault;
   final List<Batch> batches;
 
@@ -16,6 +17,7 @@ class Course {
     required this.subtitle,
     required this.emoji,
     required this.gradientColors,
+    this.thumbnailUrl = '',
     required this.priceDefault,
     this.batches = const [],
   });
@@ -28,6 +30,7 @@ class Batch {
   final double price;
   int seatsLeft;
   final String duration;
+  final String thumbnailUrl;
   bool isEnrolled;
 
   Batch({
@@ -37,6 +40,7 @@ class Batch {
     required this.price,
     required this.seatsLeft,
     required this.duration,
+    this.thumbnailUrl = '',
     this.isEnrolled = false,
   });
 }

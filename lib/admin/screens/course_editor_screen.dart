@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 import '../widgets/admin_scaffold.dart';
+import '../widgets/thumbnail_upload_widget.dart';
 import '../utils/validators.dart';
 
 class CourseEditorScreen extends StatefulWidget {
@@ -30,6 +31,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
   
   Color _gradientStart = Colors.blue;
   Color _gradientEnd = Colors.blueAccent;
+  String _thumbnailUrl = '';
   
   bool _isLoading = false;
 
@@ -71,6 +73,8 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
       _gradientStart = Color(course.gradientColors[0]);
       _gradientEnd = Color(course.gradientColors[1]);
     }
+    
+    _thumbnailUrl = course?.thumbnailUrl ?? '';
   }
 
   @override
@@ -102,7 +106,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
         tags: [],
         language: _language,
         level: _level,
-        thumbnailUrl: widget.course?.thumbnailUrl ?? '',
+        thumbnailUrl: _thumbnailUrl,
         gradientColors: [_gradientStart.value, _gradientEnd.value],
         priceDefault: double.tryParse(_priceController.text) ?? 0.0,
         visibility: _visibility,
@@ -207,6 +211,14 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                     _buildSectionHeader('Appearance'),
                     const SizedBox(height: 12),
                     
+                    // Thumbnail Upload
+                    ThumbnailUploadWidget(
+                      currentUrl: _thumbnailUrl,
+                      storagePath: 'courses/thumbnails',
+                      onUploaded: (url) => setState(() => _thumbnailUrl = url),
+                    ),
+                    const SizedBox(height: 20),
+                    
                     // Emoji field and quick picker
                     Wrap(
                       spacing: 16,
@@ -300,6 +312,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             value: _visibility,
+                            isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: 'Visibility *',
                               border: OutlineInputBorder(),
@@ -307,16 +320,23 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                             items: _visibilityOptions.map((v) => DropdownMenuItem(
                               value: v,
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     v == 'published' ? Icons.public : 
                                     v == 'draft' ? Icons.edit : Icons.archive,
-                                    size: 18,
+                                    size: 16,
                                     color: v == 'published' ? Colors.green : 
                                            v == 'draft' ? Colors.orange : Colors.grey,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(v.toUpperCase()),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      v.toUpperCase(),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
                                 ],
                               ),
                             )).toList(),
@@ -420,13 +440,8 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
 
   Widget _buildPreviewCard() {
     return Container(
-      height: 120,
+      height: 140,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_gradientStart, _gradientEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -436,49 +451,85 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  _emojiController.text.isEmpty ? '📚' : _emojiController.text,
-                  style: const TextStyle(fontSize: 32),
+            // Background: Thumbnail or Gradient
+            _thumbnailUrl.isNotEmpty
+                ? Image.network(
+                    _thumbnailUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => _buildGradientPreview(),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return _buildGradientPreview(showLoader: true);
+                    },
+                  )
+                : _buildGradientPreview(),
+            // Dark overlay for text readability
+            if (_thumbnailUrl.isNotEmpty)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.7),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
-                  Text(
-                    _titleController.text.isEmpty ? 'Course Title' : _titleController.text,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  if (_thumbnailUrl.isEmpty)
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _emojiController.text.isEmpty ? '📚' : _emojiController.text,
+                          style: const TextStyle(fontSize: 32),
+                        ),
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _subtitleController.text.isEmpty ? 'Subtitle goes here' : _subtitleController.text,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 14,
+                  if (_thumbnailUrl.isEmpty) const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          _titleController.text.isEmpty ? 'Course Title' : _titleController.text,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _subtitleController.text.isEmpty ? 'Subtitle goes here' : _subtitleController.text,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -486,6 +537,25 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildGradientPreview({bool showLoader = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_gradientStart, _gradientEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: showLoader
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+              ),
+            )
+          : null,
     );
   }
 

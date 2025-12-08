@@ -4,6 +4,7 @@ import '../services/firebase_admin_service.dart';
 import '../services/csv_importer.dart';
 import '../models/admin_models.dart';
 import '../widgets/admin_scaffold.dart';
+import '../widgets/thumbnail_upload_widget.dart';
 
 class BatchEditorScreen extends StatelessWidget {
   final String courseId;
@@ -135,17 +136,29 @@ class BatchEditorScreen extends StatelessWidget {
     DateTime startDate = batch?.startDate ?? DateTime.now().add(const Duration(days: 7));
     DateTime endDate = batch?.endDate ?? DateTime.now().add(const Duration(days: 90));
     bool isActive = batch?.isActive ?? true;
+    String thumbnailUrl = batch?.thumbnailUrl ?? '';
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: Text(isNew ? 'Add New Batch' : 'Edit Batch'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Thumbnail Upload
+                  ThumbnailUploadWidget(
+                    currentUrl: thumbnailUrl,
+                    storagePath: 'batches/thumbnails',
+                    onUploaded: (url) => setState(() => thumbnailUrl = url),
+                    height: 120,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
                   controller: nameController,
                   decoration: const InputDecoration(
                     labelText: 'Batch Name *',
@@ -210,7 +223,8 @@ class BatchEditorScreen extends StatelessWidget {
                   value: isActive,
                   onChanged: (v) => setState(() => isActive = v),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
           actions: [
@@ -242,6 +256,7 @@ class BatchEditorScreen extends StatelessWidget {
                   seatsTotal: seats,
                   seatsLeft: seatsLeft,
                   isActive: isActive,
+                  thumbnailUrl: thumbnailUrl,
                 );
 
                 try {

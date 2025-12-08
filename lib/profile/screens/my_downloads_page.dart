@@ -132,11 +132,30 @@ class _MyDownloadsPageState extends State<MyDownloadsPage> {
     );
   }
 
-  void _clearAll() {
+  Future<void> _clearAll() async {
+    // Delete all actual files from device
+    for (final item in _downloads) {
+      if (item.filePath != null) {
+        try {
+          final file = File(item.filePath!);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        } catch (e) {
+          debugPrint('Error deleting file ${item.filePath}: $e');
+        }
+      }
+    }
+    
     setState(() {
       _downloads.clear();
     });
     _saveDownloads();
+    
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('All downloads deleted from device')),
+    );
   }
 
   @override
@@ -153,18 +172,18 @@ class _MyDownloadsPageState extends State<MyDownloadsPage> {
                   context: context,
                   builder: (ctx) => AlertDialog(
                     title: const Text('Clear All?'),
-                    content: const Text('This will remove all downloaded items.'),
+                    content: const Text('This will permanently delete all downloaded files from your device.'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
                         child: const Text('Cancel'),
                       ),
                       TextButton(
-                        onPressed: () {
-                          _clearAll();
+                        onPressed: () async {
                           Navigator.pop(ctx);
+                          await _clearAll();
                         },
-                        child: const Text('Clear'),
+                        child: const Text('Delete All', style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),

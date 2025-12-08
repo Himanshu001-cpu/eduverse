@@ -145,6 +145,11 @@ class StudyRepositoryImpl implements IStudyRepository {
           .toList();
     }
 
+    // Use batch thumbnail, fallback to course thumbnail
+    final thumbnailUrl = (batchData['thumbnailUrl'] as String?)?.isNotEmpty == true
+        ? batchData['thumbnailUrl'] as String
+        : (courseData['thumbnailUrl'] as String?) ?? '';
+
     return StudyBatch(
       id: batchId,
       courseId: courseId,
@@ -152,6 +157,7 @@ class StudyRepositoryImpl implements IStudyRepository {
       courseName: courseData['title'] ?? 'Untitled Course',
       emoji: courseData['emoji'] ?? '🎓',
       gradientColors: gradient,
+      thumbnailUrl: thumbnailUrl,
       startDate: (batchData['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       totalLectures: batchData['totalLectures'] ?? courseData['totalLectures'] ?? 0, 
       completedLectures: completed,

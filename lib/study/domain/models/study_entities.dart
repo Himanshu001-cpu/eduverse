@@ -6,6 +6,7 @@ class StudyCourse {
   final String subtitle;
   final String emoji;
   final List<Color> gradientColors;
+  final String thumbnailUrl;
   final int totalLectures;
   final int completedLectures;
   final double progress; // 0.0 to 1.0
@@ -16,6 +17,7 @@ class StudyCourse {
     required this.subtitle,
     this.emoji = '📚',
     required this.gradientColors,
+    this.thumbnailUrl = '',
     this.totalLectures = 0,
     this.completedLectures = 0,
     this.progress = 0.0,
@@ -27,6 +29,7 @@ class StudyCourse {
     String? subtitle,
     String? emoji,
     List<Color>? gradientColors,
+    String? thumbnailUrl,
     int? totalLectures,
     int? completedLectures,
     double? progress,
@@ -37,6 +40,7 @@ class StudyCourse {
       subtitle: subtitle ?? this.subtitle,
       emoji: emoji ?? this.emoji,
       gradientColors: gradientColors ?? this.gradientColors,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       totalLectures: totalLectures ?? this.totalLectures,
       completedLectures: completedLectures ?? this.completedLectures,
       progress: progress ?? this.progress,
@@ -53,6 +57,7 @@ class StudyBatch {
   final String courseName; // Parent course title for context
   final String emoji;
   final List<Color> gradientColors;
+  final String thumbnailUrl;
   final DateTime startDate;
   final int totalLectures;
   final int completedLectures;
@@ -65,6 +70,7 @@ class StudyBatch {
     required this.courseName,
     this.emoji = '📚',
     required this.gradientColors,
+    this.thumbnailUrl = '',
     required this.startDate,
     this.totalLectures = 0,
     this.completedLectures = 0,
@@ -78,6 +84,7 @@ class StudyBatch {
     String? courseName,
     String? emoji,
     List<Color>? gradientColors,
+    String? thumbnailUrl,
     DateTime? startDate,
     int? totalLectures,
     int? completedLectures,
@@ -90,6 +97,7 @@ class StudyBatch {
       courseName: courseName ?? this.courseName,
       emoji: emoji ?? this.emoji,
       gradientColors: gradientColors ?? this.gradientColors,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       startDate: startDate ?? this.startDate,
       totalLectures: totalLectures ?? this.totalLectures,
       completedLectures: completedLectures ?? this.completedLectures,

@@ -28,6 +28,7 @@ class FeedItem {
   final String categoryLabel;
   final String emoji;
   final Color color;
+  final String thumbnailUrl;
   final bool isPublic;
   
   // Extended content fields for different types
@@ -46,6 +47,7 @@ class FeedItem {
     required this.categoryLabel,
     required this.emoji,
     required this.color,
+    this.thumbnailUrl = '',
     this.articleContent,
     this.currentAffairsContent,
     this.answerWritingContent,
@@ -126,6 +128,7 @@ class FeedItem {
       categoryLabel: json['categoryLabel'] as String,
       emoji: json['emoji'] as String,
       color: Color(json['color'] as int),
+      thumbnailUrl: json['thumbnailUrl'] as String? ?? '',
       isPublic: json['isPublic'] as bool? ?? true,
       videoContent: videoContent,
       articleContent: articleContent,
@@ -144,6 +147,7 @@ class FeedItem {
     'categoryLabel': categoryLabel,
     'emoji': emoji,
     'color': color.value,
+    'thumbnailUrl': thumbnailUrl,
     'isPublic': isPublic,
     if (videoContent != null) 'videoContent': videoContent!.toJson(),
     if (articleContent != null) 'articleContent': articleContent!.toJson(),

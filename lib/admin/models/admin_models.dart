@@ -97,6 +97,7 @@ class AdminBatch {
   final int seatsTotal;
   final int seatsLeft;
   final bool isActive;
+  final String thumbnailUrl;
 
   AdminBatch({
     required this.id,
@@ -108,6 +109,7 @@ class AdminBatch {
     required this.seatsTotal,
     required this.seatsLeft,
     required this.isActive,
+    this.thumbnailUrl = '',
   });
 
   factory AdminBatch.fromMap(Map<String, dynamic> data, String id) {
@@ -121,6 +123,7 @@ class AdminBatch {
       seatsTotal: data['seatsTotal'] ?? 0,
       seatsLeft: data['seatsLeft'] ?? 0,
       isActive: data['isActive'] ?? true,
+      thumbnailUrl: data['thumbnailUrl'] ?? '',
     );
   }
 
@@ -134,6 +137,7 @@ class AdminBatch {
       'seatsTotal': seatsTotal,
       'seatsLeft': seatsLeft,
       'isActive': isActive,
+      'thumbnailUrl': thumbnailUrl,
     };
   }
 }
@@ -183,23 +187,78 @@ class AdminLecture {
 
 class AdminUser {
   final String uid;
+  final String name;
   final String email;
-  final String role;
+  final String? phone;
+  final String role; // student, admin
   final bool disabled;
+  final List<String> enrolledCourses;
+  final List<String> cart;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   AdminUser({
     required this.uid,
+    required this.name,
     required this.email,
+    this.phone,
     required this.role,
     required this.disabled,
+    this.enrolledCourses = const [],
+    this.cart = const [],
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory AdminUser.fromMap(Map<String, dynamic> data, String uid) {
     return AdminUser(
       uid: uid,
+      name: data['name'] ?? '',
       email: data['email'] ?? '',
+      phone: data['phone'],
       role: data['role'] ?? 'student',
       disabled: data['disabled'] ?? false,
+      enrolledCourses: List<String>.from(data['enrolledCourses'] ?? []),
+      cart: List<String>.from(data['cart'] ?? []),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': uid,
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'role': role,
+      'disabled': disabled,
+      'enrolledCourses': enrolledCourses,
+      'cart': cart,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  AdminUser copyWith({
+    String? name,
+    String? email,
+    String? phone,
+    String? role,
+    bool? disabled,
+    List<String>? enrolledCourses,
+    List<String>? cart,
+  }) {
+    return AdminUser(
+      uid: uid,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      role: role ?? this.role,
+      disabled: disabled ?? this.disabled,
+      enrolledCourses: enrolledCourses ?? this.enrolledCourses,
+      cart: cart ?? this.cart,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 }

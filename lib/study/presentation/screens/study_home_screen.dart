@@ -139,16 +139,9 @@ class _BatchCard extends StatelessWidget {
                   children: [
                     // Emoji / Icon
                     Container(
-                      width: 64,
-                      height: 64,
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: batch.gradientColors.isNotEmpty 
-                              ? batch.gradientColors 
-                              : [Colors.blue, Colors.blueAccent],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                            BoxShadow(
@@ -158,11 +151,19 @@ class _BatchCard extends StatelessWidget {
                            ),
                         ],
                       ),
-                      child: Center(
-                        child: Text(
-                          batch.emoji,
-                          style: const TextStyle(fontSize: 30),
-                        ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: batch.thumbnailUrl.isNotEmpty
+                            ? Image.network(
+                                batch.thumbnailUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(batch),
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return _buildFallbackIcon(batch, showLoader: true);
+                                },
+                              )
+                            : _buildFallbackIcon(batch),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -260,6 +261,37 @@ class _BatchCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackIcon(StudyBatch batch, {bool showLoader = false}) {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: batch.gradientColors.isNotEmpty 
+              ? batch.gradientColors 
+              : [Colors.blue, Colors.blueAccent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: showLoader
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                ),
+              )
+            : Text(
+                batch.emoji,
+                style: const TextStyle(fontSize: 32),
+              ),
       ),
     );
   }

@@ -17,7 +17,7 @@ service cloud.firestore {
     // User profiles: Users can read/write their own profile
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
-      allow read: if isAdmin();
+      allow read, write: if isAdmin();
       
       // User's cart subcollection
       match /cart/{itemId} {
@@ -79,6 +79,14 @@ service cloud.firestore {
       }
     }
 
+    // Config collection (payment settings, etc.)
+    match /config/{configId} {
+      // All authenticated users can read keyId for payment
+      allow read: if request.auth != null;
+      // Only admins can write config
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+
     // Courses: Public read if published, Admin write
     match /courses/{courseId} {
       allow read: if request.auth != null && (
@@ -137,7 +145,7 @@ service cloud.firestore {
 
     // Purchases: User create own, Admin read/write
     match /purchases/{purchaseId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if (request.auth != null && request.resource.data.userId == request.auth.uid) || isAdmin();
       allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
       allow update, delete: if isAdmin();
     }
