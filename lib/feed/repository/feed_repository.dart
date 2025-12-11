@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/feed_data.dart';
 import 'package:eduverse/core/firebase/firestore_paths.dart';
@@ -40,13 +41,41 @@ class FeedRepository {
       
       return FeedItem.fromJson(data);
     } catch (e) {
-      print('Error getting feed item $id: $e');
+      debugPrint('Error getting feed item $id: $e');
       return null;
     }
   }
 
   Future<void> addFeedItem(FeedItem item) async {
     await _firestore.collection(FirestorePaths.feed).doc(item.id).set(item.toJson());
+  }
+
+  /// Stream all feed items (for admin - no isPublic filter)
+  Stream<List<FeedItem>> getAllFeedItems() {
+    return _firestore
+        .collection(FirestorePaths.feed)
+        .orderBy('id')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return FeedItem.fromJson(data);
+      }).toList();
+    });
+  }
+
+  /// Update an existing feed item
+  Future<void> updateFeedItem(FeedItem item) async {
+    await _firestore
+        .collection(FirestorePaths.feed)
+        .doc(item.id)
+        .update(item.toJson());
+  }
+
+  /// Delete a feed item
+  Future<void> deleteFeedItem(String id) async {
+    await _firestore.collection(FirestorePaths.feed).doc(id).delete();
   }
 
   // --- Seeding ---

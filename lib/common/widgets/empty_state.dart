@@ -7,12 +7,12 @@ class EmptyState extends StatelessWidget {
   final double iconSize;
 
   const EmptyState({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     this.subtitle = '',
     this.iconSize = 72,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

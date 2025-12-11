@@ -13,7 +13,7 @@ class BatchLessonTile extends StatelessWidget {
   final Function(String) onAction; // 'complete', 'download', 'note', 'report'
 
   const BatchLessonTile({
-    Key? key,
+    super.key,
     required this.index,
     required this.title,
     required this.duration,
@@ -23,7 +23,7 @@ class BatchLessonTile extends StatelessWidget {
     this.hasNote = false,
     required this.onTap,
     required this.onAction,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +49,7 @@ class BatchLessonTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: isLocked ? Colors.grey.shade100 : typeColor.withOpacity(0.1),
+                  color: isLocked ? Colors.grey.shade100 : typeColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Center(

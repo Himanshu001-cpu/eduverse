@@ -428,3 +428,59 @@ class AdminQuiz {
     };
   }
 }
+
+class AdminLiveClass {
+  final String id;
+  final String title;
+  final String description;
+  final String instructorName;
+  final DateTime startTime;
+  final int durationMinutes;
+  final String youtubeUrl;
+  final String thumbnailUrl;
+  final String status; // scheduled, live, completed
+  final DateTime createdAt;
+
+  AdminLiveClass({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.instructorName,
+    required this.startTime,
+    required this.durationMinutes,
+    required this.youtubeUrl,
+    required this.thumbnailUrl,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory AdminLiveClass.fromMap(Map<String, dynamic> data, String id) {
+    return AdminLiveClass(
+      id: id,
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      instructorName: data['instructorName'] ?? '',
+      startTime: (data['startTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      durationMinutes: data['durationMinutes'] ?? 60,
+      youtubeUrl: data['youtubeUrl'] ?? data['meetingUrl'] ?? '', // Fallback for legacy
+      thumbnailUrl: data['thumbnailUrl'] ?? '',
+      status: data['status'] ?? 'scheduled',
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'instructorName': instructorName,
+      'startTime': Timestamp.fromDate(startTime),
+      'durationMinutes': durationMinutes,
+      'youtubeUrl': youtubeUrl,
+      'thumbnailUrl': thumbnailUrl,
+      'status': status,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+}

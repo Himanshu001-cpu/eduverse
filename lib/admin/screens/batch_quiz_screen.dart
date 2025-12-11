@@ -5,7 +5,7 @@ class BatchQuizScreen extends StatelessWidget {
   final String courseId;
   final String batchId;
 
-  const BatchQuizScreen({Key? key, required this.courseId, required this.batchId}) : super(key: key);
+  const BatchQuizScreen({super.key, required this.courseId, required this.batchId});
 
   @override
   Widget build(BuildContext context) {

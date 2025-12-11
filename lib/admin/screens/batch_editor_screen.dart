@@ -8,7 +8,7 @@ import '../widgets/thumbnail_upload_widget.dart';
 
 class BatchEditorScreen extends StatelessWidget {
   final String courseId;
-  const BatchEditorScreen({Key? key, required this.courseId}) : super(key: key);
+  const BatchEditorScreen({super.key, required this.courseId});
 
   @override
   Widget build(BuildContext context) {
@@ -245,7 +245,7 @@ class BatchEditorScreen extends StatelessWidget {
                   return;
                 }
 
-                final seatsLeft = isNew ? seats : batch!.seatsLeft;
+                final seatsLeft = isNew ? seats : batch.seatsLeft;
                 final newBatch = AdminBatch(
                   id: batch?.id ?? '',
                   courseId: courseId,

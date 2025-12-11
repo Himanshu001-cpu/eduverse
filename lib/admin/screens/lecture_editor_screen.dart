@@ -3,13 +3,12 @@ import 'package:provider/provider.dart';
 import '../services/firebase_admin_service.dart';
 import '../models/admin_models.dart';
 import '../widgets/admin_scaffold.dart';
-import '../widgets/media_uploader.dart';
 
 class LectureEditorScreen extends StatelessWidget {
   final String courseId;
   final String batchId;
   
-  const LectureEditorScreen({Key? key, required this.courseId, required this.batchId}) : super(key: key);
+  const LectureEditorScreen({super.key, required this.courseId, required this.batchId});
 
   @override
   Widget build(BuildContext context) {

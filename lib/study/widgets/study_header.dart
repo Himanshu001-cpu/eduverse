@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class StudyHeader extends StatelessWidget {
-  const StudyHeader({Key? key}) : super(key: key);
+  const StudyHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +35,7 @@ class StudyHeader extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.person, color: Colors.white),

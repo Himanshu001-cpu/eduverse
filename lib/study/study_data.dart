@@ -55,28 +55,28 @@ class StudyData {
       title: 'Daily Quiz',
       description: '10 Questions',
       icon: Icons.quiz,
-      colorValue: 0xFF9C27B0, // Colors.purple.value
+      colorValue: 0xFF9C27B0, // Colors.purple.toARGB32()
     ),
     DailyPracticeModel(
       id: 'dp2',
       title: 'Mains Answer',
       description: '1 Question',
       icon: Icons.edit_note,
-      colorValue: 0xFF2196F3, // Colors.blue.value
+      colorValue: 0xFF2196F3, // Colors.blue.toARGB32()
     ),
     DailyPracticeModel(
       id: 'dp3',
       title: 'Vocab',
       description: '5 Words',
       icon: Icons.book,
-      colorValue: 0xFFFF9800, // Colors.orange.value
+      colorValue: 0xFFFF9800, // Colors.orange.toARGB32()
     ),
     DailyPracticeModel(
       id: 'dp4',
       title: 'Map Work',
       description: 'India Map',
       icon: Icons.map,
-      colorValue: 0xFF4CAF50, // Colors.green.value
+      colorValue: 0xFF4CAF50, // Colors.green.toARGB32()
     ),
   ];
 

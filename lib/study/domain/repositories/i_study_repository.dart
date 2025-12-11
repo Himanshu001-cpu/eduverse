@@ -24,4 +24,7 @@ abstract class IStudyRepository {
 
   /// Get list of planner items for a specific batch.
   Future<List<StudyPlannerItem>> getBatchPlanner(String courseId, String batchId);
+
+  /// Get list of live classes for a specific batch.
+  Future<List<StudyLiveClass>> getBatchLiveClasses(String courseId, String batchId);
 }

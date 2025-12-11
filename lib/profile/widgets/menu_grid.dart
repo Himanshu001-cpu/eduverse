@@ -7,9 +7,10 @@ import 'package:eduverse/profile/screens/notifications_page.dart';
 import 'package:eduverse/profile/profile_mock_data.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
 import 'package:eduverse/admin/admin_entry_page.dart';
+import 'package:eduverse/profile/screens/about_page.dart';
 
 class MenuGrid extends StatefulWidget {
-  const MenuGrid({Key? key}) : super(key: key);
+  const MenuGrid({super.key});
 
   @override
   State<MenuGrid> createState() => _MenuGridState();
@@ -153,12 +154,27 @@ class _MenuGridState extends State<MenuGrid> {
               const SizedBox(width: 12),
               Expanded(
                 child: card(
+                  Icons.info_outline,
+                  Colors.indigo,
+                  'About Us',
+                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutPage())),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: card(
                   Icons.logout,
                   Colors.red,
                   'Logout',
                   () => _handleLogout(context),
                 ),
               ),
+              const SizedBox(width: 12),
+              const Expanded(child: SizedBox()), // Spacer
             ],
           ),
           
@@ -220,14 +236,14 @@ class MenuCard extends StatelessWidget {
   final Widget? badge;
 
   const MenuCard({
-    Key? key,
+    super.key,
     required this.icon,
     required this.iconColor,
     required this.title,
     required this.backgroundColor,
     required this.onTap,
     this.badge,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -241,7 +257,7 @@ class MenuCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

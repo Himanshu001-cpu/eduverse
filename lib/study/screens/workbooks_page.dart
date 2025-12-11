@@ -4,7 +4,7 @@ import 'package:eduverse/study/study_repository.dart';
 import 'package:eduverse/study/models/study_models.dart';
 
 class WorkbooksPage extends StatefulWidget {
-  const WorkbooksPage({Key? key}) : super(key: key);
+  const WorkbooksPage({super.key});
 
   @override
   State<WorkbooksPage> createState() => _WorkbooksPageState();
@@ -75,7 +75,7 @@ class _WorkbooksPageState extends State<WorkbooksPage> {
                             width: 50,
                             height: 50,
                             decoration: BoxDecoration(
-                              color: _getStatusColor(item.status).withOpacity(0.1),
+                              color: _getStatusColor(item.status).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(Icons.assignment, color: _getStatusColor(item.status)),
@@ -142,7 +142,7 @@ class _WorkbooksPageState extends State<WorkbooksPage> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task updated (mock)')));
               },
-            )).toList(),
+            )),
           ],
         ),
       ),
@@ -156,7 +156,7 @@ class _WorkbooksPageState extends State<WorkbooksPage> {
       selected: isSelected,
       onSelected: (val) => setState(() => _selectedFilter = label),
       backgroundColor: Colors.grey[200],
-      selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+      selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
       labelStyle: TextStyle(
         color: isSelected ? Theme.of(context).primaryColor : Colors.black,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

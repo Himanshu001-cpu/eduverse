@@ -5,7 +5,7 @@ import 'package:eduverse/common/widgets/empty_state.dart';
 import 'package:eduverse/common/widgets/cards.dart';
 
 class FreeLiveClassesPage extends StatefulWidget {
-  const FreeLiveClassesPage({Key? key}) : super(key: key);
+  const FreeLiveClassesPage({super.key});
 
   @override
   State<FreeLiveClassesPage> createState() => _FreeLiveClassesPageState();
@@ -126,7 +126,7 @@ class _FreeLiveClassesPageState extends State<FreeLiveClassesPage> {
 class _LiveClassCard extends StatelessWidget {
   final LiveClass item;
 
-  const _LiveClassCard({Key? key, required this.item}) : super(key: key);
+  const _LiveClassCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +147,7 @@ class _LiveClassCard extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: item.color.withOpacity(0.2),
+              color: item.color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -221,7 +221,7 @@ class _LiveClassCard extends StatelessWidget {
 class _ClassDetailsSheet extends StatelessWidget {
   final LiveClass item;
 
-  const _ClassDetailsSheet({Key? key, required this.item}) : super(key: key);
+  const _ClassDetailsSheet({required this.item});
 
   @override
   Widget build(BuildContext context) {

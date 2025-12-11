@@ -3,7 +3,7 @@ import 'package:eduverse/core/firebase/quiz_stats_service.dart';
 import 'package:eduverse/core/firebase/watch_stats_service.dart';
 
 class StatsSection extends StatelessWidget {
-  const StatsSection({Key? key}) : super(key: key);
+  const StatsSection({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +35,7 @@ class StatsSection extends StatelessWidget {
                 const SizedBox(height:20),
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0,2))]),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0,2))]),
                   child: Column(children: [
                     Row(children: [
                       Expanded(child: StatCard(title: 'TOTAL WATCH MINS', value: totalMinutes, icon: Icons.access_time, iconColor: Colors.deepPurple[300]!, iconBackground: Colors.deepPurple[50]!)),
@@ -66,7 +66,7 @@ class StatCard extends StatelessWidget {
   final Color iconColor;
   final Color iconBackground;
 
-  const StatCard({Key? key, required this.title, required this.value, required this.icon, required this.iconColor, required this.iconBackground}) : super(key: key);
+  const StatCard({super.key, required this.title, required this.value, required this.icon, required this.iconColor, required this.iconBackground});
 
   @override
   Widget build(BuildContext context) {

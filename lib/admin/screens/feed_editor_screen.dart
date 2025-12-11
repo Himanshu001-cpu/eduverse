@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
-import 'package:eduverse/feed/models/feed_models.dart';
 import 'package:eduverse/feed/repository/feed_repository.dart';
 import 'package:eduverse/admin/widgets/thumbnail_upload_widget.dart';
 import 'package:eduverse/admin/widgets/admin_scaffold.dart';
@@ -9,7 +8,7 @@ import 'package:uuid/uuid.dart';
 class FeedEditorScreen extends StatefulWidget {
   final FeedItem? feedItem; // If null, creating new
 
-  const FeedEditorScreen({Key? key, this.feedItem}) : super(key: key);
+  const FeedEditorScreen({super.key, this.feedItem});
 
   @override
   State<FeedEditorScreen> createState() => _FeedEditorScreenState();
@@ -17,6 +16,33 @@ class FeedEditorScreen extends StatefulWidget {
 
 class _FeedEditorScreenState extends State<FeedEditorScreen> {
   final _formKey = GlobalKey<FormState>();
+  
+  // Predefined color options for consistency
+  final Map<Color, String> _colorOptions = {
+    Colors.blue: 'Blue',
+    Colors.red: 'Red',
+    Colors.green: 'Green',
+    Colors.purple: 'Purple',
+    Colors.orange: 'Orange',
+    Colors.teal: 'Teal',
+  };
+
+  // Find the closest matching color from predefined options
+  Color _getMatchingColor(Color color) {
+    // Check for exact match first
+    if (_colorOptions.containsKey(color)) {
+      return color;
+    }
+    // Find closest match by color value
+    for (final option in _colorOptions.keys) {
+      if (option.value == color.value) {
+        return option;
+      }
+    }
+    // Default to blue if no match found
+    return Colors.blue;
+  }
+
   
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
@@ -429,17 +455,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         const SizedBox(height: 16),
         // Simple Color Picker (Dropdown for now)
         DropdownButtonFormField<Color>(
-          value: _selectedColor,
+          value: _getMatchingColor(_selectedColor),
           decoration: const InputDecoration(labelText: 'Color Theme'),
           isExpanded: true,
-          items: {
-            Colors.blue: 'Blue',
-            Colors.red: 'Red',
-            Colors.green: 'Green',
-            Colors.purple: 'Purple',
-            Colors.orange: 'Orange',
-            Colors.teal: 'Teal',
-          }.entries.map((e) {
+          items: _colorOptions.entries.map((e) {
             return DropdownMenuItem(
               value: e.key,
               child: Row(

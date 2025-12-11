@@ -3,7 +3,7 @@ import '../widgets/admin_scaffold.dart';
 import 'package:eduverse/core/firebase/razorpay_service.dart';
 
 class PaymentSettingsScreen extends StatefulWidget {
-  const PaymentSettingsScreen({Key? key}) : super(key: key);
+  const PaymentSettingsScreen({super.key});
 
   @override
   State<PaymentSettingsScreen> createState() => _PaymentSettingsScreenState();
@@ -62,7 +62,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
         currency: 'INR',
       );
 
-      await RazorpayService().updateConfig(newConfig);
+      await RazorpayService().saveConfig(newConfig);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -142,7 +142,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                         ),
                         value: _isTestMode,
                         onChanged: (value) => setState(() => _isTestMode = value),
-                        activeColor: Colors.orange,
+                        activeThumbColor: Colors.orange,
                       ),
                     ),
                     const SizedBox(height: 16),

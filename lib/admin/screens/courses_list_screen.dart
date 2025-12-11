@@ -6,7 +6,7 @@ import '../widgets/admin_scaffold.dart';
 import '../widgets/course_card.dart';
 
 class CoursesListScreen extends StatelessWidget {
-  const CoursesListScreen({Key? key}) : super(key: key);
+  const CoursesListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

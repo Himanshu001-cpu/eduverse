@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
-import 'package:eduverse/feed/models/feed_models.dart';
 
 class FeedData {
   // ============================================================
@@ -162,7 +161,7 @@ class FeedData {
       articleContent: ArticleContent(
         id: 'art-001',
         title: 'Understanding India\'s Federal Structure',
-        body: '''India\'s federal structure is unique and often described as "quasi-federal" or "federal with a strong unitary bias." This article explores the constitutional framework that governs the relationship between the Union and States.
+        body: '''India's federal structure is unique and often described as "quasi-federal" or "federal with a strong unitary bias." This article explores the constitutional framework that governs the relationship between the Union and States.
 
 Constitutional Framework
 
@@ -188,7 +187,7 @@ Recent years have seen emphasis on cooperative federalism through institutions l
 
 Challenges and the Way Forward
 
-The tension between centralization and state autonomy continues. Issues like Governor\'s role, Article 356 misuse, and fiscal transfers remain contentious. The future lies in genuine cooperative federalism that respects constitutional boundaries while ensuring national unity.
+The tension between centralization and state autonomy continues. Issues like Governor's role, Article 356 misuse, and fiscal transfers remain contentious. The future lies in genuine cooperative federalism that respects constitutional boundaries while ensuring national unity.
 
 Understanding this framework is crucial for UPSC preparation as it forms the basis of Indian governance and administration.''',
         tags: ['Constitution', 'Federalism', 'Polity', 'Governance'],
@@ -213,22 +212,22 @@ Understanding this framework is crucial for UPSC preparation as it forms the bas
 
 Legal Framework
 
-India has enacted comprehensive legislation for women\'s rights:
-• Women\'s Reservation Bill (33% seats in Parliament)
+India has enacted comprehensive legislation for women's rights:
+• Women's Reservation Bill (33% seats in Parliament)
 • Protection of Women from Domestic Violence Act
 • Sexual Harassment of Women at Workplace Act
 • Maternity Benefit Amendment Act
 
 Economic Participation
 
-Women\'s labor force participation has shown concerning trends:
+Women's labor force participation has shown concerning trends:
 - LFPR dropped from 31.2% (2011-12) to 25.1% (2017-18)
 - Gender pay gap remains at approximately 19%
 - Only 14% of senior management positions held by women
 
 Government Initiatives
 
-Several schemes target women\'s empowerment:
+Several schemes target women's empowerment:
 1. Beti Bachao Beti Padhao
 2. Pradhan Mantri Ujjwala Yojana
 3. MUDRA loans prioritizing women entrepreneurs
@@ -485,7 +484,7 @@ The path forward requires multi-pronged approach combining legal protection, eco
         applicationStart: DateTime(2025, 2, 1),
         applicationEnd: DateTime(2025, 2, 28),
         eligibility: '''Age: 21-32 years (relaxation for reserved categories)
-Education: Bachelor\'s degree from recognized university
+Education: Bachelor's degree from recognized university
 Nationality: Indian citizen (some services open to specific categories)
 Attempts: General - 6, OBC - 9, SC/ST - Unlimited (within age limit)''',
         jobType: 'Permanent',
@@ -513,7 +512,7 @@ Attempts: General - 6, OBC - 9, SC/ST - Unlimited (within age limit)''',
         applicationStart: DateTime(2025, 1, 15),
         applicationEnd: DateTime(2025, 3, 15),
         eligibility: '''Age: 21-37 years (varies by state, relaxation for reserved categories)
-Education: Bachelor\'s degree from recognized university
+Education: Bachelor's degree from recognized university
 Nationality: Indian citizen
 Domicile: State-specific requirements may apply''',
         jobType: 'Permanent',

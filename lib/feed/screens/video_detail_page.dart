@@ -180,7 +180,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                 color: item.color,
               ),
             ),
-            backgroundColor: item.color.withOpacity(0.1),
+            backgroundColor: item.color.withValues(alpha: 0.1),
             side: BorderSide.none,
           ),
           const SizedBox(height: 12),
@@ -266,7 +266,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
         gradient: LinearGradient(
           colors: [
             item.color,
-            item.color.withOpacity(0.7),
+            item.color.withValues(alpha: 0.7),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -323,7 +323,7 @@ class InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

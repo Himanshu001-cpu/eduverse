@@ -31,7 +31,7 @@ class FeedCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: item.color.withOpacity(0.3),
+                            color: item.color.withValues(alpha: 0.3),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),
@@ -66,7 +66,7 @@ class FeedCard extends StatelessWidget {
                             item.categoryLabel,
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                           ),
-                          backgroundColor: item.color.withOpacity(0.2),
+                          backgroundColor: item.color.withValues(alpha: 0.2),
                           side: BorderSide.none,
                           padding: EdgeInsets.zero,
                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

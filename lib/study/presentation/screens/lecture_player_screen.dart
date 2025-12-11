@@ -16,11 +16,11 @@ class LecturePlayerScreen extends StatefulWidget {
   final StudyLecture lecture;
 
   const LecturePlayerScreen({
-    Key? key,
+    super.key,
     required this.courseId,
     required this.batchId,
     required this.lecture,
-  }) : super(key: key);
+  });
 
   @override
   State<LecturePlayerScreen> createState() => _LecturePlayerScreenState();
@@ -163,9 +163,11 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
       _cancelReply();
       FocusScope.of(context).unfocus();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isPostingComment = false);
     }
@@ -250,7 +252,9 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
           .delete();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reply deleted')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 

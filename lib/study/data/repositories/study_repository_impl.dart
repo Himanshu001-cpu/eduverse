@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/domain/repositories/i_study_repository.dart';
 
@@ -369,6 +368,37 @@ class StudyRepositoryImpl implements IStudyRepository {
       return items;
     } catch (e) {
       debugPrint('Error fetching batch planner: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<StudyLiveClass>> getBatchLiveClasses(String courseId, String batchId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('batches')
+          .doc(batchId)
+          .collection('live_classes')
+          .orderBy('startTime')
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return StudyLiveClass(
+          id: doc.id,
+          title: data['title'] ?? 'Untitled Class',
+          description: data['description'] ?? '',
+          startTime: (data['startTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          durationMinutes: data['durationMinutes'] ?? 60,
+          status: data['status'] ?? 'upcoming',
+          youtubeUrl: data['youtubeUrl'] as String?,
+          thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching batch live classes: $e');
       return [];
     }
   }

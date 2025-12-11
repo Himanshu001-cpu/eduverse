@@ -5,7 +5,7 @@ import '../widgets/data_table_card.dart';
 import '../services/admin_stats_service.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

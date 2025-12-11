@@ -6,7 +6,7 @@ import 'package:eduverse/feed/screens/generic_feed_detail_router.dart'; // For F
 import 'package:eduverse/core/firebase/firestore_paths.dart';
 
 class TrendingSection extends StatefulWidget {
-  const TrendingSection({Key? key}) : super(key: key);
+  const TrendingSection({super.key});
 
   @override
   State<TrendingSection> createState() => _TrendingSectionState();
@@ -212,7 +212,7 @@ class _TrendingSectionState extends State<TrendingSection> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: item.color.withOpacity(0.3),
+              color: item.color.withValues(alpha: 0.3),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -245,7 +245,7 @@ class _TrendingSectionState extends State<TrendingSection> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.8),
+                        Colors.black.withValues(alpha: 0.8),
                       ],
                     ),
                   ),
@@ -261,7 +261,7 @@ class _TrendingSectionState extends State<TrendingSection> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
+                        color: Colors.white.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -335,7 +335,7 @@ class _TrendingSectionState extends State<TrendingSection> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [item.color, item.color.withOpacity(0.7)],
+          colors: [item.color, item.color.withValues(alpha: 0.7)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -350,7 +350,7 @@ class _TrendingSectionState extends State<TrendingSection> {
               item.emoji,
               style: TextStyle(
                 fontSize: screenWidth > 600 ? 120 : 100,
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
               ),
             ),
           ),

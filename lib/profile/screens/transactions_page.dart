@@ -8,7 +8,7 @@ import 'package:eduverse/common/widgets/cards.dart';
 enum TransactionStatus { success, failed, pending }
 
 class TransactionsPage extends StatefulWidget {
-  const TransactionsPage({Key? key}) : super(key: key);
+  const TransactionsPage({super.key});
 
   @override
   State<TransactionsPage> createState() => _TransactionsPageState();
@@ -113,7 +113,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: AppCard(
-                  color: Theme.of(context).primaryColor.withOpacity(0.05),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -222,7 +222,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
 class _TransactionCard extends StatelessWidget {
   final Map<String, dynamic> item;
 
-  const _TransactionCard({Key? key, required this.item}) : super(key: key);
+  const _TransactionCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -281,7 +281,7 @@ class _TransactionCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(statusIcon, color: statusColor, size: 24),

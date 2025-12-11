@@ -9,7 +9,7 @@ import '../utils/validators.dart';
 
 class CourseEditorScreen extends StatefulWidget {
   final AdminCourse? course;
-  const CourseEditorScreen({Key? key, this.course}) : super(key: key);
+  const CourseEditorScreen({super.key, this.course});
 
   @override
   State<CourseEditorScreen> createState() => _CourseEditorScreenState();
@@ -311,7 +311,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _visibility,
+                            initialValue: _visibility,
                             isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: 'Visibility *',
@@ -351,7 +351,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _level,
+                            initialValue: _level,
                             decoration: const InputDecoration(
                               labelText: 'Level',
                               border: OutlineInputBorder(),
@@ -366,7 +366,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _language,
+                            initialValue: _language,
                             decoration: const InputDecoration(
                               labelText: 'Language',
                               border: OutlineInputBorder(),
@@ -445,7 +445,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: _gradientStart.withOpacity(0.3),
+            color: _gradientStart.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -477,7 +477,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 0.7),
                     ],
                   ),
                 ),
@@ -492,7 +492,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -522,7 +522,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                         Text(
                           _subtitleController.text.isEmpty ? 'Subtitle goes here' : _subtitleController.text,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 14,
                           ),
                           maxLines: 1,
@@ -577,7 +577,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                   ? Border.all(color: Colors.black, width: 3)
                   : Border.all(color: Colors.grey.shade300),
               boxShadow: isSelected
-                  ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 4)]
+                  ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 4)]
                   : null,
             ),
             child: isSelected

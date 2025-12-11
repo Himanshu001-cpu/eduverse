@@ -139,6 +139,11 @@ service cloud.firestore {
           allow read: if request.auth != null;
           allow write: if isAdmin();
         }
+
+        match /live_classes/{classId} {
+          allow read: if request.auth != null;
+          allow write: if isAdmin();
+        }
       }
 
       // Lectures subcollection (for Study Module)

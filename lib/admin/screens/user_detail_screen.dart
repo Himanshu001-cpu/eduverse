@@ -9,7 +9,7 @@ import '../models/admin_models.dart';
 class UserDetailScreen extends StatefulWidget {
   final String userId;
 
-  const UserDetailScreen({Key? key, required this.userId}) : super(key: key);
+  const UserDetailScreen({super.key, required this.userId});
 
   @override
   State<UserDetailScreen> createState() => _UserDetailScreenState();
@@ -206,7 +206,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
               children: [
                 CircleAvatar(
                   radius: 40,
-                  backgroundColor: _getRoleColor(_user!.role).withOpacity(0.2),
+                  backgroundColor: _getRoleColor(_user!.role).withValues(alpha: 0.2),
                   child: Text(
                     _user!.name.isNotEmpty ? _user!.name[0].toUpperCase() : '?',
                     style: TextStyle(
@@ -367,7 +367,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const Text('Role', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _user!.role,
+              initialValue: _user!.role,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -395,7 +395,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                     : 'User has full access',
               ),
               value: !_user!.disabled,
-              activeColor: Colors.green,
+              activeThumbColor: Colors.green,
               contentPadding: EdgeInsets.zero,
               onChanged: (enabled) => _toggleDisabled(!enabled),
             ),
@@ -428,7 +428,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const Text('Select Course', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedCourseId,
+              initialValue: _selectedCourseId,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: 'Choose a course...',
@@ -453,7 +453,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const Text('Select Batch', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedBatchId,
+              initialValue: _selectedBatchId,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: 'Choose a batch...',
@@ -515,9 +515,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         role.toUpperCase(),
@@ -534,10 +534,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: disabled ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+        color: disabled ? Colors.red.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: disabled ? Colors.red.withOpacity(0.5) : Colors.green.withOpacity(0.5),
+          color: disabled ? Colors.red.withValues(alpha: 0.5) : Colors.green.withValues(alpha: 0.5),
         ),
       ),
       child: Text(

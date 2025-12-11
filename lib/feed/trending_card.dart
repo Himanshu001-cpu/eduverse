@@ -7,11 +7,11 @@ class TrendingCard extends StatelessWidget {
   final int index;
 
   const TrendingCard({
-    Key? key,
+    super.key,
     required this.post,
     required this.controller,
     required this.index,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +33,7 @@ class TrendingCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 2)),
           ],
@@ -48,7 +48,7 @@ class TrendingCard extends StatelessWidget {
                   gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withOpacity(0.7)]),
+                      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)]),
                 ),
               ),
               Positioned(

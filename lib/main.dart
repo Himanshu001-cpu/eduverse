@@ -14,7 +14,7 @@ void main() async {
 
 class InitializationErrorApp extends StatelessWidget {
   final String error;
-  const InitializationErrorApp({Key? key, required this.error}) : super(key: key);
+  const InitializationErrorApp({super.key, required this.error});
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +63,7 @@ class InitializationErrorApp extends StatelessWidget {
 }
 
 class LearningApp extends StatelessWidget {
-  const LearningApp({Key? key}) : super(key: key);
+  const LearningApp({super.key});
 
   @override
   Widget build(BuildContext context) {

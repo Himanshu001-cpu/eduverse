@@ -38,7 +38,7 @@ class _CurrentAffairsDetailPageState extends State<CurrentAffairsDetailPage> {
                     gradient: LinearGradient(
                       colors: [
                         item.color,
-                        item.color.withOpacity(0.7),
+                        item.color.withValues(alpha: 0.7),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -57,7 +57,7 @@ class _CurrentAffairsDetailPageState extends State<CurrentAffairsDetailPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
@@ -133,7 +133,7 @@ class _CurrentAffairsDetailPageState extends State<CurrentAffairsDetailPage> {
                                     color: colorScheme.primary,
                                   ),
                                 ),
-                                backgroundColor: colorScheme.primaryContainer.withOpacity(0.3),
+                                backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.3),
                                 side: BorderSide.none,
                                 padding: EdgeInsets.zero,
                                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -170,10 +170,10 @@ class _CurrentAffairsDetailPageState extends State<CurrentAffairsDetailPage> {
                     // Quick Revision Points Card
                     Card(
                       elevation: 0,
-                      color: colorScheme.primaryContainer.withOpacity(0.3),
+                      color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: colorScheme.outline.withOpacity(0.2)),
+                        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class VersionCard extends StatelessWidget {
-  const VersionCard({Key? key}) : super(key: key);
+  const VersionCard({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -6,7 +6,7 @@ class AuthGuard extends StatelessWidget {
   final Widget child;
   final String requiredRole;
 
-  const AuthGuard({Key? key, required this.child, this.requiredRole = 'admin'}) : super(key: key);
+  const AuthGuard({super.key, required this.child, this.requiredRole = 'admin'});
 
   @override
   Widget build(BuildContext context) {

@@ -1,16 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Helper to parse color from int or hex string if needed, 
-// but for Firestore we usually store 0xFFRRGGBB int.
-int _colorToInt(dynamic color) {
-  if (color is int) return color;
-  return 0xFF000000;
-}
 
-Color _parseColor(dynamic colorData) {
-  return Color(_colorToInt(colorData));
-}
 
 class ContinueLearningModel {
   final String id; // Added ID for Firestore
@@ -114,7 +105,7 @@ class StudyCourseModel {
       'title': title,
       'subtitle': subtitle,
       'emoji': emoji,
-      'gradientColors': gradientColors.map((c) => c.value).toList(),
+      'gradientColors': gradientColors.map((c) => c.toARGB32()).toList(),
       'lessonCount': lessonCount,
       'progress': progress,
     };
@@ -171,7 +162,7 @@ class StudyBatchModel {
       'name': name,
       'courseName': courseName,
       'emoji': emoji,
-      'gradientColors': gradientColors.map((c) => c.value).toList(),
+      'gradientColors': gradientColors.map((c) => c.toARGB32()).toList(),
       'startDate': startDate.toIso8601String(),
       'lessonCount': lessonCount,
       'progress': progress,

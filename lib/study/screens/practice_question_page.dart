@@ -5,7 +5,7 @@ import 'package:eduverse/study/models/study_models.dart';
 class PracticeQuestionPage extends StatefulWidget {
   final TestModel? test;
 
-  const PracticeQuestionPage({Key? key, this.test}) : super(key: key);
+  const PracticeQuestionPage({super.key, this.test});
 
   @override
   State<PracticeQuestionPage> createState() => _PracticeQuestionPageState();
@@ -18,7 +18,7 @@ class _PracticeQuestionPageState extends State<PracticeQuestionPage> {
   bool _isSubmitted = false;
   
   // Mock timer
-  int _secondsRemaining = 1200; // 20 mins
+  final int _secondsRemaining = 1200; // 20 mins
 
   @override
   void initState() {
@@ -42,7 +42,7 @@ class _PracticeQuestionPageState extends State<PracticeQuestionPage> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -91,16 +91,16 @@ class _PracticeQuestionPageState extends State<PracticeQuestionPage> {
                       if (_isSubmitted) {
                         if (isCorrect) {
                           borderColor = Colors.green;
-                          backgroundColor = Colors.green.withOpacity(0.1);
+                          backgroundColor = Colors.green.withValues(alpha: 0.1);
                           icon = Icons.check_circle;
                         } else if (isSelected) {
                           borderColor = Colors.red;
-                          backgroundColor = Colors.red.withOpacity(0.1);
+                          backgroundColor = Colors.red.withValues(alpha: 0.1);
                           icon = Icons.cancel;
                         }
                       } else if (isSelected) {
                         borderColor = Theme.of(context).primaryColor;
-                        backgroundColor = Theme.of(context).primaryColor.withOpacity(0.05);
+                        backgroundColor = Theme.of(context).primaryColor.withValues(alpha: 0.05);
                       }
 
                       return GestureDetector(
@@ -153,9 +153,9 @@ class _PracticeQuestionPageState extends State<PracticeQuestionPage> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: Colors.blue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                            border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +193,7 @@ class _PracticeQuestionPageState extends State<PracticeQuestionPage> {
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -4),
               ),

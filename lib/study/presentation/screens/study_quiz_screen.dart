@@ -12,13 +12,13 @@ class StudyQuizScreen extends StatefulWidget {
   final Color themeColor;
 
   const StudyQuizScreen({
-    Key? key,
+    super.key,
     required this.courseId,
     required this.batchId,
     required this.quizId,
     required this.quizTitle,
     this.themeColor = Colors.purple,
-  }) : super(key: key);
+  });
 
   @override
   State<StudyQuizScreen> createState() => _StudyQuizScreenState();
@@ -167,10 +167,10 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
       return Theme.of(context).colorScheme.surface;
     }
     if (optionIndex == _currentQuestion.correctIndex) {
-      return Colors.green.withOpacity(0.2);
+      return Colors.green.withValues(alpha: 0.2);
     }
     if (_selectedOptionIndex == optionIndex && optionIndex != _currentQuestion.correctIndex) {
-      return Colors.red.withOpacity(0.2);
+      return Colors.red.withValues(alpha: 0.2);
     }
     return Theme.of(context).colorScheme.surface;
   }
@@ -180,7 +180,7 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
       if (_selectedOptionIndex == optionIndex) {
         return Theme.of(context).colorScheme.primary;
       }
-      return Theme.of(context).colorScheme.outline.withOpacity(0.5);
+      return Theme.of(context).colorScheme.outline.withValues(alpha: 0.5);
     }
     if (optionIndex == _currentQuestion.correctIndex) {
       return Colors.green;
@@ -188,7 +188,7 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
     if (_selectedOptionIndex == optionIndex && optionIndex != _currentQuestion.correctIndex) {
       return Colors.red;
     }
-    return Theme.of(context).colorScheme.outline.withOpacity(0.3);
+    return Theme.of(context).colorScheme.outline.withValues(alpha: 0.3);
   }
 
   IconData? _getOptionIcon(int optionIndex) {
@@ -270,7 +270,7 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: widget.themeColor.withOpacity(0.1),
+                        color: widget.themeColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -310,7 +310,7 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: _selectedOptionIndex == index
-                                        ? colorScheme.primary.withOpacity(0.2)
+                                        ? colorScheme.primary.withValues(alpha: 0.2)
                                         : colorScheme.surfaceContainerHighest,
                                   ),
                                   child: Center(
@@ -342,9 +342,9 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer.withOpacity(0.3),
+                          color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: colorScheme.outline.withOpacity(0.3)),
+                          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

@@ -9,7 +9,7 @@ class BatchDetailScreen extends StatefulWidget {
   final String courseId;
   final AdminBatch batch;
 
-  const BatchDetailScreen({Key? key, required this.courseId, required this.batch}) : super(key: key);
+  const BatchDetailScreen({super.key, required this.courseId, required this.batch});
 
   @override
   State<BatchDetailScreen> createState() => _BatchDetailScreenState();
@@ -137,6 +137,19 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
                     arguments: {'courseId': widget.courseId, 'batchId': widget.batch.id},
                   ),
                 ),
+                _ResourceCard(
+                  icon: Icons.video_call,
+                  title: 'Scheduler',
+                  color: Colors.red,
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    '/live_classes',
+                    arguments: {
+                      'courseId': widget.courseId,
+                      'batchId': widget.batch.id,
+                    }
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 32),
@@ -249,9 +262,9 @@ class _ResourceCard extends StatelessWidget {
         width: 150,
         height: 120,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.5)),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -10,11 +10,11 @@ class LecturePlayerPage extends StatefulWidget {
   final String description;
 
   const LecturePlayerPage({
-    Key? key,
+    super.key,
     required this.videoUrl,
     required this.title,
     this.description = '',
-  }) : super(key: key);
+  });
 
   @override
   State<LecturePlayerPage> createState() => _LecturePlayerPageState();

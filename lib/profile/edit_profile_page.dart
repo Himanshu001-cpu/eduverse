@@ -4,7 +4,7 @@ import 'package:eduverse/profile/profile_storage.dart';
 class EditProfilePage extends StatefulWidget {
   final ProfileModel? initialData;
 
-  const EditProfilePage({Key? key, this.initialData}) : super(key: key);
+  const EditProfilePage({super.key, this.initialData});
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();

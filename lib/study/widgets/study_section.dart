@@ -6,11 +6,11 @@ class StudySection extends StatelessWidget {
   final Widget child;
 
   const StudySection({
-    Key? key,
+    super.key,
     required this.title,
     this.onSeeAll,
     required this.child,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

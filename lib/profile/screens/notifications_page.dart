@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:eduverse/profile/profile_mock_data.dart';
 import 'package:eduverse/common/widgets/empty_state.dart';
-import 'package:eduverse/common/widgets/cards.dart';
 
 class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({Key? key}) : super(key: key);
+  const NotificationsPage({super.key});
 
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  List<NotificationItem> _notifications = ProfileMockData.notifications;
+  final List<NotificationItem> _notifications = ProfileMockData.notifications;
 
   void _markAllRead() {
     setState(() {
@@ -105,11 +104,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), child: const Icon(Icons.delete, color: Colors.white)),
                   onDismissed: (_) => _deleteNotification(index),
                   child: Container(
-                    color: item.isRead ? null : Theme.of(context).primaryColor.withOpacity(0.05),
+                    color: item.isRead ? null : Theme.of(context).primaryColor.withValues(alpha: 0.05),
                     child: ListTile(
                       onLongPress: () => _showOptions(index),
                       leading: CircleAvatar(
-                        backgroundColor: _getIconColor(item.type).withOpacity(0.1),
+                        backgroundColor: _getIconColor(item.type).withValues(alpha: 0.1),
                         child: Icon(_getIcon(item.type), color: _getIconColor(item.type), size: 20),
                       ),
                       title: Text(

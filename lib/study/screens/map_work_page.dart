@@ -3,7 +3,7 @@ import 'package:eduverse/study/study_repository.dart';
 import 'package:eduverse/study/models/study_models.dart';
 
 class MapWorkPage extends StatelessWidget {
-  const MapWorkPage({Key? key}) : super(key: key);
+  const MapWorkPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +64,7 @@ class MapWorkPage extends StatelessWidget {
                       final index = topics.indexOf(topic);
                       final pos = positions[index];
                       return _buildNode(context, topic, pos.dx, pos.dy);
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
@@ -114,7 +114,7 @@ class MapWorkPage extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: topic.color, width: 3),
             boxShadow: [
-              BoxShadow(color: topic.color.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6)),
+              BoxShadow(color: topic.color.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 6)),
             ],
           ),
           child: Column(

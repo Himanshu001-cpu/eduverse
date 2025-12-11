@@ -4,7 +4,7 @@ class DataTableCard extends StatelessWidget {
   final List<DataColumn> columns;
   final List<DataRow> rows;
 
-  const DataTableCard({Key? key, required this.columns, required this.rows}) : super(key: key);
+  const DataTableCard({super.key, required this.columns, required this.rows});
 
   @override
   Widget build(BuildContext context) {

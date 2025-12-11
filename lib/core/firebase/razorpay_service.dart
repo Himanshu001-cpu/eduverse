@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
-/// Model for Razorpay configuration stored in Firestore
+/// Configuration for Razorpay stored in Firestore
 class RazorpayConfig {
   final String keyId;
   final String keySecret;
@@ -10,145 +10,205 @@ class RazorpayConfig {
   final String companyName;
   final String currency;
 
-  RazorpayConfig({
+  const RazorpayConfig({
     required this.keyId,
     required this.keySecret,
-    required this.isTestMode,
-    required this.companyName,
-    required this.currency,
+    this.isTestMode = true,
+    this.companyName = 'The Eduverse',
+    this.currency = 'INR',
   });
 
-  factory RazorpayConfig.fromJson(Map<String, dynamic> json) {
+  factory RazorpayConfig.fromMap(Map<String, dynamic> map) {
     return RazorpayConfig(
-      keyId: json['keyId'] ?? '',
-      keySecret: json['keySecret'] ?? '',
-      isTestMode: json['isTestMode'] ?? true,
-      companyName: json['companyName'] ?? 'Eduverse',
-      currency: json['currency'] ?? 'INR',
+      keyId: map['keyId'] as String? ?? '',
+      keySecret: map['keySecret'] as String? ?? '',
+      isTestMode: map['isTestMode'] as bool? ?? true,
+      companyName: map['companyName'] as String? ?? 'The Eduverse',
+      currency: map['currency'] as String? ?? 'INR',
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    'keyId': keyId,
-    'keySecret': keySecret,
-    'isTestMode': isTestMode,
-    'companyName': companyName,
-    'currency': currency,
-  };
+  Map<String, dynamic> toMap() => {
+        'keyId': keyId,
+        'keySecret': keySecret,
+        'isTestMode': isTestMode,
+        'companyName': companyName,
+        'currency': currency,
+      };
 
   bool get isValid => keyId.isNotEmpty;
+
+  @override
+  String toString() =>
+      'RazorpayConfig(keyId: ${keyId.isNotEmpty ? "***" : "empty"}, isTestMode: $isTestMode)';
 }
 
-/// Service to handle Razorpay payments
-class RazorpayService {
-  static final RazorpayService _instance = RazorpayService._internal();
-  factory RazorpayService() => _instance;
-  RazorpayService._internal();
+/// Payment result from Razorpay
+class PaymentResult {
+  final bool success;
+  final String? paymentId;
+  final String? orderId;
+  final String? signature;
+  final int? errorCode;
+  final String? errorMessage;
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  Razorpay? _razorpay;
-  RazorpayConfig? _config;
-  bool _isInitializing = false;
+  const PaymentResult({
+    required this.success,
+    this.paymentId,
+    this.orderId,
+    this.signature,
+    this.errorCode,
+    this.errorMessage,
+  });
 
-  // Callbacks
-  Function(PaymentSuccessResponse)? _onSuccess;
-  Function(PaymentFailureResponse)? _onFailure;
-  Function(ExternalWalletResponse)? _onExternalWallet;
-
-  /// Initialize Razorpay with config from Firestore
-  Future<void> initialize() async {
-    if (_razorpay != null) return;
-    if (_isInitializing) return;
-
-    _isInitializing = true;
-    try {
-      _razorpay = Razorpay();
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-      _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
-
-      await _loadConfig();
-    } catch (e) {
-      debugPrint('Error initializing RazorpayService: $e');
-    } finally {
-      _isInitializing = false;
-    }
+  factory PaymentResult.success({
+    required String paymentId,
+    String? orderId,
+    String? signature,
+  }) {
+    return PaymentResult(
+      success: true,
+      paymentId: paymentId,
+      orderId: orderId,
+      signature: signature,
+    );
   }
 
-  /// Load Razorpay config from Firestore
-  Future<void> _loadConfig() async {
+  factory PaymentResult.failure({
+    required int errorCode,
+    required String errorMessage,
+  }) {
+    return PaymentResult(
+      success: false,
+      errorCode: errorCode,
+      errorMessage: errorMessage,
+    );
+  }
+}
+
+/// Service to handle Razorpay payment integration
+class RazorpayService {
+  static final RazorpayService _instance = RazorpayService._();
+  factory RazorpayService() => _instance;
+  RazorpayService._();
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  Razorpay? _razorpay;
+  RazorpayConfig? _config;
+  
+  // Callback for current payment
+  void Function(PaymentResult)? _onPaymentComplete;
+
+  /// Get the current configuration
+  RazorpayConfig? get config => _config;
+
+  /// Initialize Razorpay SDK and load config from Firestore
+  Future<void> initialize() async {
+    if (_razorpay != null) return;
+
+    debugPrint('[RazorpayService] Initializing...');
+    
+    _razorpay = Razorpay();
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleSuccess);
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handleError);
+    _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+
+    await loadConfig();
+    debugPrint('[RazorpayService] Initialized successfully');
+  }
+
+  /// Load configuration from Firestore
+  Future<void> loadConfig() async {
     try {
       final doc = await _firestore.collection('config').doc('razorpay').get();
       if (doc.exists && doc.data() != null) {
-        _config = RazorpayConfig.fromJson(doc.data()!);
+        _config = RazorpayConfig.fromMap(doc.data()!);
+        debugPrint('[RazorpayService] Config loaded: $_config');
       } else {
-        debugPrint('Razorpay config not found in Firestore');
+        debugPrint('[RazorpayService] No config found in Firestore');
         _config = null;
       }
     } catch (e) {
-      debugPrint('Error loading Razorpay config: $e');
+      debugPrint('[RazorpayService] Error loading config: $e');
       _config = null;
+      rethrow;
     }
   }
 
-  /// Save config to Firestore
-  Future<void> _saveConfig(RazorpayConfig config) async {
-    await _firestore.collection('config').doc('razorpay').set(config.toJson());
+  /// Save configuration to Firestore (admin only)
+  Future<void> saveConfig(RazorpayConfig config) async {
+    await _firestore.collection('config').doc('razorpay').set(config.toMap());
+    _config = config;
+    debugPrint('[RazorpayService] Config saved');
   }
 
-  /// Get current config
-  RazorpayConfig? get config => _config;
+  /// Stream of configuration changes
+  Stream<RazorpayConfig?> watchConfig() {
+    return _firestore
+        .collection('config')
+        .doc('razorpay')
+        .snapshots()
+        .map((doc) => doc.exists && doc.data() != null
+            ? RazorpayConfig.fromMap(doc.data()!)
+            : null);
+  }
 
-  /// Open Razorpay checkout
-  Future<void> openCheckout({
+  /// Start a payment
+  /// 
+  /// [amount] - Payment amount in INR (will be converted to paise)
+  /// [orderId] - Your order reference ID
+  /// [customerName] - Customer's name
+  /// [customerEmail] - Customer's email
+  /// [customerPhone] - Customer's phone number
+  /// [description] - Payment description
+  /// [onComplete] - Callback when payment completes (success or failure)
+  Future<void> startPayment({
     required double amount,
     required String orderId,
     required String customerName,
     required String customerEmail,
     required String customerPhone,
     String? description,
-    Function(PaymentSuccessResponse)? onSuccess,
-    Function(PaymentFailureResponse)? onFailure,
-    Function(ExternalWalletResponse)? onExternalWallet,
+    required void Function(PaymentResult) onComplete,
   }) async {
-    debugPrint('RazorpayService: openCheckout called');
-    
+    debugPrint('[RazorpayService] Starting payment for ₹$amount');
+
+    // Initialize if not already done
     if (_razorpay == null) {
-      debugPrint('RazorpayService: Razorpay not initialized, initializing now...');
       await initialize();
     }
-    
-    // Refresh config to ensure we have latest keys
-    await _loadConfig();
 
+    // Reload config to ensure we have latest
+    await loadConfig();
+
+    // Validate config
     if (_config == null || !_config!.isValid) {
-      debugPrint('RazorpayService: Invalid or missing config');
-      if (onFailure != null) {
-        onFailure(PaymentFailureResponse(
-          Razorpay.UNKNOWN_ERROR,
-          'Payment gateway configuration missing. Please contact support.',
-          null,
-        ));
-      }
+      debugPrint('[RazorpayService] Invalid or missing configuration');
+      onComplete(PaymentResult.failure(
+        errorCode: 0,
+        errorMessage: 'Payment configuration not found. Please contact support.',
+      ));
       return;
     }
 
-    _onSuccess = onSuccess;
-    _onFailure = onFailure;
-    _onExternalWallet = onExternalWallet;
+    // Store callback
+    _onPaymentComplete = onComplete;
 
-    // Amount in paise (smallest currency unit)
+    // Convert to paise
     final amountInPaise = (amount * 100).toInt();
-    
+
+    // Build options
     final options = {
       'key': _config!.keyId,
       'amount': amountInPaise,
+      'currency': _config!.currency,
       'name': _config!.companyName,
-      'description': description ?? 'Course Purchase',
+      'description': description ?? 'Purchase',
       'prefill': {
-        'contact': customerPhone,
-        'email': customerEmail,
         'name': customerName,
+        'email': customerEmail,
+        'contact': customerPhone,
       },
       'notes': {
         'order_id': orderId,
@@ -156,71 +216,58 @@ class RazorpayService {
       'theme': {
         'color': '#6200EE',
       },
-      'currency': _config!.currency,
+      // Network reliability options
+      'timeout': 300, // 5 minutes
+      'retry': {
+        'enabled': true,
+        'max_count': 3,
+      },
     };
 
-    debugPrint('RazorpayService: Opening Razorpay');
+    debugPrint('[RazorpayService] Opening checkout with key: ${_config!.keyId.substring(0, 8)}...');
 
     try {
       _razorpay!.open(options);
     } catch (e) {
-      debugPrint('RazorpayService: Error opening Razorpay: $e');
-      if (_onFailure != null) {
-        _onFailure!(PaymentFailureResponse(
-          Razorpay.UNKNOWN_ERROR,
-          'Failed to open payment gateway: $e',
-          null,
-        ));
-      }
+      debugPrint('[RazorpayService] Error opening checkout: $e');
+      _onPaymentComplete?.call(PaymentResult.failure(
+        errorCode: -1,
+        errorMessage: 'Failed to open payment screen: $e',
+      ));
+      _onPaymentComplete = null;
     }
   }
 
-  void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    debugPrint('Payment Success: ${response.paymentId}');
-    if (_onSuccess != null) {
-      _onSuccess!(response);
-    }
+  void _handleSuccess(PaymentSuccessResponse response) {
+    debugPrint('[RazorpayService] Payment successful: ${response.paymentId}');
+    _onPaymentComplete?.call(PaymentResult.success(
+      paymentId: response.paymentId ?? '',
+      orderId: response.orderId,
+      signature: response.signature,
+    ));
+    _onPaymentComplete = null;
   }
 
-  void _handlePaymentError(PaymentFailureResponse response) {
-    final errorCode = response.code;
-    final errorMessage = response.message ?? 'Unknown error';
-    
-    debugPrint('======== RAZORPAY ERROR ========');
-    debugPrint('Error Code: $errorCode');
-    debugPrint('Error Message: $errorMessage');
-    debugPrint('================================');
-    
-    if (_onFailure != null) {
-      _onFailure!(response);
-    }
+  void _handleError(PaymentFailureResponse response) {
+    debugPrint('[RazorpayService] Payment failed: ${response.code} - ${response.message}');
+    _onPaymentComplete?.call(PaymentResult.failure(
+      errorCode: response.code ?? -1,
+      errorMessage: response.message ?? 'Payment failed',
+    ));
+    _onPaymentComplete = null;
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
-    debugPrint('External Wallet: ${response.walletName}');
-    if (_onExternalWallet != null) {
-      _onExternalWallet!(response);
-    }
+    debugPrint('[RazorpayService] External wallet selected: ${response.walletName}');
+    // External wallet is just an event, not completion
+    // The actual payment result will come via success/error handlers
   }
 
-  /// Dispose Razorpay instance
+  /// Clean up resources
   void dispose() {
     _razorpay?.clear();
     _razorpay = null;
-  }
-
-  /// Update Razorpay config (admin only)
-  Future<void> updateConfig(RazorpayConfig newConfig) async {
-    await _saveConfig(newConfig);
-    _config = newConfig;
-  }
-
-  /// Stream config for admin settings
-  Stream<RazorpayConfig?> configStream() {
-    return _firestore
-        .collection('config')
-        .doc('razorpay')
-        .snapshots()
-        .map((doc) => doc.exists ? RazorpayConfig.fromJson(doc.data()!) : null);
+    _onPaymentComplete = null;
+    debugPrint('[RazorpayService] Disposed');
   }
 }

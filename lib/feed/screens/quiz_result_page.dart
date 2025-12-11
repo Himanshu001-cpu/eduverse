@@ -1,7 +1,6 @@
 // file: lib/feed/screens/quiz_result_page.dart
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
-import 'package:eduverse/feed/models/feed_models.dart';
 import 'package:eduverse/feed/screens/quiz_page.dart';
 import 'package:eduverse/core/firebase/quiz_stats_service.dart';
 
@@ -98,7 +97,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
                           gradient: LinearGradient(
                             colors: [
                               widget.item.color,
-                              widget.item.color.withOpacity(0.7),
+                              widget.item.color.withValues(alpha: 0.7),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -123,7 +122,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -256,7 +255,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
     return Expanded(
       child: Card(
         elevation: 0,
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -276,7 +275,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: color.withOpacity(0.8),
+                  color: color.withValues(alpha: 0.8),
                 ),
               ),
             ],
@@ -298,7 +297,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isCorrect ? Colors.green.withOpacity(0.5) : Colors.red.withOpacity(0.5),
+          color: isCorrect ? Colors.green.withValues(alpha: 0.5) : Colors.red.withValues(alpha: 0.5),
         ),
       ),
       child: ExpansionTile(
@@ -308,7 +307,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: isCorrect ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+            color: isCorrect ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -357,7 +356,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(

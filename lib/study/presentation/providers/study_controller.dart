@@ -111,6 +111,16 @@ class StudyController extends ChangeNotifier {
     }
   }
 
+  /// Get live classes for a specific batch
+  Future<List<StudyLiveClass>> getBatchLiveClasses(String courseId, String batchId) async {
+    try {
+      return await _repository.getBatchLiveClasses(courseId, batchId);
+    } catch (e) {
+      debugPrint('Error getting live classes: $e');
+      rethrow;
+    }
+  }
+
   /// Mark lecture as watched and refresh progress
   Future<void> markLectureWatched(String courseId, String batchId, String lectureId, bool isWatched) async {
     try {

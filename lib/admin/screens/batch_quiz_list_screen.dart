@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../admin/models/admin_models.dart';
 import '../../admin/services/firebase_admin_service.dart';
 import '../widgets/admin_scaffold.dart';
-import '../widgets/data_table_card.dart';
 import 'batch_quiz_editor_screen.dart';
 
 class BatchQuizListScreen extends StatelessWidget {
@@ -11,10 +10,10 @@ class BatchQuizListScreen extends StatelessWidget {
   final String batchId;
 
   const BatchQuizListScreen({
-    Key? key, 
+    super.key, 
     required this.courseId, 
     required this.batchId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +68,7 @@ class BatchQuizListScreen extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Colors.purple.withOpacity(0.1),
+                    backgroundColor: Colors.purple.withValues(alpha: 0.1),
                     child: const Icon(Icons.quiz, color: Colors.purple),
                   ),
                   title: Text(quiz.title, style: const TextStyle(fontWeight: FontWeight.bold)),

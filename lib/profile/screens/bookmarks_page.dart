@@ -10,11 +10,10 @@ import 'package:eduverse/feed/repository/feed_repository.dart';
 import 'package:eduverse/study/study_repository.dart';
 import 'package:eduverse/feed/screens/article_detail_page.dart';
 import 'package:eduverse/study/presentation/screens/batch_detail_screen.dart';
-import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart' show StudyBatch;
 
 class BookmarksPage extends StatefulWidget {
-  const BookmarksPage({Key? key}) : super(key: key);
+  const BookmarksPage({super.key});
 
   @override
   State<BookmarksPage> createState() => _BookmarksPageState();
@@ -222,7 +221,7 @@ class _BookmarksPageState extends State<BookmarksPage> {
               final isSelected = _selectedIds.contains(item.id);
 
               return AppCard(
-                color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+                color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : null,
                 child: ListTile(
                   onTap: _isSelectionMode
                       ? () => _toggleSelection(item.id)

@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/store/store_data.dart';
@@ -6,11 +5,9 @@ import 'package:eduverse/store/widgets/payment_method_tile.dart';
 import 'package:eduverse/store/screens/payment_result_page.dart';
 import 'package:eduverse/common/persistence/purchase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:eduverse/store/services/store_repository.dart';
 import 'package:eduverse/core/firebase/purchase_service.dart';
 import 'package:eduverse/core/firebase/cart_service.dart';
 import 'package:eduverse/core/firebase/razorpay_service.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 class CheckoutPage extends StatefulWidget {
   final List<CartItem> items;
@@ -47,8 +44,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _handlePayment() async {
-    // No form validation needed - Razorpay handles all payment details
-
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -60,15 +55,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
     setState(() => _isProcessing = true);
 
     try {
-      // Initialize Razorpay service
       final razorpayService = RazorpayService();
-      await razorpayService.initialize();
-
-      // Generate a temporary order ID
       final tempOrderId = 'ORD${DateTime.now().millisecondsSinceEpoch}';
 
-      // Open Razorpay checkout
-      await razorpayService.openCheckout(
+      await razorpayService.startPayment(
         amount: widget.totalAmount,
         orderId: tempOrderId,
         customerName: user.displayName ?? 'Customer',
@@ -77,10 +67,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
         description: widget.items.length == 1
             ? widget.items.first.title
             : '${widget.items.length} items',
-        onSuccess: (response) => _onPaymentSuccess(response, user, tempOrderId),
-        onFailure: _onPaymentFailure,
-        onExternalWallet: (response) {
-          debugPrint('External wallet: ${response.walletName}');
+        onComplete: (result) {
+          if (result.success) {
+            _onPaymentSuccess(result, user, tempOrderId);
+          } else {
+            _onPaymentFailure(result);
+          }
         },
       );
     } catch (e) {
@@ -94,10 +86,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Future<void> _onPaymentSuccess(
-    PaymentSuccessResponse response,
+    PaymentResult result,
     User user,
     String orderId,
   ) async {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -108,24 +102,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final purchaseService = PurchaseService();
       final cartService = CartService();
 
-      // Convert CartItems to Maps
       final itemsMap = widget.items.map((e) => e.toJson()).toList();
 
       final purchaseId = await purchaseService.createPurchase(
         uid: user.uid,
         amount: widget.totalAmount,
-        paymentId: response.paymentId ?? orderId,
+        paymentId: result.paymentId ?? orderId,
         items: itemsMap,
         method: 'razorpay',
         status: 'success',
       );
 
-      // Generate product title from items
       final productTitle = widget.items.length == 1
           ? widget.items.first.title
           : '${widget.items.length} items';
 
-      // Save transaction record to user's subcollection
       await purchaseService.saveTransaction(
         uid: user.uid,
         orderId: purchaseId,
@@ -135,13 +126,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
         paymentMethod: 'razorpay',
       );
 
-      // Clear subcollection cart
       await cartService.clearCart(user.uid);
-
-      // Update local storage just in case
       await PurchaseStorage.saveCart([]);
 
-      // Create a Purchase object for the result page
       final purchase = Purchase(
         userId: user.uid,
         id: purchaseId,
@@ -172,37 +159,31 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
-  void _onPaymentFailure(PaymentFailureResponse response) {
-    if (mounted) {
-      // Show detailed error in a dialog
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Payment Failed'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Error Code: ${response.code}'),
-              const SizedBox(height: 8),
-              Text('Message: ${response.message ?? "Unknown error"}'),
-              if (response.error != null) ...[
-                const SizedBox(height: 8),
-                Text('Details: ${response.error}', 
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK'),
-            ),
+  void _onPaymentFailure(PaymentResult result) {
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Payment Failed'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Error Code: ${result.errorCode}'),
+            const SizedBox(height: 8),
+            Text('Message: ${result.errorMessage ?? "Unknown error"}'),
           ],
         ),
-      );
-      setState(() => _isProcessing = false);
-    }
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    setState(() => _isProcessing = false);
   }
 
   @override
@@ -259,10 +240,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     backgroundColor: Theme.of(context).primaryColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text(
-                    'Pay ₹${widget.totalAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+                  child: _isProcessing
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Pay ₹${widget.totalAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
                 ),
               ),
             ],
@@ -364,8 +354,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.blue.shade100),
         ),
-        child: Row(
-          children: const [
+        child: const Row(
+          children: [
             Icon(Icons.info_outline, color: Colors.blue),
             SizedBox(width: 12),
             Expanded(child: Text('You will be redirected to complete payment.')),
@@ -383,11 +373,11 @@ class _PaymentProgressDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      child: const Padding(
+        padding: EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             CircularProgressIndicator(),
             SizedBox(height: 24),
             Text(
@@ -406,3 +396,4 @@ class _PaymentProgressDialog extends StatelessWidget {
     );
   }
 }
+

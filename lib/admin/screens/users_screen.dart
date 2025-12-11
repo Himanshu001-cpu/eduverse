@@ -7,7 +7,7 @@ import '../models/admin_models.dart';
 import 'user_detail_screen.dart';
 
 class UsersScreen extends StatefulWidget {
-  const UsersScreen({Key? key}) : super(key: key);
+  const UsersScreen({super.key});
 
   @override
   State<UsersScreen> createState() => _UsersScreenState();
@@ -179,7 +179,7 @@ class _UsersScreenState extends State<UsersScreen> {
                     child: DataTable(
                       showCheckboxColumn: false,
                       headingRowColor: WidgetStateProperty.all(
-                        Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                        Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
                       ),
                       columns: const [
                         DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -200,7 +200,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                 children: [
                                   CircleAvatar(
                                     radius: 16,
-                                    backgroundColor: _getRoleColor(user.role).withOpacity(0.2),
+                                    backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.2),
                                     child: Text(
                                       user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                                       style: TextStyle(
@@ -298,9 +298,9 @@ class _UsersScreenState extends State<UsersScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         role.toUpperCase(),
@@ -317,10 +317,10 @@ class _UsersScreenState extends State<UsersScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: disabled ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+        color: disabled ? Colors.red.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: disabled ? Colors.red.withOpacity(0.5) : Colors.green.withOpacity(0.5),
+          color: disabled ? Colors.red.withValues(alpha: 0.5) : Colors.green.withValues(alpha: 0.5),
         ),
       ),
       child: Text(

@@ -311,4 +311,76 @@ class FirebaseAdminService {
   Future<void> deleteBatchQuiz(String courseId, String batchId, String quizId) async {
      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('quizzes').doc(quizId).delete();
   }
+  // Configuration Management
+  Stream<Map<String, dynamic>> getGeneralConfig() {
+    return _db.collection('config').doc('general').snapshots().map((snapshot) {
+      if (!snapshot.exists || snapshot.data() == null) {
+        return {'maintenanceMode': false}; // Default config
+      }
+      return snapshot.data()!;
+    });
+  }
+
+  Future<void> updateMaintenanceMode(bool isEnabled) async {
+    await _db.collection('config').doc('general').set({
+      'maintenanceMode': isEnabled,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': currentUser?.uid,
+    }, SetOptions(merge: true));
+    
+    await _logAudit('update_maintenance_mode', 'config', 'general', {'enabled': isEnabled});
+  }
+  // Free Live Classes
+  Stream<List<AdminLiveClass>> getLiveClasses() {
+    return _db.collection('live_classes')
+        .orderBy('startTime')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => AdminLiveClass.fromMap(doc.data(), doc.id)).toList();
+    });
+  }
+
+  Future<void> saveLiveClass(AdminLiveClass liveClass, {bool isNew = false}) async {
+    final data = liveClass.toMap();
+    if (isNew) {
+      await _db.collection('live_classes').add(data);
+    } else {
+      await _db.collection('live_classes').doc(liveClass.id).update(data);
+    }
+    await _logAudit('save_live_class', 'live_class', liveClass.id, data);
+  }
+
+  Future<void> deleteLiveClass(String liveClassId) async {
+    await _db.collection('live_classes').doc(liveClassId).delete();
+    await _logAudit('delete_live_class', 'live_class', liveClassId, {});
+  }
+
+  // Batch Live Classes (Scoped)
+  Stream<List<AdminLiveClass>> getBatchLiveClasses(String courseId, String batchId) {
+    return _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('live_classes')
+        .orderBy('startTime')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => AdminLiveClass.fromMap(doc.data(), doc.id)).toList();
+    });
+  }
+
+  Future<void> saveBatchLiveClass(String courseId, String batchId, AdminLiveClass liveClass, {bool isNew = false}) async {
+    final data = liveClass.toMap();
+    if (isNew) {
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('live_classes').add(data);
+    } else {
+      await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('live_classes').doc(liveClass.id).update(data);
+    }
+    await _logAudit(isNew ? 'create_batch_live_class' : 'update_batch_live_class', 'live_class', liveClass.id, {
+      'courseId': courseId,
+      'batchId': batchId,
+      ...data
+    });
+  }
+
+  Future<void> deleteBatchLiveClass(String courseId, String batchId, String liveClassId) async {
+    await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('live_classes').doc(liveClassId).delete();
+    await _logAudit('delete_batch_live_class', 'live_class', liveClassId, {'courseId': courseId, 'batchId': batchId});
+  }
 }

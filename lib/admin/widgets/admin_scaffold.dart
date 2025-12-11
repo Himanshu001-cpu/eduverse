@@ -9,18 +9,18 @@ class AdminScaffold extends StatelessWidget {
   final List<Widget>? actions;
 
   const AdminScaffold({
-    Key? key,
+    super.key,
     required this.title,
     required this.body,
     this.floatingActionButton,
     this.actions,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Eduverse Admin: $title'),
+        title: Text('The Eduverse Admin: $title'),
         actions: [
           ...?actions,
           IconButton(
@@ -37,7 +37,8 @@ class AdminScaffold extends StatelessWidget {
             _navItem(context, 'Courses', '/courses', Icons.school),
             _navItem(context, 'Users', '/users', Icons.people),
             _navItem(context, 'Purchases', '/purchases', Icons.shopping_cart),
-            _navItem(context, 'Feed Editor', '/feed_editor', Icons.feed),
+            _navItem(context, 'Feed Management', '/feed_list', Icons.feed),
+            _navItem(context, 'Free Live Classes', '/live_classes', Icons.live_tv),
             _navItem(context, 'Payment Settings', '/payment_settings', Icons.payment),
             _navItem(context, 'Settings', '/settings', Icons.settings),
           ],

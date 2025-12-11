@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// Simple page to create a test enrollment
 /// Navigate to this page from anywhere to create test data
 class TestEnrollmentPage extends StatefulWidget {
-  const TestEnrollmentPage({Key? key}) : super(key: key);
+  const TestEnrollmentPage({super.key});
 
   @override
   State<TestEnrollmentPage> createState() => _TestEnrollmentPageState();

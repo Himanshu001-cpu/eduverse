@@ -1,7 +1,6 @@
 // file: lib/feed/screens/quiz_page.dart
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
-import 'package:eduverse/feed/models/feed_models.dart';
 import 'package:eduverse/feed/screens/quiz_result_page.dart';
 
 /// Quiz page for practicing multiple choice questions.
@@ -172,10 +171,10 @@ class _QuizPageState extends State<QuizPage> {
 
     // Showing answer
     if (optionIndex == _currentQuestion.correctIndex) {
-      return Colors.green.withOpacity(0.2);
+      return Colors.green.withValues(alpha: 0.2);
     }
     if (_selectedOptionIndex == optionIndex && optionIndex != _currentQuestion.correctIndex) {
-      return Colors.red.withOpacity(0.2);
+      return Colors.red.withValues(alpha: 0.2);
     }
     return Theme.of(context).colorScheme.surface;
   }
@@ -185,7 +184,7 @@ class _QuizPageState extends State<QuizPage> {
       if (_selectedOptionIndex == optionIndex) {
         return Theme.of(context).colorScheme.primary;
       }
-      return Theme.of(context).colorScheme.outline.withOpacity(0.5);
+      return Theme.of(context).colorScheme.outline.withValues(alpha: 0.5);
     }
 
     // Showing answer
@@ -195,7 +194,7 @@ class _QuizPageState extends State<QuizPage> {
     if (_selectedOptionIndex == optionIndex && optionIndex != _currentQuestion.correctIndex) {
       return Colors.red;
     }
-    return Theme.of(context).colorScheme.outline.withOpacity(0.3);
+    return Theme.of(context).colorScheme.outline.withValues(alpha: 0.3);
   }
 
   IconData? _getOptionIcon(int optionIndex) {
@@ -260,7 +259,7 @@ class _QuizPageState extends State<QuizPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: item.color.withOpacity(0.1),
+                        color: item.color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -310,7 +309,7 @@ class _QuizPageState extends State<QuizPage> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: _selectedOptionIndex == index
-                                        ? colorScheme.primary.withOpacity(0.2)
+                                        ? colorScheme.primary.withValues(alpha: 0.2)
                                         : colorScheme.surfaceContainerHighest,
                                   ),
                                   child: Center(
@@ -354,9 +353,9 @@ class _QuizPageState extends State<QuizPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer.withOpacity(0.3),
+                          color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: colorScheme.outline.withOpacity(0.3)),
+                          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

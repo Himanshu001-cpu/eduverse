@@ -6,7 +6,7 @@ import 'models.dart';
 class FeedContent extends StatelessWidget {
   final ContentType type;
 
-  const FeedContent({Key? key, required this.type}) : super(key: key);
+  const FeedContent({super.key, required this.type});
 
   @override
   Widget build(BuildContext context) {

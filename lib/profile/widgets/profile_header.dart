@@ -3,7 +3,7 @@ import 'package:eduverse/profile/edit_profile_page.dart';
 import 'package:eduverse/profile/profile_storage.dart';
 
 class ProfileHeader extends StatefulWidget {
-  const ProfileHeader({Key? key}) : super(key: key);
+  const ProfileHeader({super.key});
 
   @override
   State<ProfileHeader> createState() => _ProfileHeaderState();
@@ -101,7 +101,7 @@ class _ProfileHeaderState extends State<ProfileHeader> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0,4))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0,4))],
             ),
             child: Column(
               children: [

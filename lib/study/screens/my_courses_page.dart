@@ -4,7 +4,7 @@ import 'package:eduverse/study/models/study_models.dart';
 import 'batch_section_page.dart';
 
 class MyCoursesPage extends StatelessWidget {
-  const MyCoursesPage({Key? key}) : super(key: key);
+  const MyCoursesPage({super.key});
 
   void _showCourseDetail(BuildContext context, StudyCourseModel course) {
     showModalBottomSheet(
@@ -201,8 +201,7 @@ class _CourseGridCard extends StatelessWidget {
   final StudyCourseModel course;
   final VoidCallback onTap;
 
-  const _CourseGridCard({Key? key, required this.course, required this.onTap})
-      : super(key: key);
+  const _CourseGridCard({required this.course, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +211,7 @@ class _CourseGridCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

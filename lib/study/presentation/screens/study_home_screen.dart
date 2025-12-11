@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class StudyHomeScreen extends StatelessWidget {
-  const StudyHomeScreen({Key? key}) : super(key: key);
+  const StudyHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +57,7 @@ class StudyHomeScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.school_rounded, size: 64, color: Colors.blue[700]),
@@ -110,7 +110,7 @@ class _BatchCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 5),
           ),
@@ -145,7 +145,7 @@ class _BatchCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                            BoxShadow(
-                             color: (batch.gradientColors.isNotEmpty ? batch.gradientColors.first : Colors.blue).withOpacity(0.3),
+                             color: (batch.gradientColors.isNotEmpty ? batch.gradientColors.first : Colors.blue).withValues(alpha: 0.3),
                              blurRadius: 10,
                              offset: const Offset(0, 4),
                            ),
@@ -244,7 +244,7 @@ class _BatchCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(4),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.blue.withOpacity(0.3),
+                                    color: Colors.blue.withValues(alpha: 0.3),
                                     blurRadius: 5,
                                     offset: const Offset(0, 2),
                                   )

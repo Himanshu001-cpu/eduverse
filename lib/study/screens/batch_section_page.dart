@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:eduverse/study/models/study_models.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
@@ -13,10 +12,10 @@ class BatchSectionPage extends StatefulWidget {
   final String batchId;
 
   const BatchSectionPage({
-    Key? key,
+    super.key,
     required this.course,
     required this.batchId,
-  }) : super(key: key);
+  });
 
   @override
   State<BatchSectionPage> createState() => _BatchSectionPageState();
@@ -165,14 +164,14 @@ class _BatchSectionPageState extends State<BatchSectionPage>
   }
 
   void _showNoteDialog(String lessonId) {
-    final TextEditingController _noteController =
+    final TextEditingController noteController =
         TextEditingController(text: _notes[lessonId]);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add Note'),
         content: TextField(
-          controller: _noteController,
+          controller: noteController,
           maxLength: 250,
           maxLines: 3,
           decoration: const InputDecoration(
@@ -188,10 +187,10 @@ class _BatchSectionPageState extends State<BatchSectionPage>
           TextButton(
             onPressed: () {
               setState(() {
-                if (_noteController.text.isEmpty) {
+                if (noteController.text.isEmpty) {
                   _notes.remove(lessonId);
                 } else {
-                  _notes[lessonId] = _noteController.text;
+                  _notes[lessonId] = noteController.text;
                 }
               });
               Navigator.pop(context);
@@ -325,7 +324,7 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                 onTap: () => _openLessonDetail(lesson),
                 onAction: (action) => _handleLessonAction(action, lesson),
               );
-            }).toList(),
+            }),
             const SizedBox(height: 16),
           ],
         );
@@ -394,38 +393,80 @@ class _BatchSectionPageState extends State<BatchSectionPage>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold)),
-                TextButton(onPressed: () {}, child: const Text('View All')),
-              ],
-            ),
-            _buildScheduleItem('Mon, Wed, Fri', '10:00 AM - 11:30 AM', true),
-            const Divider(),
-            _buildScheduleItem('Saturday', '02:00 PM - 04:00 PM', false),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text('Join Live Class', style: TextStyle(color: Colors.white)),
-              ),
-            ),
-          ],
+        child: Consumer<StudyController>(
+          builder: (context, controller, child) {
+            return FutureBuilder<List<StudyLiveClass>>(
+              future: controller.getBatchLiveClasses(widget.course.id, widget.batchId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Text('Error loading schedule');
+                }
+
+                final liveClasses = snapshot.data ?? [];
+                final upcomingClasses = liveClasses.where((c) => c.isUpcoming).toList();
+                final liveClass = liveClasses.firstWhere((c) => c.isLive, orElse: () => liveClasses.first);
+
+                if (liveClasses.isEmpty) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold)),
+                      SizedBox(height: 12),
+                      Text('No live classes scheduled yet.', style: TextStyle(color: Colors.grey)),
+                    ],
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold)),
+                        if (upcomingClasses.length > 2)
+                          TextButton(onPressed: () {}, child: const Text('View All')),
+                      ],
+                    ),
+                    ...upcomingClasses.take(2).map((c) => Column(
+                      children: [
+                        _buildScheduleItem(c),
+                        if (upcomingClasses.indexOf(c) < upcomingClasses.length - 1) const Divider(),
+                      ],
+                    )),
+                    const SizedBox(height: 12),
+                    if (liveClass.isLive || (upcomingClasses.isNotEmpty && upcomingClasses.first.startTime.difference(DateTime.now()).inHours < 1))
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: liveClass.youtubeUrl != null ? () {
+                            // TODO: Open YouTube link
+                          } : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('Join Live Class', style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildScheduleItem(String days, String time, bool isNext) {
+  Widget _buildScheduleItem(StudyLiveClass liveClass) {
+    final isNext = liveClass.isUpcoming && liveClass.startTime.difference(DateTime.now()).inHours < 24;
+    final timeStr = '${liveClass.startTime.hour.toString().padLeft(2, '0')}:${liveClass.startTime.minute.toString().padLeft(2, '0')}';
+    final dateStr = '${liveClass.startTime.day}/${liveClass.startTime.month}';
+    
     return Row(
       children: [
         Icon(Icons.calendar_today, size: 16, color: isNext ? Colors.blue : Colors.grey),
@@ -433,8 +474,8 @@ class _BatchSectionPageState extends State<BatchSectionPage>
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(days, style: TextStyle(fontWeight: isNext ? FontWeight.bold : FontWeight.normal)),
-            Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(liveClass.title, style: TextStyle(fontWeight: isNext ? FontWeight.bold : FontWeight.normal)),
+            Text('$dateStr • $timeStr - ${liveClass.durationMinutes} min', style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         if (isNext) ...[
@@ -442,7 +483,7 @@ class _BatchSectionPageState extends State<BatchSectionPage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Text('NEXT', style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
@@ -685,66 +726,7 @@ class _BatchSectionPageState extends State<BatchSectionPage>
     );
   }
 
-  Widget _buildDiscussionTab() {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: 5,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(child: Text('U$index')),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('User $index', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          const Text('Can someone explain Article 21 again?'),
-                          const SizedBox(height: 4),
-                          const Text('2 hours ago', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, -2))],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Ask a doubt...',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.send, color: Colors.blue),
-                onPressed: () {},
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+
 }
 
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
@@ -772,7 +754,7 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
 }
 
 class _DownloadProgressDialog extends StatelessWidget {
-  const _DownloadProgressDialog({Key? key}) : super(key: key);
+  const _DownloadProgressDialog();
 
   @override
   Widget build(BuildContext context) {
@@ -802,12 +784,11 @@ class _LessonDetailSheet extends StatelessWidget {
   final VoidCallback onComplete;
 
   const _LessonDetailSheet({
-    Key? key,
     required this.lesson,
     this.note,
     required this.onSaveNote,
     required this.onComplete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -860,9 +841,9 @@ class _LessonDetailSheet extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.1),
+                  color: Colors.amber.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

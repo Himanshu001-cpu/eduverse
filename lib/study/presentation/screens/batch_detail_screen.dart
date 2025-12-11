@@ -12,7 +12,7 @@ import 'package:eduverse/profile/models/bookmark_model.dart';
 class BatchDetailScreen extends StatefulWidget {
   final StudyBatch batch;
 
-  const BatchDetailScreen({Key? key, required this.batch}) : super(key: key);
+  const BatchDetailScreen({super.key, required this.batch});
 
   @override
   State<BatchDetailScreen> createState() => _BatchDetailScreenState();
@@ -104,7 +104,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: (widget.batch.gradientColors.isNotEmpty ? widget.batch.gradientColors.first : Colors.blue).withOpacity(0.4),
+                color: (widget.batch.gradientColors.isNotEmpty ? widget.batch.gradientColors.first : Colors.blue).withValues(alpha: 0.4),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -136,7 +136,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.5),
+                          Colors.black.withValues(alpha: 0.5),
                         ],
                       ),
                     ),
@@ -255,7 +255,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -599,7 +599,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Text('NEXT', style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
@@ -707,7 +707,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             ),
           );
           // Increment key to force FutureBuilder to refetch
-          setState(() => _refreshKey++);
+          if (mounted) setState(() => _refreshKey++);
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -715,14 +715,14 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade200),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+            boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
           ),
           child: Row(
             children: [
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(
-                  color: lecture.isWatched ? Colors.green.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+                  color: lecture.isWatched ? Colors.green.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -1237,7 +1237,7 @@ class _QuickActionButton extends StatelessWidget {
 
 /// Download Progress Dialog for "Download All" action
 class _DownloadProgressDialog extends StatelessWidget {
-  const _DownloadProgressDialog({Key? key}) : super(key: key);
+  const _DownloadProgressDialog();
 
   @override
   Widget build(BuildContext context) {

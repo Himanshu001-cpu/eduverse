@@ -52,7 +52,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                     gradient: LinearGradient(
                       colors: [
                         item.color,
-                        item.color.withOpacity(0.7),
+                        item.color.withValues(alpha: 0.7),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -104,7 +104,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                           color: item.color,
                         ),
                       ),
-                      backgroundColor: item.color.withOpacity(0.1),
+                      backgroundColor: item.color.withValues(alpha: 0.1),
                       side: BorderSide.none,
                     ),
                     const SizedBox(height: 12),
@@ -153,7 +153,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                     color: colorScheme.primary,
                                   ),
                                 ),
-                                backgroundColor: colorScheme.primaryContainer.withOpacity(0.3),
+                                backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.3),
                                 side: BorderSide.none,
                                 padding: EdgeInsets.zero,
                                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

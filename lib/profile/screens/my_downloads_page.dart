@@ -9,7 +9,7 @@ import 'package:eduverse/common/widgets/empty_state.dart';
 import 'package:eduverse/common/widgets/cards.dart';
 
 class MyDownloadsPage extends StatefulWidget {
-  const MyDownloadsPage({Key? key}) : super(key: key);
+  const MyDownloadsPage({super.key});
 
   @override
   State<MyDownloadsPage> createState() => _MyDownloadsPageState();
@@ -225,7 +225,7 @@ class _MyDownloadsPageState extends State<MyDownloadsPage> {
 class _DownloadItemCard extends StatelessWidget {
   final DownloadItem item;
 
-  const _DownloadItemCard({Key? key, required this.item}) : super(key: key);
+  const _DownloadItemCard({required this.item});
 
   Future<void> _openFile(BuildContext context) async {
     if (item.filePath == null) {
@@ -292,7 +292,7 @@ class _DownloadItemCard extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: color, size: 28),

@@ -8,7 +8,7 @@ import 'screens/admin_login_screen.dart';
 /// Entry point for Admin panel from the main app.
 /// Checks if user is admin before showing admin UI.
 class AdminEntryPage extends StatefulWidget {
-  const AdminEntryPage({Key? key}) : super(key: key);
+  const AdminEntryPage({super.key});
 
   @override
   State<AdminEntryPage> createState() => _AdminEntryPageState();
@@ -175,7 +175,7 @@ class _AdminEntryPageState extends State<AdminEntryPage> {
       create: (_) => FirebaseAdminService(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Eduverse Admin',
+        title: 'The Eduverse Admin',
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),

@@ -3,7 +3,7 @@ import 'package:eduverse/core/firebase/auth_service.dart';
 import 'package:eduverse/admin/admin_entry_page.dart';
 
 class AdminLoginScreen extends StatefulWidget {
-  const AdminLoginScreen({Key? key}) : super(key: key);
+  const AdminLoginScreen({super.key});
 
   @override
   State<AdminLoginScreen> createState() => _AdminLoginScreenState();

@@ -6,7 +6,7 @@ class CourseCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
-  const CourseCard({Key? key, required this.course, required this.onTap, required this.onDelete}) : super(key: key);
+  const CourseCard({super.key, required this.course, required this.onTap, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {

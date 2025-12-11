@@ -45,5 +45,32 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Camera Permission -->
+	<key>NSCameraUsageDescription</key>
+	<string>The Eduverse needs camera access to capture photos and videos for uploads.</string>
+	
+	<!-- Photo Library Permissions -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>The Eduverse needs photo library access to select images and videos for uploads.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>The Eduverse needs permission to save downloaded images and videos to your photo library.</string>
+	
+	<!-- Media Library Permission (for audio) -->
+	<key>NSAppleMusicUsageDescription</key>
+	<string>The Eduverse needs access to your media library for audio content.</string>
+	
+	<!-- File Access -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	
+	<!-- Allow arbitrary loads for video streaming -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models/feed_models.dart';
-import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
 import 'package:eduverse/core/firebase/quiz_stats_service.dart';
 
 /// Quiz result screen for Study section.
@@ -14,7 +13,7 @@ class StudyQuizResultScreen extends StatefulWidget {
   final String source; // 'batch' or 'feed'
 
   const StudyQuizResultScreen({
-    Key? key,
+    super.key,
     required this.quizTitle,
     required this.questions,
     required this.userAnswers,
@@ -22,7 +21,7 @@ class StudyQuizResultScreen extends StatefulWidget {
     this.themeColor = Colors.purple,
     this.quizId,
     this.source = 'batch',
-  }) : super(key: key);
+  });
 
   @override
   State<StudyQuizResultScreen> createState() => _StudyQuizResultScreenState();
@@ -94,7 +93,7 @@ class _StudyQuizResultScreenState extends State<StudyQuizResultScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           gradient: LinearGradient(
-                            colors: [widget.themeColor, widget.themeColor.withOpacity(0.7)],
+                            colors: [widget.themeColor, widget.themeColor.withValues(alpha: 0.7)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -111,7 +110,7 @@ class _StudyQuizResultScreenState extends State<StudyQuizResultScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -182,7 +181,7 @@ class _StudyQuizResultScreenState extends State<StudyQuizResultScreen> {
     return Expanded(
       child: Card(
         elevation: 0,
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -191,7 +190,7 @@ class _StudyQuizResultScreenState extends State<StudyQuizResultScreen> {
               Icon(icon, color: color, size: 28),
               const SizedBox(height: 8),
               Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-              Text(label, style: TextStyle(fontSize: 12, color: color.withOpacity(0.8))),
+              Text(label, style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8))),
             ],
           ),
         ),
@@ -210,7 +209,7 @@ class _StudyQuizResultScreenState extends State<StudyQuizResultScreen> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: isCorrect ? Colors.green.withOpacity(0.5) : Colors.red.withOpacity(0.5)),
+        side: BorderSide(color: isCorrect ? Colors.green.withValues(alpha: 0.5) : Colors.red.withValues(alpha: 0.5)),
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -218,7 +217,7 @@ class _StudyQuizResultScreenState extends State<StudyQuizResultScreen> {
         leading: Container(
           width: 36, height: 36,
           decoration: BoxDecoration(
-            color: isCorrect ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+            color: isCorrect ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Center(child: Icon(isCorrect ? Icons.check : Icons.close, color: isCorrect ? Colors.green : Colors.red, size: 20)),
@@ -244,7 +243,7 @@ class _StudyQuizResultScreenState extends State<StudyQuizResultScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(

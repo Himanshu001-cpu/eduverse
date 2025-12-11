@@ -5,7 +5,7 @@ import 'package:eduverse/study/screens/practice_question_page.dart';
 class TestDetailPage extends StatelessWidget {
   final TestModel test;
 
-  const TestDetailPage({Key? key, required this.test}) : super(key: key);
+  const TestDetailPage({super.key, required this.test});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +32,7 @@ class TestDetailPage extends StatelessWidget {
                     child: Icon(
                       Icons.assignment,
                       size: 80,
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                     ),
                   ),
                 ),
@@ -119,7 +119,7 @@ class TestDetailPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -175,7 +175,7 @@ class TestDetailPage extends StatelessWidget {
   Widget _buildChip(String label) {
     return Chip(
       label: Text(label),
-      backgroundColor: Colors.deepPurple.withOpacity(0.05),
+      backgroundColor: Colors.deepPurple.withValues(alpha: 0.05),
       labelStyle: const TextStyle(color: Colors.deepPurple),
       side: BorderSide.none,
     );

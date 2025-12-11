@@ -236,7 +236,7 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
             margin: const EdgeInsets.only(right: 8),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: _getTimerColor().withOpacity(0.1),
+              color: _getTimerColor().withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: _getTimerColor()),
             ),
@@ -266,9 +266,9 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: colorScheme.primaryContainer.withOpacity(0.3),
+                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: colorScheme.outline.withOpacity(0.3)),
+                border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,7 +358,7 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.5)),
+                      borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),

@@ -207,3 +207,29 @@ class StudyPlannerItem {
     this.fileUrl,
   });
 }
+
+class StudyLiveClass {
+  final String id;
+  final String title;
+  final String description;
+  final DateTime startTime;
+  final int durationMinutes;
+  final String status; // 'upcoming', 'live', 'completed'
+  final String? youtubeUrl;
+  final String thumbnailUrl;
+
+  const StudyLiveClass({
+    required this.id,
+    required this.title,
+    this.description = '',
+    required this.startTime,
+    this.durationMinutes = 60,
+    this.status = 'upcoming',
+    this.youtubeUrl,
+    this.thumbnailUrl = '',
+  });
+
+  bool get isUpcoming => status == 'upcoming' && startTime.isAfter(DateTime.now());
+  bool get isLive => status == 'live';
+  bool get isCompleted => status == 'completed';
+}

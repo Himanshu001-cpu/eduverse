@@ -43,24 +43,24 @@ class _MediaUploaderState extends State<MediaUploader> {
           throw 'Could not read file data. bytes is null and path is ${file.path}';
         }
 
-        print('Debug: File size: ${bytes.length} bytes');
+        debugPrint('Debug: File size: ${bytes.length} bytes');
 
         // 2. Detect Mime Type
         final mimeType = lookupMimeType(file.name) ?? 'application/octet-stream';
-        print('Debug: Detected Mime Type: $mimeType');
+        debugPrint('Debug: Detected Mime Type: $mimeType');
 
         // 3. Upload
-        print('Debug: Starting upload to ${widget.path}/${file.name}');
+        debugPrint('Debug: Starting upload to ${widget.path}/${file.name}');
         final url = await service.uploadMedia(
           '${widget.path}/${file.name}',
           bytes,
           mimeType,
         );
-        print('Debug: Upload successful, URL: $url');
+        debugPrint('Debug: Upload successful, URL: $url');
         widget.onUploadComplete(url);
       } catch (e, stackTrace) {
-        print('Error uploading: $e');
-        print(stackTrace);
+        debugPrint('Error uploading: $e');
+        debugPrint(stackTrace.toString());
         if(mounted) {
              showDialog(
                context: context,

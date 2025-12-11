@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
-import 'package:eduverse/feed/models/feed_models.dart';
 import 'package:eduverse/feed/repository/feed_repository.dart';
 import 'package:uuid/uuid.dart';
 
@@ -8,7 +7,7 @@ import 'package:uuid/uuid.dart';
 class QuizEditorScreen extends StatefulWidget {
   final FeedItem? feedItem; // If editing existing quiz
 
-  const QuizEditorScreen({Key? key, this.feedItem}) : super(key: key);
+  const QuizEditorScreen({super.key, this.feedItem});
 
   @override
   State<QuizEditorScreen> createState() => _QuizEditorScreenState();
@@ -489,7 +488,7 @@ class _FeedItemCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: item.color.withOpacity(0.2),
+                  color: item.color.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(

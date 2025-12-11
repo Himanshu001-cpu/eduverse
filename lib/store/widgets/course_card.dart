@@ -30,7 +30,7 @@ class CourseCard extends StatelessWidget {
                   BoxShadow(
                     color: (course.gradientColors.isNotEmpty 
                         ? course.gradientColors.first 
-                        : Colors.blue).withOpacity(0.3),
+                        : Colors.blue).withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),

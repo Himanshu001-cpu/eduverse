@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
 
 class PhoneLoginPage extends StatefulWidget {
-  const PhoneLoginPage({Key? key}) : super(key: key);
+  const PhoneLoginPage({super.key});
 
   @override
   State<PhoneLoginPage> createState() => _PhoneLoginPageState();
@@ -233,13 +231,16 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> with SingleTickerProvid
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            _codeSent ? Icons.sms_outlined : Icons.phone_android,
-            size: 50,
-            color: Colors.white,
+          child: ClipOval(
+            child: Image.asset(
+              'assets/icon.png',
+              width: 70,
+              height: 70,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         const SizedBox(height: 24),
@@ -259,7 +260,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> with SingleTickerProvid
               : 'We\'ll send you a verification code',
           style: TextStyle(
             fontSize: 15,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
           ),
           textAlign: TextAlign.center,
         ),
@@ -271,11 +272,11 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -484,7 +485,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> with SingleTickerProvid
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF667eea).withOpacity(0.4),
+            color: const Color(0xFF667eea).withValues(alpha: 0.4),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),

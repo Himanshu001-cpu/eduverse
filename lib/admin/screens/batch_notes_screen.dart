@@ -9,7 +9,7 @@ class BatchNotesScreen extends StatelessWidget {
   final String courseId;
   final String batchId;
 
-  const BatchNotesScreen({Key? key, required this.courseId, required this.batchId}) : super(key: key);
+  const BatchNotesScreen({super.key, required this.courseId, required this.batchId});
 
   @override
   Widget build(BuildContext context) {

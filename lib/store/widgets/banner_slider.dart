@@ -65,7 +65,7 @@ class BannerSlider extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: banner.colors.first.withOpacity(0.3),
+                          color: banner.colors.first.withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -101,7 +101,7 @@ class BannerSlider extends StatelessWidget {
                                   end: Alignment.bottomCenter,
                                   colors: [
                                     Colors.transparent,
-                                    Colors.black.withOpacity(0.7),
+                                    Colors.black.withValues(alpha: 0.7),
                                   ],
                                 ),
                               ),
@@ -377,7 +377,7 @@ class BannerSlider extends StatelessWidget {
               banner.emoji,
               style: TextStyle(
                 fontSize: screenWidth > 600 ? 120 : 100,
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
               ),
             ),
           ),

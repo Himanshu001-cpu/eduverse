@@ -12,13 +12,13 @@ class ThumbnailUploadWidget extends StatefulWidget {
   final double width;
 
   const ThumbnailUploadWidget({
-    Key? key,
+    super.key,
     this.currentUrl,
     required this.storagePath,
     required this.onUploaded,
     this.height = 150,
     this.width = double.infinity,
-  }) : super(key: key);
+  });
 
   @override
   State<ThumbnailUploadWidget> createState() => _ThumbnailUploadWidgetState();

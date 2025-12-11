@@ -11,11 +11,11 @@ class BatchQuizEditorScreen extends StatefulWidget {
   final AdminQuiz? quiz;
 
   const BatchQuizEditorScreen({
-    Key? key,
+    super.key,
     required this.courseId,
     required this.batchId,
     this.quiz,
-  }) : super(key: key);
+  });
 
   @override
   State<BatchQuizEditorScreen> createState() => _BatchQuizEditorScreenState();

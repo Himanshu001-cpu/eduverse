@@ -38,7 +38,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     gradient: LinearGradient(
                       colors: [
                         item.color,
-                        item.color.withOpacity(0.7),
+                        item.color.withValues(alpha: 0.7),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -57,7 +57,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Text(
@@ -158,10 +158,10 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     // Important Dates Card
                     Card(
                       elevation: 0,
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.orange.withOpacity(0.3)),
+                        side: BorderSide(color: Colors.orange.withValues(alpha: 0.3)),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -238,7 +238,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     // How to Apply Card
                     Card(
                       elevation: 0,
-                      color: colorScheme.primaryContainer.withOpacity(0.3),
+                      color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -280,7 +280,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: colorScheme.errorContainer.withOpacity(0.3),
+                        color: colorScheme.errorContainer.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(

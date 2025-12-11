@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/admin_scaffold.dart';
 
 class PurchasesScreen extends StatelessWidget {
-  const PurchasesScreen({Key? key}) : super(key: key);
+  const PurchasesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

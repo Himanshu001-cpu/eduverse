@@ -6,6 +6,7 @@
 /// - Audit entries exist for create/edit/enroll/refund actions.
 /// - Firestore & Storage rules prevent unauthorized writes.
 /// - Local emulator commands documented and runnable.
+library;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -23,7 +24,7 @@ void main() async {
 }
 
 class AdminApp extends StatelessWidget {
-  const AdminApp({Key? key}) : super(key: key);
+  const AdminApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,7 @@ class AdminApp extends StatelessWidget {
         Provider<FirebaseAdminService>(create: (_) => FirebaseAdminService()),
       ],
       child: MaterialApp(
-        title: 'Eduverse Admin',
+        title: 'The Eduverse Admin',
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),

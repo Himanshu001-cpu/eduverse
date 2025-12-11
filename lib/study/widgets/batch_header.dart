@@ -8,12 +8,12 @@ class BatchHeader extends StatefulWidget {
   final VoidCallback onShare;
 
   const BatchHeader({
-    Key? key,
+    super.key,
     required this.course,
     required this.batchId,
     required this.onDownloadAll,
     required this.onShare,
-  }) : super(key: key);
+  });
 
   @override
   State<BatchHeader> createState() => _BatchHeaderState();
@@ -94,7 +94,7 @@ class _BatchHeaderState extends State<BatchHeader> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
@@ -113,9 +113,9 @@ class _BatchHeaderState extends State<BatchHeader> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.2),
+                      color: Colors.green.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+                      border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.5)),
                     ),
                     child: const Text(
                       'Active',
@@ -185,7 +185,7 @@ class _BatchHeaderState extends State<BatchHeader> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
