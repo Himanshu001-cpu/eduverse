@@ -164,7 +164,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
         const SizedBox(height: 24),
         const Text(
-          'EduVerse',
+          'The Eduverse',
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.bold,

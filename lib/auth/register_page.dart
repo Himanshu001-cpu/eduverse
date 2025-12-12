@@ -242,7 +242,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
         ),
         const SizedBox(height: 8),
         Text(
-          'Join EduVerse today',
+          'Join The Eduverse today',
           style: TextStyle(
             fontSize: 16,
             color: Colors.white.withValues(alpha: 0.9),

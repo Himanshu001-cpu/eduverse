@@ -23,7 +23,7 @@
     <!-- Wake lock for video playback -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <application
-        android:label="eduverse"
+        android:label="The Eduverse"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"

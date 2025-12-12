@@ -36,7 +36,7 @@ class AboutPage extends StatelessWidget {
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               title: const Text(
-                'About EduVerse',
+                'About The Eduverse',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
@@ -213,7 +213,7 @@ class AboutPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '© 2024 EduVerse. All rights reserved.',
+                          '© 2024 The Eduverse. All rights reserved.',
                           style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: 12,
