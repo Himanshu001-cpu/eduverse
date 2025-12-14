@@ -24,6 +24,7 @@ class StudyController extends ChangeNotifier {
   List<StudyBatch> get enrolledBatches => _enrolledBatches;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  IStudyRepository get repository => _repository;
 
   StreamSubscription<List<StudyBatch>>? _batchesSubscription;
 

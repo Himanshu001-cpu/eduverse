@@ -24,17 +24,82 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   int _refreshKey = 0; // Used to force FutureBuilder refresh
   bool _isBookmarked = false; // Bookmark state
   final BookmarkService _bookmarkService = BookmarkService();
+  
+  // Live classes data
+  List<StudyLiveClass> _liveClasses = [];
+  bool _isLoadingLiveClasses = true;
+  
+  // Stats data
+  int _totalLectures = 0;
+  int _watchedLectures = 0;
+  int _quizCount = 0;
+  double _avgQuizScore = 0.0;
+  bool _isLoadingStats = true;
 
   @override
   void initState() {
     super.initState();
     _checkBookmarkStatus();
+    _loadLiveClasses();
+    _loadStats();
     _tabController = TabController(length: 4, vsync: this);
+  }
+
+  Future<void> _loadLiveClasses() async {
+    try {
+      final controller = Provider.of<StudyController>(context, listen: false);
+      final classes = await controller.repository.getBatchLiveClasses(
+        widget.batch.courseId,
+        widget.batch.id,
+      );
+      if (mounted) {
+        setState(() {
+          _liveClasses = classes;
+          _isLoadingLiveClasses = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading live classes: $e');
+      if (mounted) setState(() => _isLoadingLiveClasses = false);
+    }
   }
 
   Future<void> _checkBookmarkStatus() async {
     final status = await _bookmarkService.isBookmarked(widget.batch.id);
     if (mounted) setState(() => _isBookmarked = status);
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final controller = Provider.of<StudyController>(context, listen: false);
+      
+      // Fetch lectures to get total and watched count
+      final lectures = await controller.getLectures(widget.batch.courseId, widget.batch.id);
+      final watched = lectures.where((l) => l.isWatched).length;
+      
+      // Fetch quizzes
+      final quizzes = await controller.getBatchQuizzes(widget.batch.courseId, widget.batch.id);
+      
+      // Calculate average quiz score from user's quiz results collection
+      // Note: For now we calculate from local quiz data, as full quiz results tracking
+      // would need additional repository method
+      double avgScore = 0.0;
+      // Placeholder: In a full implementation, you'd fetch user's quiz scores from Firestore
+      // For example: users/{userId}/quizResults where each doc has the quiz score
+      
+      if (mounted) {
+        setState(() {
+          _totalLectures = lectures.length;
+          _watchedLectures = watched;
+          _quizCount = quizzes.length;
+          _avgQuizScore = avgScore;
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading stats: $e');
+      if (mounted) setState(() => _isLoadingStats = false);
+    }
   }
 
   @override
@@ -284,17 +349,24 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         ),
         const SizedBox(height: 16),
         
-        // Info Cards Section (Instructor, Schedule, Progress Summary)
-        if (isWideScreen)
+        // Info Cards Section (Show Instructor/Schedule only if live classes exist)
+        if (_isLoadingLiveClasses)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (isWideScreen)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _buildInstructorCard()),
-                const SizedBox(width: 12),
-                Expanded(child: _buildScheduleCard()),
-                const SizedBox(width: 12),
+                if (_liveClasses.isNotEmpty) ...[
+                  Expanded(child: _buildInstructorCard()),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildScheduleCard()),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(child: _buildProgressSummaryCard()),
               ],
             ),
@@ -304,10 +376,12 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               children: [
-                _buildInstructorCard(),
-                const SizedBox(height: 12),
-                _buildScheduleCard(),
-                const SizedBox(height: 12),
+                if (_liveClasses.isNotEmpty) ...[
+                  _buildInstructorCard(),
+                  const SizedBox(height: 12),
+                  _buildScheduleCard(),
+                  const SizedBox(height: 12),
+                ],
                 _buildProgressSummaryCard(),
               ],
             ),
@@ -488,6 +562,14 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   }
 
   Widget _buildInstructorCard() {
+    // Get unique instructor names from live classes
+    final instructorNames = _liveClasses
+        .map((lc) => lc.instructorName)
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList();
+    final instructorName = instructorNames.isNotEmpty ? instructorNames.first : 'Instructor';
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -500,31 +582,32 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             const SizedBox(height: 12),
             Row(
               children: [
-                const CircleAvatar(
-                  backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=11'),
+                CircleAvatar(
+                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
                   radius: 24,
+                  child: Text(
+                    instructorName.isNotEmpty ? instructorName[0].toUpperCase() : 'I',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Dr. Anjali Sharma', style: TextStyle(fontWeight: FontWeight.w600)),
-                      Row(
-                        children: const [
-                          Icon(Icons.star, size: 14, color: Colors.amber),
-                          Text(' 4.8', style: TextStyle(fontSize: 12)),
-                        ],
+                      Text(instructorName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        '${_liveClasses.length} live class${_liveClasses.length > 1 ? 'es' : ''}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Expert educator with 10+ years of experience.',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -533,6 +616,14 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   }
 
   Widget _buildScheduleCard() {
+    // Sort live classes: upcoming first, then by date
+    final upcomingClasses = _liveClasses
+        .where((lc) => lc.status == 'upcoming' || lc.status == 'live' || lc.startTime.isAfter(DateTime.now()))
+        .toList()
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    
+    final nextClass = upcomingClasses.isNotEmpty ? upcomingClasses.first : null;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -541,43 +632,92 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
-                  child: const Text('View All', style: TextStyle(fontSize: 12)),
-                ),
-              ],
-            ),
+            const Text('Live Classes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 8),
-            _buildScheduleItem('Mon, Wed, Fri', '10:00 AM - 11:30 AM', true),
-            const Divider(height: 16),
-            _buildScheduleItem('Saturday', '02:00 PM - 04:00 PM', false),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Joining live class...')),
-                  );
-                },
-                icon: const Icon(Icons.videocam, size: 18),
-                label: const Text('Join Live Class'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+            if (upcomingClasses.isEmpty)
+              Text('No upcoming classes', style: TextStyle(color: Colors.grey[600], fontSize: 13))
+            else
+              ...upcomingClasses.take(2).map((lc) {
+                final isNext = lc == nextClass;
+                final dateStr = '${lc.startTime.day}/${lc.startTime.month} ${lc.startTime.hour}:${lc.startTime.minute.toString().padLeft(2, '0')}';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildScheduleItemFromClass(lc.title, dateStr, isNext),
+                );
+              }),
+            if (nextClass != null) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    if (nextClass.youtubeUrl != null && nextClass.youtubeUrl!.isNotEmpty) {
+                      // Navigate to player
+                      final lecture = StudyLecture(
+                        id: nextClass.id,
+                        title: nextClass.title,
+                        videoUrl: nextClass.youtubeUrl!,
+                        description: nextClass.description,
+                        order: 0,
+                        duration: Duration(minutes: nextClass.durationMinutes),
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LecturePlayerScreen(
+                            courseId: widget.batch.courseId,
+                            batchId: widget.batch.id,
+                            lecture: lecture,
+                          ),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Class link not available yet')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.videocam, size: 18),
+                  label: Text(nextClass.status == 'live' ? 'Join Now' : 'Join Live Class'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: nextClass.status == 'live' ? Colors.red : Colors.redAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildScheduleItemFromClass(String title, String time, bool isNext) {
+    return Row(
+      children: [
+        Icon(Icons.calendar_today, size: 16, color: isNext ? Colors.blue : Colors.grey),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TextStyle(fontWeight: isNext ? FontWeight.bold : FontWeight.normal, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(time, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ],
+          ),
+        ),
+        if (isNext)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text('NEXT', style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
+          ),
+      ],
     );
   }
 
@@ -619,14 +759,16 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           children: [
             const Text('Your Stats', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem('${widget.batch.completedLectures}/${widget.batch.totalLectures}', 'Lessons'),
-                _buildStatItem('5', 'Quizzes'),
-                _buildStatItem('85%', 'Avg Score'),
-              ],
-            ),
+            _isLoadingStats
+                ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)))
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatItem('$_watchedLectures/$_totalLectures', 'Lessons'),
+                      _buildStatItem('$_quizCount', 'Quizzes'),
+                      _buildStatItem(_avgQuizScore > 0 ? '${_avgQuizScore.toStringAsFixed(0)}%' : '--', 'Avg Score'),
+                    ],
+                  ),
           ],
         ),
       ),
@@ -658,7 +800,23 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             }
 
             final lectures = snapshot.data ?? [];
-            if (lectures.isEmpty) {
+            
+            // Add completed live classes as "lessons" at the end
+            final completedLiveClasses = _liveClasses
+                .where((lc) => lc.status == 'completed' && lc.youtubeUrl != null && lc.youtubeUrl!.isNotEmpty)
+                .map((lc) => StudyLecture(
+                      id: 'live_${lc.id}',
+                      title: '🔴 ${lc.title}',
+                      videoUrl: lc.youtubeUrl!,
+                      description: lc.description,
+                      order: 999 + _liveClasses.indexOf(lc), // Put at end
+                      duration: Duration(minutes: lc.durationMinutes),
+                    ))
+                .toList();
+
+            final allLessons = [...lectures, ...completedLiveClasses];
+            
+            if (allLessons.isEmpty) {
               return const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -673,10 +831,10 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
 
             return ListView.separated(
               padding: const EdgeInsets.all(16),
-              itemCount: lectures.length,
+              itemCount: allLessons.length,
               separatorBuilder: (c, i) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final lecture = lectures[index];
+                final lecture = allLessons[index];
                 return _buildLectureTile(lecture, controller);
               },
             );

@@ -71,13 +71,13 @@ class StudyRepository {
   // Legacy method - returns empty but keeps compatibility
   Stream<List<StudyCourseModel>> getEnrolledCourses() {
     if (_userId.isEmpty) return Stream.value([]);
-
-    // Legacy: Return mock data for compatibility
-    return Stream.value(StudyData.userCourses);
+    // Data comes from purchases/enrollments - use getEnrolledBatches() instead
+    return Stream.value([]);
   }
 
   Stream<List<ContinueLearningModel>> getContinueLearning() {
-     return Stream.value(StudyData.continueLearning);
+     // Continue learning should be derived from user progress in Firestore
+     return Stream.value([]);
   }
 
   Stream<List<LiveClassModel>> getLiveClasses() {
@@ -85,9 +85,6 @@ class StudyRepository {
       .orderBy('dateTime')
       .snapshots()
       .map((snapshot) {
-        if (snapshot.docs.isEmpty) {
-          return StudyData.liveClasses;
-        }
         return snapshot.docs
             .map((doc) => LiveClassModel.fromMap(doc.data(), doc.id))
             .toList();
@@ -194,6 +191,7 @@ class StudyRepository {
       .snapshots()
       .map((snapshot) {
         if (snapshot.docs.isEmpty) {
+          // Return UI constants for daily practice when Firestore is empty
           return StudyData.dailyPractice;
         }
         return snapshot.docs
@@ -206,9 +204,6 @@ class StudyRepository {
     return _firestore.collection('mock_tests')
       .snapshots()
       .map((snapshot) {
-        if (snapshot.docs.isEmpty) {
-           return StudyData.mockTests;
-        }
         return snapshot.docs
             .map((doc) => TestModel.fromMap(doc.data(), doc.id))
             .toList();
@@ -222,9 +217,6 @@ class StudyRepository {
        .where('userId', isEqualTo: _userId)
        .snapshots()
        .map((snapshot) {
-          if (snapshot.docs.isEmpty) {
-             return StudyData.workbooks;
-          }
            return snapshot.docs
             .map((doc) => WorkbookModel.fromMap(doc.data(), doc.id))
             .toList();
@@ -235,32 +227,21 @@ class StudyRepository {
     return _firestore.collection('topics')
       .snapshots()
       .map((snapshot) {
-        if (snapshot.docs.isEmpty) {
-          return StudyData.mapTopics;
-        }
         return snapshot.docs
             .map((doc) => TopicNodeModel.fromMap(doc.data(), doc.id))
             .toList();
       });
   }
 
-  // --- SEEDING ---
+  // --- SEEDING (DEPRECATED) ---
   
+  @Deprecated('Data is now managed via Admin Panel')
   Future<void> seedLiveClasses() async {
-    final classes = await _firestore.collection('live_classes').get();
-    if (classes.docs.isNotEmpty) return;
-
-    for (var item in StudyData.liveClasses) {
-      await _firestore.collection('live_classes').add(item.toMap());
-    }
+    debugPrint('seedLiveClasses is deprecated. Use Admin Panel.');
   }
 
+  @Deprecated('Data is now managed via Admin Panel')
   Future<void> seedMockTests() async {
-     final tests = await _firestore.collection('mock_tests').get();
-    if (tests.docs.isNotEmpty) return;
-    
-    for (var item in StudyData.mockTests) {
-      await _firestore.collection('mock_tests').add(item.toMap());
-    }
+    debugPrint('seedMockTests is deprecated. Use Admin Panel.');
   }
 }

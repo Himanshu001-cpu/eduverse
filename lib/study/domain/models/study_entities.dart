@@ -212,6 +212,7 @@ class StudyLiveClass {
   final String id;
   final String title;
   final String description;
+  final String instructorName;
   final DateTime startTime;
   final int durationMinutes;
   final String status; // 'upcoming', 'live', 'completed'
@@ -222,6 +223,7 @@ class StudyLiveClass {
     required this.id,
     required this.title,
     this.description = '',
+    this.instructorName = '',
     required this.startTime,
     this.durationMinutes = 60,
     this.status = 'upcoming',

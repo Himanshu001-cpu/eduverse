@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:eduverse/profile/profile_mock_data.dart';
 import 'package:eduverse/common/widgets/empty_state.dart';
 import 'package:eduverse/common/widgets/cards.dart';
+import 'package:eduverse/study/data/repositories/study_repository_impl.dart';
+import 'package:eduverse/study/domain/models/study_entities.dart';
+import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
 
 class FreeLiveClassesPage extends StatefulWidget {
   const FreeLiveClassesPage({super.key});
@@ -15,33 +17,44 @@ class _FreeLiveClassesPageState extends State<FreeLiveClassesPage> {
   String _filter = 'All'; // All, Upcoming, Past
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  
+  // Future to fetch data
+  late Future<List<StudyLiveClass>> _classesFuture;
 
-  List<LiveClass> get _filteredClasses {
+  @override
+  void initState() {
+    super.initState();
+    _classesFuture = StudyRepositoryImpl().getFreeLiveClasses();
+  }
+
+  // Helper to filter and sort
+  List<StudyLiveClass> _filterClasses(List<StudyLiveClass> all) {
+    var list = List<StudyLiveClass>.from(all);
     final now = DateTime.now();
-    List<LiveClass> list = ProfileMockData.liveClasses;
 
     // Filter by type
     if (_filter == 'Upcoming') {
-      list = list.where((c) => c.dateTime.isAfter(now)).toList();
+      list = list.where((c) => c.startTime.isAfter(now)).toList();
     } else if (_filter == 'Past') {
-      list = list.where((c) => c.dateTime.isBefore(now)).toList();
+      list = list.where((c) => c.startTime.isBefore(now)).toList();
     }
 
     // Filter by search
     if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
       list = list.where((c) {
-        final q = _searchQuery.toLowerCase();
-        return c.title.toLowerCase().contains(q) ||
-            c.instructor.toLowerCase().contains(q);
+        return c.title.toLowerCase().contains(q);
+        // Instructor is not in StudyLiveClass yet, can add later if needed.
+        // || c.instructor.toLowerCase().contains(q);
       }).toList();
     }
 
     // Sort: Upcoming (nearest first), Past (most recent first)
     list.sort((a, b) {
       if (_filter == 'Past') {
-        return b.dateTime.compareTo(a.dateTime);
+        return b.startTime.compareTo(a.startTime);
       }
-      return a.dateTime.compareTo(b.dateTime);
+      return a.startTime.compareTo(b.startTime);
     });
 
     return list;
@@ -49,8 +62,6 @@ class _FreeLiveClassesPageState extends State<FreeLiveClassesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final classes = _filteredClasses;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Free Live Classes'),
@@ -65,7 +76,7 @@ class _FreeLiveClassesPageState extends State<FreeLiveClassesPage> {
                 TextField(
                   controller: _searchController,
                   decoration: const InputDecoration(
-                    hintText: 'Search by title or instructor',
+                    hintText: 'Search by title',
                     prefixIcon: Icon(Icons.search),
                   ),
                   onChanged: (val) {
@@ -103,19 +114,47 @@ class _FreeLiveClassesPageState extends State<FreeLiveClassesPage> {
 
           // List
           Expanded(
-            child: classes.isEmpty
-                ? const EmptyState(
-                    title: 'No classes found',
-                    icon: Icons.event_busy,
-                  )
-                : ListView.builder(
+            child: FutureBuilder<List<StudyLiveClass>>(
+              future: _classesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  debugPrint('Snapshot error: ${snapshot.error}');
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  debugPrint('Snapshot has no data or empty');
+                  return const EmptyState(
+                      title: 'No classes found', icon: Icons.event_busy);
+                }
+
+                debugPrint('Received ${snapshot.data!.length} classes from repo');
+                final filtered = _filterClasses(snapshot.data!);
+                debugPrint('After filtering: ${filtered.length} classes');
+
+                if (filtered.isEmpty) {
+                   return const EmptyState(
+                      title: 'No matching classes', icon: Icons.search_off);
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    setState(() {
+                      _classesFuture = StudyRepositoryImpl().getFreeLiveClasses();
+                    });
+                    await _classesFuture;
+                  },
+                  child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: classes.length,
+                    itemCount: filtered.length,
                     itemBuilder: (context, index) {
-                      final item = classes[index];
+                      final item = filtered[index];
                       return _LiveClassCard(item: item);
                     },
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -124,15 +163,18 @@ class _FreeLiveClassesPageState extends State<FreeLiveClassesPage> {
 }
 
 class _LiveClassCard extends StatelessWidget {
-  final LiveClass item;
+  final StudyLiveClass item;
 
   const _LiveClassCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
-    final isUpcoming = item.dateTime.isAfter(DateTime.now());
+    final isUpcoming = item.startTime.isAfter(DateTime.now());
     final isLiveSoon = isUpcoming &&
-        item.dateTime.difference(DateTime.now()).inMinutes <= 10;
+        item.startTime.difference(DateTime.now()).inMinutes <= 10;
+        
+    // Placeholder logic for duration since it's an int in minutes
+    final durationText = '${item.durationMinutes} min';
 
     return AppCard(
       onTap: () {
@@ -147,15 +189,20 @@ class _LiveClassCard extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.2),
+              color: Colors.blueAccent.withOpacity(0.2), // Default color
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Center(
-              child: Text(
-                '📺', // Placeholder emoji
-                style: const TextStyle(fontSize: 24),
-              ),
-            ),
+             child: item.thumbnailUrl.isNotEmpty
+                ? ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(item.thumbnailUrl, fit: BoxFit.cover),
+                )
+                : const Center(
+                  child: Text(
+                    '📺',
+                    style: TextStyle(fontSize: 24),
+                  ),
+                ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -164,6 +211,8 @@ class _LiveClassCard extends StatelessWidget {
               children: [
                 Text(
                   item.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -171,11 +220,7 @@ class _LiveClassCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${DateFormat('MMM d, h:mm a').format(item.dateTime)} • ${item.duration.inMinutes} min',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                ),
-                Text(
-                  item.instructor,
+                  '${DateFormat('MMM d, h:mm a').format(item.startTime)} • $durationText',
                   style: TextStyle(color: Colors.grey[600], fontSize: 13),
                 ),
               ],
@@ -183,10 +228,11 @@ class _LiveClassCard extends StatelessWidget {
           ),
           if (isUpcoming)
             ElevatedButton(
-              onPressed: isLiveSoon ? () {} : () {
-                // Mock reminder
+              onPressed: isLiveSoon ? () {
+                _joinClass(context);
+              } : () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Reminder set!')),
+                  const SnackBar(content: Text('Class hasn\'t started yet!')),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -194,21 +240,12 @@ class _LiveClassCard extends StatelessWidget {
                 backgroundColor: isLiveSoon ? Colors.red : null,
                 foregroundColor: isLiveSoon ? Colors.white : null,
               ),
-              child: Text(isLiveSoon ? 'Join' : 'Remind'),
+              child: Text(isLiveSoon ? 'Join' : 'Soon'),
             )
           else
              OutlinedButton(
                onPressed: () {
-                 // Mock watch
-                 Navigator.push(
-                   context,
-                   MaterialPageRoute(
-                     builder: (context) => Scaffold(
-                       appBar: AppBar(title: Text(item.title)),
-                       body: const Center(child: Text('Video Player Placeholder')),
-                     ),
-                   ),
-                 );
+                 _joinClass(context);
                },
                child: const Text('Watch'),
              ),
@@ -216,10 +253,40 @@ class _LiveClassCard extends StatelessWidget {
       ),
     );
   }
+
+  void _joinClass(BuildContext context) {
+    // Map StudyLiveClass to StudyLecture for the player
+    final lecture = StudyLecture(
+      id: item.id,
+      title: item.title,
+      videoUrl: item.youtubeUrl ?? '', // Ensure fallback if needed, or handle empty URL upstream
+      description: item.description,
+      order: 0,
+      duration: Duration(minutes: item.durationMinutes),
+    );
+
+    if (lecture.videoUrl.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No video URL available for this class.')),
+        );
+        return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LecturePlayerScreen(
+          lecture: lecture,
+          isFreeClass: true,
+          // courseId and batchId are null for free classes
+        ),
+      ),
+    );
+  }
 }
 
 class _ClassDetailsSheet extends StatelessWidget {
-  final LiveClass item;
+  final StudyLiveClass item;
 
   const _ClassDetailsSheet({required this.item});
 
@@ -235,11 +302,9 @@ class _ClassDetailsSheet extends StatelessWidget {
             item.title,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
-          const SizedBox(height: 8),
-          Text('Instructor: ${item.instructor}'),
           const SizedBox(height: 16),
           Text(
-            'Description goes here. This is a mock description for the live class. Learn about ${item.title} in this interactive session.',
+            item.description.isNotEmpty ? item.description : 'No description available.',
             style: TextStyle(color: Colors.grey[700]),
           ),
           const SizedBox(height: 24),

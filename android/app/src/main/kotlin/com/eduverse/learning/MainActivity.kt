@@ -1,4 +1,4 @@
-package com.example.eduverse
+package com.eduverse.learning
 
 import io.flutter.embedding.android.FlutterActivity
 

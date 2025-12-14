@@ -4,10 +4,10 @@ import 'package:eduverse/profile/screens/my_downloads_page.dart';
 import 'package:eduverse/profile/screens/transactions_page.dart';
 import 'package:eduverse/profile/screens/bookmarks_page.dart';
 import 'package:eduverse/profile/screens/notifications_page.dart';
-import 'package:eduverse/profile/profile_mock_data.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
 import 'package:eduverse/admin/admin_entry_page.dart';
 import 'package:eduverse/profile/screens/about_page.dart';
+import 'package:eduverse/core/notifications/notification_repository.dart';
 
 class MenuGrid extends StatefulWidget {
   const MenuGrid({super.key});
@@ -126,9 +126,10 @@ class _MenuGridState extends State<MenuGrid> {
           Row(
             children: [
               Expanded(
-                child: ValueListenableBuilder<int>(
-                  valueListenable: ProfileMockData.unreadNotificationCount,
-                  builder: (context, count, _) {
+                child: StreamBuilder<int>(
+                  stream: NotificationRepository().getUnreadCount(),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
                     return card(
                       Icons.notifications,
                       Colors.blueGrey,

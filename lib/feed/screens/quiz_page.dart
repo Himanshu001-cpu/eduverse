@@ -21,75 +21,11 @@ class _QuizPageState extends State<QuizPage> {
   bool _showingAnswer = false;
 
   List<QuizQuestion> get _questions {
-    return widget.item.quizQuestions ?? _defaultQuestions;
+    return widget.item.quizQuestions ?? [];
   }
 
   QuizQuestion get _currentQuestion => _questions[_currentIndex];
   bool get _isLastQuestion => _currentIndex == _questions.length - 1;
-
-  // Default questions if none provided
-  static final List<QuizQuestion> _defaultQuestions = [
-    QuizQuestion(
-      id: 'q1',
-      questionText: 'Which article of the Indian Constitution deals with the Right to Equality?',
-      answerType: AnswerType.multipleChoice,
-      options: [
-        const AnswerOption(id: 'q1a', text: 'Article 12-18'),
-        const AnswerOption(id: 'q1b', text: 'Article 14-18', isCorrect: true),
-        const AnswerOption(id: 'q1c', text: 'Article 19-22'),
-        const AnswerOption(id: 'q1d', text: 'Article 25-28'),
-      ],
-      explanation: 'Articles 14-18 of the Indian Constitution deal with the Right to Equality. Article 14 guarantees equality before law and equal protection of laws.',
-    ),
-    QuizQuestion(
-      id: 'q2',
-      questionText: 'The "Collegium System" is related to which of the following?',
-      answerType: AnswerType.multipleChoice,
-      options: [
-        const AnswerOption(id: 'q2a', text: 'Election Commission'),
-        const AnswerOption(id: 'q2b', text: 'Appointment of Judges', isCorrect: true),
-        const AnswerOption(id: 'q2c', text: 'Civil Services'),
-        const AnswerOption(id: 'q2d', text: 'Defense Services'),
-      ],
-      explanation: 'The Collegium System is a system for the appointment and transfer of judges in the Supreme Court and High Courts. It evolved through judicial interpretation.',
-    ),
-    QuizQuestion(
-      id: 'q3',
-      questionText: 'Which Five Year Plan in India was termed as "Industry and Transport" Plan?',
-      answerType: AnswerType.multipleChoice,
-      options: [
-        const AnswerOption(id: 'q3a', text: 'First Five Year Plan'),
-        const AnswerOption(id: 'q3b', text: 'Second Five Year Plan', isCorrect: true),
-        const AnswerOption(id: 'q3c', text: 'Third Five Year Plan'),
-        const AnswerOption(id: 'q3d', text: 'Fourth Five Year Plan'),
-      ],
-      explanation: 'The Second Five Year Plan (1956-61), also known as the Mahalanobis Plan, emphasized rapid industrialization with focus on heavy and basic industries.',
-    ),
-    QuizQuestion(
-      id: 'q4',
-      questionText: 'The concept of "Judicial Review" in India has been adopted from which country?',
-      answerType: AnswerType.multipleChoice,
-      options: [
-        const AnswerOption(id: 'q4a', text: 'UK'),
-        const AnswerOption(id: 'q4b', text: 'USA', isCorrect: true),
-        const AnswerOption(id: 'q4c', text: 'France'),
-        const AnswerOption(id: 'q4d', text: 'Germany'),
-      ],
-      explanation: 'Judicial Review in India has been adopted from the USA. The Supreme Court can declare any law unconstitutional if it violates fundamental rights.',
-    ),
-    QuizQuestion(
-      id: 'q5',
-      questionText: 'Which commission recommended the creation of All India Services?',
-      answerType: AnswerType.multipleChoice,
-      options: [
-        const AnswerOption(id: 'q5a', text: 'Sarkaria Commission'),
-        const AnswerOption(id: 'q5b', text: 'Simon Commission'),
-        const AnswerOption(id: 'q5c', text: 'Lee Commission', isCorrect: true),
-        const AnswerOption(id: 'q5d', text: 'Kothari Commission'),
-      ],
-      explanation: 'The Lee Commission (1923-24) recommended the creation of All India Services for maintaining unity and integrity of the country.',
-    ),
-  ];
 
   @override
   void initState() {
@@ -213,6 +149,27 @@ class _QuizPageState extends State<QuizPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final item = widget.item;
+
+    // Handle empty questions
+    if (_questions.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.quiz_outlined, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('No questions available', style: TextStyle(fontSize: 18, color: Colors.grey)),
+              SizedBox(height: 8),
+              Text('This quiz has no questions yet.', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(

@@ -57,44 +57,7 @@ class _ProfileHeaderState extends State<ProfileHeader> {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('UPSC', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                        Icon(Icons.keyboard_arrow_down),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                InkWell(
-                  onTap: _openEditProfile,
-                  borderRadius: BorderRadius.circular(999),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.settings, color: Colors.deepPurple, size: 22),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 24),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 24),
             padding: const EdgeInsets.all(24),

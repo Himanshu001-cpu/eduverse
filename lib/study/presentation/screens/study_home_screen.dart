@@ -3,6 +3,7 @@ import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/batch_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../common/search/global_search_delegate.dart';
 
 class StudyHomeScreen extends StatelessWidget {
   const StudyHomeScreen({super.key});
@@ -12,7 +13,27 @@ class StudyHomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Image.asset('assets/icon.png', height: 40),
+        title: Row(
+          children: [
+            Image.asset('assets/icon.png', height: 40),
+            const SizedBox(width: 8),
+            const Text(
+              'The Eduverse',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              showSearch(context: context, delegate: GlobalSearchDelegate());
+            },
+          ),
+        ],
         centerTitle: false,
         elevation: 0,
         backgroundColor: Colors.white,

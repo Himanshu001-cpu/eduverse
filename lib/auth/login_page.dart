@@ -3,6 +3,7 @@ import 'package:eduverse/core/firebase/auth_service.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
 import 'phone_login_page.dart';
+import 'privacy_policy_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -125,6 +126,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
                       // Register Link
                       _buildRegisterLink(),
+                      const SizedBox(height: 16),
+
+                      // Privacy Policy Link
+                      _buildPrivacyPolicyLink(),
                     ],
                   ),
                 ),
@@ -458,6 +463,24 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPrivacyPolicyLink() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+      ),
+      child: Text(
+        'Privacy Policy',
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.9),
+          fontSize: 14,
+          decoration: TextDecoration.underline,
+          decorationColor: Colors.white.withValues(alpha: 0.9),
+        ),
+      ),
     );
   }
 }

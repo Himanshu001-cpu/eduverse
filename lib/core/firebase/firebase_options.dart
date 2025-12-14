@@ -14,12 +14,6 @@ import 'package:flutter/foundation.dart'
 ///   options: DefaultFirebaseOptions.currentPlatform,
 /// );
 /// ```
-/// 
-/// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-/// IMPORTANT: YOU MUST UPDATE THE VALUES BELOW WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION.
-/// RUN `flutterfire configure` OR MANUALLY COPY VALUES FROM YOUR FIREBASE CONSOLE.
-/// THE APP WILL FAIL TO INITIALIZE IF THESE PLACEHOLDERS ARE LEFT UNCHANGED.
-/// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -47,48 +41,48 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'UPDATE-THIS-API-KEY',
-    appId: '1:1234567890:web:1234567890abcdef',
-    messagingSenderId: '1234567890',
-    projectId: 'eduverse-project-id',
-    authDomain: 'eduverse-project-id.firebaseapp.com',
-    storageBucket: 'eduverse-project-id.appspot.com',
+    apiKey: 'AIzaSyCBCYmb1VpP3DqVsPDwr0rMP0dzniv_7yA',
+    appId: '1:465308079104:web:0258746f5c01c3948cb4e5',
+    messagingSenderId: '465308079104',
+    projectId: 'eduverse-dad5e',
+    authDomain: 'eduverse-dad5e.firebaseapp.com',
+    storageBucket: 'eduverse-dad5e.firebasestorage.app',
+    measurementId: 'G-7XM3WMBM7H',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'UPDATE-THIS-API-KEY',
-    appId: '1:1234567890:android:1234567890abcdef',
-    messagingSenderId: '1234567890',
-    projectId: 'eduverse-project-id',
-    storageBucket: 'eduverse-project-id.appspot.com',
+    apiKey: 'AIzaSyA1mLEiMU76w_U7QnIC7yOmR316tsoeEs4',
+    appId: '1:465308079104:android:3f59ce57c51d2b118cb4e5',
+    messagingSenderId: '465308079104',
+    projectId: 'eduverse-dad5e',
+    storageBucket: 'eduverse-dad5e.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'UPDATE-THIS-API-KEY',
-    appId: '1:1234567890:ios:1234567890abcdef',
-    messagingSenderId: '1234567890',
-    projectId: 'eduverse-project-id',
-    storageBucket: 'eduverse-project-id.appspot.com',
-    iosClientId: '1234567890-abcdef.apps.googleusercontent.com',
-    iosBundleId: 'com.eduverse.app',
+    apiKey: 'AIzaSyDUPNJ5AkQynKUPDu8xzKXweiNhHxHKi4U',
+    appId: '1:465308079104:ios:c35d1b6752455b0a8cb4e5',
+    messagingSenderId: '465308079104',
+    projectId: 'eduverse-dad5e',
+    storageBucket: 'eduverse-dad5e.firebasestorage.app',
+    iosBundleId: 'com.eduverse.learning',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'UPDATE-THIS-API-KEY',
-    appId: '1:1234567890:ios:1234567890abcdef',
-    messagingSenderId: '1234567890',
-    projectId: 'eduverse-project-id',
-    storageBucket: 'eduverse-project-id.appspot.com',
-    iosClientId: '1234567890-abcdef.apps.googleusercontent.com',
-    iosBundleId: 'com.eduverse.app',
+    apiKey: 'AIzaSyD5OICGKwxsjvBvRWePDJJ-eTKk7fRwmoQ',
+    appId: '1:985191148054:ios:9ea428772ebf73f7e56337',
+    messagingSenderId: '985191148054',
+    projectId: 'eduverse-6aa1d',
+    storageBucket: 'eduverse-6aa1d.firebasestorage.app',
+    iosBundleId: 'com.eduverse.learning',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'UPDATE-THIS-API-KEY',
-    appId: '1:1234567890:web:1234567890abcdef',
-    messagingSenderId: '1234567890',
-    projectId: 'eduverse-project-id',
-    authDomain: 'eduverse-project-id.firebaseapp.com',
-    storageBucket: 'eduverse-project-id.appspot.com',
+    apiKey: 'AIzaSyDIK4ZUQvzPk09VRrQscXzBGY73ruBeEnA',
+    appId: '1:985191148054:web:4b02803047ef32e9e56337',
+    messagingSenderId: '985191148054',
+    projectId: 'eduverse-6aa1d',
+    authDomain: 'eduverse-6aa1d.firebaseapp.com',
+    storageBucket: 'eduverse-6aa1d.firebasestorage.app',
+    measurementId: 'G-LP1P8XTX37',
   );
 }

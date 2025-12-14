@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'trending_section.dart';
 import 'feed_content.dart';
 import 'models.dart';
+import '../../common/search/global_search_delegate.dart';
 
 import 'repository/feed_repository.dart';
 
@@ -35,10 +36,26 @@ class _FeedPageState extends State<FeedPage>
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Image.asset('assets/icon.png', height: 30),
+        title: Row(
+          children: [
+            Image.asset('assets/icon.png', height: 30),
+            const SizedBox(width: 8),
+            const Text(
+              'The Eduverse',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.search), 
+            onPressed: () {
+              showSearch(context: context, delegate: GlobalSearchDelegate());
+            },
+          ),
         ],
       ),
       body: NestedScrollView(

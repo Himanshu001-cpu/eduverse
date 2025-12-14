@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:eduverse/study/study_data.dart';
 import 'package:eduverse/study/models/study_models.dart';
 
 class PracticeQuestionPage extends StatefulWidget {
@@ -12,7 +11,7 @@ class PracticeQuestionPage extends StatefulWidget {
 }
 
 class _PracticeQuestionPageState extends State<PracticeQuestionPage> {
-  late TestModel _test;
+  TestModel? _test;
   int _currentQuestionIndex = 0;
   int? _selectedOptionIndex;
   bool _isSubmitted = false;
@@ -23,19 +22,37 @@ class _PracticeQuestionPageState extends State<PracticeQuestionPage> {
   @override
   void initState() {
     super.initState();
-    // Use passed test or fallback to first mock test
-    _test = widget.test ?? StudyData.mockTests.first;
+    _test = widget.test;
   }
 
   @override
   Widget build(BuildContext context) {
-    final question = _test.questions[_currentQuestionIndex % _test.questions.length];
+    // Handle case where no test is provided
+    if (_test == null || _test!.questions.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Practice Question')),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.quiz_outlined, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('No test available', style: TextStyle(fontSize: 18, color: Colors.grey)),
+              SizedBox(height: 8),
+              Text('Please select a test from the list.', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final question = _test!.questions[_currentQuestionIndex % _test!.questions.length];
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: Text('Question ${_currentQuestionIndex + 1}/${_test.questionCount}'),
+        title: Text('Question ${_currentQuestionIndex + 1}/${_test!.questionCount}'),
         actions: [
           Center(
             child: Container(
@@ -64,7 +81,7 @@ class _PracticeQuestionPageState extends State<PracticeQuestionPage> {
           children: [
             // Progress Bar
             LinearProgressIndicator(
-              value: (_currentQuestionIndex + 1) / _test.questionCount,
+              value: (_currentQuestionIndex + 1) / _test!.questionCount,
               backgroundColor: Colors.grey[200],
               color: Colors.green,
             ),

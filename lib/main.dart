@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/core/firebase/firebase_initializer.dart';
+import 'package:eduverse/core/notifications/notification_service.dart';
 import 'auth/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await FirebaseInitializer.init();
+    
+    // Initialize push notifications (non-blocking)
+    NotificationService().initialize().catchError((e) {
+      debugPrint('FCM initialization error (non-fatal): $e');
+    });
+    
     runApp(const LearningApp());
   } catch (e) {
     runApp(InitializationErrorApp(error: e.toString()));

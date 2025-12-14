@@ -239,17 +239,65 @@ class DailyPracticeModel {
   final String id;
   final String title;
   final String description;
-  final IconData icon; // Stored as codePoint or usage name in DB? 
-                       // For simplicity, we might map strictly in code based on types.
+  final String iconName; // Store as string identifier instead of IconData
   final int colorValue;
 
   Color get color => Color(colorValue);
+
+  /// Maps icon name strings to Material Icons.
+  /// This approach allows tree-shaking to work properly for web builds.
+  IconData get icon {
+    switch (iconName) {
+      case 'quiz':
+        return Icons.quiz;
+      case 'assignment':
+        return Icons.assignment;
+      case 'lightbulb':
+        return Icons.lightbulb;
+      case 'school':
+        return Icons.school;
+      case 'book':
+        return Icons.book;
+      case 'edit':
+        return Icons.edit;
+      case 'psychology':
+        return Icons.psychology;
+      case 'science':
+        return Icons.science;
+      case 'calculate':
+        return Icons.calculate;
+      case 'translate':
+        return Icons.translate;
+      case 'history_edu':
+        return Icons.history_edu;
+      case 'draw':
+        return Icons.draw;
+      case 'music_note':
+        return Icons.music_note;
+      case 'sports':
+        return Icons.sports;
+      case 'computer':
+        return Icons.computer;
+      case 'code':
+        return Icons.code;
+      case 'extension':
+        return Icons.extension;
+      case 'flash_on':
+        return Icons.flash_on;
+      case 'timer':
+        return Icons.timer;
+      case 'check_circle':
+        return Icons.check_circle;
+      default:
+        return Icons.circle;
+    }
+  }
 
   const DailyPracticeModel({
     required this.id,
     required this.title,
     required this.description,
-    required this.icon,
+    required this.iconName,
     required this.colorValue,
   });
 
@@ -257,21 +305,26 @@ class DailyPracticeModel {
     return {
       'title': title,
       'description': description,
-      'iconCode': icon.codePoint,
-      'iconFamily': icon.fontFamily,
+      'iconName': iconName,
       'colorValue': colorValue,
     };
   }
 
   factory DailyPracticeModel.fromMap(Map<String, dynamic> map, String id) {
+    // Support both new 'iconName' field and legacy 'iconCode' field
+    String iconNameValue = map['iconName'] ?? 'circle';
+    
+    // Legacy migration: if iconCode exists but iconName doesn't, 
+    // use a default icon name
+    if (map['iconName'] == null && map['iconCode'] != null) {
+      iconNameValue = 'circle'; // Default fallback for legacy data
+    }
+    
     return DailyPracticeModel(
       id: id,
       title: map['title'] ?? '',
       description: map['description'] ?? '',
-      icon: IconData(
-        map['iconCode'] ?? 0xe0b0, // Default to a circle or similar
-        fontFamily: map['iconFamily'] ?? 'MaterialIcons',
-      ),
+      iconName: iconNameValue,
       colorValue: map['colorValue'] ?? 0xFF000000,
     );
   }

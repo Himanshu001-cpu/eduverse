@@ -1,11 +1,11 @@
 {
-    "name": "eduverse",
-    "short_name": "eduverse",
+    "name": "The Eduverse",
+    "short_name": "Eduverse",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#667eea",
+    "theme_color": "#667eea",
+    "description": "The Eduverse - Your Complete Learning Platform for Quality Education",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

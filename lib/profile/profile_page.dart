@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eduverse/navigation/main_navigation_page.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/version_card.dart';
 import 'widgets/menu_grid.dart';
@@ -15,7 +16,15 @@ class ProfilePage extends StatelessWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.maybePop(context),
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MainNavigationPage(),
+              ),
+              (route) => false,
+            );
+          },
         ),
         title: const Text('My Profile'),
         backgroundColor: Colors.white,

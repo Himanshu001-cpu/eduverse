@@ -29,36 +29,7 @@ class _BatchSectionPageState extends State<BatchSectionPage>
   final Map<String, double> _lessonProgress = {}; // In-memory progress
   final Map<String, bool> _lessonCompletion = {}; // In-memory completion
 
-  // Mock Data
-  final List<Map<String, dynamic>> _modules = [
-    {
-      'title': 'Module 1: Foundations',
-      'lessons': [
-        {'id': 'l1', 'title': 'Introduction to the Course', 'duration': '10m', 'type': 'video', 'locked': false, 'videoUrl': 'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'},
-        {'id': 'l2', 'title': 'Basic Concepts Overview', 'duration': '25m', 'type': 'article', 'locked': false},
-        {'id': 'l3', 'title': 'Historical Context', 'duration': '40m', 'type': 'video', 'locked': false},
-        {'id': 'l4', 'title': 'Module 1 Quiz', 'duration': '15m', 'type': 'quiz', 'locked': true},
-      ]
-    },
-    {
-      'title': 'Module 2: Core Concepts',
-      'lessons': [
-        {'id': 'l5', 'title': 'Deep Dive: Part 1', 'duration': '35m', 'type': 'video', 'locked': true},
-        {'id': 'l6', 'title': 'Deep Dive: Part 2', 'duration': '30m', 'type': 'video', 'locked': true},
-        {'id': 'l7', 'title': 'Case Studies', 'duration': '20m', 'type': 'article', 'locked': true},
-        {'id': 'l8', 'title': 'Module 2 Quiz', 'duration': '20m', 'type': 'quiz', 'locked': true},
-      ]
-    },
-    {
-      'title': 'Module 3: Advanced Application',
-      'lessons': [
-        {'id': 'l9', 'title': 'Advanced Techniques', 'duration': '45m', 'type': 'video', 'locked': true},
-        {'id': 'l10', 'title': 'Real-world Examples', 'duration': '30m', 'type': 'video', 'locked': true},
-        {'id': 'l11', 'title': 'Final Project Guidelines', 'duration': '15m', 'type': 'article', 'locked': true},
-        {'id': 'l12', 'title': 'Final Assessment', 'duration': '60m', 'type': 'quiz', 'locked': true},
-      ]
-    },
-  ];
+  // Lessons are fetched from Firestore - no hardcoded data
 
   @override
   void initState() {
@@ -287,48 +258,81 @@ class _BatchSectionPageState extends State<BatchSectionPage>
   }
 
   Widget _buildModulesList() {
-    return Column(
-      children: _modules.asMap().entries.map((entry) {
-        final moduleIndex = entry.key;
-        final module = entry.value;
-        final lessons = module['lessons'] as List<Map<String, dynamic>>;
+    return Consumer<StudyController>(
+      builder: (context, controller, child) {
+        return FutureBuilder<List<StudyLecture>>(
+          future: controller.getLectures(widget.course.id, widget.batchId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ));
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error loading lessons: ${snapshot.error}'));
+            }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Text(
-                module['title'],
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+            final lessons = snapshot.data ?? [];
+
+            if (lessons.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Icon(Icons.video_library_outlined, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text('No lessons available yet.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                      SizedBox(height: 8),
+                      Text('Lessons will appear here once added.', style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            ...lessons.asMap().entries.map((lessonEntry) {
-              final lessonIndex = lessonEntry.key + 1;
-              final lesson = lessonEntry.value;
-              final lessonId = lesson['id'];
-              final isCompleted = _lessonCompletion[lessonId] ?? false;
-              final progress = isCompleted ? 1.0 : (_lessonProgress[lessonId] ?? 0.0);
-
-              return BatchLessonTile(
-                index: (moduleIndex * 4) + lessonIndex, // Continuous index mock
-                title: lesson['title'],
-                duration: lesson['duration'],
-                type: lesson['type'],
-                isLocked: lesson['locked'],
-                progress: progress,
-                hasNote: _notes.containsKey(lessonId),
-                onTap: () => _openLessonDetail(lesson),
-                onAction: (action) => _handleLessonAction(action, lesson),
               );
-            }),
-            const SizedBox(height: 16),
-          ],
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: lessons.asMap().entries.map((entry) {
+                final index = entry.key + 1;
+                final lesson = entry.value;
+                final isCompleted = lesson.isWatched || (_lessonCompletion[lesson.id] ?? false);
+                final progress = isCompleted ? 1.0 : (_lessonProgress[lesson.id] ?? 0.0);
+                final durationStr = lesson.duration != null 
+                    ? '${lesson.duration!.inMinutes}m' 
+                    : '';
+
+                return BatchLessonTile(
+                  index: index,
+                  title: lesson.title,
+                  duration: durationStr,
+                  type: 'video',
+                  isLocked: false,
+                  progress: progress,
+                  hasNote: _notes.containsKey(lesson.id),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LecturePlayerPage(
+                          videoUrl: lesson.videoUrl,
+                          title: lesson.title,
+                          description: lesson.description,
+                        ),
+                      ),
+                    );
+                  },
+                  onAction: (action) => _handleLessonAction(action, {
+                    'id': lesson.id,
+                    'title': lesson.title,
+                  }),
+                );
+              }).toList(),
+            );
+          },
         );
-      }).toList(),
+      },
     );
   }
 

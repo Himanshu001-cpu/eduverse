@@ -6,6 +6,7 @@ import 'package:eduverse/store/see_all_courses_page.dart';
 import 'package:eduverse/store/screens/course_detail_page.dart';
 import 'package:eduverse/store/services/store_repository.dart';
 import 'package:eduverse/store/models/store_models.dart';
+import '../../common/search/global_search_delegate.dart';
 
 class StorePage extends StatelessWidget {
   const StorePage({super.key});
@@ -15,9 +16,26 @@ class StorePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Image.asset('assets/icon.png', height: 30),
+        title: Row(
+          children: [
+            Image.asset('assets/icon.png', height: 30),
+            const SizedBox(width: 8),
+            const Text(
+              'The Eduverse',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.search), 
+            onPressed: () {
+              showSearch(context: context, delegate: GlobalSearchDelegate());
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(

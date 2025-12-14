@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
+import 'privacy_policy_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -426,30 +428,33 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _acceptedTerms = !_acceptedTerms),
-                    child: RichText(
-                      text: TextSpan(
-                        style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-                        children: [
-                          const TextSpan(text: 'I agree to the '),
-                          TextSpan(
-                            text: 'Terms & Conditions',
-                            style: TextStyle(
-                              color: const Color(0xFF667eea),
-                              fontWeight: FontWeight.w600,
-                            ),
+                  child: RichText(
+                    text: TextSpan(
+                      style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                      children: [
+                        const TextSpan(text: 'I agree to the '),
+                        TextSpan(
+                          text: 'Terms & Conditions',
+                          style: TextStyle(
+                            color: const Color(0xFF667eea),
+                            fontWeight: FontWeight.w600,
                           ),
-                          const TextSpan(text: ' and '),
-                          TextSpan(
-                            text: 'Privacy Policy',
-                            style: TextStyle(
-                              color: const Color(0xFF667eea),
-                              fontWeight: FontWeight.w600,
-                            ),
+                        ),
+                        const TextSpan(text: ' and '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: TextStyle(
+                            color: const Color(0xFF667eea),
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
                           ),
-                        ],
-                      ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+                            ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

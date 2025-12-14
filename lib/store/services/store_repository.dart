@@ -207,31 +207,11 @@ class StoreRepository {
 
   // --- Seeding ---
 
+  // Seeding is disabled - data is now managed via Admin Panel
+  @Deprecated('Data is now managed via Admin Panel')
   Future<void> seedInitialData() async {
-    final snapshot = await _coursesRef.limit(1).get();
-    if (snapshot.docs.isNotEmpty) return; // Already seeded
-
-    for (final course in StoreData.courses) {
-      await _coursesRef.doc(course.id).set({
-        'title': course.title,
-        'subtitle': course.subtitle,
-        'emoji': course.emoji,
-        'gradientColors': course.gradientColors.map((c) => c.toARGB32()).toList(),
-        'priceDefault': course.priceDefault,
-        'visibility': 'published', // Required for public read access
-        'batches': course.batches
-            .map((b) => {
-                  'id': b.id,
-                  'name': b.name,
-                  'startDate': b.startDate.toIso8601String(),
-                  'price': b.price,
-                  'seatsLeft': b.seatsLeft,
-                  'duration': b.duration,
-                  'isEnrolled': b.isEnrolled,
-                })
-            .toList(),
-      });
-    }
+    // No-op: Courses should be created via Admin Panel
+    debugPrint('seedInitialData is deprecated. Use Admin Panel to manage courses.');
   }
 
   /// Update existing courses to add visibility field (one-time migration)

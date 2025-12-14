@@ -3,9 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/feed_data.dart';
 import 'package:eduverse/core/firebase/firestore_paths.dart';
+import 'package:eduverse/core/notifications/notification_repository.dart';
+import 'package:eduverse/core/notifications/notification_model.dart';
 
 class FeedRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final NotificationRepository _notificationRepo = NotificationRepository();
 
   Stream<List<FeedItem>> getFeedItems({ContentType? type, int limit = 20}) {
     Query query = _firestore.collection(FirestorePaths.feed)
@@ -46,8 +49,40 @@ class FeedRepository {
     }
   }
 
-  Future<void> addFeedItem(FeedItem item) async {
+  /// Add a new feed item and create a notification for all users
+  Future<void> addFeedItem(FeedItem item, {bool sendNotification = true}) async {
     await _firestore.collection(FirestorePaths.feed).doc(item.id).set(item.toJson());
+    
+    // Create a global notification for all users
+    if (sendNotification && item.isPublic) {
+      await _notificationRepo.createGlobalNotification(
+        title: _getNotificationTitle(item.type),
+        body: item.title,
+        targetType: NotificationTargetType.feedItem,
+        targetId: item.id,
+        imageUrl: item.thumbnailUrl,
+      );
+    }
+  }
+
+  /// Get notification title based on content type
+  String _getNotificationTitle(ContentType type) {
+    switch (type) {
+      case ContentType.currentAffairs:
+        return '📰 New Current Affairs';
+      case ContentType.answerWriting:
+        return '✍️ New Answer Writing Practice';
+      case ContentType.articles:
+        return '📝 New Article';
+      case ContentType.videos:
+        return '🎬 New Video';
+      case ContentType.quizzes:
+        return '🧠 New Quiz';
+      case ContentType.jobs:
+        return '💼 New Job Alert';
+      default:
+        return '🆕 New Content';
+    }
   }
 
   /// Stream all feed items (for admin - no isPublic filter)
@@ -78,15 +113,10 @@ class FeedRepository {
     await _firestore.collection(FirestorePaths.feed).doc(id).delete();
   }
 
-  // --- Seeding ---
+  // Seeding is disabled - data is now managed via Admin Panel
+  @Deprecated('Data is now managed via Admin Panel')
   Future<void> seedFeedData() async {
-    final feedRef = _firestore.collection(FirestorePaths.feed);
-    // REMOVED check for existing data to force update 'isPublic' field
-    // final snapshot = await feedRef.limit(1).get();
-    // if (snapshot.docs.isNotEmpty) return; 
-
-    for (final item in FeedData.feedItems) {
-      await feedRef.doc(item.id).set(item.toJson(), SetOptions(merge: true));
-    }
+    // No-op: Feed items should be created via Admin Panel
+    debugPrint('seedFeedData is deprecated. Use Admin Panel to manage feed items.');
   }
 }

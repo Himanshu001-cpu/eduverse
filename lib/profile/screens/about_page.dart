@@ -35,10 +35,12 @@ class AboutPage extends StatelessWidget {
             expandedHeight: 200,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.only(left: 50, bottom: 16, right: 16),
               title: const Text(
                 'About The Eduverse',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
+                  fontSize: 16,
                   shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
                 ),
               ),
@@ -53,33 +55,29 @@ class AboutPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 40),
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 20,
-                            ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/icon.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
+                child: SafeArea(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 20,
                           ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/icon.png',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),

@@ -23,7 +23,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
   
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  // late TextEditingController _instructorController; // Removed
+  late TextEditingController _instructorController;
   late TextEditingController _youtubeUrlController;
   late TextEditingController _thumbnailUrlController;
   late TextEditingController _durationController;
@@ -40,7 +40,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
     final item = widget.liveClass;
     _titleController = TextEditingController(text: item?.title ?? '');
     _descriptionController = TextEditingController(text: item?.description ?? '');
-    // _instructorController = TextEditingController(text: item?.instructorName ?? ''); // Removed
+    _instructorController = TextEditingController(text: item?.instructorName ?? '');
     _youtubeUrlController = TextEditingController(text: item?.youtubeUrl ?? '');
     _thumbnailUrlController = TextEditingController(text: item?.thumbnailUrl ?? '');
     _durationController = TextEditingController(text: item?.durationMinutes.toString() ?? '60');
@@ -57,7 +57,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    // _instructorController.dispose(); // Removed
+    _instructorController.dispose();
     _youtubeUrlController.dispose();
     _thumbnailUrlController.dispose();
     _durationController.dispose();
@@ -123,7 +123,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
         id: id,
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
-        instructorName: 'Admin', // Default to Admin since field is removed
+        instructorName: _instructorController.text.trim(),
         startTime: _startTime,
         durationMinutes: int.tryParse(_durationController.text) ?? 60,
         youtubeUrl: _youtubeUrlController.text.trim(),
@@ -201,7 +201,6 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                     ),
                     const SizedBox(height: 16),
                     
-                    /*
                     TextFormField(
                       controller: _instructorController,
                       decoration: const InputDecoration(
@@ -209,10 +208,8 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.person),
                       ),
-                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
                     ),
                     const SizedBox(height: 16),
-                    */
 
                     Row(
                       children: [

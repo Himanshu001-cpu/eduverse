@@ -11,15 +11,17 @@ import 'package:flutter/services.dart';
 import 'package:eduverse/core/firebase/watch_stats_service.dart';
 
 class LecturePlayerScreen extends StatefulWidget {
-  final String courseId;
-  final String batchId;
+  final String? courseId;
+  final String? batchId;
   final StudyLecture lecture;
+  final bool isFreeClass;
 
   const LecturePlayerScreen({
     super.key,
-    required this.courseId,
-    required this.batchId,
+    this.courseId,
+    this.batchId,
     required this.lecture,
+    this.isFreeClass = false,
   });
 
   @override
@@ -112,16 +114,25 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
   }
 
   void _markAsWatched() {
+    if (widget.isFreeClass || widget.courseId == null || widget.batchId == null) {
+      // Local toggle only for free classes
+       setState(() => _isWatched = !_isWatched);
+       return;
+    }
     final controller = Provider.of<StudyController>(context, listen: false);
-    controller.markLectureWatched(widget.courseId, widget.batchId, widget.lecture.id, !_isWatched);
+    controller.markLectureWatched(widget.courseId!, widget.batchId!, widget.lecture.id, !_isWatched);
     setState(() => _isWatched = !_isWatched);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(_isWatched ? 'Marked as Watched' : 'Marked as Unwatched')),
     );
   }
 
-  String get _commentsPath => 
-    'courses/${widget.courseId}/batches/${widget.batchId}/lessons/${widget.lecture.id}/comments';
+  String get _commentsPath {
+    if (widget.isFreeClass || widget.courseId == null || widget.batchId == null) {
+      return 'free_live_classes/${widget.lecture.id}/comments';
+    }
+    return 'courses/${widget.courseId}/batches/${widget.batchId}/lessons/${widget.lecture.id}/comments';
+  }
 
   Future<void> _postComment() async {
     final text = _commentController.text.trim();
@@ -273,6 +284,8 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
   
   void _saveWatchTime() {
     if (_watchStartTime == null) return;
+    // Skip if not a enrolled batch class
+    if (widget.batchId == null) return;
     
     final watchedMinutes = DateTime.now().difference(_watchStartTime!).inSeconds / 60.0;
     if (watchedMinutes < 0.1) return; // Don't save if less than 6 seconds
@@ -281,7 +294,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
       lectureId: widget.lecture.id,
       lectureTitle: widget.lecture.title,
       watchedMinutes: watchedMinutes,
-      batchId: widget.batchId,
+      batchId: widget.batchId!,
     );
   }
 

@@ -390,8 +390,9 @@ class StudyRepositoryImpl implements IStudyRepository {
           id: doc.id,
           title: data['title'] ?? 'Untitled Class',
           description: data['description'] ?? '',
+          instructorName: data['instructorName'] ?? '',
           startTime: (data['startTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
-          durationMinutes: data['durationMinutes'] ?? 60,
+          durationMinutes: (data['durationMinutes'] as num?)?.toInt() ?? 60,
           status: data['status'] ?? 'upcoming',
           youtubeUrl: data['youtubeUrl'] as String?,
           thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
@@ -401,5 +402,50 @@ class StudyRepositoryImpl implements IStudyRepository {
       debugPrint('Error fetching batch live classes: $e');
       return [];
     }
+  }
+
+  @override
+  Future<List<StudyLiveClass>> getFreeLiveClasses() async {
+    try {
+      debugPrint('Fetching free live classes...');
+      // Temporarily remove orderBy to ensure we get docs even if field is missing/different type
+      final snapshot = await _firestore
+          .collection('free_live_classes')
+          .get();
+      
+      debugPrint('Found ${snapshot.docs.length} documents in free_live_classes');
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        debugPrint('Doc ${doc.id} data: $data');
+        return StudyLiveClass(
+          id: doc.id,
+          title: data['title'] ?? 'Untitled Class',
+          description: data['description'] ?? '',
+          instructorName: data['instructorName'] ?? '',
+          startTime: _parseDateTime(data['startTime']) ?? DateTime.now(),
+          durationMinutes: (data['durationMinutes'] as num?)?.toInt() ?? 60,
+          status: data['status'] ?? 'upcoming',
+          youtubeUrl: data['youtubeUrl'] as String?,
+          thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching free live classes: $e');
+      return [];
+    }
+  }
+
+  DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        debugPrint('Error parsing date string: $value');
+      }
+    }
+    return null;
   }
 }

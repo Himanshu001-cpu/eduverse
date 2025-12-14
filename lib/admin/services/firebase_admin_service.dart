@@ -4,12 +4,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../models/admin_models.dart';
+import 'package:eduverse/core/notifications/notification_repository.dart';
+import 'package:eduverse/core/notifications/notification_model.dart';
 
 class FirebaseAdminService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  final NotificationRepository _notificationRepo = NotificationRepository();
 
   // Auth
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -87,6 +90,16 @@ class FirebaseAdminService {
     final data = lecture.toMap();
     if (isNew) {
       await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('lessons').add(data);
+      
+      // Send notification to enrolled users
+      await _notificationRepo.createBatchNotification(
+        title: '📚 New Lecture Added',
+        body: lecture.title,
+        targetType: NotificationTargetType.lecture,
+        targetId: lecture.id,
+        batchId: batchId,
+        courseId: courseId,
+      );
     } else {
       await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('lessons').doc(lecture.id).update(data);
     }
@@ -332,7 +345,7 @@ class FirebaseAdminService {
   }
   // Free Live Classes
   Stream<List<AdminLiveClass>> getLiveClasses() {
-    return _db.collection('live_classes')
+    return _db.collection('free_live_classes')
         .orderBy('startTime')
         .snapshots()
         .map((snapshot) {
@@ -343,16 +356,16 @@ class FirebaseAdminService {
   Future<void> saveLiveClass(AdminLiveClass liveClass, {bool isNew = false}) async {
     final data = liveClass.toMap();
     if (isNew) {
-      await _db.collection('live_classes').add(data);
+      await _db.collection('free_live_classes').add(data);
     } else {
-      await _db.collection('live_classes').doc(liveClass.id).update(data);
+      await _db.collection('free_live_classes').doc(liveClass.id).update(data);
     }
-    await _logAudit('save_live_class', 'live_class', liveClass.id, data);
+    await _logAudit('save_live_class', 'free_live_classes', liveClass.id, data);
   }
 
   Future<void> deleteLiveClass(String liveClassId) async {
-    await _db.collection('live_classes').doc(liveClassId).delete();
-    await _logAudit('delete_live_class', 'live_class', liveClassId, {});
+    await _db.collection('free_live_classes').doc(liveClassId).delete();
+    await _logAudit('delete_live_class', 'free_live_classes', liveClassId, {});
   }
 
   // Batch Live Classes (Scoped)
@@ -369,6 +382,16 @@ class FirebaseAdminService {
     final data = liveClass.toMap();
     if (isNew) {
       await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('live_classes').add(data);
+      
+      // Send notification to enrolled users
+      await _notificationRepo.createBatchNotification(
+        title: '🔴 New Live Class Scheduled',
+        body: liveClass.title,
+        targetType: NotificationTargetType.liveClass,
+        targetId: liveClass.id,
+        batchId: batchId,
+        courseId: courseId,
+      );
     } else {
       await _db.collection('courses').doc(courseId).collection('batches').doc(batchId).collection('live_classes').doc(liveClass.id).update(data);
     }

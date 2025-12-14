@@ -27,4 +27,7 @@ abstract class IStudyRepository {
 
   /// Get list of live classes for a specific batch.
   Future<List<StudyLiveClass>> getBatchLiveClasses(String courseId, String batchId);
+
+  /// Get list of free live classes available to all users.
+  Future<List<StudyLiveClass>> getFreeLiveClasses();
 }
