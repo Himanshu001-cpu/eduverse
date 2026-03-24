@@ -42,7 +42,11 @@ class AdminCourse {
     } else if (data['coverGradient'] != null) {
       // Legacy format conversion (hex strings to int)
       colors = (data['coverGradient'] as List)
-          .map((c) => int.tryParse(c.toString().replaceFirst('#', '0xFF')) ?? 0xFF2196F3)
+          .map(
+            (c) =>
+                int.tryParse(c.toString().replaceFirst('#', '0xFF')) ??
+                0xFF2196F3,
+          )
           .toList();
     }
     if (colors.isEmpty) {
@@ -78,7 +82,8 @@ class AdminCourse {
       'language': language,
       'level': level,
       'thumbnailUrl': thumbnailUrl,
-      'gradientColors': gradientColors, // Store as int array for store compatibility
+      'gradientColors':
+          gradientColors, // Store as int array for store compatibility
       'priceDefault': priceDefault,
       'visibility': visibility,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -193,6 +198,7 @@ class AdminUser {
   final String role; // student, admin
   final bool disabled;
   final List<String> enrolledCourses;
+  final List<String> purchasedTestSeries;
   final List<String> cart;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -205,6 +211,7 @@ class AdminUser {
     required this.role,
     required this.disabled,
     this.enrolledCourses = const [],
+    this.purchasedTestSeries = const [],
     this.cart = const [],
     this.createdAt,
     this.updatedAt,
@@ -219,6 +226,7 @@ class AdminUser {
       role: data['role'] ?? 'student',
       disabled: data['disabled'] ?? false,
       enrolledCourses: List<String>.from(data['enrolledCourses'] ?? []),
+      purchasedTestSeries: List<String>.from(data['purchasedTestSeries'] ?? []),
       cart: List<String>.from(data['cart'] ?? []),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
@@ -234,6 +242,7 @@ class AdminUser {
       'role': role,
       'disabled': disabled,
       'enrolledCourses': enrolledCourses,
+      'purchasedTestSeries': purchasedTestSeries,
       'cart': cart,
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -246,6 +255,7 @@ class AdminUser {
     String? role,
     bool? disabled,
     List<String>? enrolledCourses,
+    List<String>? purchasedTestSeries,
     List<String>? cart,
   }) {
     return AdminUser(
@@ -256,6 +266,7 @@ class AdminUser {
       role: role ?? this.role,
       disabled: disabled ?? this.disabled,
       enrolledCourses: enrolledCourses ?? this.enrolledCourses,
+      purchasedTestSeries: purchasedTestSeries ?? this.purchasedTestSeries,
       cart: cart ?? this.cart,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -381,7 +392,6 @@ class AdminPlannerItem {
     );
   }
 
-
   Map<String, dynamic> toMap() {
     return {
       'title': title,
@@ -396,6 +406,11 @@ class AdminQuiz {
   final String id;
   final String title;
   final String description;
+  final String instructions;
+  final int? timeLimitMinutes;
+  final int? timeLimitSeconds; // New: stores time in seconds for precision
+  final double? marksPerQuestion;
+  final double? negativeMarking;
   final List<QuizQuestion> questions;
   final DateTime createdAt;
 
@@ -403,6 +418,11 @@ class AdminQuiz {
     required this.id,
     required this.title,
     required this.description,
+    this.instructions = '',
+    this.timeLimitMinutes,
+    this.timeLimitSeconds,
+    this.marksPerQuestion,
+    this.negativeMarking,
     required this.questions,
     required this.createdAt,
   });
@@ -412,9 +432,16 @@ class AdminQuiz {
       id: id,
       title: data['title'] ?? '',
       description: data['description'] ?? '',
-      questions: (data['questions'] as List<dynamic>?)
-          ?.map((q) => QuizQuestion.fromJson(q as Map<String, dynamic>))
-          .toList() ?? [],
+      instructions: data['instructions'] ?? '',
+      timeLimitMinutes: data['timeLimitMinutes'] as int?,
+      timeLimitSeconds: data['timeLimitSeconds'] as int?,
+      marksPerQuestion: (data['marksPerQuestion'] as num?)?.toDouble(),
+      negativeMarking: (data['negativeMarking'] as num?)?.toDouble(),
+      questions:
+          (data['questions'] as List<dynamic>?)
+              ?.map((q) => QuizQuestion.fromJson(q as Map<String, dynamic>))
+              .toList() ??
+          [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -423,6 +450,11 @@ class AdminQuiz {
     return {
       'title': title,
       'description': description,
+      'instructions': instructions,
+      'timeLimitMinutes': timeLimitMinutes,
+      'timeLimitSeconds': timeLimitSeconds,
+      'marksPerQuestion': marksPerQuestion,
+      'negativeMarking': negativeMarking,
       'questions': questions.map((q) => q.toJson()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
     };
@@ -462,7 +494,8 @@ class AdminLiveClass {
       instructorName: data['instructorName'] ?? '',
       startTime: (data['startTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
       durationMinutes: data['durationMinutes'] ?? 60,
-      youtubeUrl: data['youtubeUrl'] ?? data['meetingUrl'] ?? '', // Fallback for legacy
+      youtubeUrl:
+          data['youtubeUrl'] ?? data['meetingUrl'] ?? '', // Fallback for legacy
       thumbnailUrl: data['thumbnailUrl'] ?? '',
       status: data['status'] ?? 'scheduled',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),

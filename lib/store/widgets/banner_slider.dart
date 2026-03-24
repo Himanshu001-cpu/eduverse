@@ -13,9 +13,11 @@ class BannerSlider extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     
-    // Responsive height based on screen width
-    final double bannerHeight = screenWidth > 600 ? 220.0 : 180.0;
+    // Responsive viewport fraction
     final double viewportFraction = screenWidth > 900 ? 0.6 : (screenWidth > 600 ? 0.8 : 0.9);
+    // 16:9 aspect ratio based on visible card width
+    final double cardWidth = screenWidth * viewportFraction;
+    final double bannerHeight = cardWidth * 9 / 16;
 
     return FutureBuilder<List<_BannerData>>(
       future: _getCoursesWithRecentBatches(),
@@ -131,7 +133,7 @@ class BannerSlider extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               // Course title
                               Text(
                                 banner.courseTitle,
@@ -143,7 +145,7 @@ class BannerSlider extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               // Latest batch name
                               Text(
                                 banner.latestBatchName,
@@ -317,6 +319,7 @@ class BannerSlider extends StatelessWidget {
           id: courseDoc.id,
           title: courseData['title'] ?? '',
           subtitle: courseData['subtitle'] ?? '',
+          description: courseData['description'] ?? '',
           emoji: courseData['emoji'] ?? '📚',
           gradientColors: gradientColors.length >= 2 ? gradientColors : [Colors.blue, Colors.blueAccent],
           thumbnailUrl: courseData['thumbnailUrl'] ?? '',

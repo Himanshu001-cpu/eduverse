@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
 
 // Data is now fetched from Firestore - this file only contains empty lists for compatibility

@@ -1,7 +1,9 @@
 // file: lib/feed/screens/quiz_page.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/screens/quiz_result_page.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Quiz page for practicing multiple choice questions.
 /// Shows one question at a time with option tiles and navigation.
@@ -18,7 +20,12 @@ class _QuizPageState extends State<QuizPage> {
   int _currentIndex = 0;
   int? _selectedOptionIndex;
   final List<int?> _userAnswers = [];
-  bool _showingAnswer = false;
+  bool _instructionsShown = false;
+
+  // Timer state
+  Timer? _timer;
+  int _remainingSeconds = 0;
+  bool _timerStarted = false;
 
   List<QuizQuestion> get _questions {
     return widget.item.quizQuestions ?? [];
@@ -26,30 +33,109 @@ class _QuizPageState extends State<QuizPage> {
 
   QuizQuestion get _currentQuestion => _questions[_currentIndex];
   bool get _isLastQuestion => _currentIndex == _questions.length - 1;
+  int? get _timeLimitMinutes => widget.item.quizTimeLimitMinutes;
+  int? get _timeLimitSeconds => widget.item.quizTimeLimitSeconds;
+  String? get _customInstructions => widget.item.quizInstructions;
+  bool get _hasTimeLimit =>
+      (_timeLimitSeconds != null && _timeLimitSeconds! > 0) ||
+      (_timeLimitMinutes != null && _timeLimitMinutes! > 0);
 
   @override
   void initState() {
     super.initState();
     _userAnswers.addAll(List.filled(_questions.length, null));
+    // Debug: print timer values
+    print(
+      'DEBUG Quiz Timer - Minutes: $_timeLimitMinutes, Seconds: $_timeLimitSeconds',
+    );
+    // Use seconds if available (more precise), otherwise use minutes
+    if (_timeLimitSeconds != null && _timeLimitSeconds! > 0) {
+      _remainingSeconds = _timeLimitSeconds!;
+      print('DEBUG: Using seconds value: $_remainingSeconds');
+    } else if (_timeLimitMinutes != null && _timeLimitMinutes! > 0) {
+      _remainingSeconds = _timeLimitMinutes! * 60;
+      print(
+        'DEBUG: Using minutes value converted to seconds: $_remainingSeconds',
+      );
+    } else {
+      print('DEBUG: No time limit set');
+    }
   }
 
-  void _selectOption(int index) {
-    if (_showingAnswer) return;
-    setState(() {
-      _selectedOptionIndex = index;
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    if (!_hasTimeLimit) return;
+    if (_timerStarted) return;
+
+    _timerStarted = true;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds <= 0) {
+        timer.cancel();
+        _autoSubmit();
+      } else {
+        setState(() {
+          _remainingSeconds--;
+        });
+      }
     });
   }
 
-  void _checkAnswer() {
-    if (_selectedOptionIndex == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an option')),
-      );
-      return;
+  void _autoSubmit() {
+    _timer?.cancel();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Time\'s up! Quiz submitted automatically.'),
+      ),
+    );
+    _finishQuiz();
+  }
+
+  String _formatTimer(int seconds) {
+    final hours = seconds ~/ 3600;
+    final mins = (seconds % 3600) ~/ 60;
+    final secs = seconds % 60;
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
     }
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  String _formatTimeLimitDisplay() {
+    // Format for display in instructions (human readable)
+    final totalSeconds = _timeLimitSeconds ?? (_timeLimitMinutes! * 60);
+    final hours = totalSeconds ~/ 3600;
+    final mins = (totalSeconds % 3600) ~/ 60;
+    final secs = totalSeconds % 60;
+
+    List<String> parts = [];
+    if (hours > 0) parts.add('$hours hour${hours > 1 ? 's' : ''}');
+    if (mins > 0) parts.add('$mins minute${mins > 1 ? 's' : ''}');
+    if (secs > 0) parts.add('$secs second${secs > 1 ? 's' : ''}');
+
+    return parts.isEmpty ? '0 minutes' : parts.join(' ');
+  }
+
+  void _goToQuestion(int index) {
+    if (index < 0 || index >= _questions.length) return;
     setState(() {
-      _showingAnswer = true;
-      _userAnswers[_currentIndex] = _selectedOptionIndex;
+      // Save current answer if selected
+      if (_selectedOptionIndex != null) {
+        _userAnswers[_currentIndex] = _selectedOptionIndex;
+      }
+      _currentIndex = index;
+      _selectedOptionIndex = _userAnswers[_currentIndex];
+    });
+  }
+
+  void _selectOption(int index) {
+    setState(() {
+      _selectedOptionIndex = index;
+      _userAnswers[_currentIndex] = index;
     });
   }
 
@@ -60,7 +146,6 @@ class _QuizPageState extends State<QuizPage> {
       setState(() {
         _currentIndex++;
         _selectedOptionIndex = _userAnswers[_currentIndex];
-        _showingAnswer = _selectedOptionIndex != null;
       });
     }
   }
@@ -70,7 +155,6 @@ class _QuizPageState extends State<QuizPage> {
       setState(() {
         _currentIndex--;
         _selectedOptionIndex = _userAnswers[_currentIndex];
-        _showingAnswer = _selectedOptionIndex != null;
       });
     }
   }
@@ -97,52 +181,29 @@ class _QuizPageState extends State<QuizPage> {
     );
   }
 
-  Color _getOptionColor(int optionIndex) {
-    if (!_showingAnswer) {
-      if (_selectedOptionIndex == optionIndex) {
-        return Theme.of(context).colorScheme.primaryContainer;
-      }
-      return Theme.of(context).colorScheme.surface;
-    }
+  void _handleShare() {
+    final String deepLink =
+        'https://theeduverse.co.in/app/feed/${widget.item.id}';
+    final String shareText =
+        'Take this Quiz on EduVerse:\n\n'
+        '${widget.item.title}\n\n'
+        'Attempt here: $deepLink';
 
-    // Showing answer
-    if (optionIndex == _currentQuestion.correctIndex) {
-      return Colors.green.withValues(alpha: 0.2);
-    }
-    if (_selectedOptionIndex == optionIndex && optionIndex != _currentQuestion.correctIndex) {
-      return Colors.red.withValues(alpha: 0.2);
+    SharePlus.instance.share(ShareParams(text: shareText));
+  }
+
+  Color _getOptionBackground(int optionIndex) {
+    if (_selectedOptionIndex == optionIndex) {
+      return Theme.of(context).colorScheme.primaryContainer;
     }
     return Theme.of(context).colorScheme.surface;
   }
 
   Color _getOptionBorderColor(int optionIndex) {
-    if (!_showingAnswer) {
-      if (_selectedOptionIndex == optionIndex) {
-        return Theme.of(context).colorScheme.primary;
-      }
-      return Theme.of(context).colorScheme.outline.withValues(alpha: 0.5);
+    if (_selectedOptionIndex == optionIndex) {
+      return Theme.of(context).colorScheme.primary;
     }
-
-    // Showing answer
-    if (optionIndex == _currentQuestion.correctIndex) {
-      return Colors.green;
-    }
-    if (_selectedOptionIndex == optionIndex && optionIndex != _currentQuestion.correctIndex) {
-      return Colors.red;
-    }
-    return Theme.of(context).colorScheme.outline.withValues(alpha: 0.3);
-  }
-
-  IconData? _getOptionIcon(int optionIndex) {
-    if (!_showingAnswer) return null;
-
-    if (optionIndex == _currentQuestion.correctIndex) {
-      return Icons.check_circle;
-    }
-    if (_selectedOptionIndex == optionIndex && optionIndex != _currentQuestion.correctIndex) {
-      return Icons.cancel;
-    }
-    return null;
+    return Theme.of(context).colorScheme.outline.withValues(alpha: 0.5);
   }
 
   @override
@@ -162,9 +223,137 @@ class _QuizPageState extends State<QuizPage> {
             children: [
               Icon(Icons.quiz_outlined, size: 64, color: Colors.grey),
               SizedBox(height: 16),
-              Text('No questions available', style: TextStyle(fontSize: 18, color: Colors.grey)),
+              Text(
+                'No questions available',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
               SizedBox(height: 8),
-              Text('This quiz has no questions yet.', style: TextStyle(color: Colors.grey)),
+              Text(
+                'This quiz has no questions yet.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!_instructionsShown) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+          actions: [
+            IconButton(icon: const Icon(Icons.share), onPressed: _handleShare),
+          ],
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.quiz_outlined,
+                  size: 64,
+                  color: colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Quiz Instructions',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildInstructionItem(
+                context,
+                'Total Questions',
+                '${_questions.length} Questions',
+              ),
+              _buildInstructionItem(context, 'Type', 'Multiple Choice'),
+              if (_hasTimeLimit)
+                _buildInstructionItem(
+                  context,
+                  'Time Limit',
+                  _formatTimeLimitDisplay(),
+                ),
+              if (item.quizMarksPerQuestion != null &&
+                  item.quizMarksPerQuestion! > 0)
+                _buildInstructionItem(
+                  context,
+                  'Marks Per Question',
+                  '${item.quizMarksPerQuestion}',
+                ),
+              if (item.quizNegativeMarking != null &&
+                  item.quizNegativeMarking! > 0)
+                _buildInstructionItem(
+                  context,
+                  'Negative Marking',
+                  '-${item.quizNegativeMarking}',
+                ),
+              if ((item.quizMarksPerQuestion == null ||
+                      item.quizMarksPerQuestion == 0) &&
+                  (item.quizNegativeMarking == null ||
+                      item.quizNegativeMarking == 0))
+                _buildInstructionItem(
+                  context,
+                  'Marking',
+                  'No negative marking',
+                ),
+              if (_customInstructions != null &&
+                  _customInstructions!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: colorScheme.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Additional Instructions',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(_customInstructions!, style: TextStyle(height: 1.5)),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 32),
+              FilledButton(
+                onPressed: () {
+                  setState(() {
+                    _instructionsShown = true;
+                  });
+                  _startTimer();
+                },
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text('Start Quiz', style: TextStyle(fontSize: 16)),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -175,12 +364,57 @@ class _QuizPageState extends State<QuizPage> {
       appBar: AppBar(
         title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
+          IconButton(icon: const Icon(Icons.share), onPressed: _handleShare),
+          // Timer display
+          if (_hasTimeLimit)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _remainingSeconds < 60
+                        ? Colors.red.shade100
+                        : colorScheme.tertiaryContainer,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.timer,
+                        size: 16,
+                        color: _remainingSeconds < 60
+                            ? Colors.red
+                            : colorScheme.onTertiaryContainer,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatTimer(_remainingSeconds),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _remainingSeconds < 60
+                              ? Colors.red
+                              : colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           // Progress indicator
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(16),
@@ -206,35 +440,109 @@ class _QuizPageState extends State<QuizPage> {
               backgroundColor: colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation(item.color),
             ),
+            // Question Navigation Grid
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: colorScheme.surfaceContainerLow,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(_questions.length, (index) {
+                    final isAnswered = _userAnswers[index] != null;
+                    final isCurrent = index == _currentIndex;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Material(
+                        color: isCurrent
+                            ? colorScheme.primary
+                            : isAnswered
+                            ? colorScheme.primaryContainer
+                            : colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                        child: InkWell(
+                          onTap: () => _goToQuestion(index),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isCurrent
+                                    ? colorScheme.onPrimary
+                                    : isAnswered
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Question number badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: item.color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Question ${_currentIndex + 1}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: item.color,
+                    // Question number badge and Subject
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: item.color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Question ${_currentIndex + 1}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: item.color,
+                            ),
+                          ),
                         ),
-                      ),
+                        if (_currentQuestion.subject != null &&
+                            _currentQuestion.subject!.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _currentQuestion.subject!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSecondaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 16),
                     // Question text
                     Text(
                       _currentQuestion.question,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            height: 1.4,
-                          ),
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     // Options
@@ -250,7 +558,7 @@ class _QuizPageState extends State<QuizPage> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: _getOptionColor(index),
+                              color: _getOptionBackground(index),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: _getOptionBorderColor(index),
@@ -266,12 +574,16 @@ class _QuizPageState extends State<QuizPage> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: _selectedOptionIndex == index
-                                        ? colorScheme.primary.withValues(alpha: 0.2)
+                                        ? colorScheme.primary.withValues(
+                                            alpha: 0.2,
+                                          )
                                         : colorScheme.surfaceContainerHighest,
                                   ),
                                   child: Center(
                                     child: Text(
-                                      String.fromCharCode(65 + index), // A, B, C, D
+                                      String.fromCharCode(
+                                        65 + index,
+                                      ), // A, B, C, D
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: _selectedOptionIndex == index
@@ -286,61 +598,17 @@ class _QuizPageState extends State<QuizPage> {
                                 Expanded(
                                   child: Text(
                                     _currentQuestion.options[index].text,
-                                    style: Theme.of(context).textTheme.bodyLarge,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge,
                                   ),
                                 ),
-                                // Correct/Wrong icon
-                                if (_getOptionIcon(index) != null)
-                                  Icon(
-                                    _getOptionIcon(index),
-                                    color: index == _currentQuestion.correctIndex
-                                        ? Colors.green
-                                        : Colors.red,
-                                  ),
                               ],
                             ),
                           ),
                         ),
                       ),
                     ),
-                    // Explanation (when answer is shown)
-                    if (_showingAnswer) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.lightbulb, color: colorScheme.primary),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Explanation',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _currentQuestion.explanation ?? '',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    height: 1.5,
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -367,24 +635,44 @@ class _QuizPageState extends State<QuizPage> {
                   else
                     const SizedBox(width: 100),
                   const Spacer(),
-                  // Check/Next/Finish button
-                  if (!_showingAnswer)
-                    FilledButton.icon(
-                      onPressed: _checkAnswer,
-                      icon: const Icon(Icons.check),
-                      label: const Text('Check Answer'),
-                    )
-                  else
-                    FilledButton.icon(
-                      onPressed: _nextQuestion,
-                      icon: Icon(_isLastQuestion ? Icons.flag : Icons.arrow_forward),
-                      label: Text(_isLastQuestion ? 'Finish Quiz' : 'Next'),
+                  // Next/Finish button
+                  FilledButton.icon(
+                    onPressed: _isLastQuestion ? _finishQuiz : _nextQuestion,
+                    icon: Icon(
+                      _isLastQuestion ? Icons.flag : Icons.arrow_forward,
                     ),
+                    label: Text(_isLastQuestion ? 'Submit Quiz' : 'Next'),
+                  ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInstructionItem(
+    BuildContext context,
+    String label,
+    String value,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ],
       ),
     );
   }

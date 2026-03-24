@@ -5,6 +5,7 @@ class Course {
   final String id;
   final String title;
   final String subtitle;
+  final String description;
   final String emoji;
   final List<Color> gradientColors;
   final String thumbnailUrl;
@@ -15,6 +16,7 @@ class Course {
     required this.id,
     required this.title,
     required this.subtitle,
+    this.description = '',
     required this.emoji,
     required this.gradientColors,
     this.thumbnailUrl = '',
@@ -62,6 +64,7 @@ class BannerModel {
 class CartItem {
   final String courseId;
   final String batchId;
+  final String? testSeriesId;
   final String title;
   final double price;
   final int quantity;
@@ -69,26 +72,29 @@ class CartItem {
   CartItem({
     required this.courseId,
     required this.batchId,
+    this.testSeriesId,
     required this.title,
     required this.price,
     this.quantity = 1,
   });
 
   Map<String, dynamic> toJson() => {
-        'courseId': courseId,
-        'batchId': batchId,
-        'title': title,
-        'price': price,
-        'quantity': quantity,
-      };
+    'courseId': courseId,
+    'batchId': batchId,
+    if (testSeriesId != null) 'testSeriesId': testSeriesId,
+    'title': title,
+    'price': price,
+    'quantity': quantity,
+  };
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-        courseId: json['courseId'],
-        batchId: json['batchId'],
-        title: json['title'],
-        price: json['price'],
-        quantity: json['quantity'],
-      );
+    courseId: json['courseId'],
+    batchId: json['batchId'],
+    testSeriesId: json['testSeriesId'] as String?,
+    title: json['title'],
+    price: json['price'],
+    quantity: json['quantity'],
+  );
 }
 
 class Purchase {
@@ -111,24 +117,24 @@ class Purchase {
   });
 
   Map<String, dynamic> toJson() => {
-        'userId': userId,
-        'id': id,
-        'timestamp': timestamp.toIso8601String(),
-        'items': items.map((i) => i.toJson()).toList(),
-        'amount': amount,
-        'paymentMethod': paymentMethod,
-        'status': status,
-      };
+    'userId': userId,
+    'id': id,
+    'timestamp': timestamp.toIso8601String(),
+    'items': items.map((i) => i.toJson()).toList(),
+    'amount': amount,
+    'paymentMethod': paymentMethod,
+    'status': status,
+  };
 
   factory Purchase.fromJson(Map<String, dynamic> json) => Purchase(
-        userId: json['userId'] ?? '',
-        id: json['id'],
-        timestamp: DateTime.parse(json['timestamp']),
-        items: (json['items'] as List).map((i) => CartItem.fromJson(i)).toList(),
-        amount: (json['amount'] as num).toDouble(),
-        paymentMethod: json['paymentMethod'],
-        status: json['status'],
-      );
+    userId: json['userId'] ?? '',
+    id: json['id'],
+    timestamp: DateTime.parse(json['timestamp']),
+    items: (json['items'] as List).map((i) => CartItem.fromJson(i)).toList(),
+    amount: (json['amount'] as num).toDouble(),
+    paymentMethod: json['paymentMethod'],
+    status: json['status'],
+  );
 }
 
 class PaymentMethod {

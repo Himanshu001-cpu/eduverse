@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
+import 'package:eduverse/auth/phone_verify_dialog.dart';
 import 'privacy_policy_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -104,28 +105,50 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
     if (!mounted) return;
 
     if (result.isSuccess) {
+      final phoneNumber = '+91${_phoneController.text.trim()}';
+
       // Save user profile to Firestore
       try {
         await _authService.saveUserProfile(
           uid: result.user!.uid,
           email: _emailController.text.trim(),
           displayName: _nameController.text.trim(),
-          phone: _phoneController.text.trim().isNotEmpty 
-              ? '+91${_phoneController.text.trim()}' 
-              : null,
+          phone: phoneNumber,
         );
-        _showSuccess('Account created successfully!');
       } catch (e) {
-        // Auth succeeded but Firestore save failed - still allow login
         debugPrint('Failed to save profile to Firestore: $e');
-        _showSuccess('Account created! Profile sync pending.');
       }
-      // AuthWrapper will handle navigation
+
+      if (!mounted) return;
+
+      // Try to link phone number to Firebase Auth via OTP verification
+      final credential = await PhoneVerifyDialog.show(
+        context,
+        phoneNumber: phoneNumber,
+        title: 'Verify Your Phone',
+      );
+
+      if (credential != null) {
+        final linkResult = await _authService.linkPhoneToAccount(credential);
+        if (!mounted) return;
+        if (linkResult.isSuccess) {
+          _showSuccess('Account created & phone verified!');
+        } else {
+          _showSuccess('Account created! Phone linking: ${linkResult.errorMessage}');
+        }
+      } else {
+        if (!mounted) return;
+        _showSuccess('Account created successfully!');
+      }
+
+      // Navigate back to let AuthWrapper handle the logged-in state
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
     } else {
       _showError(result.errorMessage!);
+      setState(() => _isLoading = false);
     }
-
-    setState(() => _isLoading = false);
   }
 
   void _showError(String message) {
@@ -310,19 +333,20 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
             ),
             const SizedBox(height: 18),
 
-            // Phone Number Field (Optional)
+            // Phone Number Field (Required)
             _buildTextField(
               controller: _phoneController,
-              label: 'Phone Number (Optional)',
+              label: 'Phone Number',
               hint: 'Enter 10-digit mobile number',
               prefixIcon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
               prefixText: '+91 ',
               validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                    return 'Please enter a valid 10-digit number';
-                  }
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your phone number';
+                }
+                if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+                  return 'Please enter a valid 10-digit number';
                 }
                 return null;
               },

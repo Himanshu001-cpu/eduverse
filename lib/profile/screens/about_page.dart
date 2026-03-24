@@ -186,7 +186,7 @@ class AboutPage extends StatelessWidget {
                         icon: Icons.camera_alt,
                         label: 'Instagram',
                         color: const Color(0xFFE1306C),
-                        onTap: () => _launchUrl('https://instagram.com/theeduverse'),
+                        onTap: () => _launchUrl('https://www.instagram.com/theeduverse01?igsh=enpzam9xeG45ZTVr'),
                       ),
                       _buildSocialButton(
                         icon: Icons.facebook,

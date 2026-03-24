@@ -11,9 +11,6 @@ class StoreData {
   // Courses are now fetched from Firestore
   static final List<Course> courses = [];
 
-  // Coupons should be managed via Firestore/Admin panel
-  static const Map<String, double> coupons = {};
-
   // Payment methods - UI constants (kept as they define UI options)
   static const List<PaymentMethod> paymentMethods = [
     PaymentMethod(

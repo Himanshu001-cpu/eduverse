@@ -1,6 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
@@ -24,11 +29,11 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   int _refreshKey = 0; // Used to force FutureBuilder refresh
   bool _isBookmarked = false; // Bookmark state
   final BookmarkService _bookmarkService = BookmarkService();
-  
+
   // Live classes data
   List<StudyLiveClass> _liveClasses = [];
   bool _isLoadingLiveClasses = true;
-  
+
   // Stats data
   int _totalLectures = 0;
   int _watchedLectures = 0;
@@ -72,21 +77,27 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   Future<void> _loadStats() async {
     try {
       final controller = Provider.of<StudyController>(context, listen: false);
-      
+
       // Fetch lectures to get total and watched count
-      final lectures = await controller.getLectures(widget.batch.courseId, widget.batch.id);
+      final lectures = await controller.getLectures(
+        widget.batch.courseId,
+        widget.batch.id,
+      );
       final watched = lectures.where((l) => l.isWatched).length;
-      
+
       // Fetch quizzes
-      final quizzes = await controller.getBatchQuizzes(widget.batch.courseId, widget.batch.id);
-      
+      final quizzes = await controller.getBatchQuizzes(
+        widget.batch.courseId,
+        widget.batch.id,
+      );
+
       // Calculate average quiz score from user's quiz results collection
       // Note: For now we calculate from local quiz data, as full quiz results tracking
       // would need additional repository method
       double avgScore = 0.0;
       // Placeholder: In a full implementation, you'd fetch user's quiz scores from Firestore
       // For example: users/{userId}/quizResults where each doc has the quiz score
-      
+
       if (mounted) {
         setState(() {
           _totalLectures = lectures.length;
@@ -116,14 +127,15 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
             pinned: true,
-            title: Text(widget.batch.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(
+              widget.batch.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
             elevation: 0,
           ),
-          SliverToBoxAdapter(
-            child: _buildHeader(),
-          ),
+          SliverToBoxAdapter(child: _buildHeader()),
           SliverPersistentHeader(
             pinned: true,
             delegate: _SliverTabBarDelegate(
@@ -157,7 +169,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
 
   Widget _buildHeader() {
     final isWideScreen = MediaQuery.of(context).size.width > 800;
-    
+
     return Column(
       children: [
         // Header / Banner
@@ -169,7 +181,11 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: (widget.batch.gradientColors.isNotEmpty ? widget.batch.gradientColors.first : Colors.blue).withValues(alpha: 0.4),
+                color:
+                    (widget.batch.gradientColors.isNotEmpty
+                            ? widget.batch.gradientColors.first
+                            : Colors.blue)
+                        .withValues(alpha: 0.4),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -185,7 +201,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                     ? Image.network(
                         widget.batch.thumbnailUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => _buildGradientBackground(),
+                        errorBuilder: (context, error, stackTrace) =>
+                            _buildGradientBackground(),
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return _buildGradientBackground(showLoader: true);
@@ -217,7 +234,13 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      shadows: [Shadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 4)],
+                      shadows: [
+                        Shadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -226,7 +249,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             ),
           ),
         ),
-        
+
         // Quick Actions Row
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -239,7 +262,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                   onTap: () async {
                     // Optimistic update
                     setState(() => _isBookmarked = !_isBookmarked);
-                    
+
                     try {
                       final bookmark = BookmarkItem(
                         id: widget.batch.id,
@@ -247,14 +270,16 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                         type: BookmarkType.batch,
                         dateAdded: DateTime.now(),
                         metadata: {
-                           'courseId': widget.batch.courseId,
-                           'batchName': widget.batch.courseName,
-                           'thumbnailUrl': widget.batch.thumbnailUrl,
-                        }
+                          'courseId': widget.batch.courseId,
+                          'batchName': widget.batch.courseName,
+                          'thumbnailUrl': widget.batch.thumbnailUrl,
+                        },
                       );
-                      
-                      final result = await _bookmarkService.toggleBookmark(bookmark);
-                      
+
+                      final result = await _bookmarkService.toggleBookmark(
+                        bookmark,
+                      );
+
                       // Sync state
                       if (mounted && result != _isBookmarked) {
                         setState(() => _isBookmarked = result);
@@ -263,16 +288,22 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(result ? 'Batch bookmarked' : 'Bookmark removed'),
+                            content: Text(
+                              result ? 'Batch bookmarked' : 'Bookmark removed',
+                            ),
                             duration: const Duration(seconds: 1),
                           ),
                         );
                       }
                     } catch (e) {
-                      if (mounted) setState(() => _isBookmarked = !_isBookmarked);
+                      if (mounted)
+                        setState(() => _isBookmarked = !_isBookmarked);
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                          ),
                         );
                       }
                     }
@@ -295,7 +326,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                   onTap: () {
                     SharePlus.instance.share(
                       ShareParams(
-                        text: 'Check out ${widget.batch.name} - ${widget.batch.courseName} on EduVerse!',
+                        text:
+                            'Check out ${widget.batch.name} - ${widget.batch.courseName} on EduVerse!',
                         subject: widget.batch.name,
                       ),
                     );
@@ -306,7 +338,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Progress Section
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -318,7 +350,10 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -348,7 +383,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Info Cards Section (Show Instructor/Schedule only if live classes exist)
         if (_isLoadingLiveClasses)
           const Padding(
@@ -394,11 +429,11 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   void _handleDownloadAll() async {
     final controller = Provider.of<StudyController>(context, listen: false);
     final downloadService = DownloadService();
-    
+
     // Show enhanced progress dialog
     final progressNotifier = ValueNotifier<double>(0.0);
     final statusNotifier = ValueNotifier<String>('Fetching resources...');
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -412,16 +447,26 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     try {
       // Fetch notes and planner items
       statusNotifier.value = 'Loading notes and planner items...';
-      
-      final notes = await controller.getBatchNotes(widget.batch.courseId, widget.batch.id);
-      final plannerItems = await controller.getBatchPlanner(widget.batch.courseId, widget.batch.id);
-      
+
+      final notes = await controller.getBatchNotes(
+        widget.batch.courseId,
+        widget.batch.id,
+      );
+      final plannerItems = await controller.getBatchPlanner(
+        widget.batch.courseId,
+        widget.batch.id,
+      );
+
       // Filter items with downloadable URLs
-      final downloadableNotes = notes.where((n) => n.fileUrl != null && n.fileUrl!.isNotEmpty).toList();
-      final downloadablePlanner = plannerItems.where((p) => p.fileUrl != null && p.fileUrl!.isNotEmpty).toList();
-      
+      final downloadableNotes = notes
+          .where((n) => n.fileUrl != null && n.fileUrl!.isNotEmpty)
+          .toList();
+      final downloadablePlanner = plannerItems
+          .where((p) => p.fileUrl != null && p.fileUrl!.isNotEmpty)
+          .toList();
+
       final totalItems = downloadableNotes.length + downloadablePlanner.length;
-      
+
       if (totalItems == 0) {
         if (mounted) {
           Navigator.pop(context);
@@ -434,14 +479,14 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         }
         return;
       }
-      
+
       int downloadedCount = 0;
       int failedCount = 0;
-      
+
       // Download notes
       for (final note in downloadableNotes) {
         statusNotifier.value = 'Downloading: ${note.title}';
-        
+
         // Check if already downloaded
         final existingPath = await downloadService.getLocalPath(note.fileUrl!);
         if (existingPath != null) {
@@ -449,8 +494,9 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           progressNotifier.value = downloadedCount / totalItems;
           continue;
         }
-        
-        final fileName = '${note.id}_${note.title.replaceAll(' ', '_').replaceAll(RegExp(r'[^\w\-]'), '')}.pdf';
+
+        final fileName =
+            '${note.id}_${note.title.replaceAll(' ', '_').replaceAll(RegExp(r'[^\w\-]'), '')}.pdf';
         final result = await downloadService.downloadFile(
           url: note.fileUrl!,
           fileName: fileName,
@@ -461,7 +507,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             progressNotifier.value = (downloadedCount + p) / totalItems;
           },
         );
-        
+
         if (result != null) {
           downloadedCount++;
         } else {
@@ -469,11 +515,11 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         }
         progressNotifier.value = downloadedCount / totalItems;
       }
-      
+
       // Download planner items
       for (final item in downloadablePlanner) {
         statusNotifier.value = 'Downloading: ${item.title}';
-        
+
         // Check if already downloaded
         final existingPath = await downloadService.getLocalPath(item.fileUrl!);
         if (existingPath != null) {
@@ -481,8 +527,9 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           progressNotifier.value = downloadedCount / totalItems;
           continue;
         }
-        
-        final fileName = '${item.id}_${item.title.replaceAll(' ', '_').replaceAll(RegExp(r'[^\w\-]'), '')}.pdf';
+
+        final fileName =
+            '${item.id}_${item.title.replaceAll(' ', '_').replaceAll(RegExp(r'[^\w\-]'), '')}.pdf';
         final result = await downloadService.downloadFile(
           url: item.fileUrl!,
           fileName: fileName,
@@ -492,7 +539,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             progressNotifier.value = (downloadedCount + p) / totalItems;
           },
         );
-        
+
         if (result != null) {
           downloadedCount++;
         } else {
@@ -500,14 +547,14 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         }
         progressNotifier.value = downloadedCount / totalItems;
       }
-      
+
       if (mounted) {
         Navigator.pop(context);
-        
+
         final successCount = downloadedCount;
         String message;
         Color bgColor;
-        
+
         if (failedCount == 0) {
           message = '$successCount files downloaded successfully!';
           bgColor = Colors.green;
@@ -518,7 +565,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           message = 'Download failed';
           bgColor = Colors.red;
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: bgColor),
         );
@@ -528,10 +575,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -553,10 +597,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             ? const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
               )
-            : Text(
-                widget.batch.emoji,
-                style: const TextStyle(fontSize: 64),
-              ),
+            : Text(widget.batch.emoji, style: const TextStyle(fontSize: 64)),
       ),
     );
   }
@@ -568,7 +609,9 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         .where((name) => name.isNotEmpty)
         .toSet()
         .toList();
-    final instructorName = instructorNames.isNotEmpty ? instructorNames.first : 'Instructor';
+    final instructorName = instructorNames.isNotEmpty
+        ? instructorNames.first
+        : 'Instructor';
 
     return Card(
       elevation: 2,
@@ -578,15 +621,22 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Instructor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const Text(
+              'Instructor',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).primaryColor.withValues(alpha: 0.2),
                   radius: 24,
                   child: Text(
-                    instructorName.isNotEmpty ? instructorName[0].toUpperCase() : 'I',
+                    instructorName.isNotEmpty
+                        ? instructorName[0].toUpperCase()
+                        : 'I',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -599,7 +649,10 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(instructorName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        instructorName,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       Text(
                         '${_liveClasses.length} live class${_liveClasses.length > 1 ? 'es' : ''}',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
@@ -617,11 +670,19 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
 
   Widget _buildScheduleCard() {
     // Sort live classes: upcoming first, then by date
-    final upcomingClasses = _liveClasses
-        .where((lc) => lc.status == 'upcoming' || lc.status == 'live' || lc.startTime.isAfter(DateTime.now()))
-        .toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
-    
+    // Filter out completed classes
+    final upcomingClasses =
+        _liveClasses
+            .where(
+              (lc) =>
+                  !lc.isCompleted &&
+                  (lc.status == 'upcoming' ||
+                      lc.status == 'live' ||
+                      lc.startTime.isAfter(DateTime.now())),
+            )
+            .toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
     final nextClass = upcomingClasses.isNotEmpty ? upcomingClasses.first : null;
 
     return Card(
@@ -632,26 +693,33 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Live Classes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const Text(
+              'Live Classes',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
             const SizedBox(height: 8),
-            if (upcomingClasses.isEmpty)
-              Text('No upcoming classes', style: TextStyle(color: Colors.grey[600], fontSize: 13))
+            if (nextClass == null)
+              Text(
+                'No upcoming classes',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              )
             else
-              ...upcomingClasses.take(2).map((lc) {
-                final isNext = lc == nextClass;
-                final dateStr = '${lc.startTime.day}/${lc.startTime.month} ${lc.startTime.hour}:${lc.startTime.minute.toString().padLeft(2, '0')}';
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _buildScheduleItemFromClass(lc.title, dateStr, isNext),
-                );
-              }),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildScheduleItemFromClass(
+                  nextClass.title,
+                  '${nextClass.startTime.day}/${nextClass.startTime.month} ${nextClass.startTime.hour}:${nextClass.startTime.minute.toString().padLeft(2, '0')}',
+                  true,
+                ),
+              ),
             if (nextClass != null) ...[
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    if (nextClass.youtubeUrl != null && nextClass.youtubeUrl!.isNotEmpty) {
+                    if (nextClass.youtubeUrl != null &&
+                        nextClass.youtubeUrl!.isNotEmpty) {
                       // Navigate to player
                       final lecture = StudyLecture(
                         id: nextClass.id,
@@ -668,21 +736,30 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                             courseId: widget.batch.courseId,
                             batchId: widget.batch.id,
                             lecture: lecture,
+                            isLiveStream: nextClass.status == 'live',
                           ),
                         ),
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Class link not available yet')),
+                        const SnackBar(
+                          content: Text('Class link not available yet'),
+                        ),
                       );
                     }
                   },
                   icon: const Icon(Icons.videocam, size: 18),
-                  label: Text(nextClass.status == 'live' ? 'Join Now' : 'Join Live Class'),
+                  label: Text(
+                    nextClass.status == 'live' ? 'Join Now' : 'Join Live Class',
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: nextClass.status == 'live' ? Colors.red : Colors.redAccent,
+                    backgroundColor: nextClass.status == 'live'
+                        ? Colors.red
+                        : Colors.redAccent,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
@@ -697,41 +774,29 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   Widget _buildScheduleItemFromClass(String title, String time, bool isNext) {
     return Row(
       children: [
-        Icon(Icons.calendar_today, size: 16, color: isNext ? Colors.blue : Colors.grey),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: TextStyle(fontWeight: isNext ? FontWeight.bold : FontWeight.normal, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text(time, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-            ],
-          ),
+        Icon(
+          Icons.calendar_today,
+          size: 16,
+          color: isNext ? Colors.blue : Colors.grey,
         ),
-        if (isNext)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Text('NEXT', style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildScheduleItem(String days, String time, bool isNext) {
-    return Row(
-      children: [
-        Icon(Icons.calendar_today, size: 16, color: isNext ? Colors.blue : Colors.grey),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(days, style: TextStyle(fontWeight: isNext ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
-              Text(time, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                time,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -742,7 +807,62 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
               color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Text('NEXT', style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'NEXT',
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ignore: unused_element
+  Widget _buildScheduleItem(String days, String time, bool isNext) {
+    return Row(
+      children: [
+        Icon(
+          Icons.calendar_today,
+          size: 16,
+          color: isNext ? Colors.blue : Colors.grey,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                days,
+                style: TextStyle(
+                  fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                time,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        if (isNext)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              'NEXT',
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
       ],
     );
@@ -757,16 +877,33 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Your Stats', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const Text(
+              'Your Stats',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
             const SizedBox(height: 16),
             _isLoadingStats
-                ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)))
+                ? const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatItem('$_watchedLectures/$_totalLectures', 'Lessons'),
+                      _buildStatItem(
+                        '$_watchedLectures/$_totalLectures',
+                        'Lessons',
+                      ),
                       _buildStatItem('$_quizCount', 'Quizzes'),
-                      _buildStatItem(_avgQuizScore > 0 ? '${_avgQuizScore.toStringAsFixed(0)}%' : '--', 'Avg Score'),
+                      _buildStatItem(
+                        _avgQuizScore > 0
+                            ? '${_avgQuizScore.toStringAsFixed(0)}%'
+                            : '--',
+                        'Avg Score',
+                      ),
                     ],
                   ),
           ],
@@ -778,7 +915,14 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   Widget _buildStatItem(String value, String label) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
@@ -790,40 +934,62 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
       builder: (context, controller, child) {
         return FutureBuilder<List<StudyLecture>>(
           key: ValueKey(_refreshKey), // Force rebuild when key changes
-          future: controller.getLectures(widget.batch.courseId, widget.batch.id),
+          future: controller.getLectures(
+            widget.batch.courseId,
+            widget.batch.id,
+          ),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+              return Center(
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
             }
 
             final lectures = snapshot.data ?? [];
-            
+
             // Add completed live classes as "lessons" at the end
             final completedLiveClasses = _liveClasses
-                .where((lc) => lc.status == 'completed' && lc.youtubeUrl != null && lc.youtubeUrl!.isNotEmpty)
-                .map((lc) => StudyLecture(
-                      id: 'live_${lc.id}',
-                      title: '🔴 ${lc.title}',
-                      videoUrl: lc.youtubeUrl!,
-                      description: lc.description,
-                      order: 999 + _liveClasses.indexOf(lc), // Put at end
-                      duration: Duration(minutes: lc.durationMinutes),
-                    ))
+                .where(
+                  (lc) =>
+                      lc.status == 'completed' &&
+                      lc.youtubeUrl != null &&
+                      lc.youtubeUrl!.isNotEmpty,
+                )
+                .map(
+                  (lc) => StudyLecture(
+                    id: 'live_${lc.id}',
+                    title: '🔴 ${lc.title}',
+                    videoUrl: lc.youtubeUrl!,
+                    description: lc.description,
+                    order: 999 + _liveClasses.indexOf(lc), // Put at end
+                    duration: Duration(minutes: lc.durationMinutes),
+                  ),
+                )
                 .toList();
 
             final allLessons = [...lectures, ...completedLiveClasses];
-            
+
             if (allLessons.isEmpty) {
               return const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.play_circle_outline, size: 64, color: Colors.grey),
+                    Icon(
+                      Icons.play_circle_outline,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
                     SizedBox(height: 16),
-                    Text('No lectures available.', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      'No lectures available.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
               );
@@ -850,7 +1016,9 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: () async {
-          debugPrint('Opening lecture: ${lecture.title}, videoUrl: ${lecture.videoUrl}');
+          debugPrint(
+            'Opening lecture: ${lecture.title}, videoUrl: ${lecture.videoUrl}',
+          );
           await Navigator.push(
             context,
             MaterialPageRoute(
@@ -873,18 +1041,29 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade200),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
               Container(
-                width: 48, height: 48,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: lecture.isWatched ? Colors.green.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
+                  color: lecture.isWatched
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  lecture.isWatched ? Icons.check_circle : Icons.play_arrow_rounded,
+                  lecture.isWatched
+                      ? Icons.check_circle
+                      : Icons.play_arrow_rounded,
                   color: lecture.isWatched ? Colors.green : Colors.blue,
                 ),
               ),
@@ -893,13 +1072,28 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(lecture.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(
+                      lecture.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 4),
-                    Text("Lecture ${lecture.order}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    Text(
+                      "Lecture ${lecture.order + 1}",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Colors.grey,
+              ),
             ],
           ),
         ),
@@ -911,13 +1105,21 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     return Consumer<StudyController>(
       builder: (context, controller, child) {
         return FutureBuilder<List<StudyQuiz>>(
-          future: controller.getBatchQuizzes(widget.batch.courseId, widget.batch.id),
+          future: controller.getBatchQuizzes(
+            widget.batch.courseId,
+            widget.batch.id,
+          ),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+              return Center(
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
             }
 
             final quizzes = snapshot.data ?? [];
@@ -928,7 +1130,10 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                   children: [
                     Icon(Icons.quiz_outlined, size: 64, color: Colors.grey),
                     SizedBox(height: 16),
-                    Text('No quizzes available.', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      'No quizzes available.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
               );
@@ -941,14 +1146,21 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
               itemBuilder: (context, index) {
                 final quiz = quizzes[index];
                 return Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: ListTile(
                     leading: const CircleAvatar(
                       backgroundColor: Colors.purple,
                       child: Icon(Icons.quiz, color: Colors.white),
                     ),
-                    title: Text(quiz.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${quiz.questionCount} Questions • ${quiz.durationMinutes} mins'),
+                    title: Text(
+                      quiz.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      '${quiz.questionCount} Questions • ${quiz.durationMinutes} mins',
+                    ),
                     trailing: ElevatedButton(
                       onPressed: () {
                         Navigator.push(
@@ -959,14 +1171,18 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                               batchId: widget.batch.id,
                               quizId: quiz.id,
                               quizTitle: quiz.title,
-                              themeColor: widget.batch.gradientColors.isNotEmpty 
-                                  ? widget.batch.gradientColors.first 
+                              themeColor: widget.batch.gradientColors.isNotEmpty
+                                  ? widget.batch.gradientColors.first
                                   : Colors.purple,
                             ),
                           ),
                         );
                       },
-                      style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
                       child: const Text('Start'),
                     ),
                   ),
@@ -983,13 +1199,21 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     return Consumer<StudyController>(
       builder: (context, controller, child) {
         return FutureBuilder<List<StudyNote>>(
-          future: controller.getBatchNotes(widget.batch.courseId, widget.batch.id),
+          future: controller.getBatchNotes(
+            widget.batch.courseId,
+            widget.batch.id,
+          ),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+              return Center(
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
             }
 
             final notes = snapshot.data ?? [];
@@ -1000,7 +1224,10 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                   children: [
                     Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey),
                     SizedBox(height: 16),
-                    Text('No notes available.', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      'No notes available.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
               );
@@ -1025,13 +1252,21 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     return Consumer<StudyController>(
       builder: (context, controller, child) {
         return FutureBuilder<List<StudyPlannerItem>>(
-          future: controller.getBatchPlanner(widget.batch.courseId, widget.batch.id),
+          future: controller.getBatchPlanner(
+            widget.batch.courseId,
+            widget.batch.id,
+          ),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+              return Center(
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
             }
 
             final items = snapshot.data ?? [];
@@ -1040,9 +1275,16 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey),
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
                     SizedBox(height: 16),
-                    Text('No planner items available.', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      'No planner items available.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
               );
@@ -1063,6 +1305,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     );
   }
 
+  // ignore: unused_element
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
@@ -1079,11 +1322,12 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Colors.white,
-      child: _tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: Colors.white, child: _tabBar);
   }
 
   @override
@@ -1104,6 +1348,7 @@ class _NoteCard extends StatefulWidget {
 class _NoteCardState extends State<_NoteCard> {
   final _downloadService = DownloadService();
   final _isDownloading = ValueNotifier<bool>(false);
+  final _isViewing = ValueNotifier<bool>(false);
   final _progress = ValueNotifier<double>(0.0);
   String? _localPath;
 
@@ -1125,7 +1370,8 @@ class _NoteCardState extends State<_NoteCard> {
     _isDownloading.value = true;
     _progress.value = 0.0;
 
-    final fileName = '${widget.note.id}_${widget.note.title.replaceAll(' ', '_')}.pdf';
+    final fileName =
+        '${widget.note.id}_${widget.note.title.replaceAll(' ', '_')}.pdf';
     final path = await _downloadService.downloadFile(
       url: widget.note.fileUrl!,
       fileName: fileName,
@@ -1160,16 +1406,27 @@ class _NoteCardState extends State<_NoteCard> {
               children: [
                 CircleAvatar(
                   backgroundColor: Colors.orange.shade100,
-                  child: const Icon(Icons.picture_as_pdf, color: Colors.deepOrange),
+                  child: const Icon(
+                    Icons.picture_as_pdf,
+                    color: Colors.deepOrange,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.note.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('Added ${widget.note.createdAt.day}/${widget.note.createdAt.month}/${widget.note.createdAt.year}',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                      Text(
+                        widget.note.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        'Added ${widget.note.createdAt.day}/${widget.note.createdAt.month}/${widget.note.createdAt.year}',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
@@ -1184,7 +1441,10 @@ class _NoteCardState extends State<_NoteCard> {
                   valueListenable: _progress,
                   builder: (context, progress, _) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: LinearProgressIndicator(value: progress, minHeight: 4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 4,
+                    ),
                   ),
                 );
               },
@@ -1192,6 +1452,45 @@ class _NoteCardState extends State<_NoteCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (widget.note.fileUrl != null)
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _isViewing,
+                    builder: (context, isViewing, _) => TextButton.icon(
+                      onPressed: isViewing ? null : () async {
+                        if (kIsWeb) {
+                          final uri = Uri.parse(widget.note.fileUrl!);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                          return;
+                        }
+                        // On mobile: download to temp cache and open in PDF app
+                        _isViewing.value = true;
+                        try {
+                          final dir = await getTemporaryDirectory();
+                          final fileName = '${widget.note.id}_${widget.note.title.replaceAll(' ', '_')}.pdf';
+                          final filePath = '${dir.path}/$fileName';
+                          // Download to temp
+                          await Dio().download(widget.note.fileUrl!, filePath);
+                          // Open with PDF app
+                          await OpenFilex.open(filePath);
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Could not open PDF: $e')),
+                            );
+                          }
+                        } finally {
+                          _isViewing.value = false;
+                        }
+                      },
+                      icon: isViewing
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.visibility, size: 18),
+                      label: Text(isViewing ? 'Opening...' : 'View'),
+                      style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                    ),
+                  ),
                 if (_localPath == null && widget.note.fileUrl != null)
                   ValueListenableBuilder<bool>(
                     valueListenable: _isDownloading,
@@ -1250,7 +1549,8 @@ class _PlannerCardState extends State<_PlannerCard> {
     _isDownloading.value = true;
     _progress.value = 0.0;
 
-    final fileName = '${widget.item.id}_${widget.item.title.replaceAll(' ', '_')}.pdf';
+    final fileName =
+        '${widget.item.id}_${widget.item.title.replaceAll(' ', '_')}.pdf';
     final path = await _downloadService.downloadFile(
       url: widget.item.fileUrl!,
       fileName: fileName,
@@ -1294,12 +1594,31 @@ class _PlannerCardState extends State<_PlannerCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.item.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      if (widget.item.description != null && widget.item.description!.isNotEmpty)
-                        Text(widget.item.description!, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                      Text(
+                        widget.item.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (widget.item.description != null &&
+                          widget.item.description!.isNotEmpty)
+                        Text(
+                          widget.item.description!,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
                       if (widget.item.dueDate != null)
-                        Text('Date: ${_formatDate(widget.item.dueDate!)}',
-                            style: TextStyle(color: Colors.orange[700], fontSize: 12, fontWeight: FontWeight.w500)),
+                        Text(
+                          'Date: ${_formatDate(widget.item.dueDate!)}',
+                          style: TextStyle(
+                            color: Colors.orange[700],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1314,7 +1633,10 @@ class _PlannerCardState extends State<_PlannerCard> {
                   valueListenable: _progress,
                   builder: (context, progress, _) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: LinearProgressIndicator(value: progress, minHeight: 4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 4,
+                    ),
                   ),
                 );
               },
@@ -1394,6 +1716,7 @@ class _QuickActionButton extends StatelessWidget {
 }
 
 /// Download Progress Dialog for "Download All" action
+// ignore: unused_element
 class _DownloadProgressDialog extends StatelessWidget {
   const _DownloadProgressDialog();
 

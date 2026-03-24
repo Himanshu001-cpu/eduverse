@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
-
 class ContinueLearningModel {
   final String id; // Added ID for Firestore
   final String title;
@@ -60,12 +58,18 @@ class EnrolledCourseModel {
   });
 
   // For migration, we might map from Store Course
-  factory EnrolledCourseModel.fromStoreCourse(Map<String, dynamic> courseData, String id, double progress) {
-     List<Color> colors = [Colors.blue, Colors.lightBlueAccent];
+  factory EnrolledCourseModel.fromStoreCourse(
+    Map<String, dynamic> courseData,
+    String id,
+    double progress,
+  ) {
+    List<Color> colors = [Colors.blue, Colors.lightBlueAccent];
     if (courseData['gradientColors'] != null) {
-      colors = (courseData['gradientColors'] as List).map((c) => Color(c)).toList();
+      colors = (courseData['gradientColors'] as List)
+          .map((c) => Color(c))
+          .toList();
     }
-    
+
     return EnrolledCourseModel(
       id: id,
       courseId: courseData['id'] ?? '',
@@ -73,13 +77,13 @@ class EnrolledCourseModel {
       subtitle: courseData['subtitle'] ?? '',
       emoji: courseData['emoji'] ?? '📚',
       gradientColors: colors,
-      lessonCount: 0, // TODO: Fetch real count
+      lessonCount: courseData['totalLectures'] ?? 0,
       progress: progress,
     );
   }
 }
 
-// Renamed from CourseModel to avoid conflict with Store, 
+// Renamed from CourseModel to avoid conflict with Store,
 // using alias in export if needed or refactoring usage.
 class StudyCourseModel {
   final String id;
@@ -100,7 +104,7 @@ class StudyCourseModel {
     this.progress = 0.0,
   });
 
-   Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap() {
     return {
       'title': title,
       'subtitle': subtitle,
@@ -169,12 +173,18 @@ class StudyBatchModel {
     };
   }
 
-  factory StudyBatchModel.fromMap(Map<String, dynamic> map, String id, {Map<String, dynamic>? courseData}) {
+  factory StudyBatchModel.fromMap(
+    Map<String, dynamic> map,
+    String id, {
+    Map<String, dynamic>? courseData,
+  }) {
     List<Color> colors = [Colors.blue, Colors.lightBlueAccent];
     if (map['gradientColors'] != null) {
       colors = (map['gradientColors'] as List).map((c) => Color(c)).toList();
     } else if (courseData != null && courseData['gradientColors'] != null) {
-      colors = (courseData['gradientColors'] as List).map((c) => Color(c)).toList();
+      colors = (courseData['gradientColors'] as List)
+          .map((c) => Color(c))
+          .toList();
     }
     return StudyBatchModel(
       id: id,
@@ -183,8 +193,11 @@ class StudyBatchModel {
       courseName: map['courseName'] ?? courseData?['title'] ?? '',
       emoji: courseData?['emoji'] ?? map['emoji'] ?? '📚',
       gradientColors: colors,
-      startDate: DateTime.tryParse(map['startDate'] ?? '') ?? 
-                 (map['startDate'] is Timestamp ? (map['startDate'] as Timestamp).toDate() : DateTime.now()),
+      startDate:
+          DateTime.tryParse(map['startDate'] ?? '') ??
+          (map['startDate'] is Timestamp
+              ? (map['startDate'] as Timestamp).toDate()
+              : DateTime.now()),
       lessonCount: map['lessonCount'] ?? 0,
       progress: (map['progress'] as num?)?.toDouble() ?? 0.0,
     );
@@ -217,12 +230,16 @@ class LessonModel {
       'videoUrl': videoUrl,
       'pdfUrl': pdfUrl,
       'durationMinutes': durationMinutes,
-      // isCompleted is usually stored in user progress, not lesson doc, 
+      // isCompleted is usually stored in user progress, not lesson doc,
       // but if we merge valid data, it's fine to have it here for UI model.
     };
   }
 
-  factory LessonModel.fromMap(Map<String, dynamic> map, String id, {bool isCompleted = false}) {
+  factory LessonModel.fromMap(
+    Map<String, dynamic> map,
+    String id, {
+    bool isCompleted = false,
+  }) {
     return LessonModel(
       id: id,
       title: map['title'] ?? '',
@@ -313,13 +330,13 @@ class DailyPracticeModel {
   factory DailyPracticeModel.fromMap(Map<String, dynamic> map, String id) {
     // Support both new 'iconName' field and legacy 'iconCode' field
     String iconNameValue = map['iconName'] ?? 'circle';
-    
-    // Legacy migration: if iconCode exists but iconName doesn't, 
+
+    // Legacy migration: if iconCode exists but iconName doesn't,
     // use a default icon name
     if (map['iconName'] == null && map['iconCode'] != null) {
       iconNameValue = 'circle'; // Default fallback for legacy data
     }
-    
+
     return DailyPracticeModel(
       id: id,
       title: map['title'] ?? '',
@@ -407,7 +424,8 @@ class TestModel {
   final String difficulty;
   final int questionCount;
   final int bestScore;
-  final List<QuestionModel> questions; // Usually fetched separately, but good for model
+  final List<QuestionModel>
+  questions; // Usually fetched separately, but good for model
 
   const TestModel({
     required this.id,
@@ -447,7 +465,7 @@ class TopicNodeModel {
   final String title;
   final String description;
   final int colorValue;
-  
+
   Color get color => Color(colorValue);
 
   const TopicNodeModel({
@@ -480,16 +498,9 @@ class TaskModel {
   final String title;
   bool isCompleted;
 
-  TaskModel({
-    required this.id,
-    required this.title,
-    this.isCompleted = false,
-  });
-  
-  Map<String, dynamic> toMap() => {
-    'title': title,
-    'isCompleted': isCompleted,
-  };
+  TaskModel({required this.id, required this.title, this.isCompleted = false});
+
+  Map<String, dynamic> toMap() => {'title': title, 'isCompleted': isCompleted};
 
   factory TaskModel.fromMap(Map<String, dynamic> map, String id) => TaskModel(
     id: id,
@@ -516,7 +527,7 @@ class WorkbookModel {
     required this.progress,
     this.tasks = const [],
   });
-  
+
   Map<String, dynamic> toMap() => {
     'userId': userId,
     'title': title,
@@ -534,7 +545,11 @@ class WorkbookModel {
       dueDate: DateTime.tryParse(map['dueDate'] ?? '') ?? DateTime.now(),
       status: map['status'] ?? 'Not Started',
       progress: (map['progress'] as num?)?.toDouble() ?? 0.0,
-      tasks: (map['tasks'] as List?)?.map((t) => TaskModel.fromMap(t, '')).toList() ?? [],
+      tasks:
+          (map['tasks'] as List?)
+              ?.map((t) => TaskModel.fromMap(t, ''))
+              .toList() ??
+          [],
     );
   }
 }

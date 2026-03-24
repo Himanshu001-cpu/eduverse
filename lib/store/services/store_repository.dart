@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:eduverse/store/models/store_models.dart';
-import 'package:eduverse/store/store_data.dart';
 
 class StoreRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -16,15 +15,14 @@ class StoreRepository {
 
   /// Get all published courses (filtered for public visibility)
   Stream<List<Course>> getCourses() {
-    return _coursesRef
-        .where('visibility', isEqualTo: 'published')
-        .snapshots()
-        .asyncMap((snapshot) async {
+    return _coursesRef.where('visibility', isEqualTo: 'published').snapshots().asyncMap((
+      snapshot,
+    ) async {
       final courses = <Course>[];
-      
+
       for (final doc in snapshot.docs) {
         final data = doc.data();
-        
+
         // Handle gradient colors - support both formats
         List<Color> gradientColors;
         if (data['gradientColors'] != null) {
@@ -34,24 +32,26 @@ class StoreRepository {
         } else {
           gradientColors = [Colors.blue, Colors.blueAccent];
         }
-        
+
         // 1. Fetch batches from embedded array (Legacy/Seeded)
         List<Batch> batches = [];
         if (data['batches'] != null && (data['batches'] as List).isNotEmpty) {
-          batches.addAll((data['batches'] as List<dynamic>).map((b) {
-            return Batch(
-              id: b['id'] ?? '',
-              name: b['name'] ?? '',
-              startDate: b['startDate'] != null 
-                  ? DateTime.parse(b['startDate']) 
-                  : DateTime.now(),
-              price: (b['price'] as num?)?.toDouble() ?? 0.0,
-              seatsLeft: b['seatsLeft'] ?? 0,
-              duration: b['duration'] ?? '',
-              thumbnailUrl: b['thumbnailUrl'] ?? '',
-              isEnrolled: b['isEnrolled'] ?? false, // Will be updated later
-            );
-          }));
+          batches.addAll(
+            (data['batches'] as List<dynamic>).map((b) {
+              return Batch(
+                id: b['id'] ?? '',
+                name: b['name'] ?? '',
+                startDate: b['startDate'] != null
+                    ? DateTime.parse(b['startDate'])
+                    : DateTime.now(),
+                price: (b['price'] as num?)?.toDouble() ?? 0.0,
+                seatsLeft: b['seatsLeft'] ?? 0,
+                duration: b['duration'] ?? '',
+                thumbnailUrl: b['thumbnailUrl'] ?? '',
+                isEnrolled: b['isEnrolled'] ?? false, // Will be updated later
+              );
+            }),
+          );
         }
 
         // 2. Fetch from subcollection (Admin-created) and merge
@@ -61,10 +61,10 @@ class StoreRepository {
               .doc(doc.id)
               .collection('batches')
               .get();
-          
+
           for (final batchDoc in batchSnapshot.docs) {
             final b = batchDoc.data();
-            
+
             // Filter out inactive batches (default to true if missing, e.g. legacy data)
             final bool isActive = b['isActive'] ?? true;
             if (!isActive) continue;
@@ -72,13 +72,19 @@ class StoreRepository {
             final batchId = batchDoc.id;
 
             // Check if this batch is already in the list (avoid duplicates if migration happened)
-            final existingIndex = batches.indexWhere((element) => element.id == batchId);
-            
+            final existingIndex = batches.indexWhere(
+              (element) => element.id == batchId,
+            );
+
             final newBatch = Batch(
               id: batchId,
               name: b['name'] ?? 'Default Batch',
-              startDate: (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              price: (b['price'] as num?)?.toDouble() ?? (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
+              startDate:
+                  (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+              price:
+                  (b['price'] as num?)?.toDouble() ??
+                  (data['priceDefault'] as num?)?.toDouble() ??
+                  0.0,
               seatsLeft: b['seatsLeft'] ?? 0,
               duration: _calculateDuration(
                 (b['startDate'] as Timestamp?)?.toDate(),
@@ -101,34 +107,37 @@ class StoreRepository {
         }
 
         // 3. Update Enrollment Status for all batches
-        // Optimization: Fetch user purchases once outside the loop if possible, 
-        // but here we are inside the course loop. 
+        // Optimization: Fetch user purchases once outside the loop if possible,
+        // but here we are inside the course loop.
         // We'll rely on the UI to check enrollment or do it here if we have userId.
         // The previous code had `isEnrolled` in the model, but it was just reading from JSON or defaulting to false.
         // We really should check against real purchases if we want it to be accurate.
-        // However, `getCourses` doesn't take a userId. 
+        // However, `getCourses` doesn't take a userId.
         // The UI (CourseDetailScreen/StorePage) handles "Enroll Now" vs "Go to Course" logic often by checking purchases again or the user passing logic.
         // But let's keep the `isEnrolled` as false by default here, as strictly `getCourses` is public data.
         // The StorePage or DetailPage can update the state.
-        
-        courses.add(Course(
-          id: doc.id,
-          title: data['title'] ?? '',
-          subtitle: data['subtitle'] ?? '',
-          emoji: data['emoji'] ?? '📚', // Default emoji if not set
-          gradientColors: gradientColors.length >= 2 
-              ? gradientColors 
-              : [Colors.blue, Colors.blueAccent],
-          thumbnailUrl: data['thumbnailUrl'] ?? '',
-          priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
-          batches: batches,
-        ));
+
+        courses.add(
+          Course(
+            id: doc.id,
+            title: data['title'] ?? '',
+            subtitle: data['subtitle'] ?? '',
+            description: data['description'] ?? '',
+            emoji: data['emoji'] ?? '📚', // Default emoji if not set
+            gradientColors: gradientColors.length >= 2
+                ? gradientColors
+                : [Colors.blue, Colors.blueAccent],
+            thumbnailUrl: data['thumbnailUrl'] ?? '',
+            priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
+            batches: batches,
+          ),
+        );
       }
-      
+
       return courses;
     });
   }
-  
+
   // Helper to calculate duration string from start and end dates
   String _calculateDuration(DateTime? start, DateTime? end) {
     if (start == null || end == null) return '3 months';
@@ -162,7 +171,7 @@ class StoreRepository {
       final purchases = await getPurchases(userId);
       final courseIds = <String>{};
       for (final purchase in purchases) {
-        if (purchase.status == 'completed' || purchase.status == 'paid') {
+        if (purchase.status == 'completed' || purchase.status == 'paid' || purchase.status == 'success') {
           for (final item in purchase.items) {
             courseIds.add(item.courseId);
           }
@@ -176,11 +185,15 @@ class StoreRepository {
   }
 
   /// Check if user is enrolled in a specific course/batch
-  Future<bool> isEnrolled(String userId, String courseId, String batchId) async {
+  Future<bool> isEnrolled(
+    String userId,
+    String courseId,
+    String batchId,
+  ) async {
     try {
       final purchases = await getPurchases(userId);
       for (final purchase in purchases) {
-        if (purchase.status == 'completed' || purchase.status == 'paid') {
+        if (purchase.status == 'completed' || purchase.status == 'paid' || purchase.status == 'success') {
           for (final item in purchase.items) {
             if (item.courseId == courseId && item.batchId == batchId) {
               return true;
@@ -201,8 +214,11 @@ class StoreRepository {
         .where('userId', isEqualTo: userId)
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Purchase.fromJson(doc.data())).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Purchase.fromJson(doc.data()))
+              .toList(),
+        );
   }
 
   // --- Seeding ---
@@ -211,7 +227,9 @@ class StoreRepository {
   @Deprecated('Data is now managed via Admin Panel')
   Future<void> seedInitialData() async {
     // No-op: Courses should be created via Admin Panel
-    debugPrint('seedInitialData is deprecated. Use Admin Panel to manage courses.');
+    debugPrint(
+      'seedInitialData is deprecated. Use Admin Panel to manage courses.',
+    );
   }
 
   /// Update existing courses to add visibility field (one-time migration)
@@ -240,11 +258,13 @@ class StoreRepository {
         await doc.reference.delete();
       }
       // Reseed
-      await seedInitialData();
+      // seedInitialData is deprecated - data is now managed via Admin Panel
+      debugPrint(
+        'Data seeding is deprecated. Use Admin Panel to manage courses.',
+      );
       debugPrint('Force reseed completed');
     } catch (e) {
       debugPrint('Force reseed failed: $e');
     }
   }
 }
-

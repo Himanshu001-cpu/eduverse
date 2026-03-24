@@ -13,11 +13,6 @@ class PermissionService {
     return status.isGranted;
   }
 
-  /// Request photos permission (Android 13+)
-  Future<bool> requestPhotosPermission() async {
-    final status = await Permission.photos.request();
-    return status.isGranted || status.isLimited;
-  }
 
   /// Request camera permission
   Future<bool> requestCameraPermission() async {
@@ -25,16 +20,6 @@ class PermissionService {
     return status.isGranted;
   }
 
-  /// Request all media permissions for file picker/uploads
-  Future<bool> requestMediaPermissions() async {
-    final statuses = await [
-      Permission.photos,
-      Permission.videos,
-      Permission.audio,
-    ].request();
-
-    return statuses.values.every((s) => s.isGranted || s.isLimited);
-  }
 
   /// Check if storage permission is granted
   Future<bool> hasStoragePermission() async {
@@ -129,13 +114,4 @@ class PermissionService {
     );
   }
 
-  /// Request photos/gallery permission with rationale
-  Future<bool> requestPhotosWithRationale(BuildContext context) async {
-    return requestWithRationale(
-      context,
-      permission: Permission.photos,
-      title: 'Photo Library Permission Required',
-      message: 'The Eduverse needs access to your photo library to select images and videos for uploads.',
-    );
-  }
 }

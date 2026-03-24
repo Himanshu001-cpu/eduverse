@@ -13,6 +13,9 @@ class LiveClassesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get service reference before any async operations
+    final adminService = context.read<FirebaseAdminService>();
+    
     return AdminScaffold(
       title: batchId != null ? 'Batch Schedule' : 'Free Live Classes',
       floatingActionButton: FloatingActionButton(
@@ -28,8 +31,8 @@ class LiveClassesScreen extends StatelessWidget {
       ),
       body: StreamBuilder<List<AdminLiveClass>>(
         stream: batchId != null && courseId != null
-            ? context.read<FirebaseAdminService>().getBatchLiveClasses(courseId!, batchId!)
-            : context.read<FirebaseAdminService>().getLiveClasses(),
+            ? adminService.getBatchLiveClasses(courseId!, batchId!)
+            : adminService.getLiveClasses(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
@@ -58,65 +61,9 @@ class LiveClassesScreen extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 16),
                 shape: isLive 
                   ? RoundedRectangleBorder(side: const BorderSide(color: Colors.red, width: 2), borderRadius: BorderRadius.circular(12))
-                  : null,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: item.thumbnailUrl.isNotEmpty ? NetworkImage(item.thumbnailUrl) : null,
-                    child: item.thumbnailUrl.isEmpty ? const Icon(Icons.video_camera_front) : null,
-                  ),
-                  title: Text(
-                    item.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${item.durationMinutes} min'),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(DateFormat('MMM dd, yyyy HH:mm').format(item.startTime)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Chip(
-                        label: Text(
-                          item.status.toUpperCase(),
-                          style: TextStyle(
-                            color: isLive ? Colors.white : Colors.black87,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                        backgroundColor: isLive 
-                            ? Colors.red 
-                            : isCompleted ? Colors.grey[300] : Colors.blue[100],
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => Navigator.pushNamed(
-                          context, 
-                          '/live_class_editor', 
-                          arguments: {
-                            'item': item,
-                            'courseId': courseId,
-                            'batchId': batchId,
-                          }
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete(context, item),
-                      ),
-                    ],
-                  ),
+                  : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
                   onTap: () => Navigator.pushNamed(
                     context, 
                     '/live_class_editor', 
@@ -125,6 +72,100 @@ class LiveClassesScreen extends StatelessWidget {
                       'courseId': courseId,
                       'batchId': batchId,
                     }
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Thumbnail
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundImage: item.thumbnailUrl.isNotEmpty ? NetworkImage(item.thumbnailUrl) : null,
+                          child: item.thumbnailUrl.isEmpty ? const Icon(Icons.video_camera_front) : null,
+                        ),
+                        const SizedBox(width: 12),
+                        // Title and info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.title,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${item.durationMinutes} min',
+                                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    DateFormat('MMM dd, yyyy HH:mm').format(item.startTime),
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Status chip and actions
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Chip(
+                              label: Text(
+                                item.status.toUpperCase(),
+                                style: TextStyle(
+                                  color: isLive ? Colors.white : Colors.black87,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                              backgroundColor: isLive 
+                                  ? Colors.red 
+                                  : isCompleted ? Colors.grey[300] : Colors.blue[100],
+                              padding: EdgeInsets.zero,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit, size: 20),
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(4),
+                                  onPressed: () => Navigator.pushNamed(
+                                    context, 
+                                    '/live_class_editor', 
+                                    arguments: {
+                                      'item': item,
+                                      'courseId': courseId,
+                                      'batchId': batchId,
+                                    }
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(4),
+                                  onPressed: () => _confirmDelete(context, adminService, item),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -135,24 +176,37 @@ class LiveClassesScreen extends StatelessWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, AdminLiveClass item) {
+  void _confirmDelete(BuildContext context, FirebaseAdminService adminService, AdminLiveClass item) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Class?'),
         content: Text('Are you sure you want to delete "${item.title}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
-              if (batchId != null && courseId != null) {
-                await context.read<FirebaseAdminService>().deleteBatchLiveClass(courseId!, batchId!, item.id);
-              } else {
-                await context.read<FirebaseAdminService>().deleteLiveClass(item.id);
+              Navigator.pop(dialogContext);
+              try {
+                if (batchId != null && courseId != null) {
+                  await adminService.deleteBatchLiveClass(courseId!, batchId!, item.id);
+                } else {
+                  await adminService.deleteLiveClass(item.id);
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Class deleted successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error deleting: $e')),
+                  );
+                }
               }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),

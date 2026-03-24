@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
@@ -64,10 +64,11 @@ export const onPurchaseCreate = functions.firestore
 
 // 2. enrollStudent: Callable for admins
 export const enrollStudent = functions.https.onCall(async (data, context) => {
-    if (!context.auth || !['admin', 'superadmin'].includes(context.auth.token.role)) {
+    if (!context.auth || !['admin', 'superadmin'].includes(context.auth.token.role as string)) {
         throw new functions.https.HttpsError('permission-denied', 'Not an admin');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { userId: _userId, courseId: _courseId, batchId: _batchId } = data;
     // Similar transaction logic as above...
     // Stub for brevity
@@ -83,7 +84,7 @@ export const webhookPaymentUpdate = functions.https.onRequest(async (req, res) =
 });
 
 // 4. generateInvoice
-export const generateInvoice = functions.https.onCall(async (data, context) => {
+export const generateInvoice = functions.https.onCall(async (_data, _context) => {
     // Stub: Generate PDF, upload to Storage, return URL
     return { url: "https://storage.googleapis.com/bucket/invoice_123.pdf" };
 });
@@ -92,7 +93,7 @@ export const generateInvoice = functions.https.onCall(async (data, context) => {
 // Call this from Firebase Console, Admin SDK, or a secure admin interface
 export const setAdminRole = functions.https.onCall(async (data, context) => {
     // Check if the caller is a superadmin (or first-time bootstrap)
-    const callerRole = context.auth?.token?.role;
+    const callerRole = context.auth?.token?.role as string | undefined;
 
     // For first-time setup, allow if no superadmin exists yet
     // After that, only superadmin can assign roles
@@ -154,7 +155,7 @@ export const setAdminRole = functions.https.onCall(async (data, context) => {
 // 6. removeAdminRole: Revoke admin privileges
 export const removeAdminRole = functions.https.onCall(async (data, context) => {
     // Only superadmin can remove roles
-    if (context.auth?.token?.role !== 'superadmin') {
+    if ((context.auth?.token?.role as string | undefined) !== 'superadmin') {
         throw new functions.https.HttpsError(
             'permission-denied',
             'Only superadmin can remove admin roles'
@@ -201,7 +202,7 @@ export const removeAdminRole = functions.https.onCall(async (data, context) => {
 });
 
 // 7. incrementLessonView: Callable to increment view count
-export const incrementLessonView = functions.https.onCall(async (data, context) => {
+export const incrementLessonView = functions.https.onCall(async (data, _context) => {
     const { courseId, batchId, lessonId } = data;
 
     if (!courseId || !batchId || !lessonId) {
@@ -225,7 +226,7 @@ export const incrementLessonView = functions.https.onCall(async (data, context) 
 });
 
 // 8. backupFirestoreToStorage
-export const backupFirestoreToStorage = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
+export const backupFirestoreToStorage = functions.pubsub.schedule('every 24 hours').onRun(async (_context) => {
     const projectId = process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
     const bucketName = `gs://${projectId}-backups`;
 
@@ -244,3 +245,180 @@ export const backupFirestoreToStorage = functions.pubsub.schedule('every 24 hour
         throw new Error('Export operation failed');
     }
 });
+
+// 9. onNotificationCreate: Send FCM push when notification is created
+export const onNotificationCreate = functions.firestore
+    .document("notifications/{notificationId}")
+    .onCreate(async (snap, context) => {
+        const notification = snap.data();
+        const { title, body, batchId, courseId, targetType, targetId, imageUrl } = notification;
+
+        const messaging = admin.messaging();
+
+        let usersQuery: admin.firestore.Query;
+
+        if (batchId) {
+            // Batch-specific: Get users enrolled in this batch
+            const enrollmentId = `${courseId}_${batchId}`;
+            usersQuery = db.collection("users")
+                .where("enrolledCourses", "array-contains", enrollmentId);
+        } else {
+            // Global notification: Get all users with FCM tokens
+            // Using ">" empty string to find any non-empty token values
+            usersQuery = db.collection("users")
+                .where("fcmToken", ">", "");
+        }
+
+        try {
+            const usersSnapshot = await usersQuery.get();
+            const tokens: string[] = [];
+
+            usersSnapshot.forEach((doc) => {
+                const fcmToken = doc.data().fcmToken;
+                if (fcmToken && typeof fcmToken === "string") {
+                    tokens.push(fcmToken);
+                }
+            });
+
+            if (tokens.length === 0) {
+                console.log("No FCM tokens found for notification:", title);
+                return;
+            }
+
+            console.log(`Sending notification "${title}" to ${tokens.length} devices`);
+
+            // Send to all tokens (in batches of 500 for FCM limits)
+            const batchSize = 500;
+            for (let i = 0; i < tokens.length; i += batchSize) {
+                const tokenBatch = tokens.slice(i, i + batchSize);
+
+                const message: admin.messaging.MulticastMessage = {
+                    tokens: tokenBatch,
+                    notification: {
+                        title: title,
+                        body: body,
+                        imageUrl: imageUrl || undefined,
+                    },
+                    data: {
+                        targetType: targetType || "",
+                        targetId: targetId || "",
+                        notificationId: context.params.notificationId,
+                    },
+                    android: {
+                        priority: "high",
+                        notification: {
+                            channelId: "eduverse_channel",
+                        },
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: "default",
+                                badge: 1,
+                            },
+                        },
+                    },
+                };
+
+                const response = await messaging.sendEachForMulticast(message);
+                console.log(`Sent ${response.successCount}/${tokenBatch.length} notifications successfully`);
+
+                // Log failures for debugging
+                if (response.failureCount > 0) {
+                    response.responses.forEach((resp, idx) => {
+                        if (!resp.success) {
+                            console.log(`Failed to send to token ${idx}:`, resp.error?.message);
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error sending FCM notifications:", error);
+        }
+    });
+
+// 10. sendUpdateReminders: Daily push to users on outdated app versions
+export const sendUpdateReminders = functions.pubsub
+    .schedule('every 24 hours')
+    .onRun(async (_context) => {
+        // Read latest version from app_config/version
+        const configDoc = await db.collection('app_config').doc('version').get();
+        if (!configDoc.exists) {
+            console.log('No app_config/version document found, skipping update reminders.');
+            return;
+        }
+
+        const latestVersion = configDoc.data()?.latestVersion as string | undefined;
+        if (!latestVersion) {
+            console.log('No latestVersion field in app_config/version, skipping.');
+            return;
+        }
+
+        // Get all users with FCM tokens
+        const usersSnapshot = await db.collection('users')
+            .where('fcmToken', '>', '')
+            .get();
+
+        const tokens: string[] = [];
+        usersSnapshot.forEach((doc) => {
+            const data = doc.data();
+            const userVersion = data.appVersion as string | undefined;
+            const fcmToken = data.fcmToken as string | undefined;
+
+            // Only notify users whose app version differs from latest
+            if (fcmToken && userVersion && userVersion !== latestVersion) {
+                tokens.push(fcmToken);
+            }
+        });
+
+        if (tokens.length === 0) {
+            console.log('All users are on the latest version or no tokens found.');
+            return;
+        }
+
+        console.log(`Sending update reminder to ${tokens.length} users (latest: ${latestVersion})`);
+
+        const messaging = admin.messaging();
+        const batchSize = 500;
+
+        for (let i = 0; i < tokens.length; i += batchSize) {
+            const tokenBatch = tokens.slice(i, i + batchSize);
+
+            const message: admin.messaging.MulticastMessage = {
+                tokens: tokenBatch,
+                notification: {
+                    title: '🚀 Update Available!',
+                    body: `A new version (v${latestVersion}) of The Eduverse is available. Update now for the best experience!`,
+                },
+                data: {
+                    targetType: 'update',
+                    targetId: latestVersion,
+                },
+                android: {
+                    priority: 'high',
+                    notification: {
+                        channelId: 'eduverse_channel',
+                    },
+                },
+                apns: {
+                    payload: {
+                        aps: {
+                            sound: 'default',
+                            badge: 1,
+                        },
+                    },
+                },
+            };
+
+            const response = await messaging.sendEachForMulticast(message);
+            console.log(`Update reminder: sent ${response.successCount}/${tokenBatch.length} successfully`);
+
+            if (response.failureCount > 0) {
+                response.responses.forEach((resp, idx) => {
+                    if (!resp.success) {
+                        console.log(`Failed to send to token ${idx}:`, resp.error?.message);
+                    }
+                });
+            }
+        }
+    });

@@ -21,25 +21,20 @@ class _TransactionsPageState extends State<TransactionsPage> {
   final TextEditingController _searchController = TextEditingController();
   final _purchaseService = PurchaseService();
 
-  TransactionStatus _parseStatus(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'success':
-        return TransactionStatus.success;
-      case 'failed':
-        return TransactionStatus.failed;
-      default:
-        return TransactionStatus.pending;
-    }
-  }
-
-  List<Map<String, dynamic>> _applyFilters(List<Map<String, dynamic>> transactions) {
+  List<Map<String, dynamic>> _applyFilters(
+    List<Map<String, dynamic>> transactions,
+  ) {
     var list = List<Map<String, dynamic>>.from(transactions);
 
     // Filter by status
     if (_filter != 'All') {
-      list = list.where((t) => 
-        (t['status'] as String?)?.toLowerCase() == _filter.toLowerCase()
-      ).toList();
+      list = list
+          .where(
+            (t) =>
+                (t['status'] as String?)?.toLowerCase() ==
+                _filter.toLowerCase(),
+          )
+          .toList();
     }
 
     // Filter by date range
@@ -47,16 +42,24 @@ class _TransactionsPageState extends State<TransactionsPage> {
       list = list.where((t) {
         final date = (t['date'] as dynamic)?.toDate() as DateTime?;
         if (date == null) return true;
-        return date.isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
-               date.isBefore(_dateRange!.end.add(const Duration(days: 1)));
+        return date.isAfter(
+              _dateRange!.start.subtract(const Duration(days: 1)),
+            ) &&
+            date.isBefore(_dateRange!.end.add(const Duration(days: 1)));
       }).toList();
     }
 
     // Filter by search (Order ID)
     if (_searchQuery.isNotEmpty) {
-      list = list.where((t) => 
-        (t['orderId'] as String?)?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false
-      ).toList();
+      list = list
+          .where(
+            (t) =>
+                (t['orderId'] as String?)?.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ??
+                false,
+          )
+          .toList();
     }
 
     return list;
@@ -83,7 +86,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    
+
     if (user == null) {
       return const Scaffold(
         body: Center(child: Text('Please log in to view transactions')),
@@ -98,7 +101,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
@@ -120,7 +123,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Total Spent', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          const Text(
+                            'Total Spent',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
                           const SizedBox(height: 4),
                           Text(
                             '₹${totalSpent.toStringAsFixed(2)}',
@@ -135,11 +141,17 @@ class _TransactionsPageState extends State<TransactionsPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          const Text('Transactions', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          const Text(
+                            'Transactions',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
                           const SizedBox(height: 4),
                           Text(
                             '${transactions.length}',
-                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -161,14 +173,23 @@ class _TransactionsPageState extends State<TransactionsPage> {
                             decoration: const InputDecoration(
                               hintText: 'Search Order ID',
                               prefixIcon: Icon(Icons.search),
-                              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 0,
+                                horizontal: 12,
+                              ),
                             ),
-                            onChanged: (val) => setState(() => _searchQuery = val),
+                            onChanged: (val) =>
+                                setState(() => _searchQuery = val),
                           ),
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: Icon(Icons.calendar_today, color: _dateRange != null ? Theme.of(context).primaryColor : Colors.grey),
+                          icon: Icon(
+                            Icons.calendar_today,
+                            color: _dateRange != null
+                                ? Theme.of(context).primaryColor
+                                : Colors.grey,
+                          ),
                           onPressed: _pickDateRange,
                         ),
                       ],
@@ -177,7 +198,9 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: ['All', 'Success', 'Failed', 'Pending'].map((filter) {
+                        children: ['All', 'Success', 'Failed', 'Pending'].map((
+                          filter,
+                        ) {
                           final isSelected = _filter == filter;
                           return Padding(
                             padding: const EdgeInsets.only(right: 8.0),
@@ -201,7 +224,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
               // List
               Expanded(
                 child: transactions.isEmpty
-                    ? const EmptyState(title: 'No transactions found', icon: Icons.receipt_long)
+                    ? const EmptyState(
+                        title: 'No transactions found',
+                        icon: Icons.receipt_long,
+                      )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: transactions.length,
@@ -231,7 +257,9 @@ class _TransactionCard extends StatelessWidget {
     final orderId = item['orderId'] as String? ?? '';
     final amount = (item['amount'] as num?)?.toDouble() ?? 0;
     final dateTimestamp = item['date'];
-    final date = dateTimestamp != null ? (dateTimestamp as dynamic).toDate() as DateTime : DateTime.now();
+    final date = dateTimestamp != null
+        ? (dateTimestamp as dynamic).toDate() as DateTime
+        : DateTime.now();
 
     Color statusColor;
     IconData statusIcon;
@@ -261,17 +289,26 @@ class _TransactionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _detailRow('Order ID', orderId),
-                _detailRow('Date', DateFormat('MMM d, yyyy h:mm a').format(date)),
+                _detailRow(
+                  'Date',
+                  DateFormat('MMM d, yyyy h:mm a').format(date),
+                ),
                 _detailRow('Amount', '₹$amount'),
                 _detailRow('Status', status.toUpperCase()),
                 const SizedBox(height: 8),
                 const Divider(),
                 const SizedBox(height: 8),
-                Text('Product: $productTitle', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Product: $productTitle',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Close'),
+              ),
             ],
           ),
         );
@@ -293,7 +330,10 @@ class _TransactionCard extends StatelessWidget {
               children: [
                 Text(
                   productTitle,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
                 ),
                 Text(
                   DateFormat('MMM d, yyyy').format(date),
@@ -307,11 +347,18 @@ class _TransactionCard extends StatelessWidget {
             children: [
               Text(
                 '₹${amount.toStringAsFixed(0)}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               Text(
                 status.toUpperCase(),
-                style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -333,4 +380,3 @@ class _TransactionCard extends StatelessWidget {
     );
   }
 }
-

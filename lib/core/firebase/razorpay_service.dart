@@ -97,19 +97,20 @@ class RazorpayService {
   Razorpay? _razorpay;
   RazorpayConfig? _config;
   
-  // Callback for current payment
-  void Function(PaymentResult)? _onPaymentComplete;
+  // Callback for current payment - static to persist across app lifecycle
+  static void Function(PaymentResult)? _onPaymentComplete;
 
   /// Get the current configuration
   RazorpayConfig? get config => _config;
 
   /// Initialize Razorpay SDK and load config from Firestore
   Future<void> initialize() async {
-    if (_razorpay != null) return;
-
     debugPrint('[RazorpayService] Initializing...');
     
+    // Always clear and recreate to ensure fresh event handlers
+    _razorpay?.clear();
     _razorpay = Razorpay();
+    
     _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleSuccess);
     _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handleError);
     _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
@@ -161,6 +162,9 @@ class RazorpayService {
   /// [customerName] - Customer's name
   /// [customerEmail] - Customer's email
   /// [customerPhone] - Customer's phone number
+  /// [customerAddress] - Customer's address for prefill
+  /// [gstNumber] - GST number for notes
+  /// [promoCode] - Applied promo code for notes
   /// [description] - Payment description
   /// [onComplete] - Callback when payment completes (success or failure)
   Future<void> startPayment({
@@ -169,18 +173,16 @@ class RazorpayService {
     required String customerName,
     required String customerEmail,
     required String customerPhone,
+    String? customerAddress,
+    String? gstNumber,
+    String? promoCode,
     String? description,
     required void Function(PaymentResult) onComplete,
   }) async {
     debugPrint('[RazorpayService] Starting payment for ₹$amount');
 
-    // Initialize if not already done
-    if (_razorpay == null) {
-      await initialize();
-    }
-
-    // Reload config to ensure we have latest
-    await loadConfig();
+    // Always reinitialize to ensure callbacks are properly registered
+    await initialize();
 
     // Validate config
     if (_config == null || !_config!.isValid) {
@@ -192,11 +194,30 @@ class RazorpayService {
       return;
     }
 
-    // Store callback
+    // Store callback (static to persist)
     _onPaymentComplete = onComplete;
+    debugPrint('[RazorpayService] Callback registered: ${_onPaymentComplete != null}');
 
     // Convert to paise
     final amountInPaise = (amount * 100).toInt();
+
+    // Build prefill data
+    final prefill = <String, dynamic>{
+      'name': customerName,
+      'email': customerEmail,
+      'contact': customerPhone,
+    };
+
+    // Build notes with order details
+    final notes = <String, dynamic>{
+      'order_id': orderId,
+    };
+    if (gstNumber != null && gstNumber.isNotEmpty) {
+      notes['gst_number'] = gstNumber;
+    }
+    if (promoCode != null && promoCode.isNotEmpty) {
+      notes['promo_code'] = promoCode;
+    }
 
     // Build options
     final options = {
@@ -205,14 +226,8 @@ class RazorpayService {
       'currency': _config!.currency,
       'name': _config!.companyName,
       'description': description ?? 'Purchase',
-      'prefill': {
-        'name': customerName,
-        'email': customerEmail,
-        'contact': customerPhone,
-      },
-      'notes': {
-        'order_id': orderId,
-      },
+      'prefill': prefill,
+      'notes': notes,
       'theme': {
         'color': '#6200EE',
       },
@@ -240,21 +255,33 @@ class RazorpayService {
 
   void _handleSuccess(PaymentSuccessResponse response) {
     debugPrint('[RazorpayService] Payment successful: ${response.paymentId}');
-    _onPaymentComplete?.call(PaymentResult.success(
-      paymentId: response.paymentId ?? '',
-      orderId: response.orderId,
-      signature: response.signature,
-    ));
-    _onPaymentComplete = null;
+    debugPrint('[RazorpayService] Callback exists: ${_onPaymentComplete != null}');
+    
+    if (_onPaymentComplete != null) {
+      _onPaymentComplete!(PaymentResult.success(
+        paymentId: response.paymentId ?? '',
+        orderId: response.orderId,
+        signature: response.signature,
+      ));
+      _onPaymentComplete = null;
+    } else {
+      debugPrint('[RazorpayService] WARNING: No callback registered for success!');
+    }
   }
 
   void _handleError(PaymentFailureResponse response) {
     debugPrint('[RazorpayService] Payment failed: ${response.code} - ${response.message}');
-    _onPaymentComplete?.call(PaymentResult.failure(
-      errorCode: response.code ?? -1,
-      errorMessage: response.message ?? 'Payment failed',
-    ));
-    _onPaymentComplete = null;
+    debugPrint('[RazorpayService] Callback exists: ${_onPaymentComplete != null}');
+    
+    if (_onPaymentComplete != null) {
+      _onPaymentComplete!(PaymentResult.failure(
+        errorCode: response.code ?? -1,
+        errorMessage: response.message ?? 'Payment failed',
+      ));
+      _onPaymentComplete = null;
+    } else {
+      debugPrint('[RazorpayService] WARNING: No callback registered for error!');
+    }
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {

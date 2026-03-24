@@ -4,8 +4,6 @@ import 'feed_content.dart';
 import 'models.dart';
 import '../../common/search/global_search_delegate.dart';
 
-import 'repository/feed_repository.dart';
-
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
 
@@ -21,8 +19,6 @@ class _FeedPageState extends State<FeedPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
-    // Seed/Fix data ensuring isPublic field exists
-    FeedRepository().seedFeedData();
   }
 
   @override
@@ -42,16 +38,13 @@ class _FeedPageState extends State<FeedPage>
             const SizedBox(width: 8),
             const Text(
               'The Eduverse',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search), 
+            icon: const Icon(Icons.search),
             onPressed: () {
               showSearch(context: context, delegate: GlobalSearchDelegate());
             },
@@ -71,12 +64,12 @@ class _FeedPageState extends State<FeedPage>
               isScrollable: true,
               tabs: const [
                 Tab(text: 'All'),
-                Tab(text: 'Answer Writing'),
                 Tab(text: 'Current Affairs'),
                 Tab(text: 'Articles'),
                 Tab(text: 'Videos'),
                 Tab(text: 'Quizzes'),
                 Tab(text: 'Jobs'),
+                Tab(text: 'Answer Writing'),
               ],
             ),
           ),
@@ -85,12 +78,12 @@ class _FeedPageState extends State<FeedPage>
           controller: _tabController,
           children: const [
             FeedContent(type: ContentType.all),
-            FeedContent(type: ContentType.answerWriting),
             FeedContent(type: ContentType.currentAffairs),
             FeedContent(type: ContentType.articles),
             FeedContent(type: ContentType.videos),
             FeedContent(type: ContentType.quizzes),
             FeedContent(type: ContentType.jobs),
+            FeedContent(type: ContentType.answerWriting),
           ],
         ),
       ),

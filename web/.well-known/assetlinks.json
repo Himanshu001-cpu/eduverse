@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.eduverse.learning",
+      "sha256_cert_fingerprints": [
+        "02:A7:17:8B:6A:8E:C4:B0:C1:D9:C4:12:16:3E:A8:7E:56:33:C5:A8:A0:5E:58:46:CC:14:C0:27:3F:0A:4E:97"
+      ]
+    }
+  }
+]

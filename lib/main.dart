@@ -1,18 +1,34 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:screen_protector/screen_protector.dart';
 import 'package:eduverse/core/firebase/firebase_initializer.dart';
 import 'package:eduverse/core/notifications/notification_service.dart';
+import 'package:eduverse/core/services/deep_link_service.dart';
+import 'package:eduverse/core/services/deep_link_screens.dart';
 import 'auth/auth_wrapper.dart';
+import 'package:eduverse/settings/delete_account_page.dart';
+import 'package:eduverse/web/landing/landing_page.dart';
 
 void main() async {
+  // Use path URLs (no /#/) for web deep linking
+  usePathUrlStrategy();
+
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await FirebaseInitializer.init();
-    
+
+    // Prevent screenshot and screen recording natively if on mobile
+    if (!kIsWeb) {
+      await ScreenProtector.preventScreenshotOn();
+      await ScreenProtector.protectDataLeakageOn();
+    }
+
     // Initialize push notifications (non-blocking)
     NotificationService().initialize().catchError((e) {
       debugPrint('FCM initialization error (non-fatal): $e');
     });
-    
+
     runApp(const LearningApp());
   } catch (e) {
     runApp(InitializationErrorApp(error: e.toString()));
@@ -57,7 +73,10 @@ class InitializationErrorApp extends StatelessWidget {
                   ),
                   child: Text(
                     error,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -69,18 +88,84 @@ class InitializationErrorApp extends StatelessWidget {
   }
 }
 
-class LearningApp extends StatelessWidget {
+class LearningApp extends StatefulWidget {
   const LearningApp({super.key});
+
+  @override
+  State<LearningApp> createState() => _LearningAppState();
+}
+
+class _LearningAppState extends State<LearningApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize deep link handling and notification navigation after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeepLinkService().initialize(_navigatorKey);
+      // Set navigator key for push notification navigation
+      NotificationService().setNavigatorKey(_navigatorKey);
+    });
+  }
+
+  @override
+  void dispose() {
+    DeepLinkService().dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'The Eduverse',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
+      // Route generator for deep link routes with parameters
+      onGenerateRoute: (settings) {
+        // Handle /course route
+        if (settings.name == '/course') {
+          final courseId = settings.arguments as String?;
+          if (courseId != null) {
+            return MaterialPageRoute(
+              builder: (_) => DeepLinkCourseScreen(courseId: courseId),
+            );
+          }
+        }
+
+        // Handle /batch route
+        if (settings.name == '/batch') {
+          final args = settings.arguments as Map<String, dynamic>?;
+          if (args != null) {
+            return MaterialPageRoute(
+              builder: (_) => DeepLinkBatchScreen(
+                courseId: args['courseId'] as String,
+                batchId: args['batchId'] as String,
+              ),
+            );
+          }
+        }
+
+        // Handle /feed route
+        if (settings.name == '/feed') {
+          final feedId = settings.arguments as String?;
+          if (feedId != null) {
+            return MaterialPageRoute(
+              builder: (_) => DeepLinkFeedScreen(feedId: feedId),
+            );
+          }
+        }
+
+        return null;
+      },
+      routes: {
+        '/delete-account': (context) => const DeleteAccountPage(),
+        '/landing': (context) => const LandingPage(),
+      },
       home: const AuthWrapper(),
     );
   }

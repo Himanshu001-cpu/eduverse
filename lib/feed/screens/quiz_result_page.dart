@@ -1,5 +1,7 @@
 // file: lib/feed/screens/quiz_result_page.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/screens/quiz_page.dart';
 import 'package:eduverse/core/firebase/quiz_stats_service.dart';
@@ -26,7 +28,42 @@ class QuizResultPage extends StatefulWidget {
 class _QuizResultPageState extends State<QuizResultPage> {
   bool _statsSaved = false;
 
-  double get _percentage => (widget.correctCount / widget.questions.length) * 100;
+  double get _totalMarksObtained {
+    double total = 0;
+    for (int i = 0; i < widget.questions.length; i++) {
+      final q = widget.questions[i];
+      final isAttempted = widget.userAnswers[i] != null;
+      if (!isAttempted) continue;
+
+      final isCorrect = widget.userAnswers[i] == q.correctIndex;
+      final markForQ = widget.item.quizMarksPerQuestion ?? q.score.toDouble();
+      final negForQ = widget.item.quizNegativeMarking ?? q.negativeMarks ?? 0.0;
+
+      if (isCorrect) {
+        total += markForQ;
+      } else {
+        total -= negForQ;
+      }
+    }
+    return total;
+  }
+
+  double get _maxMarks {
+    double total = 0;
+    for (var q in widget.questions) {
+      total += widget.item.quizMarksPerQuestion ?? q.score.toDouble();
+    }
+    return total;
+  }
+
+  double get _percentage => _maxMarks > 0
+      ? ((_totalMarksObtained / _maxMarks) * 100).clamp(0, 100)
+      : 0;
+
+  int get _unattemptedCount =>
+      widget.userAnswers.where((a) => a == null).length;
+  int get _wrongCount =>
+      widget.questions.length - widget.correctCount - _unattemptedCount;
 
   String get _message {
     if (_percentage >= 90) return 'Excellent! Outstanding performance! 🌟';
@@ -36,10 +73,33 @@ class _QuizResultPageState extends State<QuizResultPage> {
     return 'Don\'t give up! Review the concepts. 📖';
   }
 
-  Color get _scoreColor {
-    if (_percentage >= 70) return Colors.green;
-    if (_percentage >= 50) return Colors.orange;
-    return Colors.red;
+  Map<String, Map<String, dynamic>> get _subjectBreakdown {
+    Map<String, Map<String, dynamic>> breakdown = {};
+    for (int i = 0; i < widget.questions.length; i++) {
+      final q = widget.questions[i];
+      final subject = q.subject ?? 'Uncategorized';
+      if (!breakdown.containsKey(subject)) {
+        breakdown[subject] = {
+          'correct': 0,
+          'wrong': 0,
+          'skipped': 0,
+          'total': 0,
+        };
+      }
+      breakdown[subject]!['total'] = (breakdown[subject]!['total'] as int) + 1;
+
+      if (widget.userAnswers[i] == null) {
+        breakdown[subject]!['skipped'] =
+            (breakdown[subject]!['skipped'] as int) + 1;
+      } else if (widget.userAnswers[i] == q.correctIndex) {
+        breakdown[subject]!['correct'] =
+            (breakdown[subject]!['correct'] as int) + 1;
+      } else {
+        breakdown[subject]!['wrong'] =
+            (breakdown[subject]!['wrong'] as int) + 1;
+      }
+    }
+    return breakdown;
   }
 
   @override
@@ -51,7 +111,8 @@ class _QuizResultPageState extends State<QuizResultPage> {
   Future<void> _saveQuizStats() async {
     if (_statsSaved) return;
     _statsSaved = true;
-    
+
+    // Save general quiz stats
     await QuizStatsService().saveQuizAttempt(
       quizId: widget.item.id,
       quizTitle: widget.item.title,
@@ -60,6 +121,35 @@ class _QuizResultPageState extends State<QuizResultPage> {
       completed: true,
       source: 'feed',
     );
+
+    // If this is a test series quiz, also save to test_attempts subcollection
+    // Test series quizzes have categoryLabel == 'Test Series' and id format: {testSeriesId}_{testId}
+    if (widget.item.categoryLabel == 'Test Series') {
+      await _saveTestSeriesAttempt();
+    }
+  }
+
+  Future<void> _saveTestSeriesAttempt() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('test_attempts')
+          .doc(widget.item.id) // format: {testSeriesId}_{testId}
+          .set({
+        'score': _totalMarksObtained,
+        'totalMarks': _maxMarks,
+        'correctCount': widget.correctCount,
+        'totalQuestions': widget.questions.length,
+        'percentage': _percentage,
+        'completedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error saving test series attempt: $e');
+    }
   }
 
   @override
@@ -73,7 +163,8 @@ class _QuizResultPageState extends State<QuizResultPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+            onPressed: () =>
+                Navigator.of(context).popUntil((route) => route.isFirst),
           ),
         ],
       ),
@@ -88,7 +179,9 @@ class _QuizResultPageState extends State<QuizResultPage> {
                     // Score card
                     Card(
                       elevation: 4,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(24),
@@ -111,7 +204,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              '${widget.correctCount} / ${widget.questions.length}',
+                              '${_totalMarksObtained.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '')} / ${_maxMarks.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '')}',
                               style: const TextStyle(
                                 fontSize: 48,
                                 fontWeight: FontWeight.bold,
@@ -120,7 +213,10 @@ class _QuizResultPageState extends State<QuizResultPage> {
                             ),
                             const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
@@ -162,21 +258,84 @@ class _QuizResultPageState extends State<QuizResultPage> {
                         _buildStatCard(
                           context,
                           'Wrong',
-                          (widget.questions.length - widget.correctCount).toString(),
+                          _wrongCount.toString(),
                           Colors.red,
                           Icons.cancel,
                         ),
-                        const SizedBox(width: 12),
-                        _buildStatCard(
-                          context,
-                          'Total',
-                          widget.questions.length.toString(),
-                          colorScheme.primary,
-                          Icons.quiz,
-                        ),
+                        if (_unattemptedCount > 0) ...[
+                          const SizedBox(width: 12),
+                          _buildStatCard(
+                            context,
+                            'Skipped',
+                            _unattemptedCount.toString(),
+                            Colors.orange,
+                            Icons.remove_circle_outline,
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 24),
+
+                    // Subject Breakdown
+                    if (_subjectBreakdown.keys.length > 1 ||
+                        (_subjectBreakdown.keys.length == 1 &&
+                            _subjectBreakdown.keys.first !=
+                                'Uncategorized')) ...[
+                      Row(
+                        children: [
+                          Icon(Icons.category, color: colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Subject Breakdown',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.3,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: colorScheme.outlineVariant),
+                        ),
+                        child: Column(
+                          children: _subjectBreakdown.entries.map((e) {
+                            final subjectName = e.key;
+                            final stats = e.value;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      subjectName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    '${stats['correct']}C, ${stats['wrong']}W, ${stats['skipped']}S / ${stats['total']}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
                     // Question review header
                     Row(
                       children: [
@@ -184,9 +343,8 @@ class _QuizResultPageState extends State<QuizResultPage> {
                         const SizedBox(width: 8),
                         Text(
                           'Question Review',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -230,7 +388,9 @@ class _QuizResultPageState extends State<QuizResultPage> {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () {
-                        Navigator.of(context).popUntil((route) => route.isFirst);
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
                       },
                       icon: const Icon(Icons.home),
                       label: const Text('Back to Feed'),
@@ -288,17 +448,30 @@ class _QuizResultPageState extends State<QuizResultPage> {
   Widget _buildQuestionReviewCard(BuildContext context, int index) {
     final question = widget.questions[index];
     final userAnswer = widget.userAnswers[index];
-    final isCorrect = userAnswer == question.correctIndex;
+    final isUnattempted = userAnswer == null;
+    final isCorrect = !isUnattempted && userAnswer == question.correctIndex;
     final colorScheme = Theme.of(context).colorScheme;
+
+    // Determine status color and icon
+    Color statusColor;
+    IconData statusIcon;
+    if (isUnattempted) {
+      statusColor = Colors.orange;
+      statusIcon = Icons.remove_circle_outline;
+    } else if (isCorrect) {
+      statusColor = Colors.green;
+      statusIcon = Icons.check;
+    } else {
+      statusColor = Colors.red;
+      statusIcon = Icons.close;
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isCorrect ? Colors.green.withValues(alpha: 0.5) : Colors.red.withValues(alpha: 0.5),
-        ),
+        side: BorderSide(color: statusColor.withValues(alpha: 0.5)),
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -307,30 +480,56 @@ class _QuizResultPageState extends State<QuizResultPage> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: isCorrect ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+            color: statusColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Center(
-            child: Icon(
-              isCorrect ? Icons.check : Icons.close,
-              color: isCorrect ? Colors.green : Colors.red,
-              size: 20,
-            ),
-          ),
+          child: Center(child: Icon(statusIcon, color: statusColor, size: 20)),
         ),
-        title: Text(
-          'Q${index + 1}. ${question.question}',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (question.subject != null && question.subject!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    question.subject!,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ),
               ),
+            Text(
+              'Q${index + 1}. ${question.question}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
+        subtitle: isUnattempted
+            ? Text(
+                'Not attempted',
+                style: TextStyle(color: Colors.orange, fontSize: 12),
+              )
+            : null,
         children: [
           const Divider(),
           const SizedBox(height: 8),
-          // Your answer
-          if (userAnswer != null) ...[
+          // Your answer (if attempted)
+          if (!isUnattempted) ...[
             _buildAnswerRow(
               context,
               'Your Answer',
@@ -339,8 +538,17 @@ class _QuizResultPageState extends State<QuizResultPage> {
               isCorrect ? Icons.check_circle : Icons.cancel,
             ),
             const SizedBox(height: 8),
+          ] else ...[
+            _buildAnswerRow(
+              context,
+              'Your Answer',
+              '(Not attempted)',
+              Colors.orange,
+              Icons.remove_circle_outline,
+            ),
+            const SizedBox(height: 8),
           ],
-          // Correct answer (if wrong)
+          // Correct answer (if wrong or unattempted)
           if (!isCorrect) ...[
             _buildAnswerRow(
               context,
@@ -352,41 +560,48 @@ class _QuizResultPageState extends State<QuizResultPage> {
             const SizedBox(height: 12),
           ],
           // Explanation
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.lightbulb, size: 16, color: colorScheme.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Explanation',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
+          if (question.explanation != null && question.explanation!.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb,
+                        size: 16,
                         color: colorScheme.primary,
-                        fontSize: 12,
                       ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Explanation',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.primary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    question.explanation!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      height: 1.4,
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  question.explanation ?? '',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        height: 1.4,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -415,10 +630,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            Text(
-              answer,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(answer, style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       ],

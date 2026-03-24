@@ -11,7 +11,7 @@ class PaymentResultPage extends StatelessWidget {
 
   const PaymentResultPage({super.key, required this.purchase});
 
-  bool get _isSuccess => purchase.status == 'Success';
+  bool get _isSuccess => purchase.status.toLowerCase() == 'success';
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,10 @@ class PaymentResultPage extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 _isSuccess ? 'Payment Successful!' : 'Payment Failed',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -62,9 +65,15 @@ class PaymentResultPage extends StatelessWidget {
                   children: [
                     _buildDetailRow('Transaction ID', purchase.id),
                     const Divider(),
-                    _buildDetailRow('Amount', '₹${purchase.amount.toStringAsFixed(2)}'),
+                    _buildDetailRow(
+                      'Amount',
+                      '₹${purchase.amount.toStringAsFixed(2)}',
+                    ),
                     const Divider(),
-                    _buildDetailRow('Date', '${purchase.timestamp.day}/${purchase.timestamp.month}/${purchase.timestamp.year}'),
+                    _buildDetailRow(
+                      'Date',
+                      '${purchase.timestamp.day}/${purchase.timestamp.month}/${purchase.timestamp.year}',
+                    ),
                   ],
                 ),
               ),
@@ -84,7 +93,7 @@ class PaymentResultPage extends StatelessWidget {
                           subtitle: '',
                           gradientColors: [Colors.blue, Colors.purple],
                         );
-                        
+
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
@@ -96,15 +105,22 @@ class PaymentResultPage extends StatelessWidget {
                           (route) => route.isFirst,
                         );
                       } else {
-                        Navigator.of(context).popUntil((route) => route.isFirst);
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Theme.of(context).primaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Go to Course', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Go to Course',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -112,7 +128,9 @@ class PaymentResultPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const PurchaseHistoryPage()),
+                      MaterialPageRoute(
+                        builder: (context) => const PurchaseHistoryPage(),
+                      ),
                     );
                   },
                   child: const Text('View Purchases'),
@@ -135,9 +153,14 @@ class PaymentResultPage extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Colors.red,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Retry Payment', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Retry Payment',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),

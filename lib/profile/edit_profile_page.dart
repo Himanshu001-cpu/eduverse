@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/profile/profile_storage.dart';
+import 'package:eduverse/core/firebase/auth_service.dart';
+import 'package:eduverse/auth/phone_verify_dialog.dart';
 
 class EditProfilePage extends StatefulWidget {
   final ProfileModel? initialData;
@@ -17,18 +19,44 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _bioController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  
+
   String _medium = 'Hinglish';
   String _avatarType = 'emoji';
   String _avatarValue = '👤';
   int _avatarColor = 0xFFD1C4E9;
-  
+
+  // Track original values to detect changes
+  String _originalEmail = '';
+  String _originalPhone = '';
+
   bool _isSaving = false;
+  final _authService = AuthService();
 
   final List<String> _emojis = [
-    '👤', '👨‍🎓', '👩‍🎓', '👨‍🏫', '👩‍🏫', '🚀', '⭐', '📚', 
-    '💡', '🧠', '🎓', '📝', '💻', '🌍', '🎨', '⚽',
-    '🎵', '🎮', '🍕', '🐱', '🐶', '🦁', '🐼', '🦊'
+    '👤',
+    '👨‍🎓',
+    '👩‍🎓',
+    '👨‍🏫',
+    '👩‍🏫',
+    '🚀',
+    '⭐',
+    '📚',
+    '💡',
+    '🧠',
+    '🎓',
+    '📝',
+    '💻',
+    '🌍',
+    '🎨',
+    '⚽',
+    '🎵',
+    '🎮',
+    '🍕',
+    '🐱',
+    '🐶',
+    '🦁',
+    '🐼',
+    '🦊',
   ];
 
   final List<Color> _bgColors = [
@@ -51,6 +79,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _bioController = TextEditingController(text: data.bio);
     _emailController = TextEditingController(text: data.email ?? '');
     _phoneController = TextEditingController(text: data.phone ?? '');
+    _originalEmail = data.email ?? '';
+    _originalPhone = data.phone ?? '';
     _medium = data.medium;
     _avatarType = data.avatarType;
     _avatarValue = data.avatarValue;
@@ -72,9 +102,57 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     setState(() => _isSaving = true);
 
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 800));
+    final newEmail = _emailController.text.trim();
+    final newPhone = _phoneController.text.trim();
 
+    // ── Update email in Firebase Auth if changed ──
+    if (newEmail.isNotEmpty && newEmail != _originalEmail) {
+      final emailResult = await _authService.updateEmail(newEmail);
+      if (!mounted) return;
+      if (!emailResult.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Email update: ${emailResult.errorMessage}'),
+            backgroundColor: Colors.orange.shade600,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(emailResult.successMessage ?? 'Email update initiated'),
+            backgroundColor: Colors.green.shade600,
+          ),
+        );
+      }
+    }
+
+    // ── Update phone in Firebase Auth if changed ──
+    if (newPhone.isNotEmpty && newPhone != _originalPhone) {
+      // Ensure phone has country code
+      final fullPhone = newPhone.startsWith('+') ? newPhone : '+91$newPhone';
+      
+      if (!mounted) return;
+      final credential = await PhoneVerifyDialog.show(
+        context,
+        phoneNumber: fullPhone,
+        title: 'Verify New Phone',
+      );
+
+      if (credential != null) {
+        final phoneResult = await _authService.updatePhoneNumber(credential, fullPhone);
+        if (!mounted) return;
+        if (!phoneResult.isSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Phone update: ${phoneResult.errorMessage}'),
+              backgroundColor: Colors.orange.shade600,
+            ),
+          );
+        }
+      }
+    }
+
+    // ── Save profile to Firestore & local ──
     final newProfile = ProfileModel(
       fullName: _nameController.text.trim(),
       headline: _headlineController.text.trim(),
@@ -83,8 +161,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
       avatarType: _avatarType,
       avatarValue: _avatarValue,
       avatarColor: _avatarColor,
-      email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
-      phone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
+      email: newEmail.isNotEmpty ? newEmail : null,
+      phone: newPhone.isNotEmpty ? newPhone : null,
     );
 
     try {
@@ -93,12 +171,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully')),
       );
-      Navigator.pop(context, true); // Return true to indicate update
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save profile')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to save profile')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -142,7 +220,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             decoration: BoxDecoration(
                               color: Color(_avatarColor),
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.grey.shade300, width: 2),
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 2,
+                              ),
                             ),
                             child: Center(
                               child: Text(
@@ -152,7 +233,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Text('Choose Avatar', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const Text(
+                            'Choose Avatar',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           const SizedBox(height: 8),
                           SizedBox(
                             height: 50,
@@ -162,15 +246,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               itemBuilder: (context, index) {
                                 final emoji = _emojis[index];
                                 return GestureDetector(
-                                  onTap: () => setState(() => _avatarValue = emoji),
+                                  onTap: () =>
+                                      setState(() => _avatarValue = emoji),
                                   child: Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: _avatarValue == emoji ? Colors.grey[200] : null,
+                                      color: _avatarValue == emoji
+                                          ? Colors.grey[200]
+                                          : null,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                                    child: Text(
+                                      emoji,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
                                   ),
                                 );
                               },
@@ -185,16 +277,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               itemBuilder: (context, index) {
                                 final color = _bgColors[index];
                                 return GestureDetector(
-                                  onTap: () => setState(() => _avatarColor = color.value),
+                                  onTap: () => setState(
+                                    () => _avatarColor = color.toARGB32(),
+                                  ),
                                   child: Container(
                                     width: 32,
                                     height: 32,
-                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: color,
                                       shape: BoxShape.circle,
-                                      border: _avatarColor == color.value
-                                          ? Border.all(color: Colors.black, width: 2)
+                                      border: _avatarColor == color.toARGB32()
+                                          ? Border.all(
+                                              color: Colors.black,
+                                              width: 2,
+                                            )
                                           : null,
                                     ),
                                   ),
@@ -211,19 +310,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(labelText: 'Full Name'),
-                      validator: (val) => val == null || val.isEmpty ? 'Name is required' : null,
+                      validator: (val) => val == null || val.isEmpty
+                          ? 'Name is required'
+                          : null,
                       maxLength: 40,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _headlineController,
-                      decoration: const InputDecoration(labelText: 'Headline (Optional)'),
+                      decoration: const InputDecoration(
+                        labelText: 'Headline (Optional)',
+                      ),
                       maxLength: 60,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _bioController,
-                      decoration: const InputDecoration(labelText: 'Bio', alignLabelWithHint: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Bio',
+                        alignLabelWithHint: true,
+                      ),
                       maxLines: 3,
                       maxLength: 250,
                     ),
@@ -248,11 +354,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     const SizedBox(height: 24),
 
                     // Medium Selection
-                    const Text('Preferred Medium', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Preferred Medium',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     SegmentedButton<String>(
                       segments: const [
-                        ButtonSegment(value: 'Hinglish', label: Text('Hinglish')),
+                        ButtonSegment(
+                          value: 'Hinglish',
+                          label: Text('Hinglish'),
+                        ),
                         ButtonSegment(value: 'Hindi', label: Text('Hindi')),
                         ButtonSegment(value: 'English', label: Text('English')),
                       ],

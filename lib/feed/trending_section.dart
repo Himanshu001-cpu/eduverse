@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:carousel_slider/carousel_slider.dart' as carousel;
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/screens/generic_feed_detail_router.dart'; // For FeedDetailRouter
 import 'package:eduverse/core/firebase/firestore_paths.dart';
@@ -13,8 +14,7 @@ class TrendingSection extends StatefulWidget {
 }
 
 class _TrendingSectionState extends State<TrendingSection> {
-  final PageController _controller = PageController(viewportFraction: 0.85);
-  int _page = 0;
+  // carousel_slider handles its own controller
   Timer? _timer;
   List<FeedItem> _feedItems = [];
   bool _isLoading = true;
@@ -70,30 +70,21 @@ class _TrendingSectionState extends State<TrendingSection> {
   }
 
   void _startAutoScroll() {
-    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (_feedItems.isEmpty) return;
-      _page = (_page + 1) % _feedItems.length;
-      if (_controller.hasClients) {
-        _controller.animateToPage(
-          _page,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
+    // Auto-scroll is handled by CarouselSlider's autoPlay option
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final double bannerHeight = screenWidth > 600 ? 220.0 : 200.0;
+    final double viewportFraction = screenWidth > 900 ? 0.6 : (screenWidth > 600 ? 0.8 : 0.9);
+    final double cardWidth = screenWidth * viewportFraction;
+    final double bannerHeight = cardWidth * 9 / 16; // 16:9 aspect ratio
 
     if (_isLoading) {
       return SizedBox(
@@ -109,12 +100,9 @@ class _TrendingSectionState extends State<TrendingSection> {
         children: [
           const Padding(
             padding: EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Text('🔥 ', style: TextStyle(fontSize: 20)),
-                Text('Trending Posts',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-              ],
+            child: Text(
+              'Trending Posts',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
           ),
           Container(
@@ -136,7 +124,11 @@ class _TrendingSectionState extends State<TrendingSection> {
                   SizedBox(height: 12),
                   Text(
                     'No posts yet',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   SizedBox(height: 4),
                   Text(
@@ -157,50 +149,37 @@ class _TrendingSectionState extends State<TrendingSection> {
       children: [
         const Padding(
           padding: EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Text('🔥 ', style: TextStyle(fontSize: 20)),
-              Text('Trending Posts',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-            ],
+          child: Text(
+            'Trending Posts',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
         ),
-        SizedBox(
-          height: bannerHeight,
-          child: PageView.builder(
-            controller: _controller,
-            itemCount: _feedItems.length,
-            onPageChanged: (i) => setState(() => _page = i),
-            itemBuilder: (context, index) {
-              final item = _feedItems[index];
-              return _buildFeedCard(context, item, screenWidth);
-            },
+        carousel.CarouselSlider(
+          options: carousel.CarouselOptions(
+            height: bannerHeight,
+            autoPlay: true,
+            autoPlayInterval: const Duration(seconds: 4),
+            enlargeCenterPage: true,
+            viewportFraction: viewportFraction,
           ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            _feedItems.length,
-            (i) => Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: _page == i ? 24 : 8,
-              height: 8,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-                color: _page == i
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.grey[300],
-              ),
-            ),
-          ),
+          items: _feedItems.map((item) {
+            return Builder(
+              builder: (BuildContext context) {
+                return _buildFeedCard(context, item, screenWidth);
+              },
+            );
+          }).toList(),
         ),
         const SizedBox(height: 16),
       ],
     );
   }
 
-  Widget _buildFeedCard(BuildContext context, FeedItem item, double screenWidth) {
+  Widget _buildFeedCard(
+    BuildContext context,
+    FeedItem item,
+    double screenWidth,
+  ) {
     return GestureDetector(
       onTap: () {
         // Navigate to feed detail using router
@@ -228,38 +207,32 @@ class _TrendingSectionState extends State<TrendingSection> {
                   ? Image.network(
                       item.thumbnailUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => 
+                      errorBuilder: (context, error, stackTrace) =>
                           _buildGradientBackground(item, screenWidth),
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
-                        return _buildGradientBackground(item, screenWidth, showLoader: true);
+                        return _buildGradientBackground(
+                          item,
+                          screenWidth,
+                          showLoader: true,
+                        );
                       },
                     )
                   : _buildGradientBackground(item, screenWidth),
-              // Dark overlay for text readability when using thumbnail
-              if (item.thumbnailUrl.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.8),
-                      ],
-                    ),
-                  ),
-                ),
+
               // Content
               Padding(
                 padding: EdgeInsets.all(screenWidth > 600 ? 24.0 : 20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     // Category badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(12),
@@ -274,53 +247,6 @@ class _TrendingSectionState extends State<TrendingSection> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    // Title
-                    Text(
-                      item.title,
-                      style: TextStyle(
-                        fontSize: screenWidth > 600 ? 22 : 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    // Description
-                    Text(
-                      item.description,
-                      style: TextStyle(
-                        fontSize: screenWidth > 600 ? 14 : 12,
-                        color: Colors.white70,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Spacer(),
-                    // Action button
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(item.buttonIcon, color: item.color, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            item.buttonLabel,
-                            style: TextStyle(
-                              color: item.color,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -331,7 +257,11 @@ class _TrendingSectionState extends State<TrendingSection> {
     );
   }
 
-  Widget _buildGradientBackground(FeedItem item, double screenWidth, {bool showLoader = false}) {
+  Widget _buildGradientBackground(
+    FeedItem item,
+    double screenWidth, {
+    bool showLoader = false,
+  }) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(

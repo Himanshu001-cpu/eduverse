@@ -8,18 +8,29 @@ class CartService {
     // item should contain courseId, batchId, title, price
     final courseId = item['courseId'];
     if (courseId == null) return;
-    
-    final cartRef = _firestore.collection(FirestorePaths.users).doc(uid).collection('cart').doc(courseId);
+
+    final cartRef = _firestore
+        .collection(FirestorePaths.users)
+        .doc(uid)
+        .collection('cart')
+        .doc(courseId);
     await cartRef.set(item);
   }
 
   Future<void> removeFromCart(String uid, String courseId) async {
-    final cartRef = _firestore.collection(FirestorePaths.users).doc(uid).collection('cart').doc(courseId);
+    final cartRef = _firestore
+        .collection(FirestorePaths.users)
+        .doc(uid)
+        .collection('cart')
+        .doc(courseId);
     await cartRef.delete();
   }
 
   Future<void> clearCart(String uid) async {
-    final cartRef = _firestore.collection(FirestorePaths.users).doc(uid).collection('cart');
+    final cartRef = _firestore
+        .collection(FirestorePaths.users)
+        .doc(uid)
+        .collection('cart');
     final snapshot = await cartRef.get();
     for (final doc in snapshot.docs) {
       await doc.reference.delete();

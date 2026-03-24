@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:eduverse/core/notifications/notification_repository.dart';
 import 'package:eduverse/core/notifications/notification_model.dart';
 import 'package:eduverse/common/widgets/empty_state.dart';
+import 'package:eduverse/core/services/deep_link_screens.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -140,7 +141,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       ? null
                       : Theme.of(context).primaryColor.withValues(alpha: 0.05),
                   child: ListTile(
-                    onTap: () => _toggleRead(item),
+                    onTap: () => _handleNotificationTap(item),
                     onLongPress: () => _showOptions(item),
                     leading: CircleAvatar(
                       backgroundColor: _getIconColor(notification.type).withValues(alpha: 0.1),
@@ -207,6 +208,81 @@ class _NotificationsPageState extends State<NotificationsPage> {
     } else {
       return DateFormat('MMM d, h:mm a').format(dateTime);
     }
+  }
+
+  void _handleNotificationTap(UserNotification item) {
+    // 1. Mark as read
+    _toggleRead(item);
+
+    final n = item.notification;
+
+    // 2. Navigate based on target type
+    switch (n.targetType) {
+      case NotificationTargetType.feedItem:
+      case NotificationTargetType.quiz: // Assumes global quiz
+        // Open DeepLinkFeedScreen to fetch and show the item
+        if (n.targetId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DeepLinkFeedScreen(feedId: n.targetId),
+            ),
+          );
+        }
+        break;
+
+      case NotificationTargetType.course:
+        if (n.targetId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DeepLinkCourseScreen(courseId: n.targetId),
+            ),
+          );
+        }
+        break;
+
+      case NotificationTargetType.batch:
+        if (n.courseId != null && n.targetId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DeepLinkBatchScreen(
+                courseId: n.courseId!,
+                batchId: n.targetId,
+              ),
+            ),
+          );
+        } else {
+          _showErrorSnackBar('Missing course information for this batch');
+        }
+        break;
+
+      case NotificationTargetType.liveClass:
+      case NotificationTargetType.lecture:
+        // These are inside a batch, so we navigate to the batch page
+        // Ideally, we could pass an extra argument to highlight the specific lesson
+        if (n.courseId != null && n.batchId != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DeepLinkBatchScreen(
+                courseId: n.courseId!,
+                batchId: n.batchId!,
+              ),
+            ),
+          );
+        } else {
+          _showErrorSnackBar('Missing batch information for this content');
+        }
+        break;
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   IconData _getIcon(NotificationType type) {

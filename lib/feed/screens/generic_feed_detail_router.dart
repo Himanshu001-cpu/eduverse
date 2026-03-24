@@ -12,36 +12,41 @@ import 'package:eduverse/feed/screens/job_detail_page.dart';
 class FeedDetailRouter {
   /// Opens the appropriate detail screen based on the FeedItem's type.
   static void open(BuildContext context, FeedItem item) {
-    Widget page;
-
-    switch (item.type) {
-      case ContentType.articles:
-        page = ArticleDetailPage(item: item);
-        break;
-      case ContentType.currentAffairs:
-        page = CurrentAffairsDetailPage(item: item);
-        break;
-      case ContentType.answerWriting:
-        page = AnswerWritingPage(item: item);
-        break;
-      case ContentType.videos:
-        page = VideoDetailPage(item: item);
-        break;
-      case ContentType.quizzes:
-        page = QuizPage(item: item);
-        break;
-      case ContentType.jobs:
-        page = JobDetailPage(item: item);
-        break;
-      case ContentType.all:
-        // Fallback - should not happen normally
-        page = ArticleDetailPage(item: item);
-        break;
-    }
-
+    final page = _getPage(item);
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => page),
     );
+  }
+
+  /// Opens the detail screen with replacement (for deep links).
+  /// This replaces the current screen instead of pushing on top.
+  static void openWithReplacement(BuildContext context, FeedItem item) {
+    final page = _getPage(item);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+    );
+  }
+
+  /// Gets the appropriate page widget for the feed item type.
+  static Widget _getPage(FeedItem item) {
+    switch (item.type) {
+      case ContentType.articles:
+        return ArticleDetailPage(item: item);
+      case ContentType.currentAffairs:
+        return CurrentAffairsDetailPage(item: item);
+      case ContentType.answerWriting:
+        return AnswerWritingPage(item: item);
+      case ContentType.videos:
+        return VideoDetailPage(item: item);
+      case ContentType.quizzes:
+        return QuizPage(item: item);
+      case ContentType.jobs:
+        return JobDetailPage(item: item);
+      case ContentType.all:
+        // Fallback - should not happen normally
+        return ArticleDetailPage(item: item);
+    }
   }
 }

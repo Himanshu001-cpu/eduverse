@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/repository/feed_repository.dart';
 import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart';
+import 'package:eduverse/admin/services/firebase_admin_service.dart';
+import 'package:eduverse/feed/screens/quiz_page.dart';
 
 /// Admin screen for creating and editing Quiz content
 class QuizEditorScreen extends StatefulWidget {
@@ -16,18 +19,25 @@ class QuizEditorScreen extends StatefulWidget {
 class _QuizEditorScreenState extends State<QuizEditorScreen> {
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
-  
+
   // Quiz details
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  
+  late TextEditingController _instructionsController;
+  late TextEditingController _marksPerQuestionController;
+  late TextEditingController _negativeMarkingController;
+  Duration _quizTimeLimit = Duration.zero;
+
   // Questions
   List<QuizQuestion> _questions = [];
-  
+
+  // Subjects
+  List<String> _subjects = [];
+
   // Feed items for left panel
   List<FeedItem> _feedItems = [];
   FeedItem? _selectedFeedItem;
-  
+
   bool _isLoading = false;
   bool _isLoadingFeed = true;
 
@@ -36,17 +46,33 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
     super.initState();
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
-    
+    _instructionsController = TextEditingController();
+    _marksPerQuestionController = TextEditingController();
+    _negativeMarkingController = TextEditingController();
+
     if (widget.feedItem != null) {
       _loadExistingQuiz();
     }
     _loadFeedItems();
+    _loadSubjects();
   }
 
   void _loadExistingQuiz() {
     final item = widget.feedItem!;
     _titleController.text = item.title;
     _descriptionController.text = item.description;
+    _instructionsController.text = item.quizInstructions ?? '';
+    _marksPerQuestionController.text =
+        item.quizMarksPerQuestion?.toString() ?? '';
+    _negativeMarkingController.text =
+        item.quizNegativeMarking?.toString() ?? '';
+    // Load from seconds if available, fallback to minutes for backward compatibility
+    if (item.quizTimeLimitSeconds != null && item.quizTimeLimitSeconds! > 0) {
+      _quizTimeLimit = Duration(seconds: item.quizTimeLimitSeconds!);
+    } else if (item.quizTimeLimitMinutes != null &&
+        item.quizTimeLimitMinutes! > 0) {
+      _quizTimeLimit = Duration(minutes: item.quizTimeLimitMinutes!);
+    }
     _questions = List.from(item.quizQuestions ?? []);
     _selectedFeedItem = item;
   }
@@ -67,30 +93,72 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
     }
   }
 
+  Future<void> _loadSubjects() async {
+    try {
+      final adminService = Provider.of<FirebaseAdminService>(
+        context,
+        listen: false,
+      );
+      adminService.getSubjects().listen((subjects) {
+        if (mounted) {
+          setState(() {
+            _subjects = subjects;
+          });
+        }
+      });
+    } catch (e) {
+      debugPrint('Error loading subjects: $e');
+    }
+  }
+
+  Future<void> _addNewSubject(String name) async {
+    try {
+      final adminService = Provider.of<FirebaseAdminService>(
+        context,
+        listen: false,
+      );
+      await adminService.addSubject(name);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding subject: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _instructionsController.dispose();
+    _marksPerQuestionController.dispose();
+    _negativeMarkingController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
   void _addQuestion() {
     setState(() {
-      _questions.add(QuizQuestion(
-        id: const Uuid().v4(),
-        questionText: '',
-        answerType: AnswerType.multipleChoice,
-        options: [
-          AnswerOption(id: const Uuid().v4(), text: '', isCorrect: true),
-          AnswerOption(id: const Uuid().v4(), text: ''),
-          AnswerOption(id: const Uuid().v4(), text: ''),
-          AnswerOption(id: const Uuid().v4(), text: ''),
-        ],
-        score: 1,
-      ));
+      _questions.add(
+        QuizQuestion(
+          id: const Uuid().v4(),
+          questionText: '',
+          answerType: AnswerType.multipleChoice,
+          options: [
+            AnswerOption(id: const Uuid().v4(), text: '', isCorrect: true),
+            AnswerOption(id: const Uuid().v4(), text: ''),
+            AnswerOption(id: const Uuid().v4(), text: ''),
+            AnswerOption(id: const Uuid().v4(), text: ''),
+          ],
+          score: 1,
+        ),
+      );
     });
-    
+
     // Scroll to bottom after adding
     Future.delayed(const Duration(milliseconds: 100), () {
       _scrollController.animateTo(
@@ -136,7 +204,17 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
 
     try {
       final id = widget.feedItem?.id ?? const Uuid().v4();
-      
+      final timeLimitSeconds = _quizTimeLimit.inSeconds > 0
+          ? _quizTimeLimit.inSeconds
+          : null;
+      final timeLimitMinutes = _quizTimeLimit.inMinutes > 0
+          ? _quizTimeLimit.inMinutes
+          : null;
+      final marksPerQuestion = double.tryParse(
+        _marksPerQuestionController.text,
+      );
+      final negativeMarking = double.tryParse(_negativeMarkingController.text);
+
       final newItem = FeedItem(
         id: id,
         type: ContentType.quizzes,
@@ -147,6 +225,13 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
         color: Colors.purple,
         isPublic: true,
         quizQuestions: _questions,
+        quizInstructions: _instructionsController.text.isNotEmpty
+            ? _instructionsController.text
+            : null,
+        quizTimeLimitMinutes: timeLimitMinutes,
+        quizTimeLimitSeconds: timeLimitSeconds,
+        quizMarksPerQuestion: marksPerQuestion,
+        quizNegativeMarking: negativeMarking,
       );
 
       await FeedRepository().addFeedItem(newItem);
@@ -190,10 +275,14 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
             padding: const EdgeInsets.only(right: 16),
             child: FilledButton.icon(
               onPressed: _isLoading ? null : _save,
-              icon: _isLoading 
+              icon: _isLoading
                   ? const SizedBox(
-                      width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.save),
               label: const Text('Save'),
@@ -205,20 +294,18 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
         builder: (context, constraints) {
           // Use responsive layout - show sidebar only on wider screens
           final isWideScreen = constraints.maxWidth > 800;
-          
+
           if (isWideScreen) {
             return Row(
               children: [
                 // Left Sidebar - Feed Items List
                 _buildFeedItemsList(),
-                
+
                 // Divider
                 const VerticalDivider(width: 1),
-                
+
                 // Right Panel - Quiz Form
-                Expanded(
-                  child: _buildQuizForm(),
-                ),
+                Expanded(child: _buildQuizForm()),
               ],
             );
           } else {
@@ -243,9 +330,9 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
               padding: const EdgeInsets.all(16),
               child: Text(
                 'Feed Items',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             const Divider(height: 1),
@@ -287,7 +374,7 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                   // Quiz Details Section
                   _buildSectionHeader('Quiz Details'),
                   const SizedBox(height: 16),
-                  
+
                   TextFormField(
                     controller: _titleController,
                     decoration: const InputDecoration(
@@ -296,11 +383,14 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.quiz),
                     ),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
                     validator: (v) => v?.isEmpty == true ? 'Required' : null,
                   ),
                   const SizedBox(height: 16),
-                  
+
                   TextFormField(
                     controller: _descriptionController,
                     decoration: const InputDecoration(
@@ -311,8 +401,69 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                     ),
                     maxLines: 3,
                   ),
+                  const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: _instructionsController,
+                    decoration: const InputDecoration(
+                      labelText: 'Instructions',
+                      hintText: 'Quiz instructions for students...',
+                      border: OutlineInputBorder(),
+                      alignLabelWithHint: true,
+                      prefixIcon: Icon(Icons.info_outline),
+                    ),
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Time Limit Picker
+                  const Text(
+                    'Settings',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _marksPerQuestionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Marks Per Question',
+                            hintText: 'e.g., 2.0',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.star_outline),
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _negativeMarkingController,
+                          decoration: const InputDecoration(
+                            labelText: 'Negative Marking (Penalty)',
+                            hintText: 'e.g., 0.25',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.remove_circle_outline),
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Time Limit',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDurationPicker(),
                   const SizedBox(height: 24),
-                  
+
                   // Questions Section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -326,7 +477,7 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Questions List
                   if (_questions.isEmpty)
                     Card(
@@ -336,11 +487,18 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                         child: Center(
                           child: Column(
                             children: [
-                              Icon(Icons.quiz_outlined, size: 48, color: Colors.grey),
+                              Icon(
+                                Icons.quiz_outlined,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
                               SizedBox(height: 12),
                               Text(
                                 'No questions yet',
-                                style: TextStyle(color: Colors.grey, fontSize: 16),
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
                               ),
                               SizedBox(height: 8),
                               Text(
@@ -370,6 +528,8 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                           key: ValueKey(_questions[index].id),
                           index: index,
                           question: _questions[index],
+                          subjects: _subjects,
+                          onAddSubject: _addNewSubject,
                           onUpdate: (q) => _updateQuestion(index, q),
                           onDelete: () => _removeQuestion(index),
                         );
@@ -398,9 +558,9 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
         const SizedBox(width: 12),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -418,9 +578,45 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
         children: [
           OutlinedButton.icon(
             onPressed: () {
-              // TODO: Preview functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Preview coming soon!')),
+              if (_questions.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Add questions to preview')),
+                );
+                return;
+              }
+              final timeLimitSeconds = _quizTimeLimit.inSeconds > 0
+                  ? _quizTimeLimit.inSeconds
+                  : null;
+              final timeLimitMinutes = _quizTimeLimit.inMinutes > 0
+                  ? _quizTimeLimit.inMinutes
+                  : null;
+              final previewItem = FeedItem(
+                id: 'preview',
+                type: ContentType.quizzes,
+                title: _titleController.text.isNotEmpty
+                    ? _titleController.text
+                    : 'Preview Quiz',
+                description: _descriptionController.text,
+                categoryLabel: 'QUIZ',
+                emoji: '❓',
+                color: Colors.purple,
+                isPublic: false,
+                quizQuestions: _questions,
+                quizInstructions: _instructionsController.text,
+                quizTimeLimitMinutes: timeLimitMinutes,
+                quizTimeLimitSeconds: timeLimitSeconds,
+                quizMarksPerQuestion: double.tryParse(
+                  _marksPerQuestionController.text,
+                ),
+                quizNegativeMarking: double.tryParse(
+                  _negativeMarkingController.text,
+                ),
+              );
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QuizPage(item: previewItem),
+                ),
               );
             },
             icon: const Icon(Icons.visibility),
@@ -434,6 +630,103 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDurationPicker() {
+    final hours = _quizTimeLimit.inHours;
+    final minutes = _quizTimeLimit.inMinutes % 60;
+    final seconds = _quizTimeLimit.inSeconds % 60;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade400),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.timer, color: Colors.grey.shade600),
+          const SizedBox(width: 16),
+          // Hours
+          _buildDurationField('Hours', hours, (val) {
+            setState(() {
+              _quizTimeLimit = Duration(
+                hours: val,
+                minutes: minutes,
+                seconds: seconds,
+              );
+            });
+          }),
+          const SizedBox(width: 8),
+          Text(
+            ':',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 8),
+          // Minutes
+          _buildDurationField('Minutes', minutes, (val) {
+            setState(() {
+              _quizTimeLimit = Duration(
+                hours: hours,
+                minutes: val,
+                seconds: seconds,
+              );
+            });
+          }),
+          const SizedBox(width: 8),
+          Text(
+            ':',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 8),
+          // Seconds
+          _buildDurationField('Seconds', seconds, (val) {
+            setState(() {
+              _quizTimeLimit = Duration(
+                hours: hours,
+                minutes: minutes,
+                seconds: val,
+              );
+            });
+          }),
+          const Spacer(),
+          if (_quizTimeLimit > Duration.zero)
+            TextButton(
+              onPressed: () => setState(() => _quizTimeLimit = Duration.zero),
+              child: Text('Clear'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDurationField(
+    String label,
+    int value,
+    ValueChanged<int> onChanged,
+  ) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey)),
+        SizedBox(
+          width: 50,
+          child: TextFormField(
+            initialValue: value.toString().padLeft(2, '0'),
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (v) {
+              final parsed = int.tryParse(v) ?? 0;
+              onChanged(parsed.clamp(0, label == 'Hours' ? 99 : 59));
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -535,6 +828,8 @@ class _FeedItemCard extends StatelessWidget {
 class _QuestionCard extends StatefulWidget {
   final int index;
   final QuizQuestion question;
+  final List<String> subjects;
+  final Future<void> Function(String) onAddSubject;
   final ValueChanged<QuizQuestion> onUpdate;
   final VoidCallback onDelete;
 
@@ -542,6 +837,8 @@ class _QuestionCard extends StatefulWidget {
     super.key,
     required this.index,
     required this.question,
+    required this.subjects,
+    required this.onAddSubject,
     required this.onUpdate,
     required this.onDelete,
   });
@@ -558,12 +855,16 @@ class _QuestionCardState extends State<_QuestionCard> {
   @override
   void initState() {
     super.initState();
-    _questionController = TextEditingController(text: widget.question.questionText);
-    _shortAnswerController = TextEditingController(text: widget.question.correctShortAnswer ?? '');
+    _questionController = TextEditingController(
+      text: widget.question.questionText,
+    );
+    _shortAnswerController = TextEditingController(
+      text: widget.question.correctShortAnswer ?? '',
+    );
     _optionControllers = widget.question.options
         .map((o) => TextEditingController(text: o.text))
         .toList();
-    
+
     // Ensure we have 4 option controllers for multiple choice
     while (_optionControllers.length < 4) {
       _optionControllers.add(TextEditingController());
@@ -616,6 +917,43 @@ class _QuestionCardState extends State<_QuestionCard> {
     widget.onUpdate(widget.question.copyWith(score: score));
   }
 
+  void _updateSubject(String? subject) {
+    widget.onUpdate(widget.question.copyWith(subject: subject));
+  }
+
+  Future<void> _showAddSubjectDialog() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Subject'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Subject Name'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                Navigator.pop(context, controller.text.trim());
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      await widget.onAddSubject(result);
+      _updateSubject(result);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -639,12 +977,18 @@ class _QuestionCardState extends State<_QuestionCard> {
                   children: [
                     ReorderableDragStartListener(
                       index: widget.index,
-                      child: const Icon(Icons.drag_indicator, color: Colors.grey),
+                      child: const Icon(
+                        Icons.drag_indicator,
+                        color: Colors.grey,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Question ${widget.index + 1}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),
@@ -661,11 +1005,58 @@ class _QuestionCardState extends State<_QuestionCard> {
                         textAlign: TextAlign.center,
                         decoration: const InputDecoration(
                           isDense: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
                           border: OutlineInputBorder(),
                         ),
                         onChanged: (v) => _updateScore(int.tryParse(v) ?? 1),
                       ),
+                    ),
+                  ],
+                ),
+                // Subject Dropdown
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Subject: ', style: TextStyle(fontSize: 12)),
+                    DropdownButton<String>(
+                      value:
+                          widget.question.subject != null &&
+                              widget.subjects.contains(widget.question.subject)
+                          ? widget.question.subject
+                          : null,
+                      hint: const Text('None', style: TextStyle(fontSize: 12)),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('None', style: TextStyle(fontSize: 12)),
+                        ),
+                        ...widget.subjects.map(
+                          (sub) => DropdownMenuItem(
+                            value: sub,
+                            child: Text(
+                              sub,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ),
+                        const DropdownMenuItem<String>(
+                          value: '__ADD_NEW__',
+                          child: Text(
+                            '+ Add New',
+                            style: TextStyle(fontSize: 12, color: Colors.blue),
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val == '__ADD_NEW__') {
+                          _showAddSubjectDialog();
+                        } else {
+                          _updateSubject(val);
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -678,7 +1069,7 @@ class _QuestionCardState extends State<_QuestionCard> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Question Text Field
             TextFormField(
               controller: _questionController,
@@ -691,11 +1082,11 @@ class _QuestionCardState extends State<_QuestionCard> {
               onChanged: _updateQuestionText,
             ),
             const SizedBox(height: 16),
-            
+
             // Answer Type Toggle
             _buildAnswerTypeToggle(),
             const SizedBox(height: 16),
-            
+
             // Answer Fields based on type
             _buildAnswerFields(),
           ],
@@ -752,8 +1143,8 @@ class _QuestionCardState extends State<_QuestionCard> {
         ),
         const SizedBox(height: 8),
         ...List.generate(4, (index) {
-          final isCorrect = index < widget.question.options.length 
-              ? widget.question.options[index].isCorrect 
+          final isCorrect = index < widget.question.options.length
+              ? widget.question.options[index].isCorrect
               : false;
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -798,8 +1189,8 @@ class _QuestionCardState extends State<_QuestionCard> {
           selected: correctAnswer == true,
           onSelected: (_) => _setCorrectBoolean(true),
           selectedColor: Colors.green.shade200,
-          avatar: correctAnswer == true 
-              ? const Icon(Icons.check, size: 18, color: Colors.green) 
+          avatar: correctAnswer == true
+              ? const Icon(Icons.check, size: 18, color: Colors.green)
               : null,
         ),
         const SizedBox(width: 8),
@@ -808,8 +1199,8 @@ class _QuestionCardState extends State<_QuestionCard> {
           selected: correctAnswer == false,
           onSelected: (_) => _setCorrectBoolean(false),
           selectedColor: Colors.red.shade200,
-          avatar: correctAnswer == false 
-              ? const Icon(Icons.check, size: 18, color: Colors.red) 
+          avatar: correctAnswer == false
+              ? const Icon(Icons.check, size: 18, color: Colors.red)
               : null,
         ),
       ],

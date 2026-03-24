@@ -128,8 +128,8 @@ class _BookmarksPageState extends State<BookmarksPage> {
                 gradientColors: batchModel.gradientColors,
                 thumbnailUrl: item.metadata?['thumbnailUrl'] ?? '', 
                 startDate: batchModel.startDate,
-                totalLectures: batchModel.lessonCount,
-                completedLectures: (batchModel.progress * batchModel.lessonCount).round(),
+                totalLectures: batchModel.totalLectures,
+                completedLectures: batchModel.completedLectures,
                 progress: batchModel.progress,
              );
 

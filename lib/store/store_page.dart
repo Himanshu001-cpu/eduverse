@@ -6,10 +6,31 @@ import 'package:eduverse/store/see_all_courses_page.dart';
 import 'package:eduverse/store/screens/course_detail_page.dart';
 import 'package:eduverse/store/services/store_repository.dart';
 import 'package:eduverse/store/models/store_models.dart';
+import 'package:eduverse/store/widgets/store_test_series_content.dart';
 import '../../common/search/global_search_delegate.dart';
 
-class StorePage extends StatelessWidget {
+class StorePage extends StatefulWidget {
   const StorePage({super.key});
+
+  @override
+  State<StorePage> createState() => _StorePageState();
+}
+
+class _StorePageState extends State<StorePage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,137 +43,198 @@ class StorePage extends StatelessWidget {
             const SizedBox(width: 8),
             const Text(
               'The Eduverse',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search), 
+            icon: const Icon(Icons.search),
             onPressed: () {
               showSearch(context: context, delegate: GlobalSearchDelegate());
             },
           ),
         ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            const BannerSlider(),
-            const SizedBox(height: 24),
-            
-            // Featured Courses
-            _buildSectionHeader(context, 'Featured Courses', () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SeeAllCoursesPage(title: 'Featured Courses'),
-                ),
-              );
-            }),
-            SizedBox(
-              height: 180,
-              child: StreamBuilder<List<Course>>(
-                stream: StoreRepository().getCourses(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                  
-                  final courses = snapshot.data!;
-                  if (courses.isEmpty) {
-                     // Update visibility on existing courses and trigger seeding if needed
-                     StoreRepository().updateExistingCoursesVisibility();
-                     StoreRepository().seedInitialData();
-                     return const Center(child: CircularProgressIndicator());
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: courses.length,
-                    itemBuilder: (context, index) {
-                      final course = courses[index];
-                      return CourseCard(
-                        course: course,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CourseDetailPage(course: course),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(52),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(12),
             ),
-
-            const SizedBox(height: 16),
-
-            // Trending
-            _buildSectionHeader(context, 'Trending Now', () {
-               Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SeeAllCoursesPage(title: 'Trending Now'),
-                ),
-              );
-            }),
-            SizedBox(
-              height: 180,
-              child: StreamBuilder<List<Course>>(
-                stream: StoreRepository().getCourses(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  // Reverse order for trending (most recent first)
-                  final courses = snapshot.data!.reversed.toList();
-                  if (courses.isEmpty) {
-                    return const Center(child: Text('No trending courses'));
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: courses.length,
-                    itemBuilder: (context, index) {
-                      final course = courses[index];
-                      return CourseCard(
-                        course: course,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CourseDetailPage(course: course),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelColor: Colors.blue.shade700,
+              unselectedLabelColor: Colors.grey.shade600,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              tabs: const [
+                Tab(text: 'Courses'),
+                Tab(text: 'Test Series'),
+              ],
             ),
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Tab 1: Courses (existing content)
+          _CoursesContent(),
+          // Tab 2: Test Series
+          const StoreTestSeriesContent(),
+        ],
+      ),
+    );
+  }
+}
+
+/// The original store courses content, extracted into its own widget.
+class _CoursesContent extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          const BannerSlider(),
+          const SizedBox(height: 24),
+
+          // Trending
+          _buildSectionHeader(context, 'Trending Now', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    const SeeAllCoursesPage(title: 'Trending Now'),
+              ),
+            );
+          }),
+          SizedBox(
+            height: 180,
+            child: StreamBuilder<List<Course>>(
+              stream: StoreRepository().getCourses(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final courses = snapshot.data!.reversed.toList();
+                if (courses.isEmpty) {
+                  return const Center(child: Text('No trending courses'));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: courses.length,
+                  itemBuilder: (context, index) {
+                    final course = courses[index];
+                    return CourseCard(
+                      course: course,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                CourseDetailPage(course: course),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Featured Courses
+          _buildSectionHeader(context, 'Featured Courses', () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    const SeeAllCoursesPage(title: 'Featured Courses'),
+              ),
+            );
+          }),
+          SizedBox(
+            height: 180,
+            child: StreamBuilder<List<Course>>(
+              stream: StoreRepository().getCourses(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError)
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                if (!snapshot.hasData)
+                  return const Center(child: CircularProgressIndicator());
+
+                final courses = snapshot.data!;
+                if (courses.isEmpty) {
+                  StoreRepository().updateExistingCoursesVisibility();
+                  return const Center(child: Text('No courses available'));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: courses.length,
+                  itemBuilder: (context, index) {
+                    final course = courses[index];
+                    return CourseCard(
+                      course: course,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                CourseDetailPage(course: course),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, VoidCallback onSeeAll) {
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    VoidCallback onSeeAll,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -162,10 +244,7 @@ class StorePage extends StatelessWidget {
             title,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          TextButton(
-            onPressed: onSeeAll,
-            child: const Text('See All'),
-          ),
+          TextButton(onPressed: onSeeAll, child: const Text('See All')),
         ],
       ),
     );

@@ -5,12 +5,17 @@ import '../models/store_models.dart';
 class CartItemTile extends StatelessWidget {
   final CartItem item;
   final VoidCallback onRemove;
+  final double? discountedPrice;
 
   const CartItemTile({
     super.key,
     required this.item,
     required this.onRemove,
+    this.discountedPrice,
   });
+
+  bool get _hasDiscount =>
+      discountedPrice != null && discountedPrice! < item.price;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +42,7 @@ class CartItemTile extends StatelessWidget {
               child: const Icon(Icons.school, size: 28, color: Colors.blue),
             ),
             const SizedBox(width: 16),
-            
+
             // Details
             Expanded(
               child: Column(
@@ -55,35 +60,82 @@ class CartItemTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Batch ID: ${item.batchId}',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Text(
-                        '₹${item.price.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Theme.of(context).primaryColor,
+                      // Price display
+                      if (_hasDiscount) ...[
+                        // Original price with strikethrough
+                        Text(
+                          '₹${item.price.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade500,
+                            decoration: TextDecoration.lineThrough,
+                            decorationColor: Colors.grey.shade500,
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 6),
+                        // Discounted price
+                        Text(
+                          '₹${discountedPrice!.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // Promo tag
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.green.shade200),
+                          ),
+                          child: Text(
+                            '🏷️ PROMO',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ),
+                      ] else
+                        Text(
+                          '₹${item.price.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
                       const Spacer(),
                       // Quantity
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'Qty: ${item.quantity}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -91,7 +143,7 @@ class CartItemTile extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Remove Action
             IconButton(
               icon: const Icon(Icons.close, color: Colors.grey),

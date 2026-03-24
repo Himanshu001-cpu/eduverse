@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eduverse/core/firebase/user_service.dart';
 
@@ -186,6 +187,146 @@ class AuthService {
     await _auth.signOut();
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // PHONE LINKING & ACCOUNT UPDATES
+  // ─────────────────────────────────────────────────────────────────
+
+  /// Link a phone credential to the currently signed-in user.
+  Future<AuthResult> linkPhoneToAccount(PhoneAuthCredential credential) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return AuthResult.failure('No user signed in');
+      }
+      await user.linkWithCredential(credential);
+      return AuthResult.success(user, message: 'Phone number linked successfully');
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'credential-already-in-use') {
+        return AuthResult.failure('This phone number is already linked to another account');
+      }
+      return AuthResult.failure(_mapFirebaseError(e.code));
+    } catch (e) {
+      return AuthResult.failure('Failed to link phone number');
+    }
+  }
+
+  /// Verify a phone number for linking or updating (not for sign-in).
+  /// Returns the credential via callbacks, which can then be used with
+  /// linkPhoneToAccount or updatePhoneNumber.
+  String? _linkVerificationId;
+  int? _linkResendToken;
+
+  Future<void> verifyPhoneForLinking({
+    required String phoneNumber,
+    required Function(String verificationId) onCodeSent,
+    required Function(String error) onError,
+    required Function(PhoneAuthCredential credential) onAutoVerified,
+  }) async {
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        timeout: const Duration(seconds: 60),
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          onAutoVerified(credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          onError(_mapFirebaseError(e.code));
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          _linkVerificationId = verificationId;
+          _linkResendToken = resendToken;
+          onCodeSent(verificationId);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _linkVerificationId = verificationId;
+        },
+        forceResendingToken: _linkResendToken,
+      );
+    } catch (e) {
+      onError('Failed to verify phone number');
+    }
+  }
+
+  /// Verify an OTP for linking/updating (uses _linkVerificationId).
+  PhoneAuthCredential? getLinkingCredential(String otp) {
+    if (_linkVerificationId == null) return null;
+    return PhoneAuthProvider.credential(
+      verificationId: _linkVerificationId!,
+      smsCode: otp,
+    );
+  }
+
+  /// Update the email on the currently signed-in Firebase Auth user.
+  Future<AuthResult> updateEmail(String newEmail) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return AuthResult.failure('No user signed in');
+      }
+      await user.verifyBeforeUpdateEmail(newEmail.trim());
+      // Also update Firestore
+      await _userService.updateUserProfile(user.uid, {
+        'email': newEmail.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return AuthResult.success(user, message: 'Verification email sent to $newEmail. Please verify to complete the change.');
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        return AuthResult.failure('Please re-login and try again');
+      }
+      return AuthResult.failure(_mapFirebaseError(e.code));
+    } catch (e) {
+      return AuthResult.failure('Failed to update email');
+    }
+  }
+
+  /// Update the phone number on the currently signed-in Firebase Auth user.
+  Future<AuthResult> updatePhoneNumber(PhoneAuthCredential credential, String phoneNumber) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return AuthResult.failure('No user signed in');
+      }
+      await user.updatePhoneNumber(credential);
+      // Also update Firestore
+      await _userService.updateUserProfile(user.uid, {
+        'phone': phoneNumber,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return AuthResult.success(user, message: 'Phone number updated successfully');
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        return AuthResult.failure('Please re-login and try again');
+      }
+      return AuthResult.failure(_mapFirebaseError(e.code));
+    } catch (e) {
+      return AuthResult.failure('Failed to update phone number');
+    }
+  }
+
+  /// Re-authenticate the user with email/password (required before sensitive ops).
+  Future<AuthResult> reauthenticateWithEmail(String email, String password) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return AuthResult.failure('No user signed in');
+      }
+      final credential = EmailAuthProvider.credential(email: email, password: password);
+      await user.reauthenticateWithCredential(credential);
+      return AuthResult.success(user);
+    } on FirebaseAuthException catch (e) {
+      return AuthResult.failure(_mapFirebaseError(e.code));
+    } catch (e) {
+      return AuthResult.failure('Re-authentication failed');
+    }
+  }
+
+  /// Check if a user document exists in Firestore.
+  Future<bool> userProfileExists(String uid) async {
+    final data = await _userService.getCurrentUserData(uid);
+    return data != null && data['name'] != null && data['name'] != '';
+  }
+
   String _mapFirebaseError(String code) {
     switch (code) {
       case 'user-not-found':
@@ -198,6 +339,10 @@ class AuthService {
         return 'An account already exists with this email';
       case 'weak-password':
         return 'Password should be at least 6 characters';
+      case 'credential-already-in-use':
+        return 'This credential is already linked to another account';
+      case 'requires-recent-login':
+        return 'Please re-login and try again';
       default:
         return 'Authentication error: $code';
     }

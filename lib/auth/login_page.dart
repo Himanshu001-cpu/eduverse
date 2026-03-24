@@ -69,6 +69,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       _showError(result.errorMessage!);
     }
     // On success, AuthWrapper will automatically navigate to main app
+    // However, on web/deep links, sometimes we need to clear the stack manually
+    // to ensure the UI updates immediately without a refresh.
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
   }
 
   void _showError(String message) {

@@ -32,13 +32,13 @@ class ArticleContent {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'body': body,
-        'tags': tags,
-        'estimatedReadTime': estimatedReadTime,
-        'publishedDate': publishedDate?.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'body': body,
+    'tags': tags,
+    'estimatedReadTime': estimatedReadTime,
+    'publishedDate': publishedDate?.toIso8601String(),
+  };
 }
 
 /// Current Affairs extended content with structured sections
@@ -49,7 +49,7 @@ class CurrentAffairsContent {
   final String context; // national/international
   final String whatHappened;
   final String whyItMatters;
-  final String upscRelevance;
+  final String examRelevance;
   final List<String> tags;
 
   const CurrentAffairsContent({
@@ -59,7 +59,7 @@ class CurrentAffairsContent {
     required this.context,
     required this.whatHappened,
     required this.whyItMatters,
-    required this.upscRelevance,
+    required this.examRelevance,
     this.tags = const [],
   });
 
@@ -71,21 +71,24 @@ class CurrentAffairsContent {
       context: json['context'] as String,
       whatHappened: json['whatHappened'] as String,
       whyItMatters: json['whyItMatters'] as String,
-      upscRelevance: json['upscRelevance'] as String,
+      examRelevance:
+          json['examRelevance'] as String? ??
+          json['upscRelevance'] as String? ??
+          '',
       tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? [],
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'eventDate': eventDate.toIso8601String(),
-        'context': context,
-        'whatHappened': whatHappened,
-        'whyItMatters': whyItMatters,
-        'upscRelevance': upscRelevance,
-        'tags': tags,
-      };
+    'id': id,
+    'title': title,
+    'eventDate': eventDate.toIso8601String(),
+    'context': context,
+    'whatHappened': whatHappened,
+    'whyItMatters': whyItMatters,
+    'examRelevance': examRelevance,
+    'tags': tags,
+  };
 }
 
 /// Answer writing question content
@@ -118,13 +121,13 @@ class AnswerWritingContent {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'question': question,
-        'wordLimit': wordLimit,
-        'timeLimitMinutes': timeLimitMinutes,
-        'modelAnswer': modelAnswer,
-        'keyPoints': keyPoints,
-      };
+    'id': id,
+    'question': question,
+    'wordLimit': wordLimit,
+    'timeLimitMinutes': timeLimitMinutes,
+    'modelAnswer': modelAnswer,
+    'keyPoints': keyPoints,
+  };
 }
 
 /// Answer types for quiz questions
@@ -151,10 +154,10 @@ class AnswerOption {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'text': text,
-        'isCorrect': isCorrect,
-      };
+    'id': id,
+    'text': text,
+    'isCorrect': isCorrect,
+  };
 
   AnswerOption copyWith({String? id, String? text, bool? isCorrect}) {
     return AnswerOption(
@@ -175,6 +178,8 @@ class QuizQuestion {
   final String? correctShortAnswer; // For short answer
   final int score;
   final String? explanation;
+  final String? subject;
+  final double? negativeMarks;
 
   const QuizQuestion({
     required this.id,
@@ -185,6 +190,8 @@ class QuizQuestion {
     this.correctShortAnswer,
     this.score = 1,
     this.explanation,
+    this.subject,
+    this.negativeMarks,
   });
 
   // Legacy compatibility: get question text
@@ -198,23 +205,33 @@ class QuizQuestion {
 
   factory QuizQuestion.fromJson(Map<String, dynamic> json) {
     // Handle legacy format (just options as strings)
-    if (json['options'] != null && json['options'] is List && 
-        (json['options'] as List).isNotEmpty && 
+    if (json['options'] != null &&
+        json['options'] is List &&
+        (json['options'] as List).isNotEmpty &&
         json['options'][0] is String) {
       // Legacy format: convert to new format
       final legacyOptions = (json['options'] as List<dynamic>).cast<String>();
       final correctIdx = json['correctIndex'] as int? ?? 0;
       return QuizQuestion(
         id: json['id'] as String,
-        questionText: json['question'] as String? ?? json['questionText'] as String,
+        questionText:
+            json['question'] as String? ?? json['questionText'] as String,
         answerType: AnswerType.multipleChoice,
-        options: legacyOptions.asMap().entries.map((e) => AnswerOption(
-          id: 'opt_${e.key}',
-          text: e.value,
-          isCorrect: e.key == correctIdx,
-        )).toList(),
+        options: legacyOptions
+            .asMap()
+            .entries
+            .map(
+              (e) => AnswerOption(
+                id: 'opt_${e.key}',
+                text: e.value,
+                isCorrect: e.key == correctIdx,
+              ),
+            )
+            .toList(),
         score: json['score'] as int? ?? 1,
         explanation: json['explanation'] as String?,
+        subject: json['subject'] as String?,
+        negativeMarks: (json['negativeMarks'] as num?)?.toDouble(),
       );
     }
 
@@ -227,30 +244,35 @@ class QuizQuestion {
 
     return QuizQuestion(
       id: json['id'] as String,
-      questionText: json['questionText'] as String? ?? json['question'] as String? ?? '',
+      questionText:
+          json['questionText'] as String? ?? json['question'] as String? ?? '',
       answerType: answerType,
       options: json['options'] != null
           ? (json['options'] as List<dynamic>)
-              .map((o) => AnswerOption.fromJson(o as Map<String, dynamic>))
-              .toList()
+                .map((o) => AnswerOption.fromJson(o as Map<String, dynamic>))
+                .toList()
           : [],
       correctBooleanAnswer: json['correctBooleanAnswer'] as bool?,
       correctShortAnswer: json['correctShortAnswer'] as String?,
       score: json['score'] as int? ?? 1,
       explanation: json['explanation'] as String?,
+      subject: json['subject'] as String?,
+      negativeMarks: (json['negativeMarks'] as num?)?.toDouble(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'questionText': questionText,
-        'answerType': answerType.name,
-        'options': options.map((o) => o.toJson()).toList(),
-        'correctBooleanAnswer': correctBooleanAnswer,
-        'correctShortAnswer': correctShortAnswer,
-        'score': score,
-        'explanation': explanation,
-      };
+    'id': id,
+    'questionText': questionText,
+    'answerType': answerType.name,
+    'options': options.map((o) => o.toJson()).toList(),
+    'correctBooleanAnswer': correctBooleanAnswer,
+    'correctShortAnswer': correctShortAnswer,
+    'score': score,
+    'explanation': explanation,
+    'subject': subject,
+    'negativeMarks': negativeMarks,
+  };
 
   QuizQuestion copyWith({
     String? id,
@@ -261,6 +283,8 @@ class QuizQuestion {
     String? correctShortAnswer,
     int? score,
     String? explanation,
+    String? subject,
+    double? negativeMarks,
   }) {
     return QuizQuestion(
       id: id ?? this.id,
@@ -271,6 +295,8 @@ class QuizQuestion {
       correctShortAnswer: correctShortAnswer ?? this.correctShortAnswer,
       score: score ?? this.score,
       explanation: explanation ?? this.explanation,
+      subject: subject ?? this.subject,
+      negativeMarks: negativeMarks ?? this.negativeMarks,
     );
   }
 }
@@ -280,6 +306,10 @@ class Quiz {
   final String id;
   final String title;
   final String? description;
+  final String? instructions;
+  final int? timeLimitMinutes;
+  final double? marksPerQuestion;
+  final double? negativeMarking;
   final List<QuizQuestion> questions;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -288,6 +318,10 @@ class Quiz {
     required this.id,
     required this.title,
     this.description,
+    this.instructions,
+    this.timeLimitMinutes,
+    this.marksPerQuestion,
+    this.negativeMarking,
     this.questions = const [],
     required this.createdAt,
     this.updatedAt,
@@ -301,10 +335,14 @@ class Quiz {
       id: json['id'] as String,
       title: json['title'] as String,
       description: json['description'] as String?,
+      instructions: json['instructions'] as String?,
+      timeLimitMinutes: json['timeLimitMinutes'] as int?,
+      marksPerQuestion: (json['marksPerQuestion'] as num?)?.toDouble(),
+      negativeMarking: (json['negativeMarking'] as num?)?.toDouble(),
       questions: json['questions'] != null
           ? (json['questions'] as List<dynamic>)
-              .map((q) => QuizQuestion.fromJson(q as Map<String, dynamic>))
-              .toList()
+                .map((q) => QuizQuestion.fromJson(q as Map<String, dynamic>))
+                .toList()
           : [],
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
@@ -316,18 +354,26 @@ class Quiz {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'description': description,
-        'questions': questions.map((q) => q.toJson()).toList(),
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt?.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'description': description,
+    'instructions': instructions,
+    'timeLimitMinutes': timeLimitMinutes,
+    'marksPerQuestion': marksPerQuestion,
+    'negativeMarking': negativeMarking,
+    'questions': questions.map((q) => q.toJson()).toList(),
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt?.toIso8601String(),
+  };
 
   Quiz copyWith({
     String? id,
     String? title,
     String? description,
+    String? instructions,
+    int? timeLimitMinutes,
+    double? marksPerQuestion,
+    double? negativeMarking,
     List<QuizQuestion>? questions,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -336,6 +382,10 @@ class Quiz {
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
+      instructions: instructions ?? this.instructions,
+      timeLimitMinutes: timeLimitMinutes ?? this.timeLimitMinutes,
+      marksPerQuestion: marksPerQuestion ?? this.marksPerQuestion,
+      negativeMarking: negativeMarking ?? this.negativeMarking,
       questions: questions ?? this.questions,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -376,14 +426,14 @@ class VideoContent {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'description': description,
-        'videoUrl': videoUrl,
-        'durationMinutes': durationMinutes,
-        'keyPoints': keyPoints,
-        'thumbnailUrl': thumbnailUrl,
-      };
+    'id': id,
+    'title': title,
+    'description': description,
+    'videoUrl': videoUrl,
+    'durationMinutes': durationMinutes,
+    'keyPoints': keyPoints,
+    'thumbnailUrl': thumbnailUrl,
+  };
 }
 
 /// Job content model
@@ -400,6 +450,9 @@ class JobContent {
   final String? eligibility;
   final String? jobType;
   final int? vacancies;
+  final List<String> selectionProcess;
+  final String? howToApply;
+  final DateTime? examDate;
 
   const JobContent({
     required this.id,
@@ -414,6 +467,9 @@ class JobContent {
     this.eligibility,
     this.jobType,
     this.vacancies,
+    this.selectionProcess = const [],
+    this.howToApply,
+    this.examDate,
   });
 
   factory JobContent.fromJson(Map<String, dynamic> json) {
@@ -434,21 +490,30 @@ class JobContent {
       eligibility: json['eligibility'] as String?,
       jobType: json['jobType'] as String?,
       vacancies: json['vacancies'] as int?,
+      selectionProcess:
+          (json['selectionProcess'] as List<dynamic>?)?.cast<String>() ?? [],
+      howToApply: json['howToApply'] as String?,
+      examDate: json['examDate'] != null
+          ? DateTime.parse(json['examDate'] as String)
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'organization': organization,
-        'location': location,
-        'salaryRange': salaryRange,
-        'applyUrl': applyUrl,
-        'detailsText': detailsText,
-        'applicationStart': applicationStart?.toIso8601String(),
-        'applicationEnd': applicationEnd?.toIso8601String(),
-        'eligibility': eligibility,
-        'jobType': jobType,
-        'vacancies': vacancies,
-      };
+    'id': id,
+    'title': title,
+    'organization': organization,
+    'location': location,
+    'salaryRange': salaryRange,
+    'applyUrl': applyUrl,
+    'detailsText': detailsText,
+    'applicationStart': applicationStart?.toIso8601String(),
+    'applicationEnd': applicationEnd?.toIso8601String(),
+    'eligibility': eligibility,
+    'jobType': jobType,
+    'vacancies': vacancies,
+    'selectionProcess': selectionProcess,
+    'howToApply': howToApply,
+    'examDate': examDate?.toIso8601String(),
+  };
 }

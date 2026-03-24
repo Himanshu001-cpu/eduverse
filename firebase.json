@@ -1,1 +1,67 @@
-{"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"functions":{"source":"functions","runtime":"nodejs20"},"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"storage":{"rules":"storage.rules"},"flutter":{"platforms":{"android":{"default":{"projectId":"eduverse-dad5e","appId":"1:465308079104:android:3f59ce57c51d2b118cb4e5","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"eduverse-dad5e","configurations":{"android":"1:465308079104:android:3f59ce57c51d2b118cb4e5","web":"1:465308079104:web:0258746f5c01c3948cb4e5"}}}}}}
+{
+    "hosting": {
+        "public": "build/web",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "headers": [
+            {
+                "source": "/.well-known/assetlinks.json",
+                "headers": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ]
+            },
+            {
+                "source": "/.well-known/apple-app-site-association",
+                "headers": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ]
+            }
+        ],
+        "rewrites": [
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ]
+    },
+    "functions": {
+        "source": "functions",
+        "runtime": "nodejs20"
+    },
+    "firestore": {
+        "rules": "firestore.rules",
+        "indexes": "firestore.indexes.json"
+    },
+    "storage": {
+        "rules": "storage.rules"
+    },
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "eduverse-dad5e",
+                    "appId": "1:465308079104:android:3f59ce57c51d2b118cb4e5",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "eduverse-dad5e",
+                    "configurations": {
+                        "android": "1:465308079104:android:3f59ce57c51d2b118cb4e5",
+                        "web": "1:465308079104:web:0258746f5c01c3948cb4e5"
+                    }
+                }
+            }
+        }
+    }
+}

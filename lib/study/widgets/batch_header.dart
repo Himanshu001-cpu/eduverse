@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:eduverse/study/models/study_models.dart';
+import 'package:eduverse/study/presentation/providers/study_controller.dart';
 
 class BatchHeader extends StatefulWidget {
   final StudyCourseModel course;
@@ -20,19 +22,36 @@ class BatchHeader extends StatefulWidget {
 }
 
 class _BatchHeaderState extends State<BatchHeader> {
-  bool _isBookmarked = false; // In-memory persistence for bookmark
+  late Stream<bool> _isBookmarkedStream;
 
-  void _toggleBookmark() {
-    setState(() {
-      _isBookmarked = !_isBookmarked;
-    });
-    // TODO: Persist bookmark state to shared_preferences or backend
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isBookmarked ? 'Batch bookmarked' : 'Bookmark removed'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    final controller = context.read<StudyController>();
+    _isBookmarkedStream = controller.isBatchBookmarked(widget.batchId);
+  }
+
+  void _toggleBookmark(bool currentStatus) async {
+    try {
+      final controller = context.read<StudyController>();
+      await controller.toggleBatchBookmark(widget.batchId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              !currentStatus ? 'Batch bookmarked' : 'Bookmark removed',
+            ),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error updating bookmark')),
+        );
+      }
+    }
   }
 
   @override
@@ -73,7 +92,8 @@ class _BatchHeaderState extends State<BatchHeader> {
                       children: [
                         Text(
                           widget.course.title,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -82,9 +102,8 @@ class _BatchHeaderState extends State<BatchHeader> {
                         ),
                         Text(
                           'Batch: ${widget.batchId}', // Displaying Batch ID/Name
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.white70,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.white70),
                         ),
                       ],
                     ),
@@ -111,11 +130,16 @@ class _BatchHeaderState extends State<BatchHeader> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.green.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: Colors.greenAccent.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: const Text(
                       'Active',
@@ -149,10 +173,18 @@ class _BatchHeaderState extends State<BatchHeader> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildActionButton(
-                    icon: _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                    label: 'Bookmark',
-                    onTap: _toggleBookmark,
+                  StreamBuilder<bool>(
+                    stream: _isBookmarkedStream,
+                    builder: (context, snapshot) {
+                      final isBookmarked = snapshot.data ?? false;
+                      return _buildActionButton(
+                        icon: isBookmarked
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
+                        label: 'Bookmark',
+                        onTap: () => _toggleBookmark(isBookmarked),
+                      );
+                    },
                   ),
                   _buildActionButton(
                     icon: Icons.download_rounded,

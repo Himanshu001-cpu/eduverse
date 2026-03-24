@@ -29,17 +29,34 @@ class CourseListCard extends StatelessWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: course.gradientColors,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (course.gradientColors.isNotEmpty
+                              ? course.gradientColors.first
+                              : Colors.blue)
+                          .withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  course.emoji,
-                  style: const TextStyle(fontSize: 32),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: course.thumbnailUrl.isNotEmpty
+                      ? Image.network(
+                          course.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          width: 80,
+                          height: 80,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildFallback(),
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return _buildFallback(showLoader: true);
+                          },
+                        )
+                      : _buildFallback(),
                 ),
               ),
               const SizedBox(width: 16),
@@ -81,6 +98,36 @@ class CourseListCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFallback({bool showLoader = false}) {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: course.gradientColors.isNotEmpty
+              ? course.gradientColors
+              : [Colors.blue, Colors.blueAccent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: showLoader
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+              ),
+            )
+          : Text(
+              course.emoji,
+              style: const TextStyle(fontSize: 32),
+            ),
     );
   }
 }

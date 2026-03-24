@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:eduverse/study/models/study_models.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
+import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
 import '../widgets/batch_header.dart';
 import '../widgets/batch_lesson_tile.dart';
 import 'lecture_player_page.dart';
@@ -77,11 +79,12 @@ class _BatchSectionPageState extends State<BatchSectionPage>
   }
 
   void _handleShare() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sharing batch link...')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Sharing batch link...')));
   }
 
+  // ignore: unused_element
   void _openLessonDetail(Map<String, dynamic> lesson) {
     showModalBottomSheet(
       context: context,
@@ -127,16 +130,17 @@ class _BatchSectionPageState extends State<BatchSectionPage>
         _showNoteDialog(lesson['id']);
         break;
       case 'report':
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Issue reported')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Issue reported')));
         break;
     }
   }
 
   void _showNoteDialog(String lessonId) {
-    final TextEditingController noteController =
-        TextEditingController(text: _notes[lessonId]);
+    final TextEditingController noteController = TextEditingController(
+      text: _notes[lessonId],
+    );
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -264,13 +268,17 @@ class _BatchSectionPageState extends State<BatchSectionPage>
           future: controller.getLectures(widget.course.id, widget.batchId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ));
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(),
+                ),
+              );
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Error loading lessons: ${snapshot.error}'));
+              return Center(
+                child: Text('Error loading lessons: ${snapshot.error}'),
+              );
             }
 
             final lessons = snapshot.data ?? [];
@@ -281,11 +289,21 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                   padding: EdgeInsets.all(32),
                   child: Column(
                     children: [
-                      Icon(Icons.video_library_outlined, size: 64, color: Colors.grey),
+                      Icon(
+                        Icons.video_library_outlined,
+                        size: 64,
+                        color: Colors.grey,
+                      ),
                       SizedBox(height: 16),
-                      Text('No lessons available yet.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                      Text(
+                        'No lessons available yet.',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
                       SizedBox(height: 8),
-                      Text('Lessons will appear here once added.', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        'Lessons will appear here once added.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ],
                   ),
                 ),
@@ -297,10 +315,13 @@ class _BatchSectionPageState extends State<BatchSectionPage>
               children: lessons.asMap().entries.map((entry) {
                 final index = entry.key + 1;
                 final lesson = entry.value;
-                final isCompleted = lesson.isWatched || (_lessonCompletion[lesson.id] ?? false);
-                final progress = isCompleted ? 1.0 : (_lessonProgress[lesson.id] ?? 0.0);
-                final durationStr = lesson.duration != null 
-                    ? '${lesson.duration!.inMinutes}m' 
+                final isCompleted =
+                    lesson.isWatched || (_lessonCompletion[lesson.id] ?? false);
+                final progress = isCompleted
+                    ? 1.0
+                    : (_lessonProgress[lesson.id] ?? 0.0);
+                final durationStr = lesson.duration != null
+                    ? '${lesson.duration!.inMinutes}m'
                     : '';
 
                 return BatchLessonTile(
@@ -357,19 +378,27 @@ class _BatchSectionPageState extends State<BatchSectionPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Instructor', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Instructor',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
                 const CircleAvatar(
-                  backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=11'), // Mock image
+                  backgroundImage: NetworkImage(
+                    'https://i.pravatar.cc/100?img=11',
+                  ), // Mock image
                   radius: 24,
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Dr. Anjali Sharma', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const Text(
+                      'Dr. Anjali Sharma',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     Row(
                       children: const [
                         Icon(Icons.star, size: 14, color: Colors.amber),
@@ -400,7 +429,10 @@ class _BatchSectionPageState extends State<BatchSectionPage>
         child: Consumer<StudyController>(
           builder: (context, controller, child) {
             return FutureBuilder<List<StudyLiveClass>>(
-              future: controller.getBatchLiveClasses(widget.course.id, widget.batchId),
+              future: controller.getBatchLiveClasses(
+                widget.course.id,
+                widget.batchId,
+              ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -410,16 +442,27 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                 }
 
                 final liveClasses = snapshot.data ?? [];
-                final upcomingClasses = liveClasses.where((c) => c.isUpcoming).toList();
-                final liveClass = liveClasses.firstWhere((c) => c.isLive, orElse: () => liveClasses.first);
+                final upcomingClasses = liveClasses
+                    .where((c) => c.isUpcoming)
+                    .toList();
+                final liveClass = liveClasses.firstWhere(
+                  (c) => c.isLive,
+                  orElse: () => liveClasses.first,
+                );
 
                 if (liveClasses.isEmpty) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        'Schedule',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       SizedBox(height: 12),
-                      Text('No live classes scheduled yet.', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        'No live classes scheduled yet.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ],
                   );
                 }
@@ -430,30 +473,69 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Schedule',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         if (upcomingClasses.length > 2)
-                          TextButton(onPressed: () {}, child: const Text('View All')),
+                          TextButton(
+                            onPressed: () {},
+                            child: const Text('View All'),
+                          ),
                       ],
                     ),
-                    ...upcomingClasses.take(2).map((c) => Column(
-                      children: [
-                        _buildScheduleItem(c),
-                        if (upcomingClasses.indexOf(c) < upcomingClasses.length - 1) const Divider(),
-                      ],
-                    )),
+                    ...upcomingClasses
+                        .take(2)
+                        .map(
+                          (c) => Column(
+                            children: [
+                              _buildScheduleItem(c),
+                              if (upcomingClasses.indexOf(c) <
+                                  upcomingClasses.length - 1)
+                                const Divider(),
+                            ],
+                          ),
+                        ),
                     const SizedBox(height: 12),
-                    if (liveClass.isLive || (upcomingClasses.isNotEmpty && upcomingClasses.first.startTime.difference(DateTime.now()).inHours < 1))
+                    if (liveClass.isLive ||
+                        (upcomingClasses.isNotEmpty &&
+                            upcomingClasses.first.startTime
+                                    .difference(DateTime.now())
+                                    .inHours <
+                                1))
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: liveClass.youtubeUrl != null ? () {
-                            // TODO: Open YouTube link
-                          } : null,
+                          onPressed: liveClass.youtubeUrl != null
+                              ? () async {
+                                  final url = Uri.parse(liveClass.youtubeUrl!);
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url);
+                                  } else {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Could not open YouTube link',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: const Text('Join Live Class', style: TextStyle(color: Colors.white)),
+                          child: const Text(
+                            'Join Live Class',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                   ],
@@ -467,19 +549,34 @@ class _BatchSectionPageState extends State<BatchSectionPage>
   }
 
   Widget _buildScheduleItem(StudyLiveClass liveClass) {
-    final isNext = liveClass.isUpcoming && liveClass.startTime.difference(DateTime.now()).inHours < 24;
-    final timeStr = '${liveClass.startTime.hour.toString().padLeft(2, '0')}:${liveClass.startTime.minute.toString().padLeft(2, '0')}';
+    final isNext =
+        liveClass.isUpcoming &&
+        liveClass.startTime.difference(DateTime.now()).inHours < 24;
+    final timeStr =
+        '${liveClass.startTime.hour.toString().padLeft(2, '0')}:${liveClass.startTime.minute.toString().padLeft(2, '0')}';
     final dateStr = '${liveClass.startTime.day}/${liveClass.startTime.month}';
-    
+
     return Row(
       children: [
-        Icon(Icons.calendar_today, size: 16, color: isNext ? Colors.blue : Colors.grey),
+        Icon(
+          Icons.calendar_today,
+          size: 16,
+          color: isNext ? Colors.blue : Colors.grey,
+        ),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(liveClass.title, style: TextStyle(fontWeight: isNext ? FontWeight.bold : FontWeight.normal)),
-            Text('$dateStr • $timeStr - ${liveClass.durationMinutes} min', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(
+              liveClass.title,
+              style: TextStyle(
+                fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            Text(
+              '$dateStr • $timeStr - ${liveClass.durationMinutes} min',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
         ),
         if (isNext) ...[
@@ -490,7 +587,14 @@ class _BatchSectionPageState extends State<BatchSectionPage>
               color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Text('NEXT', style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'NEXT',
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ],
@@ -506,7 +610,10 @@ class _BatchSectionPageState extends State<BatchSectionPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Your Progress', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Your Progress',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -525,7 +632,14 @@ class _BatchSectionPageState extends State<BatchSectionPage>
   Widget _buildStatItem(String value, String label) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
@@ -553,7 +667,10 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                   children: [
                     Icon(Icons.note_outlined, size: 64, color: Colors.grey),
                     SizedBox(height: 16),
-                    Text('No notes available yet.', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      'No notes available yet.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
               );
@@ -571,12 +688,23 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                   subtitle: Text('Added ${_formatDate(note.createdAt)}'),
                   trailing: IconButton(
                     icon: const Icon(Icons.download_rounded),
-                    onPressed: () {
+                    onPressed: () async {
                       if (note.fileUrl != null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Opening ${note.title}...')),
                         );
-                        // TODO: Open PDF using url_launcher
+                        final url = Uri.parse(note.fileUrl!);
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url);
+                        } else {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Could not open PDF link'),
+                              ),
+                            );
+                          }
+                        }
                       }
                     },
                   ),
@@ -609,9 +737,16 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey),
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
                     SizedBox(height: 16),
-                    Text('No planner items available yet.', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      'No planner items available yet.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
               );
@@ -633,25 +768,54 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (item.description != null && item.description!.isNotEmpty)
+                        if (item.description != null &&
+                            item.description!.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
-                            child: Text(item.description!, maxLines: 2, overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              item.description!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         if (item.dueDate != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
-                            child: Text('Due: ${_formatDate(item.dueDate!)}', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              'Due: ${_formatDate(item.dueDate!)}',
+                              style: const TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                       ],
                     ),
                     trailing: item.fileUrl != null
                         ? IconButton(
                             icon: const Icon(Icons.attachment),
-                            onPressed: () {
+                            onPressed: () async {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Opening attachment for ${item.title}...')),
+                                SnackBar(
+                                  content: Text(
+                                    'Opening attachment for ${item.title}...',
+                                  ),
+                                ),
                               );
+                              final url = Uri.parse(item.fileUrl!);
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url);
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Could not open attachment link',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
                             },
                           )
                         : null,
@@ -691,7 +855,10 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                   children: [
                     Icon(Icons.quiz_outlined, size: 64, color: Colors.grey),
                     SizedBox(height: 16),
-                    Text('No quizzes available yet.', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      'No quizzes available yet.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
               );
@@ -710,12 +877,21 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                       child: Icon(Icons.quiz, color: Colors.white),
                     ),
                     title: Text(quiz.title),
-                    subtitle: Text('${quiz.questionCount} Questions • ${quiz.durationMinutes} mins'),
+                    subtitle: Text(
+                      '${quiz.questionCount} Questions • ${quiz.durationMinutes} mins',
+                    ),
                     trailing: ElevatedButton(
                       onPressed: () {
-                        // TODO: Navigate to Quiz Taking Screen
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Starting quiz... (Implementation pending)')),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => StudyQuizScreen(
+                              courseId: widget.course.id,
+                              batchId: widget.batchId,
+                              quizId: quiz.id,
+                              quizTitle: quiz.title,
+                            ),
+                          ),
                         );
                       },
                       child: const Text('Start'),
@@ -729,8 +905,6 @@ class _BatchSectionPageState extends State<BatchSectionPage>
       },
     );
   }
-
-
 }
 
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
@@ -744,11 +918,12 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Colors.white,
-      child: _tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: Colors.white, child: _tabBar);
   }
 
   @override
@@ -771,9 +946,15 @@ class _DownloadProgressDialog extends StatelessWidget {
           children: const [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Downloading resources...', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              'Downloading resources...',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 8),
-            Text('Please wait while we prepare your offline content.', textAlign: TextAlign.center),
+            Text(
+              'Please wait while we prepare your offline content.',
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -820,14 +1001,18 @@ class _LessonDetailSheet extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               lesson['title'],
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
                 Icon(Icons.access_time, size: 16, color: Colors.grey),
                 const SizedBox(width: 4),
-                Text('${lesson['duration']} • ${lesson['type'].toString().toUpperCase()}'),
+                Text(
+                  '${lesson['duration']} • ${lesson['type'].toString().toUpperCase()}',
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -847,7 +1032,9 @@ class _LessonDetailSheet extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.5),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -856,7 +1043,13 @@ class _LessonDetailSheet extends StatelessWidget {
                       children: [
                         Icon(Icons.note, size: 16, color: Colors.amber),
                         SizedBox(width: 8),
-                        Text('Your Note', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                        Text(
+                          'Your Note',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -867,14 +1060,16 @@ class _LessonDetailSheet extends StatelessWidget {
               const SizedBox(height: 24),
             ],
             const Spacer(),
-              Row(
+            Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
                     child: const Text('Close'),
                   ),
                 ),
@@ -882,20 +1077,22 @@ class _LessonDetailSheet extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      if (lesson['type'] == 'video' && lesson['videoUrl'] != null) {
-                         Navigator.pop(context); // Close sheet
-                         Navigator.push(
-                           context,
-                           MaterialPageRoute(
-                             builder: (context) => LecturePlayerPage(
-                               videoUrl: lesson['videoUrl'],
-                               title: lesson['title'],
-                               description: 'This is a detailed description of the lesson...',
-                             ),
-                           ),
-                         );
+                      if (lesson['type'] == 'video' &&
+                          lesson['videoUrl'] != null) {
+                        Navigator.pop(context); // Close sheet
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LecturePlayerPage(
+                              videoUrl: lesson['videoUrl'],
+                              title: lesson['title'],
+                              description:
+                                  'This is a detailed description of the lesson...',
+                            ),
+                          ),
+                        );
                       } else {
-                         onComplete();
+                        onComplete();
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -903,7 +1100,7 @@ class _LessonDetailSheet extends StatelessWidget {
                       backgroundColor: Colors.blue,
                     ),
                     child: Text(
-                      lesson['type'] == 'video' ? 'Watch Now' : 'Mark Complete', 
+                      lesson['type'] == 'video' ? 'Watch Now' : 'Mark Complete',
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),

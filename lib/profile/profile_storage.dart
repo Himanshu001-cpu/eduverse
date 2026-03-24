@@ -96,11 +96,21 @@ class ProfileStorage {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        // Save to Firestore
+        // Save profile sub-object to Firestore
         await _firestore.collection('users').doc(user.uid).set(
           {'profile': model.toJson()},
           SetOptions(merge: true),
         );
+
+        // Also update top-level user fields to stay in sync
+        final topLevelUpdate = <String, dynamic>{
+          'name': model.fullName,
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        if (model.email != null) topLevelUpdate['email'] = model.email;
+        if (model.phone != null) topLevelUpdate['phone'] = model.phone;
+        
+        await _firestore.collection('users').doc(user.uid).update(topLevelUpdate);
       }
       
       // Also save locally as cache/fallback

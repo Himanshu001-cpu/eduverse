@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
 
 class PhoneLoginPage extends StatefulWidget {
@@ -82,22 +83,15 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> with SingleTickerProvid
         if (!mounted) return;
         
         if (result.isSuccess && result.user != null) {
-          // Save user profile to Firestore
-          try {
-            await _authService.saveUserProfile(
-              uid: result.user!.uid,
-              email: result.user!.email ?? '',
-              phone: '$_selectedCountry${_phoneController.text.trim()}',
-            );
-          } catch (e) {
-            debugPrint('Failed to save phone user profile: $e');
-          }
+          await _handleNewUserProfile(result.user!);
         } else if (!result.isSuccess) {
           _showError(result.errorMessage!);
         }
         
         setState(() => _isLoading = false);
-        // AuthWrapper handles navigation on success
+        if (mounted && result.isSuccess) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
       },
     );
   }
@@ -116,22 +110,112 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> with SingleTickerProvid
     if (!mounted) return;
 
     if (result.isSuccess && result.user != null) {
-      // Save user profile to Firestore
-      try {
-        await _authService.saveUserProfile(
-          uid: result.user!.uid,
-          email: result.user!.email ?? '',
-          phone: '$_selectedCountry${_phoneController.text.trim()}',
-        );
-      } catch (e) {
-        debugPrint('Failed to save phone user profile: $e');
-      }
+      await _handleNewUserProfile(result.user!);
     } else if (!result.isSuccess) {
       _showError(result.errorMessage!);
     }
     
     setState(() => _isLoading = false);
-    // AuthWrapper handles navigation on success
+    if (mounted && result.isSuccess) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
+
+  /// For new phone-only users, show a dialog to collect their name.
+  Future<void> _handleNewUserProfile(User user) async {
+    final phoneNumber = '$_selectedCountry${_phoneController.text.trim()}';
+    final hasProfile = await _authService.userProfileExists(user.uid);
+
+    if (!hasProfile && mounted) {
+      // Show name input dialog for new phone-only users
+      final name = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          final nameController = TextEditingController();
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text(
+              'Welcome! 🎉',
+              style: TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Please enter your name to get started',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    hintText: 'Your full name',
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    Navigator.pop(ctx, name.isNotEmpty ? name : 'User');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF667eea),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+
+      try {
+        await user.updateDisplayName(name ?? 'User');
+        await _authService.saveUserProfile(
+          uid: user.uid,
+          email: user.email ?? '',
+          displayName: name ?? 'User',
+          phone: phoneNumber,
+        );
+      } catch (e) {
+        debugPrint('Failed to save phone user profile: $e');
+      }
+    } else {
+      // Existing user - just update phone if needed
+      try {
+        await _authService.saveUserProfile(
+          uid: user.uid,
+          email: user.email ?? '',
+          phone: phoneNumber,
+        );
+      } catch (e) {
+        debugPrint('Failed to update phone user profile: $e');
+      }
+    }
   }
 
   void _showError(String message) {

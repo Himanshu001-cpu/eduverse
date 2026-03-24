@@ -10,8 +10,8 @@ class StudyController extends ChangeNotifier {
   StudyController({
     required IStudyRepository repository,
     required String userId,
-  })  : _repository = repository,
-        _userId = userId {
+  }) : _repository = repository,
+       _userId = userId {
     _init();
   }
 
@@ -39,41 +39,48 @@ class StudyController extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    _batchesSubscription = _repository.getEnrolledBatches(_userId).listen(
-      (batches) {
-        _enrolledBatches = batches;
-        _isLoading = false;
-        _error = null;
-        notifyListeners();
-      },
-      onError: (e) {
-        _isLoading = false;
-        _error = e.toString();
-        notifyListeners();
-      },
-    );
+    _batchesSubscription = _repository
+        .getEnrolledBatches(_userId)
+        .listen(
+          (batches) {
+            _enrolledBatches = batches;
+            _isLoading = false;
+            _error = null;
+            notifyListeners();
+          },
+          onError: (e) {
+            _isLoading = false;
+            _error = e.toString();
+            notifyListeners();
+          },
+        );
   }
 
   /// Refresh batches to get updated progress
   void refreshBatches() {
     _batchesSubscription?.cancel();
-    _batchesSubscription = _repository.getEnrolledBatches(_userId).listen(
-      (batches) {
-        _enrolledBatches = batches;
-        _isLoading = false;
-        _error = null;
-        notifyListeners();
-      },
-      onError: (e) {
-        _isLoading = false;
-        _error = e.toString();
-        notifyListeners();
-      },
-    );
+    _batchesSubscription = _repository
+        .getEnrolledBatches(_userId)
+        .listen(
+          (batches) {
+            _enrolledBatches = batches;
+            _isLoading = false;
+            _error = null;
+            notifyListeners();
+          },
+          onError: (e) {
+            _isLoading = false;
+            _error = e.toString();
+            notifyListeners();
+          },
+        );
   }
 
   /// Get lectures for a specific batch
-  Future<List<StudyLecture>> getLectures(String courseId, String batchId) async {
+  Future<List<StudyLecture>> getLectures(
+    String courseId,
+    String batchId,
+  ) async {
     try {
       return await _repository.getBatchLectures(_userId, courseId, batchId);
     } catch (e) {
@@ -83,7 +90,10 @@ class StudyController extends ChangeNotifier {
   }
 
   /// Get quizzes for a specific batch
-  Future<List<StudyQuiz>> getBatchQuizzes(String courseId, String batchId) async {
+  Future<List<StudyQuiz>> getBatchQuizzes(
+    String courseId,
+    String batchId,
+  ) async {
     try {
       return await _repository.getBatchQuizzes(courseId, batchId);
     } catch (e) {
@@ -103,7 +113,10 @@ class StudyController extends ChangeNotifier {
   }
 
   /// Get planner items for a specific batch
-  Future<List<StudyPlannerItem>> getBatchPlanner(String courseId, String batchId) async {
+  Future<List<StudyPlannerItem>> getBatchPlanner(
+    String courseId,
+    String batchId,
+  ) async {
     try {
       return await _repository.getBatchPlanner(courseId, batchId);
     } catch (e) {
@@ -113,7 +126,10 @@ class StudyController extends ChangeNotifier {
   }
 
   /// Get live classes for a specific batch
-  Future<List<StudyLiveClass>> getBatchLiveClasses(String courseId, String batchId) async {
+  Future<List<StudyLiveClass>> getBatchLiveClasses(
+    String courseId,
+    String batchId,
+  ) async {
     try {
       return await _repository.getBatchLiveClasses(courseId, batchId);
     } catch (e) {
@@ -123,13 +139,37 @@ class StudyController extends ChangeNotifier {
   }
 
   /// Mark lecture as watched and refresh progress
-  Future<void> markLectureWatched(String courseId, String batchId, String lectureId, bool isWatched) async {
+  Future<void> markLectureWatched(
+    String courseId,
+    String batchId,
+    String lectureId,
+    bool isWatched,
+  ) async {
     try {
-      await _repository.markLectureWatched(_userId, courseId, batchId, lectureId, isWatched);
+      await _repository.markLectureWatched(
+        _userId,
+        courseId,
+        batchId,
+        lectureId,
+        isWatched,
+      );
       // Refresh batches to get updated progress
       refreshBatches();
     } catch (e) {
       debugPrint('Error marking watched: $e');
+      rethrow;
+    }
+  }
+
+  Stream<bool> isBatchBookmarked(String batchId) {
+    return _repository.isBatchBookmarked(_userId, batchId);
+  }
+
+  Future<void> toggleBatchBookmark(String batchId) async {
+    try {
+      await _repository.toggleBatchBookmark(_userId, batchId);
+    } catch (e) {
+      debugPrint('Error toggling bookmark: $e');
       rethrow;
     }
   }

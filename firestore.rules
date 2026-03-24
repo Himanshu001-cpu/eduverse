@@ -82,6 +82,25 @@ service cloud.firestore {
       match /bookmarks/{bookmarkId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // User test attempts (test series completion tracking)
+      match /test_attempts/{attemptId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if isAdmin();
+      }
+
+      // User enrolled courses
+      match /enrolledCourses/{enrollmentId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if isAdmin();
+      }
+
+      // User purchased test series
+      match /purchasedTestSeries/{tsId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if isAdmin();
+      }
     }
 
     // Config collection (payment settings, etc.)
@@ -90,19 +109,24 @@ service cloud.firestore {
       allow read: if request.auth != null;
       // Only admins can write config
       allow write: if isAdmin();
+
+      // Promo codes subcollection
+      match /{subcol}/{docId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin();
+      }
     }
 
-    // Courses: Public read if published, Admin write
+    // Courses: Public read if published, Auth read for all, Admin write
     match /courses/{courseId} {
-      allow read: if request.auth != null && (
-        !('visibility' in resource.data) || 
-        resource.data.visibility == 'published' || 
-        isAdmin()
-      );
+      // Allow anyone to read published courses (for landing page)
+      allow read: if resource.data.visibility == 'published';
+      // Allow authenticated users to read any course (needed for enrollment fetch)
+      allow read: if request.auth != null;
       allow write: if isAdmin();
       
       match /batches/{batchId} {
-        allow read: if isAdmin() || get(/databases/$(database)/documents/courses/$(courseId)).data.visibility == 'published';
+        allow read: if request.auth != null; // Allow auth users to read (needed for enrollment fetch)
         allow write: if isAdmin();
         
         match /lessons/{lessonId} {
@@ -117,6 +141,18 @@ service cloud.firestore {
             allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
 
             // Replies subcollection
+            match /replies/{replyId} {
+              allow read: if request.auth != null;
+              allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+              allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+            }
+          }
+
+          match /live_comments/{commentId} {
+            allow read: if request.auth != null;
+            allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+            allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+
             match /replies/{replyId} {
               allow read: if request.auth != null;
               allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
@@ -166,10 +202,30 @@ service cloud.firestore {
       allow write: if false; // Only via Cloud Functions
     }
 
-    // Feed: Public/Auth read, Admin write
+    // Feed: Public/Auth read, Admin write (except counter fields)
     match /feed/{feedId} {
       allow read: if request.auth != null;
-      allow write: if isAdmin();
+      // Allow admins full write access
+      allow create, delete: if isAdmin();
+      // Allow admins to update anything, but allow auth users to update only counters
+      allow update: if isAdmin() || (
+        request.auth != null &&
+        // Only allow updating likesCount and commentsCount
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'commentsCount'])
+      );
+
+      // Likes subcollection: Users can read all, create/delete their own
+      match /likes/{likeId} {
+        allow read: if request.auth != null;
+        allow create, delete: if request.auth != null && likeId == request.auth.uid;
+      }
+
+      // Comments subcollection: Users can read all, create their own, edit/delete own or admin
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+      }
     }
 
     // Audits: Admin read/write
@@ -197,11 +253,36 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Test Series: Auth read, Admin write
+    match /test_series/{testSeriesId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+
+      match /tests/{testId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin();
+      }
+    }
+
     // Questions: Public/Auth read, Admin write
     match /questions/{questionId} {
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }
+
+    // Quiz Subjects (shared dropdown values): Auth read, Admin write
+    match /quiz_subjects/{subjectId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Global Quiz Pool (shared library for cross-batch/series sharing)
+    // Admins can read/write; authenticated users can read (needed in admin import dialog)
+    match /quizzes_pool/{quizId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
     
     // Topic Nodes (Map Work): Public/Auth read, Admin write
     match /topics/{topicId} {
@@ -221,6 +302,14 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
+    // Notifications: Authenticated users can read all, admins can write
+    // Client-side filtering handles showing only relevant notifications
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin();
+    }
+
     // Free Live Classes: Public/Auth read, Admin write
     match /free_live_classes/{classId} {
       allow read: if request.auth != null;
@@ -228,6 +317,18 @@ service cloud.firestore {
       
       // Allow comments on free classes
       match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+
+        match /replies/{replyId} {
+          allow read: if request.auth != null;
+          allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+          allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+        }
+      }
+
+      match /live_comments/{commentId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
         allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);

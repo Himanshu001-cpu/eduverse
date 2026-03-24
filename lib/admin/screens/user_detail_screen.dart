@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../widgets/admin_scaffold.dart';
 import '../services/firebase_admin_service.dart';
 import '../models/admin_models.dart';
+import '../services/test_series_service.dart';
+import '../models/test_series_models.dart';
 
 class UserDetailScreen extends StatefulWidget {
   final String userId;
@@ -27,21 +29,32 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   String? _selectedBatchId;
   bool _isEnrolling = false;
 
+  // For manual test series enrollment
+  List<AdminTestSeries> _allTestSeries = [];
+  String? _selectedTestSeriesId;
+  bool _isEnrollingTS = false;
+
+  // For displaying enrolled courses with names
+  List<AdminBatch> _allEnrolledBatches = [];
+
   // Stream subscriptions
   StreamSubscription? _coursesSub;
   StreamSubscription? _batchesSub;
+  StreamSubscription? _testSeriesSub;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
     _loadCourses();
+    _loadTestSeries();
   }
 
   @override
   void dispose() {
     _coursesSub?.cancel();
     _batchesSub?.cancel();
+    _testSeriesSub?.cancel();
     super.dispose();
   }
 
@@ -54,6 +67,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           _user = user;
           _isLoading = false;
         });
+        // Load batches for all enrolled courses
+        if (user != null) {
+          _loadEnrolledBatches(user.enrolledCourses);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -62,6 +79,37 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  // Load batches for all enrolled courses to display their names
+  Future<void> _loadEnrolledBatches(List<String> enrolledCourses) async {
+    final adminService = context.read<FirebaseAdminService>();
+    final Set<String> courseIds = {};
+    
+    // Extract unique course IDs from enrollment IDs
+    for (final enrollmentId in enrolledCourses) {
+      final parts = enrollmentId.split('_');
+      if (parts.isNotEmpty) {
+        courseIds.add(parts[0]);
+      }
+    }
+    
+    // Load batches for each course
+    List<AdminBatch> allBatches = [];
+    for (final courseId in courseIds) {
+      try {
+        final batches = await adminService.getBatches(courseId).first;
+        allBatches.addAll(batches);
+      } catch (e) {
+        debugPrint('Error loading batches for course $courseId: $e');
+      }
+    }
+    
+    if (mounted) {
+      setState(() {
+        _allEnrolledBatches = allBatches;
+      });
     }
   }
 
@@ -89,6 +137,18 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       }
     }, onError: (e) {
       debugPrint('Error loading batches: $e');
+    });
+  }
+
+  void _loadTestSeries() {
+    final tsService = TestSeriesService();
+    _testSeriesSub?.cancel();
+    _testSeriesSub = tsService.getTestSeriesList().listen((tsList) {
+      if (mounted) {
+        setState(() => _allTestSeries = tsList);
+      }
+    }, onError: (e) {
+      debugPrint('Error loading test series: $e');
     });
   }
 
@@ -132,6 +192,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       _buildProfileCard(),
                       const SizedBox(height: 24),
                       _buildEnrolledCoursesCard(),
+                      const SizedBox(height: 24),
+                      _buildEnrolledTestSeriesCard(),
                     ],
                   ),
                 ),
@@ -144,6 +206,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       _buildActionsCard(),
                       const SizedBox(height: 24),
                       _buildManualEnrollmentCard(),
+                      const SizedBox(height: 24),
+                      _buildManualTSEnrollmentCard(),
                     ],
                   ),
                 ),
@@ -163,6 +227,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 _buildEnrolledCoursesCard(),
                 const SizedBox(height: 16),
                 _buildManualEnrollmentCard(),
+                const SizedBox(height: 16),
+                _buildEnrolledTestSeriesCard(),
+                const SizedBox(height: 16),
+                _buildManualTSEnrollmentCard(),
               ],
             ),
           );
@@ -287,6 +355,65 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     );
   }
 
+  // Helper method to get enrollment display info
+  Map<String, String> _getEnrollmentInfo(String enrollmentId) {
+    final parts = enrollmentId.split('_');
+    if (parts.length >= 2) {
+      final courseId = parts[0];
+      final batchId = parts.sublist(1).join('_'); // Handle batch IDs with underscores
+      
+      // Find course name
+      final course = _courses.firstWhere(
+        (c) => c.id == courseId,
+        orElse: () => AdminCourse(
+          id: courseId,
+          title: courseId, // Fallback to ID if not found
+          slug: '',
+          subtitle: '',
+          description: '',
+          tags: [],
+          language: 'en',
+          level: 'beginner',
+          thumbnailUrl: '',
+          gradientColors: [],
+          visibility: 'draft',
+          createdAt: DateTime.now(),
+        ),
+      );
+      
+      // Find batch name - look in loaded enrolled batches
+      String batchName = batchId;
+      final batch = _allEnrolledBatches.firstWhere(
+        (b) => b.id == batchId,
+        orElse: () => AdminBatch(
+          id: batchId,
+          courseId: courseId,
+          name: batchId, // Fallback to ID if not found
+          startDate: DateTime.now(),
+          endDate: DateTime.now(),
+          price: 0,
+          seatsTotal: 0,
+          seatsLeft: 0,
+          isActive: true,
+        ),
+      );
+      batchName = batch.name;
+      
+      return {
+        'courseName': course.title,
+        'batchName': batchName,
+        'courseId': courseId,
+        'batchId': batchId,
+      };
+    }
+    return {
+      'courseName': enrollmentId,
+      'batchName': 'Unknown',
+      'courseId': '',
+      'batchId': '',
+    };
+  }
+
   Widget _buildEnrolledCoursesCard() {
     return Card(
       child: Padding(
@@ -326,18 +453,21 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 ),
               )
             else
-              ...(_user!.enrolledCourses.map((enrollmentId) => ListTile(
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.book),
-                    ),
-                    title: Text(enrollmentId),
-                    subtitle: const Text('Enrolled via Admin/Purchase'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      tooltip: 'Unenroll User',
-                      onPressed: () => _confirmUnenroll(enrollmentId),
-                    ),
-                  ))),
+              ...(_user!.enrolledCourses.map((enrollmentId) {
+                final info = _getEnrollmentInfo(enrollmentId);
+                return ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.book),
+                  ),
+                  title: Text(info['courseName'] ?? enrollmentId),
+                  subtitle: Text('Batch: ${info['batchName'] ?? 'Unknown'}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    tooltip: 'Unenroll User',
+                    onPressed: () => _confirmUnenroll(enrollmentId),
+                  ),
+                );
+              })),
           ],
         ),
       ),
@@ -499,6 +629,139 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     );
   }
 
+  Widget _buildEnrolledTestSeriesCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.assignment, size: 24, color: Colors.teal),
+                const SizedBox(width: 8),
+                const Text(
+                  'Enrolled Test Series',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                Chip(
+                  label: Text('${_user!.purchasedTestSeries.length} series'),
+                  backgroundColor: Colors.teal.shade50,
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            if (_user!.purchasedTestSeries.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(32),
+                alignment: Alignment.center,
+                child: Column(
+                  children: [
+                    Icon(Icons.assignment_outlined, size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No enrolled test series',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...(_user!.purchasedTestSeries.map((tsId) {
+                // Resolve title from loaded test series list
+                final ts = _allTestSeries.cast<AdminTestSeries?>().firstWhere(
+                  (t) => t!.id == tsId,
+                  orElse: () => null,
+                );
+                final title = ts?.title ?? tsId;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.teal.withValues(alpha: 0.15),
+                    child: const Icon(Icons.assignment, color: Colors.teal),
+                  ),
+                  title: Text(title),
+                  subtitle: Text('ID: $tsId', style: const TextStyle(fontSize: 12)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    tooltip: 'Unenroll from Test Series',
+                    onPressed: () => _confirmUnenrollTS(tsId, title),
+                  ),
+                );
+              })),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManualTSEnrollmentCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.add_circle, size: 24, color: Colors.teal),
+                const SizedBox(width: 8),
+                const Flexible(
+                  child: Text(
+                    'Manual Test Series Enrollment',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            const Text('Select Test Series', style: TextStyle(fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: _selectedTestSeriesId,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Choose a test series...',
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: _allTestSeries.map((ts) {
+                return DropdownMenuItem(
+                  value: ts.id,
+                  child: Text(ts.title),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() => _selectedTestSeriesId = value);
+              },
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _selectedTestSeriesId != null && !_isEnrollingTS
+                    ? _enrollTestSeries
+                    : null,
+                icon: _isEnrollingTS
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.person_add),
+                label: Text(_isEnrollingTS ? 'Enrolling...' : 'Enroll in Test Series'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Color _getRoleColor(String role) {
     switch (role) {
       case 'admin':
@@ -632,11 +895,15 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   Future<void> _confirmUnenroll(String enrollmentId) async {
+    final info = _getEnrollmentInfo(enrollmentId);
+    final courseName = info['courseName'] ?? enrollmentId;
+    final batchName = info['batchName'] ?? 'Unknown';
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirm Unenrollment'),
-        content: Text('Are you sure you want to remove the user from "$enrollmentId"?\nThis action cannot be undone.'),
+        content: Text('Are you sure you want to remove the user from "$courseName" (Batch: $batchName)?\nThis action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -667,6 +934,92 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('User unenrolled successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _enrollTestSeries() async {
+    if (_selectedTestSeriesId == null) return;
+
+    setState(() => _isEnrollingTS = true);
+
+    try {
+      final adminService = context.read<FirebaseAdminService>();
+      await adminService.manualEnrollTestSeries(
+        widget.userId,
+        _selectedTestSeriesId!,
+      );
+
+      await _loadUser();
+
+      if (mounted) {
+        setState(() {
+          _selectedTestSeriesId = null;
+          _isEnrollingTS = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User enrolled in test series successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isEnrollingTS = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmUnenrollTS(String tsId, String tsTitle) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Unenrollment'),
+        content: Text('Are you sure you want to remove the user from "$tsTitle"?\nThis action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Unenroll'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _unenrollTestSeries(tsId);
+    }
+  }
+
+  Future<void> _unenrollTestSeries(String tsId) async {
+    try {
+      final adminService = context.read<FirebaseAdminService>();
+      await adminService.manualUnenrollTestSeries(widget.userId, tsId);
+
+      await _loadUser();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User unenrolled from test series successfully'),
             backgroundColor: Colors.green,
           ),
         );

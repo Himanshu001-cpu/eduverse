@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
+import 'package:eduverse/web/landing/landing_page.dart';
 import 'login_page.dart';
 import '../navigation/main_navigation_page.dart';
 
 /// Wrapper widget that manages authentication state.
-/// Shows LoginPage if user is not authenticated,
+/// Shows WebHomepage for web visitors (not authenticated),
+/// LoginPage for mobile users (not authenticated),
 /// otherwise shows the main app content.
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -37,7 +40,12 @@ class AuthWrapper extends StatelessWidget {
           return const MainNavigationPage();
         }
 
-        // User is not authenticated -> show login
+        // User is not authenticated
+        // Web: show landing page with features
+        // Mobile: show login page
+        if (kIsWeb) {
+          return const LandingPage();
+        }
         return const LoginPage();
       },
     );
@@ -56,10 +64,7 @@ class _LoadingScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-            ],
+            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
           ),
         ),
         child: Center(
@@ -80,7 +85,7 @@ class _LoadingScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               // App Name
               const Text(
                 'EduVerse',
@@ -92,7 +97,7 @@ class _LoadingScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 48),
-              
+
               // Loading indicator
               const SizedBox(
                 width: 40,
@@ -103,7 +108,7 @@ class _LoadingScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               Text(
                 'Loading...',
                 style: TextStyle(
@@ -124,10 +129,7 @@ class _ErrorScreen extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
 
-  const _ErrorScreen({
-    required this.error,
-    required this.onRetry,
-  });
+  const _ErrorScreen({required this.error, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -137,10 +139,7 @@ class _ErrorScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-            ],
+            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
           ),
         ),
         child: Center(
@@ -162,7 +161,7 @@ class _ErrorScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 const Text(
                   'Something went wrong',
                   style: TextStyle(
@@ -172,7 +171,7 @@ class _ErrorScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
+
                 Text(
                   error,
                   textAlign: TextAlign.center,
@@ -182,7 +181,7 @@ class _ErrorScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 ElevatedButton.icon(
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh),
@@ -190,7 +189,10 @@ class _ErrorScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     foregroundColor: const Color(0xFF667eea),
                     backgroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

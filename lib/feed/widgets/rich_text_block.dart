@@ -1,8 +1,11 @@
 // file: lib/feed/widgets/rich_text_block.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:eduverse/core/utils/markdown_utils.dart';
 
 /// A reusable widget for displaying styled text blocks with a title and body.
 /// Used across detail screens for consistent section styling.
+/// Supports markdown formatting for bold (**text**) and italic (*text*).
 class RichTextBlock extends StatelessWidget {
   final String title;
   final String body;
@@ -34,11 +37,7 @@ class RichTextBlock extends StatelessWidget {
           Row(
             children: [
               if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 20,
-                  color: iconColor ?? colorScheme.primary,
-                ),
+                Icon(icon, size: 20, color: iconColor ?? colorScheme.primary),
                 const SizedBox(width: 8),
               ],
               Expanded(
@@ -53,11 +52,28 @@ class RichTextBlock extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            body,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              height: 1.6,
+          MarkdownBody(
+            data: MarkdownUtils.normalizeMarkdown(body),
+            selectable: true,
+            softLineBreak: true,
+            styleSheet: MarkdownStyleSheet(
+              p: theme.textTheme.bodyLarge?.copyWith(
+                fontSize: 18,
+                color: colorScheme.onSurfaceVariant,
+                height: 1.6,
+              ),
+              strong: theme.textTheme.bodyLarge?.copyWith(
+                fontSize: 18,
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+                height: 1.6,
+              ),
+              em: theme.textTheme.bodyLarge?.copyWith(
+                fontSize: 18,
+                color: colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+                height: 1.6,
+              ),
             ),
           ),
           if (showDivider) ...[
@@ -102,11 +118,7 @@ class RichTextBulletList extends StatelessWidget {
           Row(
             children: [
               if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 20,
-                  color: iconColor ?? colorScheme.primary,
-                ),
+                Icon(icon, size: 20, color: iconColor ?? colorScheme.primary),
                 const SizedBox(width: 8),
               ],
               Expanded(
@@ -137,7 +149,8 @@ class RichTextBulletList extends StatelessWidget {
                   Expanded(
                     child: Text(
                       item,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontSize: 18,
                         color: colorScheme.onSurfaceVariant,
                         height: 1.5,
                       ),

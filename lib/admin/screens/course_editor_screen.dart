@@ -17,28 +17,28 @@ class CourseEditorScreen extends StatefulWidget {
 
 class _CourseEditorScreenState extends State<CourseEditorScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   late TextEditingController _titleController;
   late TextEditingController _slugController;
   late TextEditingController _subtitleController;
   late TextEditingController _descriptionController;
   late TextEditingController _emojiController;
   late TextEditingController _priceController;
-  
+
   String _visibility = 'draft';
   String _level = 'beginner';
   String _language = 'en';
-  
+
   Color _gradientStart = Colors.blue;
   Color _gradientEnd = Colors.blueAccent;
   String _thumbnailUrl = '';
-  
+
   bool _isLoading = false;
 
   final List<String> _visibilityOptions = ['draft', 'published', 'archived'];
   final List<String> _levelOptions = ['beginner', 'intermediate', 'advanced'];
   final List<String> _languageOptions = ['en', 'hi', 'bn', 'ta', 'te', 'mr'];
-  
+
   // Predefined color options for gradient
   final List<Color> _colorOptions = [
     Colors.blue,
@@ -57,23 +57,27 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
   void initState() {
     super.initState();
     final course = widget.course;
-    
+
     _titleController = TextEditingController(text: course?.title ?? '');
     _slugController = TextEditingController(text: course?.slug ?? '');
     _subtitleController = TextEditingController(text: course?.subtitle ?? '');
-    _descriptionController = TextEditingController(text: course?.description ?? '');
+    _descriptionController = TextEditingController(
+      text: course?.description ?? '',
+    );
     _emojiController = TextEditingController(text: course?.emoji ?? '📚');
-    _priceController = TextEditingController(text: course?.priceDefault.toString() ?? '0');
-    
+    _priceController = TextEditingController(
+      text: course?.priceDefault.toString() ?? '0',
+    );
+
     _visibility = course?.visibility ?? 'draft';
     _level = course?.level ?? 'beginner';
     _language = course?.language ?? 'en';
-    
+
     if (course != null && course.gradientColors.length >= 2) {
       _gradientStart = Color(course.gradientColors[0]);
       _gradientEnd = Color(course.gradientColors[1]);
     }
-    
+
     _thumbnailUrl = course?.thumbnailUrl ?? '';
   }
 
@@ -90,38 +94,42 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       final newCourse = AdminCourse(
         id: widget.course?.id ?? '',
         title: _titleController.text.trim(),
-        slug: _slugController.text.trim().isEmpty 
+        slug: _slugController.text.trim().isEmpty
             ? _titleController.text.trim().toLowerCase().replaceAll(' ', '-')
             : _slugController.text.trim(),
         subtitle: _subtitleController.text.trim(),
         description: _descriptionController.text.trim(),
-        emoji: _emojiController.text.trim().isEmpty ? '📚' : _emojiController.text.trim(),
+        emoji: _emojiController.text.trim().isEmpty
+            ? '📚'
+            : _emojiController.text.trim(),
         tags: [],
         language: _language,
         level: _level,
         thumbnailUrl: _thumbnailUrl,
-        gradientColors: [_gradientStart.value, _gradientEnd.value],
+        gradientColors: [_gradientStart.toARGB32(), _gradientEnd.toARGB32()],
         priceDefault: double.tryParse(_priceController.text) ?? 0.0,
         visibility: _visibility,
         createdAt: widget.course?.createdAt ?? DateTime.now(),
       );
-      
+
       await context.read<FirebaseAdminService>().saveCourse(
-        newCourse, 
+        newCourse,
         isNew: widget.course == null,
       );
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Course ${widget.course == null ? 'created' : 'updated'} successfully!'),
+            content: Text(
+              'Course ${widget.course == null ? 'created' : 'updated'} successfully!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -157,11 +165,11 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                     // Preview Card
                     _buildPreviewCard(),
                     const SizedBox(height: 24),
-                    
+
                     // Basic Info Section
                     _buildSectionHeader('Basic Information'),
                     const SizedBox(height: 12),
-                    
+
                     TextFormField(
                       controller: _titleController,
                       decoration: const InputDecoration(
@@ -173,7 +181,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     TextFormField(
                       controller: _subtitleController,
                       decoration: const InputDecoration(
@@ -185,7 +193,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     TextFormField(
                       controller: _slugController,
                       decoration: const InputDecoration(
@@ -195,7 +203,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     TextFormField(
                       controller: _descriptionController,
                       decoration: const InputDecoration(
@@ -206,11 +214,11 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       maxLines: 4,
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Appearance Section
                     _buildSectionHeader('Appearance'),
                     const SizedBox(height: 12),
-                    
+
                     // Thumbnail Upload
                     ThumbnailUploadWidget(
                       currentUrl: _thumbnailUrl,
@@ -218,7 +226,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       onUploaded: (url) => setState(() => _thumbnailUrl = url),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Emoji field and quick picker
                     Wrap(
                       spacing: 16,
@@ -241,27 +249,46 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                           ),
                         ),
                         // Quick emoji picker
-                        ...['📚', '✍️', '📊', '⚖️', '🏛️', '🧮', '🌍', '💼']
-                            .map((e) => InkWell(
-                                  onTap: () {
-                                    _emojiController.text = e;
-                                    setState(() {});
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey.shade300),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(e, style: const TextStyle(fontSize: 20)),
-                                  ),
-                                )),
+                        ...[
+                          '📚',
+                          '✍️',
+                          '📊',
+                          '⚖️',
+                          '🏛️',
+                          '🧮',
+                          '🌍',
+                          '💼',
+                        ].map(
+                          (e) => InkWell(
+                            onTap: () {
+                              _emojiController.text = e;
+                              setState(() {});
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                e,
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Gradient Colors
-                    const Text('Gradient Colors', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Gradient Colors',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -269,9 +296,15 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Start Color', style: TextStyle(fontSize: 12)),
+                              const Text(
+                                'Start Color',
+                                style: TextStyle(fontSize: 12),
+                              ),
                               const SizedBox(height: 4),
-                              _buildColorPicker(_gradientStart, (c) => setState(() => _gradientStart = c)),
+                              _buildColorPicker(
+                                _gradientStart,
+                                (c) => setState(() => _gradientStart = c),
+                              ),
                             ],
                           ),
                         ),
@@ -280,20 +313,26 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('End Color', style: TextStyle(fontSize: 12)),
+                              const Text(
+                                'End Color',
+                                style: TextStyle(fontSize: 12),
+                              ),
                               const SizedBox(height: 4),
-                              _buildColorPicker(_gradientEnd, (c) => setState(() => _gradientEnd = c)),
+                              _buildColorPicker(
+                                _gradientEnd,
+                                (c) => setState(() => _gradientEnd = c),
+                              ),
                             ],
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Pricing & Settings Section
                     _buildSectionHeader('Pricing & Settings'),
                     const SizedBox(height: 12),
-                    
+
                     Row(
                       children: [
                         Expanded(
@@ -305,7 +344,9 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                               border: OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -317,36 +358,48 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                               labelText: 'Visibility *',
                               border: OutlineInputBorder(),
                             ),
-                            items: _visibilityOptions.map((v) => DropdownMenuItem(
-                              value: v,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    v == 'published' ? Icons.public : 
-                                    v == 'draft' ? Icons.edit : Icons.archive,
-                                    size: 16,
-                                    color: v == 'published' ? Colors.green : 
-                                           v == 'draft' ? Colors.orange : Colors.grey,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      v.toUpperCase(),
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 13),
+                            items: _visibilityOptions
+                                .map(
+                                  (v) => DropdownMenuItem(
+                                    value: v,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          v == 'published'
+                                              ? Icons.public
+                                              : v == 'draft'
+                                              ? Icons.edit
+                                              : Icons.archive,
+                                          size: 16,
+                                          color: v == 'published'
+                                              ? Colors.green
+                                              : v == 'draft'
+                                              ? Colors.orange
+                                              : Colors.grey,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Flexible(
+                                          child: Text(
+                                            v.toUpperCase(),
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            )).toList(),
+                                )
+                                .toList(),
                             onChanged: (v) => setState(() => _visibility = v!),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     Row(
                       children: [
                         Expanded(
@@ -356,10 +409,16 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                               labelText: 'Level',
                               border: OutlineInputBorder(),
                             ),
-                            items: _levelOptions.map((l) => DropdownMenuItem(
-                              value: l,
-                              child: Text(l[0].toUpperCase() + l.substring(1)),
-                            )).toList(),
+                            items: _levelOptions
+                                .map(
+                                  (l) => DropdownMenuItem(
+                                    value: l,
+                                    child: Text(
+                                      l[0].toUpperCase() + l.substring(1),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                             onChanged: (v) => setState(() => _level = v!),
                           ),
                         ),
@@ -391,13 +450,13 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       ],
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Batch Management Button (for existing courses)
                     if (widget.course != null) ...[
                       OutlinedButton.icon(
                         onPressed: () => Navigator.pushNamed(
-                          context, 
-                          '/batch_editor', 
+                          context,
+                          '/batch_editor',
                           arguments: widget.course!.id,
                         ),
                         icon: const Icon(Icons.group),
@@ -408,12 +467,16 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    
+
                     // Save Button
                     ElevatedButton.icon(
                       onPressed: _save,
                       icon: const Icon(Icons.save),
-                      label: Text(widget.course == null ? 'Create Course' : 'Save Changes'),
+                      label: Text(
+                        widget.course == null
+                            ? 'Create Course'
+                            : 'Save Changes',
+                      ),
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 48),
                         backgroundColor: Theme.of(context).primaryColor,
@@ -431,10 +494,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-      ),
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
     );
   }
 
@@ -461,7 +521,8 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                 ? Image.network(
                     _thumbnailUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _buildGradientPreview(),
+                    errorBuilder: (context, error, stackTrace) =>
+                        _buildGradientPreview(),
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return _buildGradientPreview(showLoader: true);
@@ -497,7 +558,9 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       ),
                       child: Center(
                         child: Text(
-                          _emojiController.text.isEmpty ? '📚' : _emojiController.text,
+                          _emojiController.text.isEmpty
+                              ? '📚'
+                              : _emojiController.text,
                           style: const TextStyle(fontSize: 32),
                         ),
                       ),
@@ -509,7 +572,9 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          _titleController.text.isEmpty ? 'Course Title' : _titleController.text,
+                          _titleController.text.isEmpty
+                              ? 'Course Title'
+                              : _titleController.text,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -520,7 +585,9 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _subtitleController.text.isEmpty ? 'Subtitle goes here' : _subtitleController.text,
+                          _subtitleController.text.isEmpty
+                              ? 'Subtitle goes here'
+                              : _subtitleController.text,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 14,
@@ -564,7 +631,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
       spacing: 8,
       runSpacing: 8,
       children: _colorOptions.map((color) {
-        final isSelected = selected.value == color.value;
+        final isSelected = selected.toARGB32() == color.toARGB32();
         return InkWell(
           onTap: () => onChanged(color),
           child: Container(
@@ -577,7 +644,12 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                   ? Border.all(color: Colors.black, width: 3)
                   : Border.all(color: Colors.grey.shade300),
               boxShadow: isSelected
-                  ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 4)]
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.5),
+                        blurRadius: 4,
+                      ),
+                    ]
                   : null,
             ),
             child: isSelected

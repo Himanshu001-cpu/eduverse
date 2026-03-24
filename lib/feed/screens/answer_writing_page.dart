@@ -3,6 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:eduverse/feed/models.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:eduverse/core/utils/markdown_utils.dart';
+import 'package:eduverse/feed/repository/feed_repository.dart';
+import 'package:eduverse/core/firebase/auth_service.dart';
 
 /// Answer Writing practice page for Mains-style answers.
 /// Features: question display, text editor, word counter, timer.
@@ -15,15 +20,18 @@ class AnswerWritingPage extends StatefulWidget {
   State<AnswerWritingPage> createState() => _AnswerWritingPageState();
 }
 
-class _AnswerWritingPageState extends State<AnswerWritingPage> {
+class _AnswerWritingPageState extends State<AnswerWritingPage>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _answerController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
-  
+
   Timer? _timer;
   int _remainingSeconds = 0;
   bool _timerStarted = false;
   bool _timerPaused = false;
   bool _isSubmitted = false;
+
+  late TabController _tabController;
 
   int get _wordCount {
     final text = _answerController.text.trim();
@@ -40,7 +48,13 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
   void initState() {
     super.initState();
     _remainingSeconds = _timeLimit * 60;
+    _tabController = TabController(length: 2, vsync: this);
     _answerController.addListener(() {
+      if (!_timerStarted &&
+          !_timerPaused &&
+          _answerController.text.trim().isNotEmpty) {
+        _startTimer();
+      }
       setState(() {});
     });
   }
@@ -48,6 +62,7 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
   @override
   void dispose() {
     _timer?.cancel();
+    _tabController.dispose();
     _answerController.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -55,7 +70,7 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
 
   void _startTimer() {
     if (_timerStarted && !_timerPaused) return;
-    
+
     setState(() {
       _timerStarted = true;
       _timerPaused = false;
@@ -90,39 +105,18 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
   }
 
   void _onTimeUp() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.timer_off, size: 48, color: Colors.orange),
-        title: const Text('Time\'s Up!'),
-        content: Text(
-          'You wrote $_wordCount words.\nWould you like to submit your answer?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _resetTimer();
-            },
-            child: const Text('Continue Writing'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _submitAnswer();
-            },
-            child: const Text('Submit'),
-          ),
-        ],
-      ),
-    );
+    // Auto-submit when time is up
+    if (!_isSubmitted) {
+      _submitAnswer(autoSubmit: true);
+    }
   }
 
-  void _submitAnswer() {
-    if (_answerController.text.trim().isEmpty) {
+  void _submitAnswer({bool autoSubmit = false}) {
+    if (!autoSubmit && _answerController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please write something before submitting!')),
+        const SnackBar(
+          content: Text('Please write something before submitting!'),
+        ),
       );
       return;
     }
@@ -132,57 +126,35 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
       _isSubmitted = true;
     });
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.check_circle, size: 48, color: Colors.green),
-        title: const Text('Answer Submitted'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildStatRow('Words Written', '$_wordCount / $_wordLimit'),
-            _buildStatRow('Characters', '$_charCount'),
-            _buildStatRow('Time Used', _formatTime((_timeLimit * 60) - _remainingSeconds)),
-            const SizedBox(height: 16),
-            Text(
-              'Great job practicing! Your answer has been saved locally.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+    if (autoSubmit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Time is up! auto-submitting answer.'),
+          backgroundColor: Colors.orange,
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text('Back to Feed'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _resetAll();
-            },
-            child: const Text('Practice Again'),
-          ),
-        ],
-      ),
-    );
-    // TODO: Implement answer saving to backend
-  }
+      );
+    }
 
-  Widget _buildStatRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
+    final authService = AuthService();
+    final user = authService.currentUser;
+    if (user != null) {
+      final feedRepo = FeedRepository();
+      final timeTaken = (_timeLimit * 60) - _remainingSeconds;
+      feedRepo
+          .submitAnswer(
+            widget.item.id,
+            user.uid,
+            _answerController.text.trim(),
+            timeTaken,
+          )
+          .catchError((e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error saving answer: $e')),
+              );
+            }
+          });
+    }
   }
 
   void _resetAll() {
@@ -192,20 +164,32 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
       _remainingSeconds = _timeLimit * 60;
       _timerStarted = false;
       _timerPaused = false;
+      _tabController.index = 0;
     });
   }
 
   void _copyAnswer() {
     if (_answerController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nothing to copy!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nothing to copy!')));
       return;
     }
     Clipboard.setData(ClipboardData(text: _answerController.text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Answer copied to clipboard')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Answer copied to clipboard')));
+  }
+
+  void _handleShare() {
+    final String deepLink =
+        'https://theeduverse.co.in/app/feed/${widget.item.id}';
+    final String shareText =
+        'Practice Answer Writing on EduVerse:\n\n'
+        'Question: ${widget.item.title}\n\n'
+        'Start writing here: $deepLink';
+
+    SharePlus.instance.share(ShareParams(text: shareText));
   }
 
   String _formatTime(int seconds) {
@@ -222,6 +206,13 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isSubmitted) {
+      return _buildResultView();
+    }
+    return _buildWritingView();
+  }
+
+  Widget _buildWritingView() {
     final colorScheme = Theme.of(context).colorScheme;
     final item = widget.item;
     final question = item.answerWritingContent?.question ?? item.description;
@@ -231,6 +222,7 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
       appBar: AppBar(
         title: const Text('Answer Writing'),
         actions: [
+          IconButton(icon: const Icon(Icons.share), onPressed: _handleShare),
           // Timer display
           Container(
             margin: const EdgeInsets.only(right: 8),
@@ -268,7 +260,9 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
               decoration: BoxDecoration(
                 color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: colorScheme.outline.withValues(alpha: 0.3),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,7 +273,8 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
                       const SizedBox(width: 8),
                       Text(
                         'Question',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: colorScheme.primary,
                             ),
@@ -297,9 +292,9 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
                   const SizedBox(height: 12),
                   Text(
                     question,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          height: 1.5,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(height: 1.5),
                   ),
                 ],
               ),
@@ -321,7 +316,9 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _timerPaused ? _startTimer : _pauseTimer,
-                        icon: Icon(_timerPaused ? Icons.play_arrow : Icons.pause),
+                        icon: Icon(
+                          _timerPaused ? Icons.play_arrow : Icons.pause,
+                        ),
                         label: Text(_timerPaused ? 'Resume' : 'Pause'),
                       ),
                     ),
@@ -358,16 +355,21 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+                      borderSide: BorderSide(
+                        color: colorScheme.outline.withValues(alpha: 0.5),
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                      borderSide: BorderSide(
+                        color: colorScheme.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        height: 1.6,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(height: 1.6),
                 ),
               ),
             ),
@@ -394,7 +396,9 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
                         '$_wordCount',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: _wordCount > _wordLimit ? Colors.red : colorScheme.primary,
+                          color: _wordCount > _wordLimit
+                              ? Colors.red
+                              : colorScheme.primary,
                         ),
                       ),
                       Text(
@@ -426,7 +430,7 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
                       Expanded(
                         flex: 2,
                         child: FilledButton.icon(
-                          onPressed: _submitAnswer,
+                          onPressed: () => _submitAnswer(autoSubmit: false),
                           icon: const Icon(Icons.send),
                           label: const Text('Submit Answer'),
                         ),
@@ -439,6 +443,164 @@ class _AnswerWritingPageState extends State<AnswerWritingPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildResultView() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final item = widget.item;
+    final question = item.answerWritingContent?.question ?? item.description;
+    final modelAnswer =
+        item.answerWritingContent?.modelAnswer ??
+        'No model answer available for this question.';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Result Comparison'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Your Answer'),
+            Tab(text: 'Model Answer'),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          // Stats Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: colorScheme.surfaceContainerLowest,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem('Words', '$_wordCount / $_wordLimit'),
+                _buildStatItem(
+                  'Time',
+                  _formatTime((_timeLimit * 60) - _remainingSeconds),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          // Question Header (collapsible/short)
+          ExpansionTile(
+            title: Text(
+              'Question',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.primary,
+              ),
+            ),
+            children: [
+              Padding(padding: const EdgeInsets.all(16), child: Text(question)),
+            ],
+          ),
+          const Divider(height: 1),
+          // Tab Content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // User Answer Tab
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: SelectableText(
+                    _answerController.text,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(height: 1.6),
+                  ),
+                ),
+                // Model Answer Tab
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      MarkdownBody(
+                        data: MarkdownUtils.normalizeMarkdown(modelAnswer),
+                        selectable: true,
+                        styleSheet: MarkdownStyleSheet(
+                          p: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(height: 1.6),
+                        ),
+                      ),
+                      if (item.answerWritingContent?.keyPoints.isNotEmpty ==
+                          true) ...[
+                        const SizedBox(height: 24),
+                        Text(
+                          'Key Points:',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        ...item.answerWritingContent!.keyPoints.map(
+                          (point) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  '• ',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Expanded(child: Text(point)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Bottom Actions
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Back to Feed'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _resetAll,
+                    child: const Text('Practice Again'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
+        ),
+      ],
     );
   }
 }

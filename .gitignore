@@ -1,16 +1,16 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# # Miscellaneous
+# *.class
+# *.log
+# *.pyc
+# *.swp
+# .DS_Store
+# .atom/
+# .build/
+# .buildlog/
+# .history
+# .svn/
+# .swiftpm/
+# migrate_working_dir/
 
 # IntelliJ related
 *.iml
@@ -24,8 +24,8 @@ migrate_working_dir/
 #.vscode/
 
 # Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# **/doc/api/
+# **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -49,10 +49,10 @@ android/key.properties
 *.jks
 *.keystore
 
-# Firebase sensitive files - NEVER commit these!
-android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
-lib/firebase_options.dart
+# # Firebase sensitive files - NEVER commit these!
+# android/app/google-services.json
+# ios/Runner/GoogleService-Info.plist
+# #lib/firebase_options.dart
 
 # Environment files
 .env

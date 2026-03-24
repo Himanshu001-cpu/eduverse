@@ -3,17 +3,22 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:eduverse/core/utils/youtube_utils.dart';
+import 'package:eduverse/common/widgets/video_skip_overlay.dart';
 
 class LecturePlayerPage extends StatefulWidget {
   final String videoUrl;
   final String title;
   final String description;
 
+  final bool isLiveStream;
+
   const LecturePlayerPage({
     super.key,
     required this.videoUrl,
     required this.title,
     this.description = '',
+    this.isLiveStream = false,
   });
 
   @override
@@ -39,14 +44,22 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
 
   Future<void> _initializePlayer() async {
     try {
-        final videoId = YoutubePlayer.convertUrlToId(widget.videoUrl);
+        // Try standard converter first, then fall back to our custom extractor
+        var videoId = YoutubePlayer.convertUrlToId(widget.videoUrl);
+        if (videoId == null) {
+          // Fallback to custom extractor for /live/ URLs
+          videoId = YouTubeUtils.extractVideoId(widget.videoUrl);
+        }
+        
         if (videoId != null) {
           _isYoutube = true;
+          // Pass isLive: widget.isLiveStream - required for playing live streams on Web
           _youtubeController = YoutubePlayerController(
             initialVideoId: videoId,
-            flags: const YoutubePlayerFlags(
+            flags: YoutubePlayerFlags(
               autoPlay: true,
               mute: false,
+              isLive: widget.isLiveStream,
             ),
           );
         } else {
@@ -114,10 +127,21 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
         },
         player: YoutubePlayer(
           controller: _youtubeController!,
-          showVideoProgressIndicator: true,
+          showVideoProgressIndicator: false,
         ),
         builder: (context, player) {
-          return _buildScaffold(context, player);
+          final playerWithOverlay = VideoSkipOverlay(
+            onSeek: (pos) => _youtubeController!.seekTo(pos),
+            getCurrentPosition: () => _youtubeController!.value.position,
+            getTotalDuration: () => _youtubeController!.metadata.duration,
+            getIsPlaying: () => _youtubeController!.value.isPlaying,
+            onPlay: () => _youtubeController!.play(),
+            onPause: () => _youtubeController!.pause(),
+            onToggleFullScreen: () => _youtubeController!.toggleFullScreenMode(),
+            controllerListenable: _youtubeController!,
+            child: player,
+          );
+          return _buildScaffold(context, playerWithOverlay);
         },
       );
     } else if (_chewieController != null && _chewieController!.videoPlayerController.value.isInitialized) {

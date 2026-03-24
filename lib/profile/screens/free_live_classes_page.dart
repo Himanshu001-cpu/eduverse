@@ -189,7 +189,7 @@ class _LiveClassCard extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.blueAccent.withOpacity(0.2), // Default color
+              color: Colors.blueAccent.withValues(alpha: 0.2), // Default color
               borderRadius: BorderRadius.circular(12),
             ),
              child: item.thumbnailUrl.isNotEmpty
@@ -259,7 +259,7 @@ class _LiveClassCard extends StatelessWidget {
     final lecture = StudyLecture(
       id: item.id,
       title: item.title,
-      videoUrl: item.youtubeUrl ?? '', // Ensure fallback if needed, or handle empty URL upstream
+      videoUrl: item.youtubeUrl ?? '',
       description: item.description,
       order: 0,
       duration: Duration(minutes: item.durationMinutes),
@@ -278,7 +278,6 @@ class _LiveClassCard extends StatelessWidget {
         builder: (context) => LecturePlayerScreen(
           lecture: lecture,
           isFreeClass: true,
-          // courseId and batchId are null for free classes
         ),
       ),
     );

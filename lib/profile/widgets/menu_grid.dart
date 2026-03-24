@@ -22,7 +22,13 @@ class _MenuGridState extends State<MenuGrid> {
   @override
   void initState() {
     super.initState();
-    _isAdminFuture = AuthService().isAdmin();
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final authService = AuthService();
+    _isAdminFuture = authService.isAdmin();
+    setState(() {});
   }
 
   void _handleLogout(BuildContext context) async {
@@ -183,19 +189,9 @@ class _MenuGridState extends State<MenuGrid> {
           FutureBuilder<bool>(
             future: _isAdminFuture,
             builder: (context, snapshot) {
-              debugPrint('Admin FutureBuilder - connectionState: ${snapshot.connectionState}, data: ${snapshot.data}, error: ${snapshot.error}');
-              
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                // Show a small loading indicator while checking admin status
-                return const SizedBox.shrink();
-              }
-              
-              if (snapshot.hasError) {
-                debugPrint('Error checking admin status: ${snapshot.error}');
-                return const SizedBox.shrink();
-              }
-              
-              if (snapshot.data == true) {
+              // Only show admin panel button if user is confirmed as admin
+              if (snapshot.connectionState == ConnectionState.done && 
+                  snapshot.data == true) {
                 return Column(
                   children: [
                     const SizedBox(height: 12),
@@ -219,6 +215,8 @@ class _MenuGridState extends State<MenuGrid> {
                   ],
                 );
               }
+              
+              // For all other cases (loading, error, not admin), show nothing
               return const SizedBox.shrink();
             },
           ),

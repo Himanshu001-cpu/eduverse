@@ -115,78 +115,188 @@ class _AdminEntryPageState extends State<AdminEntryPage> {
     }
 
     if (!_isAdmin) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Admin Panel'),
-          backgroundColor: Colors.teal,
-          foregroundColor: Colors.white,
-        ),
+      // Not an admin - automatically go back without showing any message
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
+      
+      // Show a simple loading indicator while navigating back
+      return const Scaffold(
         body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.lock,
-                    size: 64,
-                    color: Colors.red.shade400,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Access Denied',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'You do not have permission to access the Admin Panel.\n'
-                  'Please contact an administrator if you believe this is an error.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Go Back'),
-                ),
-              ],
-            ),
-          ),
+          child: CircularProgressIndicator(),
         ),
       );
     }
 
     // User is admin - show the admin app with proper routing
+    return _AdminAppWithBackHandling(
+      onExitAdminPanel: () => Navigator.of(context).pop(),
+    );
+  }
+}
+
+/// Separate widget to handle admin app with proper back button handling
+class _AdminAppWithBackHandling extends StatefulWidget {
+  final VoidCallback onExitAdminPanel;
+  
+  const _AdminAppWithBackHandling({required this.onExitAdminPanel});
+  
+  @override
+  State<_AdminAppWithBackHandling> createState() => _AdminAppWithBackHandlingState();
+}
+
+class _AdminAppWithBackHandlingState extends State<_AdminAppWithBackHandling> {
+  final GlobalKey<NavigatorState> _adminNavigatorKey = GlobalKey<NavigatorState>();
+  late final _AdminRouteObserver _routeObserver;
+  
+  @override
+  void initState() {
+    super.initState();
+    _routeObserver = _AdminRouteObserver(onRouteChanged: _onRouteChanged);
+  }
+  
+  void _onRouteChanged(String routeName) {
+    // This is called from the observer, which may be triggered during build
+    // We use a post-frame callback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  Future<void> _showExitConfirmation() async {
+    // Use the admin navigator's context for showing dialog so it appears correctly
+    final navigatorContext = _adminNavigatorKey.currentContext;
+    if (navigatorContext == null) {
+      widget.onExitAdminPanel();
+      return;
+    }
+    
+    final confirm = await showDialog<bool>(
+      context: navigatorContext,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Exit Admin Panel'),
+        content: const Text('Are you sure you want to exit the admin panel?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Exit'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm == true) {
+      widget.onExitAdminPanel();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Provider<FirebaseAdminService>(
       create: (_) => FirebaseAdminService(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'The Eduverse Admin',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.teal,
-            foregroundColor: Colors.white,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          
+          // Check if we're on dashboard using the observer's tracked route
+          final currentRoute = _routeObserver.currentRoute;
+          
+          // If on dashboard (only one route in stack), show exit confirmation
+          if (currentRoute == '/dashboard') {
+            _showExitConfirmation();
+          } else {
+            // Not on dashboard, navigate back within admin panel
+            final canPop = _adminNavigatorKey.currentState?.canPop() ?? false;
+            if (canPop) {
+              _adminNavigatorKey.currentState?.pop();
+            } else {
+              // If we cannot pop (shouldn't happen but safety check), show exit
+              _showExitConfirmation();
+            }
+          }
+        },
+        child: MaterialApp(
+          navigatorKey: _adminNavigatorKey,
+          navigatorObservers: [_routeObserver],
+          debugShowCheckedModeBanner: false,
+          title: 'The Eduverse Admin',
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+            ),
           ),
+          initialRoute: '/dashboard',
+          onGenerateRoute: AdminRouter.generateRoute,
         ),
-        initialRoute: '/dashboard',
-        onGenerateRoute: AdminRouter.generateRoute,
       ),
     );
   }
 }
+
+/// Navigator observer that tracks the current route in the admin panel
+class _AdminRouteObserver extends NavigatorObserver {
+  final List<String> _routeStack = ['/dashboard'];
+  final Function(String) onRouteChanged;
+  
+  _AdminRouteObserver({required this.onRouteChanged});
+  
+  String get currentRoute => _routeStack.isNotEmpty ? _routeStack.last : '/dashboard';
+  
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    final routeName = route.settings.name ?? '/dashboard';
+    _routeStack.add(routeName);
+    onRouteChanged(routeName);
+  }
+  
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (_routeStack.isNotEmpty) {
+      _routeStack.removeLast();
+    }
+    // Ensure we always have at least dashboard in the stack
+    if (_routeStack.isEmpty) {
+      _routeStack.add('/dashboard');
+    }
+    onRouteChanged(currentRoute);
+  }
+  
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    if (_routeStack.isNotEmpty) {
+      _routeStack.removeLast();
+    }
+    final routeName = newRoute?.settings.name ?? '/dashboard';
+    _routeStack.add(routeName);
+    onRouteChanged(routeName);
+  }
+  
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didRemove(route, previousRoute);
+    final routeName = route.settings.name;
+    if (routeName != null) {
+      _routeStack.remove(routeName);
+    }
+    if (_routeStack.isEmpty) {
+      _routeStack.add('/dashboard');
+    }
+    onRouteChanged(currentRoute);
+  }
+}
+

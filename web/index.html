@@ -36,7 +36,40 @@
 </head>
 
 <body>
+  <style>
+    body {
+      -webkit-user-select: none; /* Safari */
+      -ms-user-select: none; /* IE 10 and IE 11 */
+      user-select: none; /* Standard syntax */
+    }
+  </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
+
+  <!-- Razorpay -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <!-- Screenshot/Screen Recording Web Protections -->
+  <script>
+    // Disable right-click context menu (Save Image As, etc.)
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // Intercept PrintScreen key
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        navigator.clipboard.writeText(''); // Clear clipboard
+        e.preventDefault();
+      }
+    });
+  </script>
+
+  <!-- Flutter -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 

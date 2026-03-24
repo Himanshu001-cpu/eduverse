@@ -2,6 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/widgets/rich_text_block.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:eduverse/core/utils/markdown_utils.dart';
+import 'package:eduverse/feed/repository/feed_repository.dart';
+import 'package:eduverse/core/firebase/auth_service.dart';
 
 /// Detail page for Job/Vacancy content type.
 /// Shows full job details, eligibility, dates, and apply action.
@@ -15,7 +21,23 @@ class JobDetailPage extends StatefulWidget {
 }
 
 class _JobDetailPageState extends State<JobDetailPage> {
-  bool _isSaved = false;
+  final FeedRepository _feedRepo = FeedRepository();
+  final AuthService _authService = AuthService();
+  late Stream<bool> _isBookmarkedStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final userId = _authService.currentUser?.uid;
+    if (userId != null) {
+      _isBookmarkedStream = _feedRepo.isBookmarkedStream(
+        widget.item.id,
+        userId,
+      );
+    } else {
+      _isBookmarkedStream = Stream.value(false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,68 +50,37 @@ class _JobDetailPageState extends State<JobDetailPage> {
         top: false,
         child: CustomScrollView(
           slivers: [
-            // Header
+            // Header with thumbnail or emoji fallback
             SliverAppBar(
               expandedHeight: 160,
               pinned: true,
               flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        item.color,
-                        item.color.withValues(alpha: 0.7),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 40),
-                        Text(
-                          item.emoji,
-                          style: const TextStyle(fontSize: 48),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Text(
-                            'JOB ALERT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                background: item.thumbnailUrl.isNotEmpty
+                    ? Image.network(
+                        item.thumbnailUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _buildEmojiHeader(item),
+                      )
+                    : _buildEmojiHeader(item),
               ),
               actions: [
-                IconButton(
-                  icon: Icon(
-                    _isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                    color: Colors.white,
-                  ),
-                  onPressed: _toggleSave,
+                StreamBuilder<bool>(
+                  stream: _isBookmarkedStream,
+                  builder: (context, snapshot) {
+                    final isSaved = snapshot.data ?? false;
+                    return IconButton(
+                      icon: Icon(
+                        isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => _toggleSave(isSaved),
+                    );
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.share, color: Colors.white),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Share feature coming soon!')),
-                    );
-                  },
+                  onPressed: _handleShare,
                 ),
               ],
             ),
@@ -103,21 +94,23 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     // Title & Organization
                     Text(
                       item.title,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.business, size: 18, color: colorScheme.primary),
+                        Icon(
+                          Icons.business,
+                          size: 18,
+                          color: colorScheme.primary,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             content?.organization ?? 'Government of India',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: colorScheme.primary,
-                                ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(color: colorScheme.primary),
                           ),
                         ),
                       ],
@@ -146,10 +139,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
                             color: Colors.amber.shade700,
                           ),
                         if (content?.jobType != null)
-                          InfoChip(
-                            icon: Icons.work,
-                            label: content!.jobType!,
-                          ),
+                          InfoChip(icon: Icons.work, label: content!.jobType!),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -161,7 +151,9 @@ class _JobDetailPageState extends State<JobDetailPage> {
                       color: Colors.orange.withValues(alpha: 0.1),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.orange.withValues(alpha: 0.3)),
+                        side: BorderSide(
+                          color: Colors.orange.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -170,11 +162,15 @@ class _JobDetailPageState extends State<JobDetailPage> {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.calendar_today, color: Colors.orange),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  color: Colors.orange,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Important Dates',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.orange.shade800,
                                       ),
@@ -184,21 +180,30 @@ class _JobDetailPageState extends State<JobDetailPage> {
                             const SizedBox(height: 12),
                             _buildDateRow(
                               'Application Start',
-                              _formatDate(content?.applicationStart ?? DateTime.now()),
+                              _formatDate(
+                                content?.applicationStart ?? DateTime.now(),
+                              ),
                               Icons.play_arrow,
                               Colors.green,
                             ),
                             const SizedBox(height: 8),
                             _buildDateRow(
                               'Application End',
-                              _formatDate(content?.applicationEnd ?? DateTime.now().add(const Duration(days: 30))),
+                              _formatDate(
+                                content?.applicationEnd ??
+                                    DateTime.now().add(
+                                      const Duration(days: 30),
+                                    ),
+                              ),
                               Icons.stop,
                               Colors.red,
                             ),
                             const SizedBox(height: 8),
                             _buildDateRow(
                               'Exam Date',
-                              'To be announced',
+                              content?.examDate != null
+                                  ? _formatDate(content!.examDate!)
+                                  : 'To be announced',
                               Icons.event,
                               Colors.blue,
                             ),
@@ -223,13 +228,15 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     // Selection Process
                     RichTextBulletList(
                       title: 'Selection Process',
-                      items: const [
-                        'Preliminary Examination',
-                        'Main Examination',
-                        'Interview/Personality Test',
-                        'Document Verification',
-                        'Final Selection',
-                      ],
+                      items: content?.selectionProcess.isNotEmpty == true
+                          ? content!.selectionProcess
+                          : const [
+                              'Preliminary Examination',
+                              'Main Examination',
+                              'Interview/Personality Test',
+                              'Document Verification',
+                              'Final Selection',
+                            ],
                       icon: Icons.format_list_numbered,
                       iconColor: Colors.indigo,
                       showDivider: false,
@@ -238,7 +245,9 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     // How to Apply Card
                     Card(
                       elevation: 0,
-                      color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      color: colorScheme.primaryContainer.withValues(
+                        alpha: 0.3,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -249,27 +258,35 @@ class _JobDetailPageState extends State<JobDetailPage> {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.how_to_reg, color: colorScheme.primary),
+                                Icon(
+                                  Icons.how_to_reg,
+                                  color: colorScheme.primary,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'How to Apply',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 12),
-                            Text(
-                              '1. Visit the official website\n'
-                              '2. Register with valid email and phone\n'
-                              '3. Fill the application form carefully\n'
-                              '4. Upload required documents\n'
-                              '5. Pay the application fee\n'
-                              '6. Submit and download acknowledgment',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    height: 1.6,
-                                  ),
+                            MarkdownBody(
+                              data: MarkdownUtils.normalizeMarkdown(
+                                content?.howToApply ??
+                                    '1. Visit the official website\n'
+                                        '2. Register with valid email and phone\n'
+                                        '3. Fill the application form carefully\n'
+                                        '4. Upload required documents\n'
+                                        '5. Pay the application fee\n'
+                                        '6. Submit and download acknowledgment',
+                              ),
+                              softLineBreak: true,
+                              styleSheet: MarkdownStyleSheet(
+                                p: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.copyWith(height: 1.6),
+                              ),
                             ),
                           ],
                         ),
@@ -280,7 +297,9 @@ class _JobDetailPageState extends State<JobDetailPage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                        color: colorScheme.errorContainer.withValues(
+                          alpha: 0.3,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -318,10 +337,18 @@ class _JobDetailPageState extends State<JobDetailPage> {
           child: Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _toggleSave,
-                  icon: Icon(_isSaved ? Icons.bookmark : Icons.bookmark_add_outlined),
-                  label: Text(_isSaved ? 'Saved' : 'Save Job'),
+                child: StreamBuilder<bool>(
+                  stream: _isBookmarkedStream,
+                  builder: (context, snapshot) {
+                    final isSaved = snapshot.data ?? false;
+                    return OutlinedButton.icon(
+                      onPressed: () => _toggleSave(isSaved),
+                      icon: Icon(
+                        isSaved ? Icons.bookmark : Icons.bookmark_add_outlined,
+                      ),
+                      label: Text(isSaved ? 'Saved' : 'Save Job'),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -352,44 +379,72 @@ class _JobDetailPageState extends State<JobDetailPage> {
             color: Colors.grey[700],
           ),
         ),
-        Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
       ],
     );
   }
 
-  void _toggleSave() {
-    setState(() {
-      _isSaved = !_isSaved;
-    });
+  void _handleShare() {
+    final String deepLink =
+        'https://theeduverse.co.in/app/feed/${widget.item.id}';
+    final String shareText =
+        'Check out this Job Alert on EduVerse:\n\n'
+        '${widget.item.title}\n\n'
+        'Read more: $deepLink';
+
+    SharePlus.instance.share(ShareParams(text: shareText));
+  }
+
+  void _toggleSave(bool currentStatus) async {
+    final user = _authService.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to save items')),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_isSaved ? 'Job saved' : 'Job removed from saved'),
+        content: Text(!currentStatus ? 'Job saved' : 'Job removed from saved'),
         duration: const Duration(seconds: 1),
       ),
     );
-    // TODO: Persist saved state to backend/local storage
+    await _feedRepo.toggleBookmark(widget.item.id, user.uid);
   }
 
-  void _applyNow() {
+  Future<void> _applyNow() async {
     final url = widget.item.jobContent?.applyUrl ?? 'https://upsc.gov.in';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Opening job application: $url'),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {},
-        ),
-      ),
-    );
-    // TODO: Integrate with url_launcher to open the actual URL
-    // await launchUrl(Uri.parse(url));
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not launch $url'),
+            action: SnackBarAction(label: 'OK', onPressed: () {}),
+          ),
+        );
+      }
+    }
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
@@ -399,4 +454,42 @@ Educational Qualification: Graduate from recognized university
 Nationality: Indian Citizen
 Physical Standards: As per post requirements
 Medical Standards: Must be physically and mentally fit''';
+
+  Widget _buildEmojiHeader(FeedItem item) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [item.color, item.color.withValues(alpha: 0.7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 40),
+            Text(item.emoji, style: const TextStyle(fontSize: 48)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Text(
+                'JOB ALERT',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
