@@ -155,6 +155,10 @@ class AdminLecture {
   final String type; // video, article, pdf, quiz
   final String storagePath;
   final bool isLocked;
+  final String subject;
+  final String chapter;
+  final int? lectureNo;
+  final List<String> linkedNoteIds;
 
   AdminLecture({
     required this.id,
@@ -164,6 +168,10 @@ class AdminLecture {
     required this.type,
     required this.storagePath,
     required this.isLocked,
+    this.subject = '',
+    this.chapter = '',
+    this.lectureNo,
+    this.linkedNoteIds = const [],
   });
 
   factory AdminLecture.fromMap(Map<String, dynamic> data, String id) {
@@ -175,6 +183,10 @@ class AdminLecture {
       type: data['type'] ?? 'video',
       storagePath: data['storagePath'] ?? '',
       isLocked: data['isLocked'] ?? false,
+      subject: data['subject'] ?? '',
+      chapter: data['chapter'] ?? '',
+      lectureNo: data['lectureNo'] as int?,
+      linkedNoteIds: List<String>.from(data['linkedNoteIds'] ?? []),
     );
   }
 
@@ -186,6 +198,10 @@ class AdminLecture {
       'type': type,
       'storagePath': storagePath,
       'isLocked': isLocked,
+      'subject': subject,
+      'chapter': chapter,
+      'lectureNo': lectureNo,
+      'linkedNoteIds': linkedNoteIds,
     };
   }
 }
@@ -338,6 +354,9 @@ class AdminNote {
   final String subtitle;
   final String pdfUrl;
   final DateTime createdAt;
+  final String subject;
+  final String chapter;
+  final String? lectureId; // Optional link to a specific lecture
 
   AdminNote({
     required this.id,
@@ -345,6 +364,9 @@ class AdminNote {
     required this.subtitle,
     required this.pdfUrl,
     required this.createdAt,
+    this.subject = '',
+    this.chapter = '',
+    this.lectureId,
   });
 
   factory AdminNote.fromMap(Map<String, dynamic> data, String id) {
@@ -354,6 +376,9 @@ class AdminNote {
       subtitle: data['subtitle'] ?? '',
       pdfUrl: data['pdfUrl'] ?? data['url'] ?? '', // Fallback to old url
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      subject: data['subject'] ?? '',
+      chapter: data['chapter'] ?? '',
+      lectureId: data['lectureId'] as String?,
     );
   }
 
@@ -362,6 +387,56 @@ class AdminNote {
       'title': title,
       'subtitle': subtitle,
       'pdfUrl': pdfUrl,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'subject': subject,
+      'chapter': chapter,
+      'lectureId': lectureId,
+    };
+  }
+}
+
+class AdminDpp {
+  final String id;
+  final String title;
+  final String subject;
+  final String chapter;
+  final String dppPdfUrl;
+  final String solutionPdfUrl;
+  final String? lectureId;
+  final DateTime createdAt;
+
+  AdminDpp({
+    required this.id,
+    required this.title,
+    required this.subject,
+    required this.chapter,
+    required this.dppPdfUrl,
+    this.solutionPdfUrl = '',
+    this.lectureId,
+    required this.createdAt,
+  });
+
+  factory AdminDpp.fromMap(Map<String, dynamic> data, String id) {
+    return AdminDpp(
+      id: id,
+      title: data['title'] ?? '',
+      subject: data['subject'] ?? '',
+      chapter: data['chapter'] ?? '',
+      dppPdfUrl: data['dppPdfUrl'] ?? '',
+      solutionPdfUrl: data['solutionPdfUrl'] ?? '',
+      lectureId: data['lectureId'] as String?,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'subject': subject,
+      'chapter': chapter,
+      'dppPdfUrl': dppPdfUrl,
+      'solutionPdfUrl': solutionPdfUrl,
+      'lectureId': lectureId,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -472,6 +547,9 @@ class AdminLiveClass {
   final String thumbnailUrl;
   final String status; // scheduled, live, completed
   final DateTime createdAt;
+  final String subject;
+  final String chapter;
+  final int? lectureNo;
 
   AdminLiveClass({
     required this.id,
@@ -484,6 +562,9 @@ class AdminLiveClass {
     required this.thumbnailUrl,
     required this.status,
     required this.createdAt,
+    this.subject = '',
+    this.chapter = '',
+    this.lectureNo,
   });
 
   factory AdminLiveClass.fromMap(Map<String, dynamic> data, String id) {
@@ -499,6 +580,9 @@ class AdminLiveClass {
       thumbnailUrl: data['thumbnailUrl'] ?? '',
       status: data['status'] ?? 'scheduled',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      subject: data['subject'] ?? '',
+      chapter: data['chapter'] ?? '',
+      lectureNo: data['lectureNo'] as int?,
     );
   }
 
@@ -514,6 +598,9 @@ class AdminLiveClass {
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
+      'subject': subject,
+      'chapter': chapter,
+      'lectureNo': lectureNo,
     };
   }
 }

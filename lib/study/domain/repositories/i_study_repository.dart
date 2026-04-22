@@ -52,6 +52,9 @@ abstract class IStudyRepository {
     String batchId,
   );
 
+  /// Get list of DPPs for a specific batch.
+  Future<List<StudyDpp>> getBatchDpps(String courseId, String batchId);
+
   /// Get list of free live classes available to all users.
   Future<List<StudyLiveClass>> getFreeLiveClasses();
 

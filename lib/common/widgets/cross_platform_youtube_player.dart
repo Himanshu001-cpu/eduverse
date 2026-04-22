@@ -11,6 +11,7 @@ class CrossPlatformYoutubePlayer extends StatefulWidget {
   final VoidCallback? onReady;
   final VoidCallback? onEnded;
   final Widget? settingsButton;
+  final double playbackSpeed;
 
   const CrossPlatformYoutubePlayer({
     super.key,
@@ -20,6 +21,7 @@ class CrossPlatformYoutubePlayer extends StatefulWidget {
     this.onReady,
     this.onEnded,
     this.settingsButton,
+    this.playbackSpeed = 1.0,
   });
 
   @override
@@ -56,7 +58,19 @@ class _CrossPlatformYoutubePlayerState
       if (event.playerState == iframe.PlayerState.ended) {
         widget.onEnded?.call();
       }
+      // Apply playback speed when video starts playing
+      if (event.playerState == iframe.PlayerState.playing) {
+        _controller.setPlaybackRate(widget.playbackSpeed);
+      }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant CrossPlatformYoutubePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.playbackSpeed != widget.playbackSpeed) {
+      _controller.setPlaybackRate(widget.playbackSpeed);
+    }
   }
 
   @override

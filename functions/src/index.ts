@@ -422,3 +422,51 @@ export const sendUpdateReminders = functions.pubsub
             }
         }
     });
+
+// 11. onLiveViewerDisconnect: Decrement viewer count on ungraceful disconnect
+// Triggers when a user's RTDB presence node is removed (by onDisconnect handler)
+export const onLiveViewerDisconnect = functions.database
+    .ref('live_viewers/{sessionKey}/{userId}')
+    .onDelete(async (snapshot, context) => {
+        const { sessionKey } = context.params;
+        const data = snapshot.val();
+
+        // Parse courseId, batchId, liveClassId from the presence data
+        // (stored when joining) or from the sessionKey
+        let courseId: string;
+        let batchId: string;
+        let liveClassId: string;
+
+        if (data && data.courseId && data.batchId && data.liveClassId) {
+            courseId = data.courseId;
+            batchId = data.batchId;
+            liveClassId = data.liveClassId;
+        } else {
+            // Fallback: parse from sessionKey (format: courseId_batchId_liveClassId)
+            const parts = sessionKey.split('_');
+            if (parts.length < 3) {
+                console.error('Invalid sessionKey format:', sessionKey);
+                return;
+            }
+            courseId = parts[0];
+            batchId = parts[1];
+            liveClassId = parts.slice(2).join('_');
+        }
+
+        try {
+            const liveClassRef = db
+                .collection('courses').doc(courseId)
+                .collection('batches').doc(batchId)
+                .collection('live_classes').doc(liveClassId);
+
+            await liveClassRef.update({
+                viewerCount: admin.firestore.FieldValue.increment(-1),
+            });
+
+            console.log(
+                `Viewer disconnected: ${context.params.userId} from ${sessionKey}. Count decremented.`
+            );
+        } catch (error) {
+            console.error('Error decrementing viewer count on disconnect:', error);
+        }
+    });

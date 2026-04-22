@@ -31,6 +31,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
   YoutubePlayerController? _controller;
   bool _isPlayerReady = false;
   bool _isBookmarked = false;
+  double _playbackSpeed = 1.0;
 
   final FeedRepository _feedRepo = FeedRepository();
   final AuthService _authService = AuthService();
@@ -78,14 +79,14 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
     }
 
     if (videoId != null && videoId.isNotEmpty) {
-      // Feed videos without status are treated as recorded (not live)
+      final isLive = widget.item.videoContent?.isLive ?? false;
       _controller = YoutubePlayerController(
         initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(
+        flags: YoutubePlayerFlags(
           autoPlay: false,
           mute: false,
           enableCaption: true,
-          isLive: false,
+          isLive: isLive,
         ),
       )..addListener(_listener);
     }
@@ -175,6 +176,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                       CrossPlatformYoutubePlayer(
                         videoId: videoId,
                         autoPlay: false,
+                        isLive: widget.item.videoContent?.isLive ?? false,
                         settingsButton: IconButton(
                           icon: const Icon(
                             Icons.settings,
@@ -235,6 +237,11 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
           onPause: () => _controller!.pause(),
           onToggleFullScreen: () => _controller!.toggleFullScreenMode(),
           onShowQuality: () => _showQualitySheet(context),
+          currentPlaybackSpeed: _playbackSpeed,
+          onPlaybackSpeedChanged: (speed) {
+            setState(() => _playbackSpeed = speed);
+            _controller!.setPlaybackRate(speed);
+          },
           controllerListenable: _controller!,
           child: player,
         );

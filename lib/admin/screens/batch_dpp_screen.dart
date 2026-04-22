@@ -5,45 +5,43 @@ import '../services/firebase_admin_service.dart';
 import '../widgets/admin_scaffold.dart';
 import '../widgets/media_uploader.dart';
 
-class BatchNotesScreen extends StatelessWidget {
+class BatchDppScreen extends StatelessWidget {
   final String courseId;
   final String batchId;
 
-  const BatchNotesScreen({super.key, required this.courseId, required this.batchId});
+  const BatchDppScreen({super.key, required this.courseId, required this.batchId});
 
   @override
   Widget build(BuildContext context) {
     final service = context.read<FirebaseAdminService>();
     return AdminScaffold(
-      title: 'Batch Notes',
+      title: 'DPP (Daily Practice Problems)',
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
-        onPressed: () => _showNoteDialog(context, service, null),
+        onPressed: () => _showDppDialog(context, service, null),
       ),
-      body: StreamBuilder<List<AdminNote>>(
-        stream: service.getBatchNotes(courseId, batchId),
+      body: StreamBuilder<List<AdminDpp>>(
+        stream: service.getBatchDpps(courseId, batchId),
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          final notes = snapshot.data!;
-          if (notes.isEmpty) return const Center(child: Text('No notes added yet.'));
+          final dpps = snapshot.data!;
+          if (dpps.isEmpty) return const Center(child: Text('No DPPs added yet. Tap + to add.'));
 
           return ListView.builder(
-            itemCount: notes.length,
+            itemCount: dpps.length,
             padding: const EdgeInsets.all(8),
             itemBuilder: (context, index) {
-              final note = notes[index];
-              // Build metadata line
-              final metaParts = <String>[];
-              if (note.subject.isNotEmpty) metaParts.add(note.subject);
-              if (note.chapter.isNotEmpty) metaParts.add(note.chapter);
-              final metaLine = metaParts.isNotEmpty ? metaParts.join(' • ') : '';
+              final dpp = dpps[index];
+              final metaLine = [dpp.subject, dpp.chapter]
+                  .where((s) => s.isNotEmpty)
+                  .join(' • ');
 
               return Card(
                 child: ListTile(
-                  leading: const Icon(Icons.picture_as_pdf, color: Colors.orange),
-                  title: Text(note.title),
+                  leading: const Icon(Icons.assignment, color: Colors.deepPurple),
+                  title: Text(dpp.title),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -56,9 +54,20 @@ class BatchNotesScreen extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                      if (note.subtitle.isNotEmpty)
-                        Text(note.subtitle),
-                      if (note.lectureId != null)
+                      Row(
+                        children: [
+                          Icon(Icons.picture_as_pdf, size: 14, color: Colors.orange.shade700),
+                          const SizedBox(width: 4),
+                          const Text('DPP', style: TextStyle(fontSize: 11)),
+                          if (dpp.solutionPdfUrl.isNotEmpty) ...[
+                            const SizedBox(width: 12),
+                            Icon(Icons.check_circle, size: 14, color: Colors.green.shade700),
+                            const SizedBox(width: 4),
+                            const Text('Solution', style: TextStyle(fontSize: 11)),
+                          ],
+                        ],
+                      ),
+                      if (dpp.lectureId != null)
                         Row(
                           children: [
                             Icon(Icons.link, size: 14, color: Colors.green.shade700),
@@ -76,11 +85,11 @@ class BatchNotesScreen extends StatelessWidget {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _showNoteDialog(context, service, note),
+                        onPressed: () => _showDppDialog(context, service, dpp),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete(context, service, note),
+                        onPressed: () => _confirmDelete(context, service, dpp),
                       ),
                     ],
                   ),
@@ -93,12 +102,12 @@ class BatchNotesScreen extends StatelessWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, FirebaseAdminService service, AdminNote note) {
+  void _confirmDelete(BuildContext context, FirebaseAdminService service, AdminDpp dpp) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Note'),
-        content: Text('Are you sure you want to delete "${note.title}"?'),
+        title: const Text('Delete DPP'),
+        content: Text('Are you sure you want to delete "${dpp.title}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -107,7 +116,7 @@ class BatchNotesScreen extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
-              service.deleteBatchNote(courseId, batchId, note.id);
+              service.deleteBatchDpp(courseId, batchId, dpp.id);
               Navigator.pop(context);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
@@ -117,18 +126,16 @@ class BatchNotesScreen extends StatelessWidget {
     );
   }
 
-  /// Shared dialog for both adding and editing a note.
-  /// Pass [note] = null for add mode.
-  void _showNoteDialog(BuildContext context, FirebaseAdminService service, AdminNote? note) {
-    final isEditing = note != null;
-    final titleController = TextEditingController(text: note?.title ?? '');
-    final subtitleController = TextEditingController(text: note?.subtitle ?? '');
+  void _showDppDialog(BuildContext context, FirebaseAdminService service, AdminDpp? dpp) {
+    final isEditing = dpp != null;
+    final titleController = TextEditingController(text: dpp?.title ?? '');
     final newSubjectController = TextEditingController();
     final newChapterController = TextEditingController();
-    String? pdfUrl = note?.pdfUrl;
-    String selectedSubject = note?.subject ?? '';
-    String selectedChapter = note?.chapter ?? '';
-    String? selectedLectureId = note?.lectureId;
+    String? dppPdfUrl = dpp?.dppPdfUrl;
+    String? solutionPdfUrl = dpp?.solutionPdfUrl;
+    String selectedSubject = dpp?.subject ?? '';
+    String selectedChapter = dpp?.chapter ?? '';
+    String? selectedLectureId = dpp?.lectureId;
     bool showAddSubject = false;
     bool showAddChapter = false;
 
@@ -168,10 +175,17 @@ class BatchNotesScreen extends StatelessWidget {
                       ),
                     ];
 
+                    // DPP requires subject — check validity
+                    final canSave = titleController.text.isNotEmpty &&
+                        selectedSubject.isNotEmpty &&
+                        selectedChapter.isNotEmpty &&
+                        dppPdfUrl != null &&
+                        dppPdfUrl!.isNotEmpty;
+
                     return AlertDialog(
-                      title: Text(isEditing ? 'Edit Note' : 'Add PDF Note'),
+                      title: Text(isEditing ? 'Edit DPP' : 'Add DPP'),
                       content: SizedBox(
-                        width: 400,
+                        width: 450,
                         child: SingleChildScrollView(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -180,23 +194,16 @@ class BatchNotesScreen extends StatelessWidget {
                               TextField(
                                 controller: titleController,
                                 decoration: const InputDecoration(
-                                  labelText: 'Title',
+                                  labelText: 'Title *',
                                   border: OutlineInputBorder(),
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              TextField(
-                                controller: subtitleController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Subtitle',
-                                  border: OutlineInputBorder(),
-                                ),
+                                onChanged: (_) => setState(() {}),
                               ),
                               const SizedBox(height: 16),
 
-                              // Classification
+                              // Classification (required)
                               const Text(
-                                'Classification',
+                                'Classification *',
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                               ),
                               const SizedBox(height: 8),
@@ -207,7 +214,7 @@ class BatchNotesScreen extends StatelessWidget {
                                     ? selectedSubject
                                     : null,
                                 decoration: const InputDecoration(
-                                  labelText: 'Subject',
+                                  labelText: 'Subject *',
                                   border: OutlineInputBorder(),
                                   prefixIcon: Icon(Icons.subject),
                                 ),
@@ -225,7 +232,6 @@ class BatchNotesScreen extends StatelessWidget {
                                 },
                               ),
 
-                              // Add new subject inline
                               if (showAddSubject) ...[
                                 const SizedBox(height: 8),
                                 Row(
@@ -271,7 +277,7 @@ class BatchNotesScreen extends StatelessWidget {
 
                               const SizedBox(height: 12),
 
-                              // Chapter dropdown (depends on selected subject)
+                              // Chapter dropdown
                               if (selectedSubject.isNotEmpty)
                                 StreamBuilder<List<String>>(
                                   stream: service.getChaptersForSubject(selectedSubject),
@@ -305,7 +311,7 @@ class BatchNotesScreen extends StatelessWidget {
                                               ? selectedChapter
                                               : null,
                                           decoration: const InputDecoration(
-                                            labelText: 'Chapter',
+                                            labelText: 'Chapter *',
                                             border: OutlineInputBorder(),
                                             prefixIcon: Icon(Icons.menu_book),
                                           ),
@@ -405,30 +411,52 @@ class BatchNotesScreen extends StatelessWidget {
 
                               const SizedBox(height: 16),
 
-                              // PDF upload section
-                              if (pdfUrl != null && pdfUrl!.isNotEmpty) ...[
+                              // DPP PDF upload
+                              const Text('DPP PDF *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              const SizedBox(height: 8),
+                              if (dppPdfUrl != null && dppPdfUrl!.isNotEmpty) ...[
                                 Row(
                                   children: [
                                     const Icon(Icons.check_circle, color: Colors.green, size: 18),
                                     const SizedBox(width: 8),
                                     const Expanded(
-                                      child: Text('PDF uploaded', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                      child: Text('DPP PDF uploaded', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                                     ),
-                                    if (isEditing)
-                                      TextButton(
-                                        onPressed: () => setState(() => pdfUrl = null),
-                                        child: const Text('Replace', style: TextStyle(color: Colors.orange)),
-                                      ),
+                                    TextButton(
+                                      onPressed: () => setState(() => dppPdfUrl = null),
+                                      child: const Text('Replace', style: TextStyle(color: Colors.orange)),
+                                    ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                              ],
-                              if (pdfUrl == null || pdfUrl!.isEmpty)
+                              ] else
                                 MediaUploader(
-                                  path: 'courses/$courseId/batches/$batchId/notes',
-                                  onUploadComplete: (url) {
-                                    setState(() => pdfUrl = url);
-                                  },
+                                  path: 'courses/$courseId/batches/$batchId/dpps',
+                                  onUploadComplete: (url) => setState(() => dppPdfUrl = url),
+                                ),
+
+                              const SizedBox(height: 16),
+
+                              // Solution PDF upload
+                              const Text('Solution PDF (optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              const SizedBox(height: 8),
+                              if (solutionPdfUrl != null && solutionPdfUrl!.isNotEmpty) ...[
+                                Row(
+                                  children: [
+                                    const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                                    const SizedBox(width: 8),
+                                    const Expanded(
+                                      child: Text('Solution PDF uploaded', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => setState(() => solutionPdfUrl = null),
+                                      child: const Text('Replace', style: TextStyle(color: Colors.orange)),
+                                    ),
+                                  ],
+                                ),
+                              ] else
+                                MediaUploader(
+                                  path: 'courses/$courseId/batches/$batchId/dpps/solutions',
+                                  onUploadComplete: (url) => setState(() => solutionPdfUrl = url),
                                 ),
                             ],
                           ),
@@ -440,24 +468,22 @@ class BatchNotesScreen extends StatelessWidget {
                           child: const Text('Cancel'),
                         ),
                         ElevatedButton(
-                          onPressed: (pdfUrl == null || pdfUrl!.isEmpty) ? null : () async {
-                            if (titleController.text.isEmpty) return;
-
-                            final updatedNote = AdminNote(
-                              id: note?.id ?? '',
+                          onPressed: !canSave ? null : () async {
+                            final updatedDpp = AdminDpp(
+                              id: dpp?.id ?? '',
                               title: titleController.text,
-                              subtitle: subtitleController.text,
-                              pdfUrl: pdfUrl!,
-                              createdAt: note?.createdAt ?? DateTime.now(),
                               subject: selectedSubject,
                               chapter: selectedChapter,
+                              dppPdfUrl: dppPdfUrl!,
+                              solutionPdfUrl: solutionPdfUrl ?? '',
                               lectureId: selectedLectureId,
+                              createdAt: dpp?.createdAt ?? DateTime.now(),
                             );
 
-                            await service.saveBatchNote(
+                            await service.saveBatchDpp(
                               courseId,
                               batchId,
-                              updatedNote,
+                              updatedDpp,
                               isNew: !isEditing,
                             );
                             if (context.mounted) Navigator.pop(context);

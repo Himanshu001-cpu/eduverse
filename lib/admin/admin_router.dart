@@ -21,6 +21,7 @@ import 'screens/batch_quiz_screen.dart';
 import 'screens/payment_settings_screen.dart';
 import 'screens/live_classes_screen.dart';
 import 'screens/live_class_editor_screen.dart';
+import 'screens/batch_dpp_screen.dart';
 import 'screens/promo_codes_screen.dart';
 import 'screens/test_series_list_screen.dart';
 import 'screens/test_series_editor_screen.dart';
@@ -84,6 +85,15 @@ class AdminRouter {
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => BatchQuizScreen(
+            courseId: args['courseId']!,
+            batchId: args['batchId']!,
+          ),
+        );
+      case '/batch_dpps':
+        final args = settings.arguments as Map<String, String>;
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => BatchDppScreen(
             courseId: args['courseId']!,
             batchId: args['batchId']!,
           ),

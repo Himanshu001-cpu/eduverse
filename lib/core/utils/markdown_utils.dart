@@ -45,6 +45,17 @@ class MarkdownUtils {
       },
     );
 
+    // Step 4 — fix underline markers with optional leading/trailing whitespace:
+    //   `<u> text </u>` → `<u>text</u>`
+    normalized = normalized.replaceAllMapped(
+      RegExp(r'<u>\s*(.*?)\s*</u>', caseSensitive: false, dotAll: true),
+      (m) {
+        final inner = m.group(1)!.trim();
+        if (inner.isEmpty) return m.group(0)!;
+        return '<u>$inner</u>';
+      },
+    );
+
     return normalized;
   }
 
@@ -59,6 +70,9 @@ class MarkdownUtils {
 
     // Remove bold and italic (**, *, __, _)
     stripped = stripped.replaceAll(RegExp(r'(\*\*|\*|__|_)(.*?)\1'), r'$2');
+
+    // Remove underline (<u>text</u>)
+    stripped = stripped.replaceAll(RegExp(r'</?u>', caseSensitive: false), '');
 
     // Remove headers (# Header text)
     stripped = stripped.replaceAll(

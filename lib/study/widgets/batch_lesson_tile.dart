@@ -9,6 +9,8 @@ class BatchLessonTile extends StatelessWidget {
   final bool isLocked;
   final double progress; // 0.0 to 1.0
   final bool hasNote;
+  final String? subtitle; // Subject • Chapter • Lec No metadata
+  final bool hasLinkedNotes; // Whether lecture has linked PDF notes
   final VoidCallback onTap;
   final Function(String) onAction; // 'complete', 'download', 'note', 'report'
 
@@ -21,6 +23,8 @@ class BatchLessonTile extends StatelessWidget {
     this.isLocked = false,
     this.progress = 0.0,
     this.hasNote = false,
+    this.subtitle,
+    this.hasLinkedNotes = false,
     required this.onTap,
     required this.onAction,
   });
@@ -93,6 +97,21 @@ class BatchLessonTile extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
+                    // Metadata subtitle (Subject · Chapter · Lec No)
+                    if (subtitle != null && subtitle!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          subtitle!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     Row(
                       children: [
                         Icon(typeIcon, size: 14, color: Colors.grey),
@@ -101,13 +120,24 @@ class BatchLessonTile extends StatelessWidget {
                           type.toUpperCase(),
                           style: const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
-                        const SizedBox(width: 12),
-                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(
-                          duration,
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
+                        if (duration.isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                          const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(
+                            duration,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                        if (hasLinkedNotes) ...[
+                          const SizedBox(width: 12),
+                          Icon(Icons.attach_file, size: 14, color: Colors.orange.shade700),
+                          const SizedBox(width: 2),
+                          Text(
+                            'Notes',
+                            style: TextStyle(fontSize: 12, color: Colors.orange.shade700),
+                          ),
+                        ],
                       ],
                     ),
                     if (progress > 0 && !isLocked) ...[

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'package:screen_protector/screen_protector.dart';
 import 'package:eduverse/core/firebase/firebase_initializer.dart';
 import 'package:eduverse/core/notifications/notification_service.dart';
 import 'package:eduverse/core/services/deep_link_service.dart';
@@ -17,12 +16,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await FirebaseInitializer.init();
-
-    // Prevent screenshot and screen recording natively if on mobile
-    if (!kIsWeb) {
-      await ScreenProtector.preventScreenshotOn();
-      await ScreenProtector.protectDataLeakageOn();
-    }
 
     // Initialize push notifications (non-blocking)
     NotificationService().initialize().catchError((e) {

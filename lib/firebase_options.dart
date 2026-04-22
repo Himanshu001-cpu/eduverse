@@ -46,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '465308079104',
     projectId: 'eduverse-dad5e',
     authDomain: 'eduverse-dad5e.firebaseapp.com',
+    databaseURL: 'https://eduverse-dad5e-default-rtdb.firebaseio.com',
     storageBucket: 'eduverse-dad5e.firebasestorage.app',
     measurementId: 'G-7XM3WMBM7H',
   );
@@ -55,6 +56,7 @@ class DefaultFirebaseOptions {
     appId: '1:465308079104:android:3f59ce57c51d2b118cb4e5',
     messagingSenderId: '465308079104',
     projectId: 'eduverse-dad5e',
+    databaseURL: 'https://eduverse-dad5e-default-rtdb.firebaseio.com',
     storageBucket: 'eduverse-dad5e.firebasestorage.app',
   );
 
@@ -63,6 +65,7 @@ class DefaultFirebaseOptions {
     appId: '1:465308079104:ios:c35d1b6752455b0a8cb4e5',
     messagingSenderId: '465308079104',
     projectId: 'eduverse-dad5e',
+    databaseURL: 'https://eduverse-dad5e-default-rtdb.firebaseio.com',
     storageBucket: 'eduverse-dad5e.firebasestorage.app',
     iosBundleId: 'com.example.eduverse',
   );
@@ -72,6 +75,7 @@ class DefaultFirebaseOptions {
     appId: '1:985191148054:ios:9ea428772ebf73f7e56337',
     messagingSenderId: '985191148054',
     projectId: 'eduverse-6aa1d',
+    databaseURL: 'https://eduverse-6aa1d-default-rtdb.firebaseio.com',
     storageBucket: 'eduverse-6aa1d.firebasestorage.app',
     iosBundleId: 'com.eduverse.learning',
   );
@@ -82,6 +86,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '985191148054',
     projectId: 'eduverse-6aa1d',
     authDomain: 'eduverse-6aa1d.firebaseapp.com',
+    databaseURL: 'https://eduverse-6aa1d-default-rtdb.firebaseio.com',
     storageBucket: 'eduverse-6aa1d.firebasestorage.app',
     measurementId: 'G-LP1P8XTX37',
   );

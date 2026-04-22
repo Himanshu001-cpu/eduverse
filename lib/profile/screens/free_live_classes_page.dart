@@ -5,6 +5,7 @@ import 'package:eduverse/common/widgets/cards.dart';
 import 'package:eduverse/study/data/repositories/study_repository_impl.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
+import 'package:eduverse/core/utils/youtube_utils.dart';
 
 class FreeLiveClassesPage extends StatefulWidget {
   const FreeLiveClassesPage({super.key});
@@ -278,6 +279,12 @@ class _LiveClassCard extends StatelessWidget {
         builder: (context) => LecturePlayerScreen(
           lecture: lecture,
           isFreeClass: true,
+          isLiveStream: YouTubeUtils.shouldTreatAsLive(
+            url: item.youtubeUrl ?? '',
+            status: item.status,
+            startTime: item.startTime,
+            durationMinutes: item.durationMinutes,
+          ),
         ),
       ),
     );

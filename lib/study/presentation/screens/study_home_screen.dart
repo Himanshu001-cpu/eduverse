@@ -109,6 +109,7 @@ class _BatchCard extends StatelessWidget {
           ),
         ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -124,79 +125,56 @@ class _BatchCard extends StatelessWidget {
               ),
             );
           },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    // Emoji / Icon
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                           BoxShadow(
-                             color: (batch.gradientColors.isNotEmpty ? batch.gradientColors.first : Colors.blue).withValues(alpha: 0.3),
-                             blurRadius: 10,
-                             offset: const Offset(0, 4),
-                           ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: batch.thumbnailUrl.isNotEmpty
-                            ? Image.network(
-                                batch.thumbnailUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(batch),
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return _buildFallbackIcon(batch, showLoader: true);
-                                },
-                              )
-                            : _buildFallbackIcon(batch),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    
-                    // Details
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            batch.name,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              height: 1.2,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            batch.courseName,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                              height: 1.4,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Custom Progress Bar
-                Column(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 16:9 Thumbnail
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: batch.thumbnailUrl.isNotEmpty
+                    ? Image.network(
+                        batch.thumbnailUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _buildFallbackThumbnail(batch),
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return _buildFallbackThumbnail(batch, showLoader: true);
+                        },
+                      )
+                    : _buildFallbackThumbnail(batch),
+              ),
+
+              // Content below thumbnail
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      batch.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      batch.courseName,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        height: 1.4,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 16),
+                    // Custom Progress Bar
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -250,18 +228,16 @@ class _BatchCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFallbackIcon(StudyBatch batch, {bool showLoader = false}) {
+  Widget _buildFallbackThumbnail(StudyBatch batch, {bool showLoader = false}) {
     return Container(
-      width: 80,
-      height: 80,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: batch.gradientColors.isNotEmpty 
@@ -283,7 +259,7 @@ class _BatchCard extends StatelessWidget {
               )
             : Text(
                 batch.emoji,
-                style: const TextStyle(fontSize: 32),
+                style: const TextStyle(fontSize: 48),
               ),
       ),
     );

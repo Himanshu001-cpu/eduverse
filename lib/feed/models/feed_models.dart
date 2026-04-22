@@ -402,6 +402,7 @@ class VideoContent {
   final int durationMinutes;
   final List<String> keyPoints;
   final String? thumbnailUrl;
+  final bool isLive;
 
   const VideoContent({
     required this.id,
@@ -411,6 +412,7 @@ class VideoContent {
     this.durationMinutes = 0,
     this.keyPoints = const [],
     this.thumbnailUrl,
+    this.isLive = false,
   });
 
   factory VideoContent.fromJson(Map<String, dynamic> json) {
@@ -422,6 +424,7 @@ class VideoContent {
       durationMinutes: json['durationMinutes'] as int? ?? 0,
       keyPoints: (json['keyPoints'] as List<dynamic>?)?.cast<String>() ?? [],
       thumbnailUrl: json['thumbnailUrl'] as String?,
+      isLive: json['isLive'] as bool? ?? false,
     );
   }
 
@@ -433,6 +436,7 @@ class VideoContent {
     'durationMinutes': durationMinutes,
     'keyPoints': keyPoints,
     'thumbnailUrl': thumbnailUrl,
+    'isLive': isLive,
   };
 }
 

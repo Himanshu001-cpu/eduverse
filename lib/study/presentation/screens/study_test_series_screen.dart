@@ -74,7 +74,7 @@ class _StudyTestSeriesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       clipBehavior: Clip.antiAlias,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -87,156 +87,134 @@ class _StudyTestSeriesCard extends StatelessWidget {
             ),
           );
         },
-        child: Container(
-          height: 120,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                item.gradientColors.first.withValues(alpha: 0.15),
-                item.gradientColors.last.withValues(alpha: 0.05),
-              ],
-            ),
-          ),
-          child: Row(
-            children: [
-              // Left strip with thumbnail or gradient+emoji
-              Container(
-                width: 80,
-                decoration: BoxDecoration(
-                  gradient: item.thumbnailUrl.isEmpty
-                      ? LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: item.gradientColors,
-                        )
-                      : null,
-                ),
-                child: item.thumbnailUrl.isNotEmpty
-                    ? Image.network(
-                        item.thumbnailUrl,
-                        fit: BoxFit.cover,
-                        width: 80,
-                        height: 120,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: item.gradientColors,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(item.emoji, style: const TextStyle(fontSize: 32)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 16:9 Thumbnail
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: item.thumbnailUrl.isNotEmpty
+                  ? Image.network(
+                      item.thumbnailUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: item.gradientColors,
                               ),
                             ),
-                      )
-                    : Center(
-                        child: Text(item.emoji, style: const TextStyle(fontSize: 32)),
-                      ),
-              ),
-
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          if (item.subject.isNotEmpty) ...[
-                            Text(
-                              item.subject,
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          Text(
-                            '${item.totalTests} tests',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
+                            child: Center(
+                              child: Text(item.emoji, style: const TextStyle(fontSize: 48)),
                             ),
                           ),
-                        ],
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: item.gradientColors,
+                        ),
                       ),
-                      const SizedBox(height: 8),
+                      child: Center(
+                        child: Text(item.emoji, style: const TextStyle(fontSize: 48)),
+                      ),
+                    ),
+            ),
 
-                      // Live progress bar from test_attempts
-                      StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(FirebaseAuth.instance.currentUser?.uid ?? '_')
-                            .collection('test_attempts')
-                            .snapshots(),
-                        builder: (context, attemptsSnap) {
-                          int completedCount = 0;
-                          if (attemptsSnap.hasData) {
-                            final prefix = '${item.id}_';
-                            completedCount = attemptsSnap.data!.docs
-                                .where((d) => d.id.startsWith(prefix))
-                                .length;
-                          }
-                          final total =
-                              item.totalTests > 0 ? item.totalTests : 1;
-                          final progressVal =
-                              (completedCount / total).clamp(0.0, 1.0);
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  value: progressVal,
-                                  backgroundColor: Colors.grey.shade200,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    item.gradientColors.first,
-                                  ),
-                                  minHeight: 6,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$completedCount/${item.totalTests} completed',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
+            // Content below thumbnail
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (item.subject.isNotEmpty) ...[
+                        Text(
+                          item.subject,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        '${item.totalTests} tests',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ),
+                  const SizedBox(height: 8),
 
-              // Arrow
-              const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Icon(Icons.chevron_right, color: Colors.grey),
+                  // Live progress bar from test_attempts
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(FirebaseAuth.instance.currentUser?.uid ?? '_')
+                        .collection('test_attempts')
+                        .snapshots(),
+                    builder: (context, attemptsSnap) {
+                      int completedCount = 0;
+                      if (attemptsSnap.hasData) {
+                        final prefix = '${item.id}_';
+                        completedCount = attemptsSnap.data!.docs
+                            .where((d) => d.id.startsWith(prefix))
+                            .length;
+                      }
+                      final total =
+                          item.totalTests > 0 ? item.totalTests : 1;
+                      final progressVal =
+                          (completedCount / total).clamp(0.0, 1.0);
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progressVal,
+                              backgroundColor: Colors.grey.shade200,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                item.gradientColors.first,
+                              ),
+                              minHeight: 6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '$completedCount/${item.totalTests} completed',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

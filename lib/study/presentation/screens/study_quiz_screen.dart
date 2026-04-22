@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:eduverse/core/utils/markdown_utils.dart';
 import 'package:eduverse/feed/models/feed_models.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_result_screen.dart';
 
@@ -587,11 +589,16 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      _currentQuestion.question,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        height: 1.4,
+                    MarkdownBody(
+                      data: MarkdownUtils.normalizeMarkdown(
+                        _currentQuestion.question,
+                      ),
+                      selectable: true,
+                      styleSheet: MarkdownStyleSheet(
+                        p: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),

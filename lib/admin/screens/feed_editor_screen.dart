@@ -106,6 +106,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
   Color _selectedColor = Colors.blue;
   String _thumbnailUrl = '';
   bool _isPublic = true;
+  bool _isLive = false;
   bool _isLoading = false;
 
   @override
@@ -216,6 +217,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
       _thumbnailUrlController.text = item.videoContent!.thumbnailUrl ?? '';
       _durationController.text = item.videoContent!.durationMinutes.toString();
       _keyPointsController.text = item.videoContent!.keyPoints.join('\n');
+      _isLive = item.videoContent!.isLive;
     }
     if (item.jobContent != null) {
       _organizationController.text = item.jobContent!.organization;
@@ -365,6 +367,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
               : _thumbnailUrlController.text,
           durationMinutes: int.tryParse(_durationController.text) ?? 0,
           keyPoints: keyPointsList,
+          isLive: _isLive,
         );
       } else if (_selectedType == ContentType.jobs) {
         jobContent = JobContent(
@@ -470,7 +473,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         updatedAt: DateTime.now(), // Always update to current time on save
       );
 
-      await FeedRepository().addFeedItem(newItem);
+      await FeedRepository().addFeedItem(newItem, sendNotification: false);
       _currentFeedItemId = id;
 
       if (mounted) {
@@ -534,6 +537,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
               : _thumbnailUrlController.text,
           durationMinutes: int.tryParse(_durationController.text) ?? 0,
           keyPoints: keyPointsList,
+          isLive: _isLive,
         );
       } else if (_selectedType == ContentType.jobs) {
         jobContent = JobContent(
@@ -639,7 +643,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         updatedAt: DateTime.now(), // Always update to current time on save
       );
 
-      await FeedRepository().addFeedItem(newItem);
+      await FeedRepository().addFeedItem(newItem, sendNotification: true);
       _currentFeedItemId = id;
 
       if (mounted) {
@@ -882,6 +886,17 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SwitchListTile(
+              title: const Text('Live Video'),
+              subtitle: const Text('Enable for YouTube live streams'),
+              value: _isLive,
+              onChanged: (val) => setState(() { _isLive = val; _hasUnsavedChanges = true; }),
+              secondary: Icon(
+                Icons.live_tv,
+                color: _isLive ? Colors.red : null,
+              ),
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _videoUrlController,
               decoration: const InputDecoration(

@@ -1,6 +1,7 @@
-// file: lib/feed/screens/quiz_page.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:eduverse/core/utils/markdown_utils.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/screens/quiz_result_page.dart';
 import 'package:share_plus/share_plus.dart';
@@ -537,11 +538,16 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                     const SizedBox(height: 16),
                     // Question text
-                    Text(
-                      _currentQuestion.question,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        height: 1.4,
+                    MarkdownBody(
+                      data: MarkdownUtils.normalizeMarkdown(
+                        _currentQuestion.question,
+                      ),
+                      selectable: true,
+                      styleSheet: MarkdownStyleSheet(
+                        p: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),

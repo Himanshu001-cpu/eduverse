@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:eduverse/core/firebase/firestore_paths.dart';
 
 class PurchaseService {
@@ -15,6 +16,13 @@ class PurchaseService {
     String? promoCode,
     double? discountAmount,
   }) async {
+    debugPrint('=== PurchaseService.createPurchase START ===');
+    debugPrint('uid: $uid, amount: $amount, paymentId: $paymentId');
+    debugPrint('items count: ${items.length}');
+    for (var i = 0; i < items.length; i++) {
+      debugPrint('  item[$i]: ${items[i]}');
+    }
+
     final batch = _firestore.batch();
 
     // 1. Create Purchase Record (History)
@@ -55,16 +63,22 @@ class PurchaseService {
       final batchId = item['batchId'] as String?;
       final testSeriesId = item['testSeriesId'] as String?;
 
+      debugPrint('  Processing item: courseId=$courseId, batchId=$batchId, testSeriesId=$testSeriesId');
+
       // Check if this item is a test series purchase
       if (testSeriesId != null && testSeriesId.isNotEmpty) {
+        debugPrint('  -> Test series item detected');
         testSeriesIds.add(testSeriesId);
       } else if (batchId == 'test_series' && courseId != null) {
         // Fallback: legacy marker-based detection
+        debugPrint('  -> Legacy test series item detected');
         testSeriesIds.add(courseId);
       } else if (courseId != null && batchId != null) {
         // Standard course/batch enrollment
         final enrollmentId = '${courseId}_$batchId';
         final enrollmentDoc = userEnrollmentRef.doc(enrollmentId);
+
+        debugPrint('  -> Course enrollment: $enrollmentId');
 
         batch.set(enrollmentDoc, {
           'courseId': courseId,
@@ -75,18 +89,23 @@ class PurchaseService {
         }, SetOptions(merge: true));
 
         enrollmentIds.add(enrollmentId);
+      } else {
+        debugPrint('  -> SKIPPED: courseId or batchId is null');
       }
     }
 
     // 2b. Update user doc enrolledCourses array (for admin panel visibility)
+    debugPrint('enrollmentIds to write: $enrollmentIds');
     if (enrollmentIds.isNotEmpty) {
       batch.set(userRef, {
         'enrolledCourses': FieldValue.arrayUnion(enrollmentIds),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+      debugPrint('  -> Will update user doc enrolledCourses array');
     }
 
     // 3. Grant access to purchased Test Series
+    debugPrint('testSeriesIds to write: $testSeriesIds');
     if (testSeriesIds.isNotEmpty) {
       batch.update(userRef, {
         'purchasedTestSeries': FieldValue.arrayUnion(testSeriesIds),
@@ -94,7 +113,13 @@ class PurchaseService {
     }
 
     // Commit both operations atomically
-    await batch.commit();
+    try {
+      await batch.commit();
+      debugPrint('=== PurchaseService.createPurchase SUCCESS (purchaseId: $purchaseId) ===');
+    } catch (e) {
+      debugPrint('=== PurchaseService.createPurchase FAILED: $e ===');
+      rethrow;
+    }
 
     return purchaseId;
   }

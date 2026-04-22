@@ -272,6 +272,10 @@ class StudyRepositoryImpl implements IStudyRepository {
           order: data['order'] ?? data['orderIndex'] ?? 0,
           isWatched: watchedStatus[doc.id] ?? false,
           duration: null,
+          subject: data['subject'] ?? '',
+          chapter: data['chapter'] ?? '',
+          lectureNo: data['lectureNo'] as int?,
+          linkedNoteIds: List<String>.from(data['linkedNoteIds'] ?? []),
         ),
       );
     }
@@ -402,6 +406,9 @@ class StudyRepositoryImpl implements IStudyRepository {
           title: data['title'] ?? 'Untitled Note',
           fileUrl: data['pdfUrl'] as String?,
           createdAt: (data['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
+          subject: data['subject'] ?? '',
+          chapter: data['chapter'] ?? '',
+          lectureId: data['lectureId'] as String?,
         );
       }).toList();
     } catch (e) {
@@ -448,6 +455,37 @@ class StudyRepositoryImpl implements IStudyRepository {
       return items;
     } catch (e) {
       debugPrint('Error fetching batch planner: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<StudyDpp>> getBatchDpps(String courseId, String batchId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('batches')
+          .doc(batchId)
+          .collection('dpps')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return StudyDpp(
+          id: doc.id,
+          title: data['title'] ?? '',
+          subject: data['subject'] ?? '',
+          chapter: data['chapter'] ?? '',
+          dppPdfUrl: data['dppPdfUrl'] ?? '',
+          solutionPdfUrl: data['solutionPdfUrl'] ?? '',
+          lectureId: data['lectureId'] as String?,
+          createdAt: (data['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching batch DPPs: $e');
       return [];
     }
   }

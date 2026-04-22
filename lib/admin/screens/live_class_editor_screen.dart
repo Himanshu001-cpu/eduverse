@@ -27,9 +27,16 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
   late TextEditingController _youtubeUrlController;
   late TextEditingController _thumbnailUrlController;
   late TextEditingController _durationController;
+  late TextEditingController _lectureNoController;
+  final TextEditingController _newSubjectController = TextEditingController();
+  final TextEditingController _newChapterController = TextEditingController();
   
   late DateTime _startTime;
   late String _status;
+  String _selectedSubject = '';
+  String _selectedChapter = '';
+  bool _showAddSubject = false;
+  bool _showAddChapter = false;
   
   bool _isSaving = false;
   YoutubePlayerController? _youtubeController;
@@ -44,6 +51,9 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
     _youtubeUrlController = TextEditingController(text: item?.youtubeUrl ?? '');
     _thumbnailUrlController = TextEditingController(text: item?.thumbnailUrl ?? '');
     _durationController = TextEditingController(text: item?.durationMinutes.toString() ?? '60');
+    _lectureNoController = TextEditingController(text: item?.lectureNo?.toString() ?? '');
+    _selectedSubject = item?.subject ?? '';
+    _selectedChapter = item?.chapter ?? '';
     
     _startTime = item?.startTime ?? DateTime.now().add(const Duration(hours: 1));
     _status = item?.status ?? 'scheduled';
@@ -61,6 +71,9 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
     _youtubeUrlController.dispose();
     _thumbnailUrlController.dispose();
     _durationController.dispose();
+    _lectureNoController.dispose();
+    _newSubjectController.dispose();
+    _newChapterController.dispose();
     _youtubeController?.dispose();
     super.dispose();
   }
@@ -130,6 +143,9 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
         thumbnailUrl: _thumbnailUrlController.text.trim(),
         status: _status,
         createdAt: widget.liveClass?.createdAt ?? DateTime.now(),
+        subject: _selectedSubject,
+        chapter: _selectedChapter,
+        lectureNo: int.tryParse(_lectureNoController.text),
       );
 
       if (widget.courseId != null && widget.batchId != null) {
@@ -280,6 +296,212 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                           showVideoProgressIndicator: true,
                         ),
                       ),
+
+                    const SizedBox(height: 16),
+
+                    // ---- Classification Section ----
+                    const Text('Classification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 8),
+                    StreamBuilder<List<String>>(
+                      stream: context.read<FirebaseAdminService>().getSubjects(),
+                      builder: (context, subjectsSnap) {
+                        final subjects = subjectsSnap.data ?? [];
+                        final subjectItems = <DropdownMenuItem<String>>[
+                          const DropdownMenuItem(
+                            value: '',
+                            child: Text('None', style: TextStyle(color: Colors.grey)),
+                          ),
+                          ...subjects.map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          ),
+                          const DropdownMenuItem(
+                            value: '__add_new__',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_circle_outline, size: 18, color: Colors.blue),
+                                SizedBox(width: 8),
+                                Text('Add new subject', style: TextStyle(color: Colors.blue)),
+                              ],
+                            ),
+                          ),
+                        ];
+                        return DropdownButtonFormField<String>(
+                          initialValue: _selectedSubject.isNotEmpty && subjects.contains(_selectedSubject)
+                              ? _selectedSubject
+                              : null,
+                          decoration: const InputDecoration(
+                            labelText: 'Subject',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.subject),
+                          ),
+                          items: subjectItems,
+                          onChanged: (val) {
+                            if (val == '__add_new__') {
+                              setState(() => _showAddSubject = true);
+                            } else {
+                              setState(() {
+                                _selectedSubject = val ?? '';
+                                _selectedChapter = '';
+                                _showAddSubject = false;
+                              });
+                            }
+                          },
+                        );
+                      },
+                    ),
+                    // Add new subject inline
+                    if (_showAddSubject) ...[                      
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _newSubjectController,
+                              decoration: const InputDecoration(
+                                hintText: 'Enter new subject name',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              ),
+                              autofocus: true,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.check_circle, color: Colors.green),
+                            onPressed: () async {
+                              final name = _newSubjectController.text.trim();
+                              if (name.isNotEmpty) {
+                                await context.read<FirebaseAdminService>().addSubject(name);
+                                setState(() {
+                                  _selectedSubject = name;
+                                  _selectedChapter = '';
+                                  _showAddSubject = false;
+                                  _newSubjectController.clear();
+                                });
+                              }
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.cancel, color: Colors.red),
+                            onPressed: () => setState(() {
+                              _showAddSubject = false;
+                              _newSubjectController.clear();
+                            }),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    // Chapter dropdown (depends on subject)
+                    if (_selectedSubject.isNotEmpty)
+                      StreamBuilder<List<String>>(
+                        stream: context.read<FirebaseAdminService>().getChaptersForSubject(_selectedSubject),
+                        builder: (context, chaptersSnap) {
+                          final chapters = chaptersSnap.data ?? [];
+                          final chapterItems = <DropdownMenuItem<String>>[
+                            const DropdownMenuItem(
+                              value: '',
+                              child: Text('None', style: TextStyle(color: Colors.grey)),
+                            ),
+                            ...chapters.map(
+                              (c) => DropdownMenuItem(value: c, child: Text(c)),
+                            ),
+                            const DropdownMenuItem(
+                              value: '__add_new__',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.add_circle_outline, size: 18, color: Colors.blue),
+                                  SizedBox(width: 8),
+                                  Text('Add new chapter', style: TextStyle(color: Colors.blue)),
+                                ],
+                              ),
+                            ),
+                          ];
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              DropdownButtonFormField<String>(
+                                initialValue: _selectedChapter.isNotEmpty && chapters.contains(_selectedChapter)
+                                    ? _selectedChapter
+                                    : null,
+                                decoration: const InputDecoration(
+                                  labelText: 'Chapter',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.menu_book),
+                                ),
+                                items: chapterItems,
+                                onChanged: (val) {
+                                  if (val == '__add_new__') {
+                                    setState(() => _showAddChapter = true);
+                                  } else {
+                                    setState(() {
+                                      _selectedChapter = val ?? '';
+                                      _showAddChapter = false;
+                                    });
+                                  }
+                                },
+                              ),
+                              if (_showAddChapter) ...[                      
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _newChapterController,
+                                        decoration: const InputDecoration(
+                                          hintText: 'Enter new chapter name',
+                                          border: OutlineInputBorder(),
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        ),
+                                        autofocus: true,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                                      onPressed: () async {
+                                        final name = _newChapterController.text.trim();
+                                        if (name.isNotEmpty) {
+                                          await context.read<FirebaseAdminService>().addChapterToSubject(_selectedSubject, name);
+                                          setState(() {
+                                            _selectedChapter = name;
+                                            _showAddChapter = false;
+                                            _newChapterController.clear();
+                                          });
+                                        }
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.cancel, color: Colors.red),
+                                      onPressed: () => setState(() {
+                                        _showAddChapter = false;
+                                        _newChapterController.clear();
+                                      }),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      )
+                    else
+                      const Text(
+                        'Select a subject to see chapters',
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _lectureNoController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Lecture No.',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.format_list_numbered),
+                      ),
+                    ),
 
                     const SizedBox(height: 16),
                     

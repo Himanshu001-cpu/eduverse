@@ -180,6 +180,11 @@ service cloud.firestore {
           allow read: if request.auth != null;
           allow write: if isAdmin();
         }
+
+        match /dpps/{dppId} {
+          allow read: if request.auth != null;
+          allow write: if isAdmin();
+        }
       }
 
       // Lectures subcollection (for Study Module)

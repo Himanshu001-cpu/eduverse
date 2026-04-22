@@ -169,6 +169,67 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
     });
   }
 
+  Future<void> _addMultipleQuestions() async {
+    final controller = TextEditingController();
+    final count = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Multiple Questions'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Number of questions',
+            hintText: 'e.g. 10',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final n = int.tryParse(controller.text.trim());
+              Navigator.pop(ctx, (n != null && n > 0) ? n : null);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+    if (count == null || count <= 0) return;
+
+    setState(() {
+      for (int i = 0; i < count; i++) {
+        _questions.add(
+          QuizQuestion(
+            id: const Uuid().v4(),
+            questionText: '',
+            answerType: AnswerType.multipleChoice,
+            options: [
+              AnswerOption(id: const Uuid().v4(), text: '', isCorrect: true),
+              AnswerOption(id: const Uuid().v4(), text: ''),
+              AnswerOption(id: const Uuid().v4(), text: ''),
+              AnswerOption(id: const Uuid().v4(), text: ''),
+            ],
+            score: 1,
+          ),
+        );
+      }
+    });
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   void _removeQuestion(int index) {
     setState(() {
       _questions.removeAt(index);
@@ -469,10 +530,20 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildSectionHeader('Questions (${_questions.length})'),
-                      FilledButton.tonalIcon(
-                        onPressed: _addQuestion,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Question'),
+                      Row(
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _addMultipleQuestions,
+                            icon: const Icon(Icons.playlist_add),
+                            label: const Text('Add Multiple'),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.tonalIcon(
+                            onPressed: _addQuestion,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Question'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

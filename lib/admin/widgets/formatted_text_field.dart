@@ -37,10 +37,19 @@ class _FormattedTextFieldState extends State<FormattedTextField> {
     _focusNode.addListener(() {
       setState(() => _hasFocus = _focusNode.hasFocus);
     });
+    // Listen to text changes so preview updates in real-time during split view
+    widget.controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    if (_isPreviewMode && mounted) {
+      setState(() {}); // Rebuild to refresh the live preview
+    }
   }
 
   @override
   void dispose() {
+    widget.controller.removeListener(_onTextChanged);
     _focusNode.dispose();
     super.dispose();
   }
@@ -86,14 +95,82 @@ class _FormattedTextFieldState extends State<FormattedTextField> {
     _wrapSelectedText('*', '*');
   }
 
+  void _makeUnderline() {
+    _wrapSelectedText('<u>', '</u>');
+  }
+
   void _togglePreview() {
     setState(() {
       _isPreviewMode = !_isPreviewMode;
-      if (!_isPreviewMode) {
-        // Delay request focus slightly to allow the text field to rebuild
-        Future.microtask(() => _focusNode.requestFocus());
-      }
     });
+  }
+
+  Widget _buildTextField() {
+    return TextFormField(
+      controller: widget.controller,
+      focusNode: _focusNode,
+      maxLines: widget.maxLines,
+      validator: widget.validator,
+      decoration: InputDecoration(
+        labelText: widget.labelText,
+        hintText: widget.hintText,
+        alignLabelWithHint: true,
+        border: const OutlineInputBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(4),
+            bottomRight: Radius.circular(4),
+            topLeft: Radius.zero,
+            topRight: Radius.zero,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewPane(ColorScheme colorScheme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      constraints: BoxConstraints(
+        minHeight:
+            widget.maxLines *
+            24.0, // Approximate height matching text field
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Preview',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.primary,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          widget.controller.text.isEmpty
+              ? Text(
+                  'Nothing to preview',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+              : MarkdownBody(
+                  data: MarkdownUtils.normalizeMarkdown(
+                    widget.controller.text,
+                  ),
+                  selectable: true,
+                ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -118,85 +195,47 @@ class _FormattedTextFieldState extends State<FormattedTextField> {
               _ToolbarButton(
                 icon: Icons.format_bold,
                 tooltip: 'Bold (wrap with **)',
-                onPressed: _isPreviewMode ? null : _makeBold,
+                onPressed: _makeBold,
               ),
               const SizedBox(width: 4),
               _ToolbarButton(
                 icon: Icons.format_italic,
                 tooltip: 'Italic (wrap with *)',
-                onPressed: _isPreviewMode ? null : _makeItalic,
+                onPressed: _makeItalic,
+              ),
+              const SizedBox(width: 4),
+              _ToolbarButton(
+                icon: Icons.format_underlined,
+                tooltip: 'Underline (wrap with <u>)',
+                onPressed: _makeUnderline,
               ),
               const Spacer(),
               _ToolbarButton(
-                icon: _isPreviewMode ? Icons.edit : Icons.preview,
-                tooltip: _isPreviewMode ? 'Edit Mode' : 'Preview Markdown',
+                icon: _isPreviewMode ? Icons.edit_note : Icons.preview,
+                tooltip: _isPreviewMode ? 'Hide Preview' : 'Show Live Preview',
                 onPressed: _togglePreview,
                 color: _isPreviewMode ? colorScheme.primary : null,
               ),
               const SizedBox(width: 8),
               Text(
-                'Markdown supported',
+                _isPreviewMode ? 'Live Preview' : 'Markdown supported',
                 style: TextStyle(
                   fontSize: 11,
-                  color: colorScheme.onSurfaceVariant,
+                  color: _isPreviewMode
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
               ),
             ],
           ),
         ),
-        // Text Field / Preview Area
-        _isPreviewMode
-            ? Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                constraints: BoxConstraints(
-                  minHeight:
-                      widget.maxLines *
-                      24.0, // Approximate height matching text field
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  border: Border.all(color: colorScheme.outline),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(4),
-                    bottomRight: Radius.circular(4),
-                  ),
-                ),
-                child: widget.controller.text.isEmpty
-                    ? Text(
-                        'Nothing to preview',
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      )
-                    : MarkdownBody(
-                        data: MarkdownUtils.normalizeMarkdown(
-                          widget.controller.text,
-                        ),
-                        selectable: true,
-                      ),
-              )
-            : TextFormField(
-                controller: widget.controller,
-                focusNode: _focusNode,
-                maxLines: widget.maxLines,
-                validator: widget.validator,
-                decoration: InputDecoration(
-                  labelText: widget.labelText,
-                  hintText: widget.hintText,
-                  alignLabelWithHint: true,
-                  border: const OutlineInputBorder(
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(4),
-                      bottomRight: Radius.circular(4),
-                      topLeft: Radius.zero,
-                      topRight: Radius.zero,
-                    ),
-                  ),
-                ),
-              ),
+        // Text Field always visible; preview shown below when toggled
+        _buildTextField(),
+        if (_isPreviewMode) ...[
+          const SizedBox(height: 8),
+          _buildPreviewPane(colorScheme),
+        ],
       ],
     );
   }

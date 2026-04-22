@@ -23,6 +23,13 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
   late DateTime _endDate;
   late bool _isActive;
 
+  // Enrolled students state
+  List<AdminUser> _enrolledUsers = [];
+  List<AdminUser> _filteredUsers = [];
+  bool _isLoadingEnrollments = true;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +39,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
     _startDate = widget.batch.startDate;
     _endDate = widget.batch.endDate;
     _isActive = widget.batch.isActive;
+    _loadEnrolledUsers();
   }
 
   @override
@@ -39,7 +47,48 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
     _nameController.dispose();
     _priceController.dispose();
     _seatsController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadEnrolledUsers() async {
+    try {
+      final service = context.read<FirebaseAdminService>();
+      final users = await service.getEnrolledUsersForBatch(
+        widget.courseId,
+        widget.batch.id,
+      );
+      if (mounted) {
+        setState(() {
+          _enrolledUsers = users;
+          _filteredUsers = users;
+          _isLoadingEnrollments = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingEnrollments = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading enrollments: $e')),
+        );
+      }
+    }
+  }
+
+  void _filterUsers(String query) {
+    setState(() {
+      _searchQuery = query;
+      if (query.isEmpty) {
+        _filteredUsers = _enrolledUsers;
+      } else {
+        final lowerQuery = query.toLowerCase();
+        _filteredUsers = _enrolledUsers.where((user) {
+          return user.name.toLowerCase().contains(lowerQuery) ||
+              user.email.toLowerCase().contains(lowerQuery) ||
+              (user.phone ?? '').contains(lowerQuery);
+        }).toList();
+      }
+    });
   }
 
   Future<void> _saveBatch() async {
@@ -61,7 +110,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
       endDate: _endDate,
       price: price,
       seatsTotal: seats,
-      seatsLeft: widget.batch.seatsLeft, // Don't change seats left manually usually
+      seatsLeft: widget.batch.seatsLeft,
       isActive: _isActive,
     );
 
@@ -150,8 +199,24 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
                     }
                   ),
                 ),
+                _ResourceCard(
+                  icon: Icons.assignment,
+                  title: 'DPP',
+                  color: Colors.deepPurple,
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    '/batch_dpps',
+                    arguments: {'courseId': widget.courseId, 'batchId': widget.batch.id},
+                  ),
+                ),
               ],
             ),
+            const SizedBox(height: 32),
+            const Divider(),
+            const SizedBox(height: 16),
+
+            // Enrolled Students Section
+            _buildEnrolledStudentsSection(),
             const SizedBox(height: 32),
             const Divider(),
             const SizedBox(height: 16),
@@ -237,6 +302,160 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildEnrolledStudentsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header with count
+        Row(
+          children: [
+            const Icon(Icons.people, color: Colors.teal, size: 28),
+            const SizedBox(width: 8),
+            Text(
+              'Enrolled Students',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            if (!_isLoadingEnrollments)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.teal.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  '${_enrolledUsers.length}',
+                  style: const TextStyle(
+                    color: Colors.teal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            const Spacer(),
+            // Refresh button
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.teal),
+              tooltip: 'Refresh',
+              onPressed: () {
+                setState(() => _isLoadingEnrollments = true);
+                _loadEnrolledUsers();
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        if (_isLoadingEnrollments)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_enrolledUsers.isEmpty)
+          Card(
+            color: Colors.grey.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.person_off, size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No students enrolled yet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else ...[
+          // Search field
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search by name, email, or phone...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        _filterUsers('');
+                      },
+                    )
+                  : null,
+            ),
+            onChanged: _filterUsers,
+          ),
+          const SizedBox(height: 12),
+
+          // Results count when filtering
+          if (_searchQuery.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Showing ${_filteredUsers.length} of ${_enrolledUsers.length} students',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              ),
+            ),
+
+          // Student list
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _filteredUsers.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final user = _filteredUsers[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.teal.withValues(alpha: 0.1),
+                    child: Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: Colors.teal,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    user.name.isNotEmpty ? user.name : 'Unknown',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (user.email.isNotEmpty)
+                        Text(user.email, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                      if (user.phone != null && user.phone!.isNotEmpty)
+                        Text(user.phone!, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    ],
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pushNamed(context, '/user_detail', arguments: user.uid);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

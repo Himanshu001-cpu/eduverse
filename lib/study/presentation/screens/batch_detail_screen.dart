@@ -10,8 +10,11 @@ import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
+import 'package:eduverse/study/screens/subject_detail_screen.dart';
 import 'package:eduverse/common/services/download_service.dart';
 import 'package:eduverse/core/firebase/bookmark_service.dart';
+import 'package:eduverse/core/firebase/live_viewer_service.dart';
+import 'package:eduverse/core/utils/youtube_utils.dart';
 import 'package:eduverse/profile/models/bookmark_model.dart';
 
 class BatchDetailScreen extends StatefulWidget {
@@ -26,9 +29,9 @@ class BatchDetailScreen extends StatefulWidget {
 class _BatchDetailScreenState extends State<BatchDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _refreshKey = 0; // Used to force FutureBuilder refresh
   bool _isBookmarked = false; // Bookmark state
   final BookmarkService _bookmarkService = BookmarkService();
+  final LiveViewerService _liveViewerService = LiveViewerService();
 
   // Live classes data
   List<StudyLiveClass> _liveClasses = [];
@@ -47,7 +50,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     _checkBookmarkStatus();
     _loadLiveClasses();
     _loadStats();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   Future<void> _loadLiveClasses() async {
@@ -145,9 +148,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                 unselectedLabelColor: Colors.grey,
                 indicatorColor: Theme.of(context).primaryColor,
                 tabs: const [
-                  Tab(text: 'Lessons'),
+                  Tab(text: 'Subjects'),
                   Tab(text: 'Quizzes'),
-                  Tab(text: 'Notes'),
                   Tab(text: 'Planner'),
                 ],
               ),
@@ -157,9 +159,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            _buildLessonsTab(),
+            _buildSubjectsTab(),
             _buildQuizzesTab(),
-            _buildNotesTab(),
             _buildPlannerTab(),
           ],
         ),
@@ -713,6 +714,60 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                 ),
               ),
             if (nextClass != null) ...[
+              // Live viewer count badge - only when class is live
+              if (YouTubeUtils.shouldTreatAsLive(
+                url: nextClass.youtubeUrl ?? '',
+                status: nextClass.status,
+                startTime: nextClass.startTime,
+                durationMinutes: nextClass.durationMinutes,
+              )) ...[
+                StreamBuilder<int>(
+                  stream: _liveViewerService.viewerCountStream(
+                    widget.batch.courseId,
+                    widget.batch.id,
+                    nextClass.id,
+                  ),
+                  builder: (context, snapshot) {
+                    final viewerCount = snapshot.data ?? 0;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$viewerCount watching',
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
@@ -736,7 +791,12 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                             courseId: widget.batch.courseId,
                             batchId: widget.batch.id,
                             lecture: lecture,
-                            isLiveStream: nextClass.status == 'live',
+                            isLiveStream: YouTubeUtils.shouldTreatAsLive(
+                              url: nextClass.youtubeUrl ?? '',
+                              status: nextClass.status,
+                              startTime: nextClass.startTime,
+                              durationMinutes: nextClass.durationMinutes,
+                            ),
                           ),
                         ),
                       );
@@ -750,10 +810,20 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                   },
                   icon: const Icon(Icons.videocam, size: 18),
                   label: Text(
-                    nextClass.status == 'live' ? 'Join Now' : 'Join Live Class',
+                    YouTubeUtils.shouldTreatAsLive(
+                      url: nextClass.youtubeUrl ?? '',
+                      status: nextClass.status,
+                      startTime: nextClass.startTime,
+                      durationMinutes: nextClass.durationMinutes,
+                    ) ? 'Join Now' : 'Join Live Class',
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: nextClass.status == 'live'
+                    backgroundColor: YouTubeUtils.shouldTreatAsLive(
+                      url: nextClass.youtubeUrl ?? '',
+                      status: nextClass.status,
+                      startTime: nextClass.startTime,
+                      durationMinutes: nextClass.durationMinutes,
+                    )
                         ? Colors.red
                         : Colors.redAccent,
                     foregroundColor: Colors.white,
@@ -929,175 +999,106 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     );
   }
 
-  Widget _buildLessonsTab() {
+  Widget _buildSubjectsTab() {
     return Consumer<StudyController>(
       builder: (context, controller, child) {
-        return FutureBuilder<List<StudyLecture>>(
-          key: ValueKey(_refreshKey), // Force rebuild when key changes
-          future: controller.getLectures(
-            widget.batch.courseId,
-            widget.batch.id,
-          ),
+        return FutureBuilder<List<dynamic>>(
+          future: Future.wait([
+            controller.getLectures(widget.batch.courseId, widget.batch.id),
+            controller.getBatchNotes(widget.batch.courseId, widget.batch.id),
+            controller.repository.getBatchDpps(widget.batch.courseId, widget.batch.id),
+          ]),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  'Error: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              );
+              return Center(child: Text('Error: ${snapshot.error}'));
             }
 
-            final lectures = snapshot.data ?? [];
+            final lectures = snapshot.data![0] as List<StudyLecture>;
+            final notes = snapshot.data![1] as List<StudyNote>;
+            final dpps = snapshot.data![2] as List<StudyDpp>;
 
-            // Add completed live classes as "lessons" at the end
-            final completedLiveClasses = _liveClasses
-                .where(
-                  (lc) =>
-                      lc.status == 'completed' &&
-                      lc.youtubeUrl != null &&
-                      lc.youtubeUrl!.isNotEmpty,
-                )
-                .map(
-                  (lc) => StudyLecture(
-                    id: 'live_${lc.id}',
-                    title: '🔴 ${lc.title}',
-                    videoUrl: lc.youtubeUrl!,
-                    description: lc.description,
-                    order: 999 + _liveClasses.indexOf(lc), // Put at end
-                    duration: Duration(minutes: lc.durationMinutes),
-                  ),
-                )
-                .toList();
+            // Aggregate unique subjects
+            final subjectSet = <String>{};
+            for (final l in lectures) {
+              if (l.subject.isNotEmpty) subjectSet.add(l.subject);
+            }
+            for (final n in notes) {
+              if (n.subject.isNotEmpty) subjectSet.add(n.subject);
+            }
+            for (final d in dpps) {
+              if (d.subject.isNotEmpty) subjectSet.add(d.subject);
+            }
 
-            final allLessons = [...lectures, ...completedLiveClasses];
+            final subjects = subjectSet.toList()..sort();
 
-            if (allLessons.isEmpty) {
+            if (subjects.isEmpty) {
               return const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.play_circle_outline,
-                      size: 64,
-                      color: Colors.grey,
-                    ),
+                    Icon(Icons.subject, size: 64, color: Colors.grey),
                     SizedBox(height: 16),
                     Text(
-                      'No lectures available.',
-                      style: TextStyle(color: Colors.grey),
+                      'No subjects available yet.',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                   ],
                 ),
               );
             }
 
-            return ListView.separated(
+            return ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: allLessons.length,
-              separatorBuilder: (c, i) => const SizedBox(height: 12),
+              itemCount: subjects.length,
               itemBuilder: (context, index) {
-                final lecture = allLessons[index];
-                return _buildLectureTile(lecture, controller);
+                final subject = subjects[index];
+                final lectureCount = lectures.where((l) => l.subject == subject).length;
+                final noteCount = notes.where((n) => n.subject == subject).length;
+                final dppCount = dpps.where((d) => d.subject == subject).length;
+
+                // Count unique chapters
+                final chapSet = <String>{};
+                for (final l in lectures.where((l) => l.subject == subject)) {
+                  if (l.chapter.isNotEmpty) chapSet.add(l.chapter);
+                }
+                for (final n in notes.where((n) => n.subject == subject)) {
+                  if (n.chapter.isNotEmpty) chapSet.add(n.chapter);
+                }
+                for (final d in dpps.where((d) => d.subject == subject)) {
+                  if (d.chapter.isNotEmpty) chapSet.add(d.chapter);
+                }
+
+                return _SubjectCard(
+                  subject: subject,
+                  chapterCount: chapSet.length,
+                  lectureCount: lectureCount,
+                  noteCount: noteCount,
+                  dppCount: dppCount,
+                  colorIndex: index,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChangeNotifierProvider.value(
+                          value: controller,
+                          child: SubjectDetailScreen(
+                            courseId: widget.batch.courseId,
+                            batchId: widget.batch.id,
+                            subject: subject,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
               },
             );
           },
         );
       },
-    );
-  }
-
-  Widget _buildLectureTile(StudyLecture lecture, StudyController controller) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: () async {
-          debugPrint(
-            'Opening lecture: ${lecture.title}, videoUrl: ${lecture.videoUrl}',
-          );
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ChangeNotifierProvider.value(
-                value: controller,
-                child: LecturePlayerScreen(
-                  courseId: widget.batch.courseId,
-                  batchId: widget.batch.id,
-                  lecture: lecture,
-                ),
-              ),
-            ),
-          );
-          // Increment key to force FutureBuilder to refetch
-          if (mounted) setState(() => _refreshKey++);
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade200),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: lecture.isWatched
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  lecture.isWatched
-                      ? Icons.check_circle
-                      : Icons.play_arrow_rounded,
-                  color: lecture.isWatched ? Colors.green : Colors.blue,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lecture.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Lecture ${lecture.order + 1}",
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: Colors.grey,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -1187,59 +1188,6 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                     ),
                   ),
                 );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildNotesTab() {
-    return Consumer<StudyController>(
-      builder: (context, controller, child) {
-        return FutureBuilder<List<StudyNote>>(
-          future: controller.getBatchNotes(
-            widget.batch.courseId,
-            widget.batch.id,
-          ),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  'Error: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              );
-            }
-
-            final notes = snapshot.data ?? [];
-            if (notes.isEmpty) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text(
-                      'No notes available.',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            return ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: notes.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final note = notes[index];
-                return _NoteCard(note: note);
               },
             );
           },
@@ -1833,6 +1781,152 @@ class _DownloadAllProgressDialog extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Subject card for the Subjects tab
+class _SubjectCard extends StatelessWidget {
+  final String subject;
+  final int chapterCount;
+  final int lectureCount;
+  final int noteCount;
+  final int dppCount;
+  final int colorIndex;
+  final VoidCallback onTap;
+
+  const _SubjectCard({
+    required this.subject,
+    required this.chapterCount,
+    required this.lectureCount,
+    required this.noteCount,
+    required this.dppCount,
+    required this.colorIndex,
+    required this.onTap,
+  });
+
+  static const _gradients = [
+    [Color(0xFF4A90E2), Color(0xFF357ABD)],
+    [Color(0xFF7B61FF), Color(0xFF5B3FD4)],
+    [Color(0xFFE94560), Color(0xFFC23152)],
+    [Color(0xFF00B894), Color(0xFF009874)],
+    [Color(0xFFF39C12), Color(0xFFD68910)],
+    [Color(0xFF6C5CE7), Color(0xFF5341C4)],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final gradient = _gradients[colorIndex % _gradients.length];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        elevation: 2,
+        shadowColor: Colors.black12,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Subject icon
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: gradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.subject, color: Colors.white, size: 26),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        subject,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: Colors.grey.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$chapterCount chapter${chapterCount != 1 ? 's' : ''}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 4,
+                        children: [
+                          if (lectureCount > 0)
+                            _MiniTag(
+                              icon: Icons.play_circle_fill,
+                              label: '$lectureCount',
+                              color: Colors.blue,
+                            ),
+                          if (noteCount > 0)
+                            _MiniTag(
+                              icon: Icons.description,
+                              label: '$noteCount',
+                              color: Colors.orange,
+                            ),
+                          if (dppCount > 0)
+                            _MiniTag(
+                              icon: Icons.assignment,
+                              label: '$dppCount',
+                              color: Colors.deepPurple,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniTag extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _MiniTag({required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+        ),
+      ],
     );
   }
 }

@@ -589,6 +589,56 @@ class FirebaseAdminService {
         .delete();
   }
 
+  // Batch Resources: DPPs (Daily Practice Problems)
+  Stream<List<AdminDpp>> getBatchDpps(String courseId, String batchId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('dpps')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (s) => s.docs.map((d) => AdminDpp.fromMap(d.data(), d.id)).toList(),
+        );
+  }
+
+  Future<void> saveBatchDpp(
+    String courseId,
+    String batchId,
+    AdminDpp dpp, {
+    bool isNew = false,
+  }) async {
+    final data = dpp.toMap();
+    final ref = _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('dpps');
+    if (isNew) {
+      await ref.add(data);
+    } else {
+      await ref.doc(dpp.id).update(data);
+    }
+  }
+
+  Future<void> deleteBatchDpp(
+    String courseId,
+    String batchId,
+    String dppId,
+  ) async {
+    await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('dpps')
+        .doc(dppId)
+        .delete();
+  }
+
   // Batch Resources: Planner
   Stream<List<AdminPlannerItem>> getBatchPlanner(
     String courseId,
@@ -822,6 +872,9 @@ class FirebaseAdminService {
           storagePath: liveClass
               .youtubeUrl, // Mapping youtube link to storagePath/videoUrl
           isLocked: false,
+          subject: liveClass.subject,
+          chapter: liveClass.chapter,
+          lectureNo: liveClass.lectureNo,
         );
 
         // 3. Add to lessons
@@ -930,9 +983,36 @@ class FirebaseAdminService {
 
     await _db.collection('quiz_subjects').doc(docId).set({
       'name': docId,
+      'chapters': [],
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    }, SetOptions(merge: true));
     await _logAudit('add_quiz_subject', 'quiz_subjects', docId, {});
+  }
+
+  /// Returns a stream of chapters for the given subject.
+  Stream<List<String>> getChaptersForSubject(String subject) {
+    if (subject.isEmpty) return Stream.value([]);
+    return _db
+        .collection('quiz_subjects')
+        .doc(subject)
+        .snapshots()
+        .map((doc) {
+          if (!doc.exists) return <String>[];
+          final data = doc.data();
+          if (data == null || data['chapters'] == null) return <String>[];
+          return List<String>.from(data['chapters']);
+        });
+  }
+
+  /// Adds a new chapter to the given subject's chapters array.
+  Future<void> addChapterToSubject(String subject, String chapter) async {
+    if (subject.isEmpty || chapter.trim().isEmpty) return;
+    await _db.collection('quiz_subjects').doc(subject).update({
+      'chapters': FieldValue.arrayUnion([chapter.trim()]),
+    });
+    await _logAudit('add_chapter_to_subject', 'quiz_subjects', subject, {
+      'chapter': chapter.trim(),
+    });
   }
 
   Future<void> deleteSubject(String name) async {
@@ -975,5 +1055,24 @@ class FirebaseAdminService {
   Future<void> deleteFromQuizPool(String quizId) async {
     await _db.collection('quizzes_pool').doc(quizId).delete();
     await _logAudit('delete_from_quiz_pool', 'quizzes_pool', quizId, {});
+  }
+
+  // ============ BATCH ENROLLMENT QUERIES ============
+
+  /// Get all users enrolled in a specific batch.
+  /// Queries users where enrolledCourses array contains '{courseId}_{batchId}'.
+  Future<List<AdminUser>> getEnrolledUsersForBatch(
+    String courseId,
+    String batchId,
+  ) async {
+    final enrollmentId = '${courseId}_$batchId';
+    final snapshot = await _db
+        .collection('users')
+        .where('enrolledCourses', arrayContains: enrollmentId)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
+        .toList();
   }
 }

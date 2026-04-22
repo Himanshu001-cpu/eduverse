@@ -6,8 +6,8 @@ import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
 import '../widgets/batch_header.dart';
-import '../widgets/batch_lesson_tile.dart';
 import 'lecture_player_page.dart';
+import 'subject_detail_screen.dart';
 
 class BatchSectionPage extends StatefulWidget {
   final StudyCourseModel course;
@@ -36,7 +36,7 @@ class _BatchSectionPageState extends State<BatchSectionPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -113,78 +113,8 @@ class _BatchSectionPageState extends State<BatchSectionPage>
     );
   }
 
-  void _handleLessonAction(String action, Map<String, dynamic> lesson) {
-    switch (action) {
-      case 'complete':
-        setState(() {
-          _lessonCompletion[lesson['id']] = true;
-          _lessonProgress[lesson['id']] = 1.0;
-        });
-        break;
-      case 'download':
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Downloading ${lesson['title']}...')),
-        );
-        break;
-      case 'note':
-        _showNoteDialog(lesson['id']);
-        break;
-      case 'report':
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Issue reported')));
-        break;
-    }
-  }
-
-  void _showNoteDialog(String lessonId) {
-    final TextEditingController noteController = TextEditingController(
-      text: _notes[lessonId],
-    );
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Note'),
-        content: TextField(
-          controller: noteController,
-          maxLength: 250,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Enter your note here...',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                if (noteController.text.isEmpty) {
-                  _notes.remove(lessonId);
-                } else {
-                  _notes[lessonId] = noteController.text;
-                }
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _refreshLessons() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // Mock refresh logic
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isWideScreen = MediaQuery.of(context).size.width > 800;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -208,8 +138,9 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                   unselectedLabelColor: Colors.grey,
                   indicatorColor: Theme.of(context).primaryColor,
                   tabs: const [
-                    Tab(text: 'Lessons'),
+                    Tab(text: 'Subjects'),
                     Tab(text: 'Notes'),
+                    Tab(text: 'DPP'),
                     Tab(text: 'Planner'),
                     Tab(text: 'Quizzes'),
                   ],
@@ -220,8 +151,9 @@ class _BatchSectionPageState extends State<BatchSectionPage>
           body: TabBarView(
             controller: _tabController,
             children: [
-              _buildLessonsTab(isWideScreen),
+              _buildSubjectsTab(),
               _buildNotesTab(),
+              _buildDppTab(),
               _buildPlannerTab(),
               _buildQuizzesTab(),
             ],
@@ -231,420 +163,106 @@ class _BatchSectionPageState extends State<BatchSectionPage>
     );
   }
 
-  Widget _buildLessonsTab(bool isWideScreen) {
-    final content = RefreshIndicator(
-      onRefresh: _refreshLessons,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (isWideScreen)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 2, child: _buildModulesList()),
-                const SizedBox(width: 24),
-                Expanded(flex: 1, child: _buildSidePanel()),
-              ],
-            )
-          else ...[
-            _buildInstructorCard(),
-            const SizedBox(height: 16),
-            _buildTimetableCard(),
-            const SizedBox(height: 16),
-            _buildProgressSummaryCard(),
-            const SizedBox(height: 24),
-            _buildModulesList(),
-          ],
-        ],
-      ),
-    );
-    return content;
-  }
-
-  Widget _buildModulesList() {
+  Widget _buildSubjectsTab() {
     return Consumer<StudyController>(
       builder: (context, controller, child) {
-        return FutureBuilder<List<StudyLecture>>(
-          future: controller.getLectures(widget.course.id, widget.batchId),
+        return FutureBuilder<List<dynamic>>(
+          future: Future.wait([
+            controller.getLectures(widget.course.id, widget.batchId),
+            controller.getBatchNotes(widget.course.id, widget.batchId),
+            controller.repository.getBatchDpps(widget.course.id, widget.batchId),
+          ]),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
-                ),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(
-                child: Text('Error loading lessons: ${snapshot.error}'),
-              );
+              return Center(child: Text('Error: ${snapshot.error}'));
             }
 
-            final lessons = snapshot.data ?? [];
+            final lectures = snapshot.data![0] as List<StudyLecture>;
+            final notes = snapshot.data![1] as List<StudyNote>;
+            final dpps = snapshot.data![2] as List<StudyDpp>;
 
-            if (lessons.isEmpty) {
+            // Aggregate unique subjects
+            final subjectSet = <String>{};
+            for (final l in lectures) {
+              if (l.subject.isNotEmpty) subjectSet.add(l.subject);
+            }
+            for (final n in notes) {
+              if (n.subject.isNotEmpty) subjectSet.add(n.subject);
+            }
+            for (final d in dpps) {
+              if (d.subject.isNotEmpty) subjectSet.add(d.subject);
+            }
+
+            final subjects = subjectSet.toList()..sort();
+
+            if (subjects.isEmpty) {
               return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.video_library_outlined,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'No lessons available yet.',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Lessons will appear here once added.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.subject, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text(
+                      'No subjects available yet.',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  ],
                 ),
               );
             }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: lessons.asMap().entries.map((entry) {
-                final index = entry.key + 1;
-                final lesson = entry.value;
-                final isCompleted =
-                    lesson.isWatched || (_lessonCompletion[lesson.id] ?? false);
-                final progress = isCompleted
-                    ? 1.0
-                    : (_lessonProgress[lesson.id] ?? 0.0);
-                final durationStr = lesson.duration != null
-                    ? '${lesson.duration!.inMinutes}m'
-                    : '';
+            // Build subject info
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: subjects.length,
+              itemBuilder: (context, index) {
+                final subject = subjects[index];
+                final lectureCount = lectures.where((l) => l.subject == subject).length;
+                final noteCount = notes.where((n) => n.subject == subject).length;
+                final dppCount = dpps.where((d) => d.subject == subject).length;
 
-                return BatchLessonTile(
-                  index: index,
-                  title: lesson.title,
-                  duration: durationStr,
-                  type: 'video',
-                  isLocked: false,
-                  progress: progress,
-                  hasNote: _notes.containsKey(lesson.id),
+                // Count unique chapters
+                final chapSet = <String>{};
+                for (final l in lectures.where((l) => l.subject == subject)) {
+                  if (l.chapter.isNotEmpty) chapSet.add(l.chapter);
+                }
+                for (final n in notes.where((n) => n.subject == subject)) {
+                  if (n.chapter.isNotEmpty) chapSet.add(n.chapter);
+                }
+                for (final d in dpps.where((d) => d.subject == subject)) {
+                  if (d.chapter.isNotEmpty) chapSet.add(d.chapter);
+                }
+
+                return _SubjectCard(
+                  subject: subject,
+                  chapterCount: chapSet.length,
+                  lectureCount: lectureCount,
+                  noteCount: noteCount,
+                  dppCount: dppCount,
+                  colorIndex: index,
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => LecturePlayerPage(
-                          videoUrl: lesson.videoUrl,
-                          title: lesson.title,
-                          description: lesson.description,
+                        builder: (_) => SubjectDetailScreen(
+                          courseId: widget.course.id,
+                          batchId: widget.batchId,
+                          subject: subject,
                         ),
                       ),
                     );
                   },
-                  onAction: (action) => _handleLessonAction(action, {
-                    'id': lesson.id,
-                    'title': lesson.title,
-                  }),
                 );
-              }).toList(),
+              },
             );
           },
         );
       },
     );
   }
-
-  Widget _buildSidePanel() {
-    return Column(
-      children: [
-        _buildInstructorCard(),
-        const SizedBox(height: 16),
-        _buildTimetableCard(),
-        const SizedBox(height: 16),
-        _buildProgressSummaryCard(),
-      ],
-    );
-  }
-
-  Widget _buildInstructorCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Instructor',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const CircleAvatar(
-                  backgroundImage: NetworkImage(
-                    'https://i.pravatar.cc/100?img=11',
-                  ), // Mock image
-                  radius: 24,
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Dr. Anjali Sharma',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Row(
-                      children: const [
-                        Icon(Icons.star, size: 14, color: Colors.amber),
-                        Text(' 4.8', style: TextStyle(fontSize: 12)),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Expert in Polity and Governance with 10+ years of teaching experience.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimetableCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Consumer<StudyController>(
-          builder: (context, controller, child) {
-            return FutureBuilder<List<StudyLiveClass>>(
-              future: controller.getBatchLiveClasses(
-                widget.course.id,
-                widget.batchId,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Text('Error loading schedule');
-                }
-
-                final liveClasses = snapshot.data ?? [];
-                final upcomingClasses = liveClasses
-                    .where((c) => c.isUpcoming)
-                    .toList();
-                final liveClass = liveClasses.firstWhere(
-                  (c) => c.isLive,
-                  orElse: () => liveClasses.first,
-                );
-
-                if (liveClasses.isEmpty) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Schedule',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'No live classes scheduled yet.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Schedule',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        if (upcomingClasses.length > 2)
-                          TextButton(
-                            onPressed: () {},
-                            child: const Text('View All'),
-                          ),
-                      ],
-                    ),
-                    ...upcomingClasses
-                        .take(2)
-                        .map(
-                          (c) => Column(
-                            children: [
-                              _buildScheduleItem(c),
-                              if (upcomingClasses.indexOf(c) <
-                                  upcomingClasses.length - 1)
-                                const Divider(),
-                            ],
-                          ),
-                        ),
-                    const SizedBox(height: 12),
-                    if (liveClass.isLive ||
-                        (upcomingClasses.isNotEmpty &&
-                            upcomingClasses.first.startTime
-                                    .difference(DateTime.now())
-                                    .inHours <
-                                1))
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: liveClass.youtubeUrl != null
-                              ? () async {
-                                  final url = Uri.parse(liveClass.youtubeUrl!);
-                                  if (await canLaunchUrl(url)) {
-                                    await launchUrl(url);
-                                  } else {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Could not open YouTube link',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Join Live Class',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScheduleItem(StudyLiveClass liveClass) {
-    final isNext =
-        liveClass.isUpcoming &&
-        liveClass.startTime.difference(DateTime.now()).inHours < 24;
-    final timeStr =
-        '${liveClass.startTime.hour.toString().padLeft(2, '0')}:${liveClass.startTime.minute.toString().padLeft(2, '0')}';
-    final dateStr = '${liveClass.startTime.day}/${liveClass.startTime.month}';
-
-    return Row(
-      children: [
-        Icon(
-          Icons.calendar_today,
-          size: 16,
-          color: isNext ? Colors.blue : Colors.grey,
-        ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              liveClass.title,
-              style: TextStyle(
-                fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            Text(
-              '$dateStr • $timeStr - ${liveClass.durationMinutes} min',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        if (isNext) ...[
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Text(
-              'NEXT',
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildProgressSummaryCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Your Progress',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem('12/40', 'Lessons'),
-                _buildStatItem('5', 'Quizzes'),
-                _buildStatItem('85%', 'Avg Score'),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String value, String label) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
-          ),
-        ),
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-      ],
-    );
-  }
-
   Widget _buildNotesTab() {
     return Consumer<StudyController>(
       builder: (context, controller, child) {
@@ -707,6 +325,102 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                         }
                       }
                     },
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDppTab() {
+    return Consumer<StudyController>(
+      builder: (context, controller, child) {
+        return FutureBuilder<List<StudyDpp>>(
+          future: controller.repository.getBatchDpps(widget.course.id, widget.batchId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+
+            final dpps = snapshot.data ?? [];
+
+            if (dpps.isEmpty) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.assignment_outlined, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text(
+                      'No DPPs available yet.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: dpps.length,
+              separatorBuilder: (_, __) => const Divider(),
+              itemBuilder: (context, index) {
+                final dpp = dpps[index];
+                final metaParts = <String>[];
+                if (dpp.subject.isNotEmpty) metaParts.add(dpp.subject);
+                if (dpp.chapter.isNotEmpty) metaParts.add(dpp.chapter);
+                final metaLine = metaParts.isNotEmpty ? metaParts.join(' • ') : '';
+
+                return ListTile(
+                  leading: const Icon(Icons.assignment, color: Colors.deepPurple),
+                  title: Text(dpp.title),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (metaLine.isNotEmpty)
+                        Text(
+                          metaLine,
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // DPP PDF button
+                      IconButton(
+                        icon: const Icon(Icons.picture_as_pdf, color: Colors.orange),
+                        tooltip: 'Open DPP',
+                        onPressed: () async {
+                          final url = Uri.parse(dpp.dppPdfUrl);
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url);
+                          }
+                        },
+                      ),
+                      // Solution PDF button
+                      if (dpp.solutionPdfUrl.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.check_circle, color: Colors.green),
+                          tooltip: 'Open Solution',
+                          onPressed: () async {
+                            final url = Uri.parse(dpp.solutionPdfUrl);
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            }
+                          },
+                        ),
+                    ],
                   ),
                 );
               },
@@ -1110,6 +824,152 @@ class _LessonDetailSheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Subject card for the Subjects tab
+class _SubjectCard extends StatelessWidget {
+  final String subject;
+  final int chapterCount;
+  final int lectureCount;
+  final int noteCount;
+  final int dppCount;
+  final int colorIndex;
+  final VoidCallback onTap;
+
+  const _SubjectCard({
+    required this.subject,
+    required this.chapterCount,
+    required this.lectureCount,
+    required this.noteCount,
+    required this.dppCount,
+    required this.colorIndex,
+    required this.onTap,
+  });
+
+  static const _gradients = [
+    [Color(0xFF4A90E2), Color(0xFF357ABD)],
+    [Color(0xFF7B61FF), Color(0xFF5B3FD4)],
+    [Color(0xFFE94560), Color(0xFFC23152)],
+    [Color(0xFF00B894), Color(0xFF009874)],
+    [Color(0xFFF39C12), Color(0xFFD68910)],
+    [Color(0xFF6C5CE7), Color(0xFF5341C4)],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final gradient = _gradients[colorIndex % _gradients.length];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        elevation: 2,
+        shadowColor: Colors.black12,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Subject icon
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: gradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.subject, color: Colors.white, size: 26),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        subject,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: Colors.grey.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$chapterCount chapter${chapterCount != 1 ? 's' : ''}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 4,
+                        children: [
+                          if (lectureCount > 0)
+                            _MiniTag(
+                              icon: Icons.play_circle_fill,
+                              label: '$lectureCount',
+                              color: Colors.blue,
+                            ),
+                          if (noteCount > 0)
+                            _MiniTag(
+                              icon: Icons.description,
+                              label: '$noteCount',
+                              color: Colors.orange,
+                            ),
+                          if (dppCount > 0)
+                            _MiniTag(
+                              icon: Icons.assignment,
+                              label: '$dppCount',
+                              color: Colors.deepPurple,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniTag extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _MiniTag({required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+        ),
+      ],
     );
   }
 }

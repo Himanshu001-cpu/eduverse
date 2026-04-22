@@ -39,6 +39,12 @@ class VideoSkipOverlay extends StatefulWidget {
   /// Called to show quality settings sheet.
   final VoidCallback? onShowQuality;
 
+  /// Called when playback speed is changed.
+  final void Function(double speed)? onPlaybackSpeedChanged;
+
+  /// Current playback speed (default 1.0).
+  final double currentPlaybackSpeed;
+
   /// A [Listenable] (e.g. the player controller) that signals value changes
   /// so the overlay can rebuild with updated position/state.
   final Listenable? controllerListenable;
@@ -54,6 +60,8 @@ class VideoSkipOverlay extends StatefulWidget {
     required this.onPause,
     this.onToggleFullScreen,
     this.onShowQuality,
+    this.onPlaybackSpeedChanged,
+    this.currentPlaybackSpeed = 1.0,
     this.controllerListenable,
   });
 
@@ -237,23 +245,53 @@ class _VideoSkipOverlayState extends State<VideoSkipOverlay> {
                 color: Colors.black45,
                 child: Stack(
                   children: [
-                    // ── Top-right: quality button ───────────────────
-                    if (widget.onShowQuality != null)
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.settings,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                          onPressed: () {
-                            widget.onShowQuality!();
-                            _resetHideTimer();
-                          },
-                        ),
+                    // ── Top-right: speed + quality buttons ───────────────────
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.onPlaybackSpeedChanged != null)
+                            GestureDetector(
+                              onTap: () {
+                                _showPlaybackSpeedSheet(context);
+                                _resetHideTimer();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '${widget.currentPlaybackSpeed}x',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (widget.onShowQuality != null)
+                            IconButton(
+                              icon: const Icon(
+                                Icons.settings,
+                                color: Colors.white,
+                                size: 26,
+                              ),
+                              onPressed: () {
+                                widget.onShowQuality!();
+                                _resetHideTimer();
+                              },
+                            ),
+                        ],
                       ),
+                    ),
 
                     // ── Center: play/pause + skip buttons ────────────
                     Center(
@@ -389,6 +427,63 @@ class _VideoSkipOverlayState extends State<VideoSkipOverlay> {
             ),
           ),
       ],
+    );
+  }
+
+  void _showPlaybackSpeedSheet(BuildContext context) {
+    const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Playback Speed',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Divider(color: Colors.grey),
+            ...speeds.map(
+              (s) => ListTile(
+                leading: Icon(
+                  s == widget.currentPlaybackSpeed
+                      ? Icons.check_circle
+                      : Icons.speed,
+                  color: s == widget.currentPlaybackSpeed
+                      ? Colors.green
+                      : Colors.blue[300],
+                ),
+                title: Text(
+                  s == 1.0 ? 'Normal' : '${s}x',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: s == widget.currentPlaybackSpeed
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onPlaybackSpeedChanged?.call(s);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

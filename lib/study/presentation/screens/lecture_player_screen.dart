@@ -10,6 +10,7 @@ import 'package:chewie/chewie.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:eduverse/core/firebase/watch_stats_service.dart';
+import 'package:eduverse/core/firebase/live_viewer_service.dart';
 import 'package:eduverse/core/utils/youtube_utils.dart';
 import 'package:eduverse/common/widgets/cross_platform_youtube_player.dart';
 import 'package:eduverse/common/widgets/video_skip_overlay.dart';
@@ -47,6 +48,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
   bool _isYoutube = false;
   bool _isError = false;
   String? _youtubeVideoId; // Store video ID for cross-platform player
+  double _playbackSpeed = 1.0;
 
   // Comments
   final TextEditingController _commentController = TextEditingController();
@@ -57,12 +59,32 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
   // Watch time tracking
   DateTime? _watchStartTime;
 
+  // Live viewer tracking
+  final LiveViewerService _liveViewerService = LiveViewerService();
+  bool _hasJoinedLive = false;
+  String? _joinedLiveClassId;
+
   @override
   void initState() {
     super.initState();
     _isWatched = widget.lecture.isWatched;
     _watchStartTime = DateTime.now(); // Start tracking watch time
     _initializePlayer();
+    _joinLiveIfNeeded();
+  }
+
+  void _joinLiveIfNeeded() {
+    if (widget.isLiveStream &&
+        widget.courseId != null &&
+        widget.batchId != null) {
+      _joinedLiveClassId = widget.lecture.id;
+      _liveViewerService.joinLive(
+        widget.courseId!,
+        widget.batchId!,
+        _joinedLiveClassId!,
+      );
+      _hasJoinedLive = true;
+    }
   }
 
   Future<void> _initializePlayer() async {
@@ -138,6 +160,14 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
               title: _subtitlesEnabled
                   ? 'Disable Subtitles'
                   : 'Enable Subtitles',
+            ),
+            OptionItem(
+              onTap: (ctx) {
+                Navigator.pop(ctx);
+                _showChewieSpeedSheet();
+              },
+              iconData: Icons.speed,
+              title: 'Playback Speed (${_playbackSpeed}x)',
             ),
           ],
           errorBuilder: (context, errorMessage) {
@@ -256,6 +286,59 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showChewieSpeedSheet() {
+    const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Playback Speed',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Divider(color: Colors.grey),
+            ...speeds.map(
+              (s) => ListTile(
+                leading: Icon(
+                  s == _playbackSpeed ? Icons.check_circle : Icons.speed,
+                  color: s == _playbackSpeed ? Colors.green : Colors.blue[300],
+                ),
+                title: Text(
+                  s == 1.0 ? 'Normal' : '${s}x',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight:
+                        s == _playbackSpeed ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _playbackSpeed = s);
+                  _videoPlayerController?.setPlaybackSpeed(s);
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -452,6 +535,19 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
     // Save watch time before disposing
     _saveWatchTime();
 
+    // Leave live viewer tracking
+    if (_hasJoinedLive &&
+        widget.courseId != null &&
+        widget.batchId != null &&
+        _joinedLiveClassId != null) {
+      _liveViewerService.leaveLive(
+        widget.courseId!,
+        widget.batchId!,
+        _joinedLiveClassId!,
+      );
+      _hasJoinedLive = false;
+    }
+
     _videoPlayerController?.dispose();
     _chewieController?.dispose();
     _youtubeController?.dispose();
@@ -503,6 +599,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
               videoId: _youtubeVideoId!,
               autoPlay: true,
               isLive: widget.isLiveStream,
+              playbackSpeed: _playbackSpeed,
               settingsButton: IconButton(
                 icon: const Icon(Icons.settings, color: Colors.white, size: 28),
                 onPressed: _showQualitySheet,
@@ -533,6 +630,11 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
                       }
                     },
                     onShowQuality: _showQualitySheet,
+                    currentPlaybackSpeed: _playbackSpeed,
+                    onPlaybackSpeedChanged: (speed) {
+                      setState(() => _playbackSpeed = speed);
+                      _youtubeController!.setPlaybackRate(speed);
+                    },
                     controllerListenable: _youtubeController!,
                     child: YoutubePlayer(
                       controller: _youtubeController!,
@@ -572,6 +674,67 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
                   ),
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
+                  actions: [
+                    if (widget.isLiveStream &&
+                        widget.courseId != null &&
+                        widget.batchId != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: StreamBuilder<int>(
+                          stream: _liveViewerService.viewerCountStream(
+                            widget.courseId!,
+                            widget.batchId!,
+                            widget.lecture.id,
+                          ),
+                          builder: (context, snapshot) {
+                            final viewerCount = snapshot.data ?? 0;
+                            return Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.red.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '$viewerCount',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.visibility,
+                                      color: Colors.white70,
+                                      size: 16,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
                 ),
           body: SafeArea(
             bottom: !isLandscape,

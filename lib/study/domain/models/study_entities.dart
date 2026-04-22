@@ -115,6 +115,10 @@ class StudyLecture {
   final int order;
   final bool isWatched;
   final Duration? duration;
+  final String subject;
+  final String chapter;
+  final int? lectureNo;
+  final List<String> linkedNoteIds;
 
   const StudyLecture({
     required this.id,
@@ -125,6 +129,10 @@ class StudyLecture {
     required this.order,
     this.isWatched = false,
     this.duration,
+    this.subject = '',
+    this.chapter = '',
+    this.lectureNo,
+    this.linkedNoteIds = const [],
   });
 
   StudyLecture copyWith({
@@ -136,6 +144,10 @@ class StudyLecture {
     int? order,
     bool? isWatched,
     Duration? duration,
+    String? subject,
+    String? chapter,
+    int? lectureNo,
+    List<String>? linkedNoteIds,
   }) {
     return StudyLecture(
       id: id ?? this.id,
@@ -146,6 +158,10 @@ class StudyLecture {
       order: order ?? this.order,
       isWatched: isWatched ?? this.isWatched,
       duration: duration ?? this.duration,
+      subject: subject ?? this.subject,
+      chapter: chapter ?? this.chapter,
+      lectureNo: lectureNo ?? this.lectureNo,
+      linkedNoteIds: linkedNoteIds ?? this.linkedNoteIds,
     );
   }
 }
@@ -183,12 +199,18 @@ class StudyNote {
   final String title;
   final String? fileUrl;
   final DateTime createdAt;
+  final String subject;
+  final String chapter;
+  final String? lectureId;
 
   const StudyNote({
     required this.id,
     required this.title,
     this.fileUrl,
     required this.createdAt,
+    this.subject = '',
+    this.chapter = '',
+    this.lectureId,
   });
 }
 
@@ -234,4 +256,26 @@ class StudyLiveClass {
   bool get isUpcoming => status == 'upcoming' && startTime.isAfter(DateTime.now());
   bool get isLive => status == 'live';
   bool get isCompleted => status == 'completed';
+}
+
+class StudyDpp {
+  final String id;
+  final String title;
+  final String subject;
+  final String chapter;
+  final String dppPdfUrl;
+  final String solutionPdfUrl;
+  final String? lectureId;
+  final DateTime createdAt;
+
+  const StudyDpp({
+    required this.id,
+    required this.title,
+    required this.subject,
+    required this.chapter,
+    required this.dppPdfUrl,
+    this.solutionPdfUrl = '',
+    this.lectureId,
+    required this.createdAt,
+  });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:screen_protector/screen_protector.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
 import 'package:eduverse/web/landing/landing_page.dart';
 import 'login_page.dart';
@@ -10,15 +11,45 @@ import '../navigation/main_navigation_page.dart';
 /// Shows WebHomepage for web visitors (not authenticated),
 /// LoginPage for mobile users (not authenticated),
 /// otherwise shows the main app content.
-class AuthWrapper extends StatelessWidget {
+/// Also manages screenshot protection based on user role.
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authService = AuthService();
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
 
+class _AuthWrapperState extends State<AuthWrapper> {
+  final AuthService _authService = AuthService();
+  String? _lastUserId;
+
+  Future<void> _updateScreenProtection(User user) async {
+    if (kIsWeb) return;
+
+    final isAdmin = await _authService.isAdmin();
+    if (isAdmin) {
+      // Allow admins to take screenshots
+      await ScreenProtector.preventScreenshotOff();
+      await ScreenProtector.protectDataLeakageOff();
+      debugPrint('Screenshot protection DISABLED for admin: ${user.email}');
+    } else {
+      // Prevent non-admin users from taking screenshots
+      await ScreenProtector.preventScreenshotOn();
+      await ScreenProtector.protectDataLeakageOn();
+      debugPrint('Screenshot protection ENABLED for user: ${user.email}');
+    }
+  }
+
+  Future<void> _disableScreenProtection() async {
+    if (kIsWeb) return;
+    // When user is not authenticated, no need for protection
+    // (nothing sensitive on login screen)
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: authService.authStateChanges,
+      stream: _authService.authStateChanges,
       builder: (context, snapshot) {
         // Show loading while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -37,10 +68,19 @@ class AuthWrapper extends StatelessWidget {
 
         // User is authenticated -> show main app
         if (snapshot.hasData && snapshot.data != null) {
+          // Update screenshot protection when user changes
+          final user = snapshot.data!;
+          if (_lastUserId != user.uid) {
+            _lastUserId = user.uid;
+            _updateScreenProtection(user);
+          }
           return const MainNavigationPage();
         }
 
         // User is not authenticated
+        _lastUserId = null;
+        _disableScreenProtection();
+
         // Web: show landing page with features
         // Mobile: show login page
         if (kIsWeb) {
