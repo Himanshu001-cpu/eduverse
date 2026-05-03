@@ -43,6 +43,7 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
   List<String> _subjects = [];
   bool _isLoading = false;
   bool _saveToLibrary = false;
+  DateTime? _scheduledAt;
 
   @override
   void initState() {
@@ -70,6 +71,7 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
       _quizTimeLimit = Duration(minutes: widget.quiz!.timeLimitMinutes!);
     }
     _questions = List.from(widget.quiz?.questions ?? []);
+    _scheduledAt = widget.quiz?.scheduledAt;
     _loadSubjects();
     _autoSaveTimer = Timer.periodic(const Duration(seconds: 15), (_) => _autoSave());
   }
@@ -349,6 +351,7 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
         negativeMarking: negativeMarking,
         questions: _questions,
         createdAt: widget.quiz?.createdAt ?? DateTime.now(),
+        scheduledAt: _scheduledAt,
       );
 
       final adminService = Provider.of<FirebaseAdminService>(context, listen: false);
@@ -409,6 +412,7 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
         negativeMarking: negativeMarking,
         questions: _questions,
         createdAt: widget.quiz?.createdAt ?? DateTime.now(),
+        scheduledAt: _scheduledAt,
       );
 
       final adminService = Provider.of<FirebaseAdminService>(
@@ -573,6 +577,12 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
               Text('Time Limit', style: TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               _buildDurationPicker(),
+              const SizedBox(height: 16),
+
+              // Scheduling Picker
+              Text('Schedule (Optional)', style: TextStyle(fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+              _buildSchedulingPicker(),
               const SizedBox(height: 16),
 
               // Save to Global Library toggle
@@ -984,6 +994,78 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSchedulingPicker() {
+    return InkWell(
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: _scheduledAt ?? DateTime.now(),
+          firstDate: DateTime.now(),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (date == null) return;
+
+        if (!mounted) return;
+        final time = await showTimePicker(
+          context: context,
+          initialTime: _scheduledAt != null
+              ? TimeOfDay.fromDateTime(_scheduledAt!)
+              : TimeOfDay.now(),
+        );
+        if (time == null) return;
+
+        setState(() {
+          _scheduledAt = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            time.hour,
+            time.minute,
+          );
+          _hasUnsavedChanges = true;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.calendar_month, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text(
+                  _scheduledAt != null
+                      ? '${_scheduledAt!.day}/${_scheduledAt!.month}/${_scheduledAt!.year} at ${_scheduledAt!.hour.toString().padLeft(2, '0')}:${_scheduledAt!.minute.toString().padLeft(2, '0')}'
+                      : 'Schedule Test',
+                  style: TextStyle(
+                    color: _scheduledAt != null ? Colors.black87 : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+            if (_scheduledAt != null)
+              IconButton(
+                icon: const Icon(Icons.clear, size: 20),
+                onPressed: () {
+                  setState(() {
+                    _scheduledAt = null;
+                    _hasUnsavedChanges = true;
+                  });
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+          ],
         ),
       ),
     );
