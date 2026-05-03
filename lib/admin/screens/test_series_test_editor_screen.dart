@@ -53,6 +53,7 @@ class _TestSeriesTestEditorScreenState
   String _testSubject = '';
   bool _isLoading = false;
   bool _saveToLibrary = false;
+  DateTime? _scheduledAt;
 
   static const List<String> _testCategories = [
     'General',
@@ -87,6 +88,9 @@ class _TestSeriesTestEditorScreenState
     );
     _testCategory = data?['category'] as String? ?? 'Full Length';
     _testSubject = data?['subject'] as String? ?? '';
+    if (data?['scheduledAt'] != null) {
+      _scheduledAt = (data!['scheduledAt'] as Timestamp).toDate();
+    }
 
     // Load time limit
     if (data?['timeLimitSeconds'] != null && data!['timeLimitSeconds'] > 0) {
@@ -422,6 +426,7 @@ class _TestSeriesTestEditorScreenState
         'totalQuestions': _questions.length,
         'order': widget.order,
         'updatedAt': FieldValue.serverTimestamp(),
+        'scheduledAt': _scheduledAt != null ? Timestamp.fromDate(_scheduledAt!) : null,
       };
 
       final ref = FirebaseFirestore.instance.collection('test_series').doc(widget.testSeriesId).collection('tests');
@@ -449,6 +454,7 @@ class _TestSeriesTestEditorScreenState
           negativeMarking: double.tryParse(_negativeMarkingController.text),
           questions: _questions,
           createdAt: DateTime.now(),
+          scheduledAt: _scheduledAt,
         );
         await adminService.saveToQuizPool(poolQuiz);
       }
@@ -498,6 +504,7 @@ class _TestSeriesTestEditorScreenState
         'totalQuestions': _questions.length,
         'order': widget.order,
         'updatedAt': FieldValue.serverTimestamp(),
+        'scheduledAt': _scheduledAt != null ? Timestamp.fromDate(_scheduledAt!) : null,
       };
 
       final ref = FirebaseFirestore.instance
@@ -535,6 +542,7 @@ class _TestSeriesTestEditorScreenState
           negativeMarking: double.tryParse(_negativeMarkingController.text),
           questions: _questions,
           createdAt: DateTime.now(),
+          scheduledAt: _scheduledAt,
         );
         await adminService.saveToQuizPool(poolQuiz);
       }
@@ -758,6 +766,15 @@ class _TestSeriesTestEditorScreenState
               ),
               const SizedBox(height: 8),
               _buildDurationPicker(),
+              const SizedBox(height: 16),
+
+              // Scheduling Picker
+              const Text(
+                'Schedule (Optional)',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              _buildSchedulingPicker(),
               const SizedBox(height: 16),
 
               // Save to Global Library toggle
@@ -1176,6 +1193,78 @@ class _TestSeriesTestEditorScreenState
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSchedulingPicker() {
+    return InkWell(
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: _scheduledAt ?? DateTime.now(),
+          firstDate: DateTime.now(),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (date == null) return;
+
+        if (!mounted) return;
+        final time = await showTimePicker(
+          context: context,
+          initialTime: _scheduledAt != null
+              ? TimeOfDay.fromDateTime(_scheduledAt!)
+              : TimeOfDay.now(),
+        );
+        if (time == null) return;
+
+        setState(() {
+          _scheduledAt = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            time.hour,
+            time.minute,
+          );
+          _hasUnsavedChanges = true;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.calendar_month, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text(
+                  _scheduledAt != null
+                      ? '${_scheduledAt!.day}/${_scheduledAt!.month}/${_scheduledAt!.year} at ${_scheduledAt!.hour.toString().padLeft(2, '0')}:${_scheduledAt!.minute.toString().padLeft(2, '0')}'
+                      : 'Schedule Test',
+                  style: TextStyle(
+                    color: _scheduledAt != null ? Colors.black87 : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+            if (_scheduledAt != null)
+              IconButton(
+                icon: const Icon(Icons.clear, size: 20),
+                onPressed: () {
+                  setState(() {
+                    _scheduledAt = null;
+                    _hasUnsavedChanges = true;
+                  });
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+          ],
         ),
       ),
     );

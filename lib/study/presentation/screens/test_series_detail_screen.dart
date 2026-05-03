@@ -328,6 +328,10 @@ class _TestCard extends StatelessWidget {
     final totalQs = testData['totalQuestions'] ?? 0;
     final duration = testData['durationMinutes'] ?? 0;
     final subject = testData['subject'] as String? ?? '';
+    final scheduledAtStamp = testData['scheduledAt'] as Timestamp?;
+    final scheduledAt = scheduledAtStamp?.toDate();
+    final isScheduledForFuture =
+        scheduledAt != null && scheduledAt.isAfter(DateTime.now());
 
     return StreamBuilder<DocumentSnapshot>(
       stream: uid.isNotEmpty
@@ -437,16 +441,26 @@ class _TestCard extends StatelessWidget {
                 Row(
                   children: [
                     const Spacer(),
-                    ElevatedButton(
-                      onPressed: () => _startTest(context),
-                      style: hasAttempted
-                          ? ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                            )
-                          : null,
-                      child: Text(hasAttempted ? 'Retake Test' : 'Start Test'),
-                    ),
+                    if (isScheduledForFuture)
+                      OutlinedButton.icon(
+                        onPressed: null,
+                        icon: const Icon(Icons.lock_clock, size: 16),
+                        label: Text(
+                          '${scheduledAt!.day}/${scheduledAt.month} at ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      )
+                    else
+                      ElevatedButton(
+                        onPressed: () => _startTest(context),
+                        style: hasAttempted
+                            ? ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                              )
+                            : null,
+                        child: Text(hasAttempted ? 'Retake Test' : 'Start Test'),
+                      ),
                   ],
                 ),
               ],

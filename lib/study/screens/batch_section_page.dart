@@ -594,22 +594,31 @@ class _BatchSectionPageState extends State<BatchSectionPage>
                     subtitle: Text(
                       '${quiz.questionCount} Questions • ${quiz.durationMinutes} mins',
                     ),
-                    trailing: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => StudyQuizScreen(
-                              courseId: widget.course.id,
-                              batchId: widget.batchId,
-                              quizId: quiz.id,
-                              quizTitle: quiz.title,
+                    trailing: quiz.isScheduledForFuture
+                        ? OutlinedButton.icon(
+                            onPressed: null,
+                            icon: const Icon(Icons.lock_clock, size: 16),
+                            label: Text(
+                              '${quiz.scheduledAt!.day}/${quiz.scheduledAt!.month} at ${quiz.scheduledAt!.hour.toString().padLeft(2, '0')}:${quiz.scheduledAt!.minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(fontSize: 12),
                             ),
+                          )
+                        : ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => StudyQuizScreen(
+                                    courseId: widget.course.id,
+                                    batchId: widget.batchId,
+                                    quizId: quiz.id,
+                                    quizTitle: quiz.title,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Text('Start'),
                           ),
-                        );
-                      },
-                      child: const Text('Start'),
-                    ),
                   ),
                 );
               },
