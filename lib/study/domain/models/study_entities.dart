@@ -184,6 +184,7 @@ class StudyQuiz {
   final String description;
   final int questionCount;
   final int durationMinutes;
+  final DateTime? scheduledAt; // If set, students can't take before this time
 
   const StudyQuiz({
     required this.id,
@@ -191,7 +192,12 @@ class StudyQuiz {
     required this.description,
     this.questionCount = 0,
     this.durationMinutes = 0,
+    this.scheduledAt,
   });
+
+  /// Whether this quiz is currently locked (scheduled for the future).
+  bool get isScheduledForFuture =>
+      scheduledAt != null && scheduledAt!.isAfter(DateTime.now());
 }
 
 class StudyNote {

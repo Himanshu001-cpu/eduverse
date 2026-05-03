@@ -723,23 +723,17 @@ class FirebaseAdminService {
     bool isNew = false,
   }) async {
     final data = quiz.toMap();
+    final ref = _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('quizzes')
+        .doc(quiz.id);
     if (isNew) {
-      await _db
-          .collection('courses')
-          .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
-          .collection('quizzes')
-          .add(data);
+      await ref.set(data);
     } else {
-      await _db
-          .collection('courses')
-          .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
-          .collection('quizzes')
-          .doc(quiz.id)
-          .update(data);
+      await ref.update(data);
     }
   }
 
@@ -967,6 +961,190 @@ class FirebaseAdminService {
       'courseId': courseId,
       'batchId': batchId,
     });
+  }
+
+  // ============ LIVE CLASS LINKING ============
+
+  /// Links an existing live class to a target batch by copying its data.
+  /// Also updates the source class's linkedBatches array.
+  Future<void> linkLiveClassToBatch({
+    required AdminLiveClass sourceClass,
+    required String sourceCourseId,
+    required String sourceBatchId,
+    required String targetCourseId,
+    required String targetBatchId,
+  }) async {
+    final data = sourceClass.toMap();
+    // Remove linkedBatches from the copy — each copy is standalone
+    data.remove('linkedBatches');
+    // Mark it as a linked copy so we know it was imported
+    data['linkedFrom'] = {
+      'courseId': sourceCourseId,
+      'batchId': sourceBatchId,
+      'originalId': sourceClass.id,
+    };
+
+    // 1. Write the class to the target batch
+    await _db
+        .collection('courses')
+        .doc(targetCourseId)
+        .collection('batches')
+        .doc(targetBatchId)
+        .collection('live_classes')
+        .add(data);
+
+    // 2. Update the source class's linkedBatches array
+    // Find the source doc first
+    final sourceRef = _getSourceLiveClassRef(
+      sourceCourseId, sourceBatchId, sourceClass.id,
+    );
+    if (sourceRef != null) {
+      // For batch-scoped classes
+      await _db
+          .collection('courses')
+          .doc(sourceCourseId)
+          .collection('batches')
+          .doc(sourceBatchId)
+          .collection('live_classes')
+          .doc(sourceClass.id)
+          .update({
+        'linkedBatches': FieldValue.arrayUnion([
+          {'courseId': targetCourseId, 'batchId': targetBatchId},
+        ]),
+      });
+    }
+
+    // 3. Send notification to enrolled users of target batch
+    await _notificationRepo.createBatchNotification(
+      title: '📺 New Live Class Linked',
+      body: sourceClass.title,
+      targetType: NotificationTargetType.liveClass,
+      targetId: sourceClass.id,
+      batchId: targetBatchId,
+      courseId: targetCourseId,
+    );
+
+    await _logAudit('link_live_class', 'live_class', sourceClass.id, {
+      'sourceCourse': sourceCourseId,
+      'sourceBatch': sourceBatchId,
+      'targetCourse': targetCourseId,
+      'targetBatch': targetBatchId,
+    });
+  }
+
+  /// Helper to validate source ref path (non-null means batch-scoped)
+  String? _getSourceLiveClassRef(
+    String courseId, String batchId, String classId,
+  ) {
+    if (courseId.isNotEmpty && batchId.isNotEmpty && classId.isNotEmpty) {
+      return 'courses/$courseId/batches/$batchId/live_classes/$classId';
+    }
+    return null;
+  }
+
+  /// Links a free (global) live class to a target batch by copying its data.
+  Future<void> linkFreeLiveClassToBatch({
+    required AdminLiveClass sourceClass,
+    required String targetCourseId,
+    required String targetBatchId,
+  }) async {
+    final data = sourceClass.toMap();
+    data.remove('linkedBatches');
+    data['linkedFrom'] = {
+      'courseId': '',
+      'batchId': '',
+      'originalId': sourceClass.id,
+      'source': 'free_live_classes',
+    };
+
+    // 1. Write the class to the target batch
+    await _db
+        .collection('courses')
+        .doc(targetCourseId)
+        .collection('batches')
+        .doc(targetBatchId)
+        .collection('live_classes')
+        .add(data);
+
+    // 2. Update the source free class's linkedBatches
+    await _db.collection('free_live_classes').doc(sourceClass.id).update({
+      'linkedBatches': FieldValue.arrayUnion([
+        {'courseId': targetCourseId, 'batchId': targetBatchId},
+      ]),
+    });
+
+    await _logAudit('link_free_live_class', 'live_class', sourceClass.id, {
+      'targetCourse': targetCourseId,
+      'targetBatch': targetBatchId,
+    });
+  }
+
+  /// Gets all live classes from ALL batches across all courses.
+  /// Used in the "Link Existing Class" dialog.
+  Future<List<Map<String, dynamic>>> getAllLiveClassesForLinking() async {
+    final result = <Map<String, dynamic>>[];
+
+    // 1. Get all free live classes
+    final freeClassesSnap =
+        await _db.collection('free_live_classes').orderBy('startTime').get();
+    for (final doc in freeClassesSnap.docs) {
+      result.add({
+        'class': AdminLiveClass.fromMap(doc.data(), doc.id),
+        'courseId': '',
+        'batchId': '',
+        'courseName': 'Free Classes',
+        'batchName': 'Global',
+      });
+    }
+
+    // 2. Get all courses, then each batch's live classes
+    final coursesSnap = await _db.collection('courses').get();
+    for (final courseDoc in coursesSnap.docs) {
+      final courseName = courseDoc.data()['title'] ?? courseDoc.id;
+      final batchesSnap =
+          await courseDoc.reference.collection('batches').get();
+      for (final batchDoc in batchesSnap.docs) {
+        final batchName = batchDoc.data()['name'] ?? batchDoc.id;
+        final classesSnap = await batchDoc.reference
+            .collection('live_classes')
+            .orderBy('startTime')
+            .get();
+        for (final classDoc in classesSnap.docs) {
+          result.add({
+            'class': AdminLiveClass.fromMap(classDoc.data(), classDoc.id),
+            'courseId': courseDoc.id,
+            'batchId': batchDoc.id,
+            'courseName': courseName,
+            'batchName': batchName,
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /// Gets all courses with their batches (for the link target picker).
+  Future<List<Map<String, dynamic>>> getCoursesWithBatches() async {
+    final result = <Map<String, dynamic>>[];
+    final coursesSnap = await _db.collection('courses').get();
+    for (final courseDoc in coursesSnap.docs) {
+      final courseName = courseDoc.data()['title'] ?? courseDoc.id;
+      final batchesSnap =
+          await courseDoc.reference.collection('batches').get();
+      final batches = batchesSnap.docs.map((b) {
+        return {
+          'id': b.id,
+          'name': b.data()['name'] ?? b.id,
+        };
+      }).toList();
+      result.add({
+        'courseId': courseDoc.id,
+        'courseName': courseName,
+        'batches': batches,
+      });
+    }
+    return result;
   }
 
   // ============ QUIZ SUBJECTS ============

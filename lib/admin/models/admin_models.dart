@@ -488,6 +488,7 @@ class AdminQuiz {
   final double? negativeMarking;
   final List<QuizQuestion> questions;
   final DateTime createdAt;
+  final DateTime? scheduledAt; // Optional: if set, students can't attempt before this time
 
   AdminQuiz({
     required this.id,
@@ -500,6 +501,7 @@ class AdminQuiz {
     this.negativeMarking,
     required this.questions,
     required this.createdAt,
+    this.scheduledAt,
   });
 
   factory AdminQuiz.fromMap(Map<String, dynamic> data, String id) {
@@ -518,6 +520,7 @@ class AdminQuiz {
               .toList() ??
           [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      scheduledAt: (data['scheduledAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -532,6 +535,7 @@ class AdminQuiz {
       'negativeMarking': negativeMarking,
       'questions': questions.map((q) => q.toJson()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
+      'scheduledAt': scheduledAt != null ? Timestamp.fromDate(scheduledAt!) : null,
     };
   }
 }
@@ -550,6 +554,9 @@ class AdminLiveClass {
   final String subject;
   final String chapter;
   final int? lectureNo;
+  /// Tracks which batches this class is linked to.
+  /// Each entry: { 'courseId': '...', 'batchId': '...' }
+  final List<Map<String, String>> linkedBatches;
 
   AdminLiveClass({
     required this.id,
@@ -565,6 +572,7 @@ class AdminLiveClass {
     this.subject = '',
     this.chapter = '',
     this.lectureNo,
+    this.linkedBatches = const [],
   });
 
   factory AdminLiveClass.fromMap(Map<String, dynamic> data, String id) {
@@ -583,6 +591,10 @@ class AdminLiveClass {
       subject: data['subject'] ?? '',
       chapter: data['chapter'] ?? '',
       lectureNo: data['lectureNo'] as int?,
+      linkedBatches: (data['linkedBatches'] as List<dynamic>?)
+              ?.map((e) => Map<String, String>.from(e as Map))
+              .toList() ??
+          [],
     );
   }
 
@@ -601,6 +613,7 @@ class AdminLiveClass {
       'subject': subject,
       'chapter': chapter,
       'lectureNo': lectureNo,
+      'linkedBatches': linkedBatches,
     };
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:eduverse/core/utils/youtube_utils.dart';
+import 'package:eduverse/common/widgets/cross_platform_youtube_player.dart';
 import 'package:eduverse/common/widgets/video_skip_overlay.dart';
 
 class LecturePlayerPage extends StatefulWidget {
@@ -46,6 +48,7 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
   // YouTube Player
   YoutubePlayerController? _youtubeController;
   bool _isYoutube = false;
+  String? _youtubeVideoId;
   
   bool _isError = false;
   double _playbackSpeed = 1.0;
@@ -67,15 +70,19 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
         
         if (videoId != null) {
           _isYoutube = true;
-          // Pass isLive: widget.isLiveStream - required for playing live streams on Web
-          _youtubeController = YoutubePlayerController(
-            initialVideoId: videoId,
-            flags: YoutubePlayerFlags(
-              autoPlay: true,
-              mute: false,
-              isLive: widget.isLiveStream,
-            ),
-          );
+          _youtubeVideoId = videoId;
+          // Only create youtube_player_flutter controller on mobile;
+          // on Web, CrossPlatformYoutubePlayer (youtube_player_iframe) is used instead.
+          if (!kIsWeb) {
+            _youtubeController = YoutubePlayerController(
+              initialVideoId: videoId,
+              flags: YoutubePlayerFlags(
+                autoPlay: true,
+                mute: false,
+                isLive: widget.isLiveStream,
+              ),
+            );
+          }
         } else {
           _isYoutube = false;
           _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
@@ -187,8 +194,16 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
     Widget playerWidget;
     if (_isError) {
       playerWidget = const Center(child: Text('Could not load video', style: TextStyle(color: Colors.white)));
+    } else if (_isYoutube && _youtubeVideoId != null && kIsWeb) {
+      // Web: use CrossPlatformYoutubePlayer (youtube_player_iframe)
+      playerWidget = CrossPlatformYoutubePlayer(
+        videoId: _youtubeVideoId!,
+        autoPlay: true,
+        isLive: widget.isLiveStream,
+        playbackSpeed: _playbackSpeed,
+      );
     } else if (_isYoutube && _youtubeController != null) {
-      // Use YoutubePlayerBuilder for proper fullscreen handling
+      // Mobile: use YoutubePlayerBuilder for proper fullscreen handling
       return YoutubePlayerBuilder(
         onEnterFullScreen: () {
           SystemChrome.setPreferredOrientations([

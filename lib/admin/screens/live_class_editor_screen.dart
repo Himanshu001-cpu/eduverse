@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -6,6 +7,8 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 import '../widgets/media_uploader.dart';
+import '../widgets/link_class_to_batch_dialog.dart';
+import 'package:eduverse/common/widgets/cross_platform_youtube_player.dart';
 
 class LiveClassEditorScreen extends StatefulWidget {
   final AdminLiveClass? liveClass;
@@ -40,6 +43,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
   
   bool _isSaving = false;
   YoutubePlayerController? _youtubeController;
+  String? _previewVideoId;
 
   @override
   void initState() {
@@ -82,17 +86,25 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
     final videoId = YoutubePlayer.convertUrlToId(url);
     if (videoId != null && videoId.isNotEmpty) {
       setState(() {
-         _youtubeController?.dispose();
-        _youtubeController = YoutubePlayerController(
-          initialVideoId: videoId,
-          flags: const YoutubePlayerFlags(
-            autoPlay: false,
-            mute: false,
-          ),
-        );
+        _previewVideoId = videoId;
+        // Only create youtube_player_flutter controller on mobile;
+        // on Web, CrossPlatformYoutubePlayer is used instead.
+        if (!kIsWeb) {
+          _youtubeController?.dispose();
+          _youtubeController = YoutubePlayerController(
+            initialVideoId: videoId,
+            flags: const YoutubePlayerFlags(
+              autoPlay: false,
+              mute: false,
+            ),
+          );
+        }
       });
     } else {
-       setState(() => _youtubeController = null);
+       setState(() {
+         _previewVideoId = null;
+         _youtubeController = null;
+       });
     }
   }
 
@@ -146,6 +158,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
         subject: _selectedSubject,
         chapter: _selectedChapter,
         lectureNo: int.tryParse(_lectureNoController.text),
+        linkedBatches: widget.liveClass?.linkedBatches ?? [],
       );
 
       if (widget.courseId != null && widget.batchId != null) {
@@ -182,6 +195,22 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
       appBar: AppBar(
         title: Text(widget.liveClass == null ? 'Schedule Live Class' : 'Edit Live Class'),
         actions: [
+          // Link to batches button (only for existing classes)
+          if (widget.liveClass != null)
+            IconButton(
+              icon: const Icon(Icons.share),
+              tooltip: 'Link to Batches',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => LinkClassToBatchDialog(
+                    liveClass: widget.liveClass!,
+                    sourceCourseId: widget.courseId,
+                    sourceBatchId: widget.batchId,
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.check),
             onPressed: _isSaving ? null : _save,
@@ -286,15 +315,22 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                     ),
                     const SizedBox(height: 8),
                     
-                    if (_youtubeController != null)
+                    if (_previewVideoId != null)
                       Container(
                         height: 200,
                         margin: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-                        child: YoutubePlayer(
-                          controller: _youtubeController!,
-                          showVideoProgressIndicator: true,
-                        ),
+                        child: kIsWeb
+                            ? CrossPlatformYoutubePlayer(
+                                videoId: _previewVideoId!,
+                                autoPlay: false,
+                              )
+                            : _youtubeController != null
+                                ? YoutubePlayer(
+                                    controller: _youtubeController!,
+                                    showVideoProgressIndicator: true,
+                                  )
+                                : const Center(child: CircularProgressIndicator()),
                       ),
 
                     const SizedBox(height: 16),
@@ -536,6 +572,47 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                         onPressed: () => setState(() => _thumbnailUrlController.text = ''),
                         child: const Text('Clear Thumbnail', style: TextStyle(color: Colors.red)),
                       ),
+
+                    // ---- Linked Batches Section (for existing classes) ----
+                    if (widget.liveClass != null && widget.liveClass!.linkedBatches.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.link, size: 18, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Linked to ${widget.liveClass!.linkedBatches.length} other batch${widget.liveClass!.linkedBatches.length > 1 ? "es" : ""}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ...widget.liveClass!.linkedBatches.map((lb) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 26),
+                              Icon(Icons.subdirectory_arrow_right, size: 16, color: Colors.grey[400]),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Course: ${lb['courseId']} / Batch: ${lb['batchId']}',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
                   ],
                 ),
               ),

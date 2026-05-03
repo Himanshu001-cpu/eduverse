@@ -1,9 +1,15 @@
+
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart' as iframe;
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 /// A cross-platform YouTube player widget that works on both mobile and web.
 /// Uses youtube_player_iframe for Web compatibility.
+///
+/// When paused, YouTube's iframe shows a built-in thumbnail/related-videos
+/// overlay. To prevent this from obscuring the actual paused frame, this widget
+/// tracks the player state and covers the iframe with a play-button scrim
+/// whenever the video is paused.
 class CrossPlatformYoutubePlayer extends StatefulWidget {
   final String videoId;
   final bool autoPlay;
@@ -32,6 +38,7 @@ class CrossPlatformYoutubePlayer extends StatefulWidget {
 class _CrossPlatformYoutubePlayerState
     extends State<CrossPlatformYoutubePlayer> {
   late iframe.YoutubePlayerController _controller;
+  bool _isPaused = false;
 
   @override
   void initState() {
@@ -62,6 +69,12 @@ class _CrossPlatformYoutubePlayerState
       if (event.playerState == iframe.PlayerState.playing) {
         _controller.setPlaybackRate(widget.playbackSpeed);
       }
+
+      // Track pause state to overlay YouTube's built-in pause thumbnail
+      final paused = event.playerState == iframe.PlayerState.paused;
+      if (paused != _isPaused && mounted) {
+        setState(() => _isPaused = paused);
+      }
     });
   }
 
@@ -85,28 +98,57 @@ class _CrossPlatformYoutubePlayerState
     final width = MediaQuery.of(context).size.width;
     final height = width * 9 / 16;
 
-    final playerWidget = SizedBox(
+    return SizedBox(
       width: width,
       height: height,
       child: Stack(
         children: [
           iframe.YoutubePlayer(controller: _controller, aspectRatio: 16 / 9),
-          // Transparent overlay that allows scroll to pass through but intercepts for Flutter
-          // This helps with scroll detection on Web
-          Positioned.fill(
-            child: PointerInterceptor(
-              intercepting:
-                  false, // Don't fully intercept, just register with Flutter
-              child: Container(color: Colors.transparent),
+
+          // When paused, cover the entire iframe to hide YouTube's native
+          // pause overlay (thumbnail / suggested-videos). The dark scrim lets
+          // the paused frame peek through while providing a clear play button.
+          if (_isPaused)
+            Positioned.fill(
+              child: PointerInterceptor(
+                child: GestureDetector(
+                  onTap: () => _controller.playVideo(),
+                  child: Container(
+                    color: Colors.black54,
+                    child: Center(
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 48,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
+
+          // When playing, a transparent overlay to pass scroll events
+          if (!_isPaused)
+            Positioned.fill(
+              child: PointerInterceptor(
+                intercepting: false,
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
           // Settings button overlay
           if (widget.settingsButton != null)
             Positioned(top: 8, right: 8, child: widget.settingsButton!),
         ],
       ),
     );
-
-    return playerWidget;
   }
 }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../widgets/admin_scaffold.dart';
 import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
+import '../widgets/link_live_class_dialog.dart';
 
 class LiveClassesScreen extends StatelessWidget {
   final String? courseId;
@@ -15,22 +16,59 @@ class LiveClassesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Get service reference before any async operations
     final adminService = context.read<FirebaseAdminService>();
+    final isBatchScoped = batchId != null && courseId != null;
     
     return AdminScaffold(
-      title: batchId != null ? 'Batch Schedule' : 'Free Live Classes',
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.pushNamed(
-          context, 
-          '/live_class_editor', 
-          arguments: {
-            'courseId': courseId,
-            'batchId': batchId,
-          }
-        ),
-        child: const Icon(Icons.add),
-      ),
+      title: isBatchScoped ? 'Batch Schedule' : 'Free Live Classes',
+      floatingActionButton: isBatchScoped
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Link existing class button
+                FloatingActionButton.small(
+                  heroTag: 'link_class',
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => LinkLiveClassDialog(
+                        targetCourseId: courseId!,
+                        targetBatchId: batchId!,
+                      ),
+                    );
+                  },
+                  tooltip: 'Link Existing Class',
+                  backgroundColor: Colors.deepPurple,
+                  child: const Icon(Icons.add_link, size: 20),
+                ),
+                const SizedBox(height: 12),
+                // Create new class button
+                FloatingActionButton(
+                  heroTag: 'add_class',
+                  onPressed: () => Navigator.pushNamed(
+                    context, 
+                    '/live_class_editor', 
+                    arguments: {
+                      'courseId': courseId,
+                      'batchId': batchId,
+                    }
+                  ),
+                  child: const Icon(Icons.add),
+                ),
+              ],
+            )
+          : FloatingActionButton(
+              onPressed: () => Navigator.pushNamed(
+                context, 
+                '/live_class_editor', 
+                arguments: {
+                  'courseId': courseId,
+                  'batchId': batchId,
+                }
+              ),
+              child: const Icon(Icons.add),
+            ),
       body: StreamBuilder<List<AdminLiveClass>>(
-        stream: batchId != null && courseId != null
+        stream: isBatchScoped
             ? adminService.getBatchLiveClasses(courseId!, batchId!)
             : adminService.getLiveClasses(),
         builder: (context, snapshot) {
@@ -45,7 +83,32 @@ class LiveClassesScreen extends StatelessWidget {
           final classes = snapshot.data!;
 
           if (classes.isEmpty) {
-            return const Center(child: Text('No classes scheduled'));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.video_camera_front_outlined, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  const Text('No classes scheduled'),
+                  if (isBatchScoped) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => LinkLiveClassDialog(
+                            targetCourseId: courseId!,
+                            targetBatchId: batchId!,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add_link, size: 18),
+                      label: const Text('Link from another batch'),
+                    ),
+                  ],
+                ],
+              ),
+            );
           }
 
           return ListView.builder(
@@ -55,6 +118,7 @@ class LiveClassesScreen extends StatelessWidget {
               final item = classes[index];
               final isLive = item.status == 'live';
               final isCompleted = item.status == 'completed';
+              final hasLinks = item.linkedBatches.isNotEmpty;
 
               return Card(
                 elevation: isLive ? 4 : 1,
@@ -112,6 +176,20 @@ class LiveClassesScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
+                              // Linked batches indicator
+                              if (hasLinks) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.link, size: 14, color: Colors.blue[400]),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Linked to ${item.linkedBatches.length} batch${item.linkedBatches.length > 1 ? "es" : ""}',
+                                      style: TextStyle(color: Colors.blue[400], fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -216,3 +294,4 @@ class LiveClassesScreen extends StatelessWidget {
     );
   }
 }
+

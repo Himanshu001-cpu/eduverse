@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -53,7 +54,12 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
       if (result == null || result.files.isEmpty) return;
 
       final file = result.files.first;
-      if (file.path == null) return;
+      
+      if (kIsWeb) {
+        if (file.bytes == null) return;
+      } else {
+        if (file.path == null) return;
+      }
 
       setState(() {
         _isUploading = true;
@@ -68,7 +74,12 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
       final storageRef = FirebaseStorage.instance.ref().child('${widget.storagePath}/$fileName');
 
       // Upload file
-      final uploadTask = storageRef.putFile(File(file.path!));
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        uploadTask = storageRef.putData(file.bytes!);
+      } else {
+        uploadTask = storageRef.putFile(File(file.path!));
+      }
 
       // Track progress
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {

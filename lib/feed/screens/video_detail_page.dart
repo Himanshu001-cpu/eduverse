@@ -80,15 +80,19 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
 
     if (videoId != null && videoId.isNotEmpty) {
       final isLive = widget.item.videoContent?.isLive ?? false;
-      _controller = YoutubePlayerController(
-        initialVideoId: videoId,
-        flags: YoutubePlayerFlags(
-          autoPlay: false,
-          mute: false,
-          enableCaption: true,
-          isLive: isLive,
-        ),
-      )..addListener(_listener);
+      // Only create youtube_player_flutter controller on mobile;
+      // on Web, CrossPlatformYoutubePlayer (youtube_player_iframe) is used instead.
+      if (!kIsWeb) {
+        _controller = YoutubePlayerController(
+          initialVideoId: videoId,
+          flags: YoutubePlayerFlags(
+            autoPlay: false,
+            mute: false,
+            enableCaption: true,
+            isLive: isLive,
+          ),
+        )..addListener(_listener);
+      }
     }
   }
 
@@ -120,8 +124,9 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
     final content = item.videoContent;
     final videoId = YoutubePlayer.convertUrlToId(content?.videoUrl ?? '');
 
-    // If no valid video controller, show placeholder without player
-    if (_controller == null) {
+    // If no valid video controller and not on web, show placeholder without player
+    // (On web, _controller is null by design; the kIsWeb path below uses CrossPlatformYoutubePlayer)
+    if (_controller == null && !kIsWeb) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Video'),

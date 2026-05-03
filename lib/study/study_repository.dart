@@ -382,6 +382,7 @@ class StudyRepository implements IStudyRepository {
           description: data['description'] ?? '',
           questionCount: questions.length,
           durationMinutes: data['durationMinutes'] ?? 30,
+          scheduledAt: (data['scheduledAt'] as Timestamp?)?.toDate(),
         );
       }).toList();
     } catch (e) {
