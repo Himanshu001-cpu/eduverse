@@ -71,7 +71,8 @@ class _DeepLinkCourseScreenState extends State<DeepLinkCourseScreen> {
           startDate: batchData['startDate'] != null 
               ? (batchData['startDate'] as dynamic).toDate() 
               : DateTime.now(),
-          price: (batchData['price'] as num?)?.toDouble() ?? 0.0,
+          realPrice: (batchData['realPrice'] as num?)?.toDouble() ?? (batchData['price'] as num?)?.toDouble() ?? 0.0,
+          finalPrice: (batchData['finalPrice'] as num?)?.toDouble() ?? (batchData['price'] as num?)?.toDouble() ?? 0.0,
           seatsLeft: batchData['seatsLeft'] ?? 0,
           duration: batchData['duration'] ?? '',
           thumbnailUrl: batchData['thumbnailUrl'] ?? '',

@@ -17,7 +17,8 @@ class BatchDetailScreen extends StatefulWidget {
 
 class _BatchDetailScreenState extends State<BatchDetailScreen> {
   late TextEditingController _nameController;
-  late TextEditingController _priceController;
+  late TextEditingController _realPriceController;
+  late TextEditingController _finalPriceController;
   late TextEditingController _seatsController;
   late DateTime _startDate;
   late DateTime _endDate;
@@ -34,7 +35,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.batch.name);
-    _priceController = TextEditingController(text: widget.batch.price.toString());
+    _realPriceController = TextEditingController(text: widget.batch.realPrice.toString());
+    _finalPriceController = TextEditingController(text: widget.batch.finalPrice.toString());
     _seatsController = TextEditingController(text: widget.batch.seatsTotal.toString());
     _startDate = widget.batch.startDate;
     _endDate = widget.batch.endDate;
@@ -45,7 +47,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _priceController.dispose();
+    _realPriceController.dispose();
+    _finalPriceController.dispose();
     _seatsController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -94,11 +97,22 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
   Future<void> _saveBatch() async {
     final service = context.read<FirebaseAdminService>();
     final name = _nameController.text.trim();
-    final price = double.tryParse(_priceController.text) ?? 0;
+    final realPrice = double.tryParse(_realPriceController.text) ?? 0;
+    final finalPrice = double.tryParse(_finalPriceController.text) ?? 0;
     final seats = int.tryParse(_seatsController.text) ?? 0;
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name required')));
+      return;
+    }
+
+    if (realPrice <= 0 || finalPrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Prices must be positive numbers')));
+      return;
+    }
+
+    if (finalPrice > realPrice) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Final price must be less than or equal to real price')));
       return;
     }
 
@@ -108,7 +122,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
       name: name,
       startDate: _startDate,
       endDate: _endDate,
-      price: price,
+      realPrice: realPrice,
+      finalPrice: finalPrice,
       seatsTotal: seats,
       seatsLeft: widget.batch.seatsLeft,
       isActive: _isActive,
@@ -233,9 +248,17 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _priceController,
+                    controller: _realPriceController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Price', prefixText: '₹ ', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Real Price', prefixText: '₹ ', border: OutlineInputBorder()),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    controller: _finalPriceController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Final Price', prefixText: '₹ ', border: OutlineInputBorder()),
                   ),
                 ),
                 const SizedBox(width: 16),

@@ -90,7 +90,7 @@ class BatchEditorScreen extends StatelessWidget {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('₹${batch.price.toStringAsFixed(0)} • Seats: ${batch.seatsLeft}/${batch.seatsTotal}'),
+                            Text('₹${batch.finalPrice.toStringAsFixed(0)} (Real: ₹${batch.realPrice.toStringAsFixed(0)}) • Seats: ${batch.seatsLeft}/${batch.seatsTotal}'),
                             Text(
                               'Starts: ${batch.startDate.day}/${batch.startDate.month}/${batch.startDate.year}',
                               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
@@ -131,7 +131,8 @@ class BatchEditorScreen extends StatelessWidget {
   void _showBatchDialog(BuildContext context, FirebaseAdminService service, AdminBatch? batch) {
     final isNew = batch == null;
     final nameController = TextEditingController(text: batch?.name ?? '');
-    final priceController = TextEditingController(text: batch?.price.toString() ?? '0');
+    final realPriceController = TextEditingController(text: batch?.realPrice.toString() ?? '0');
+    final finalPriceController = TextEditingController(text: batch?.finalPrice.toString() ?? '0');
     final seatsController = TextEditingController(text: batch?.seatsTotal.toString() ?? '50');
     DateTime startDate = batch?.startDate ?? DateTime.now().add(const Duration(days: 7));
     DateTime endDate = batch?.endDate ?? DateTime.now().add(const Duration(days: 90));
@@ -168,10 +169,20 @@ class BatchEditorScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: priceController,
+                  controller: realPriceController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Price (₹) *',
+                    labelText: 'Real Price (₹) *',
+                    prefixText: '₹ ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: finalPriceController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Final Price (₹) *',
                     prefixText: '₹ ',
                     border: OutlineInputBorder(),
                   ),
@@ -235,12 +246,27 @@ class BatchEditorScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () async {
                 final name = nameController.text.trim();
-                final price = double.tryParse(priceController.text) ?? 0;
+                final realPrice = double.tryParse(realPriceController.text) ?? 0;
+                final finalPrice = double.tryParse(finalPriceController.text) ?? 0;
                 final seats = int.tryParse(seatsController.text) ?? 0;
 
                 if (name.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Batch name is required')),
+                  );
+                  return;
+                }
+
+                if (realPrice <= 0 || finalPrice <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Prices must be positive numbers')),
+                  );
+                  return;
+                }
+
+                if (finalPrice > realPrice) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Final price must be less than or equal to real price')),
                   );
                   return;
                 }
@@ -252,7 +278,8 @@ class BatchEditorScreen extends StatelessWidget {
                   name: name,
                   startDate: startDate,
                   endDate: endDate,
-                  price: price,
+                  realPrice: realPrice,
+                  finalPrice: finalPrice,
                   seatsTotal: seats,
                   seatsLeft: seatsLeft,
                   isActive: isActive,

@@ -98,7 +98,8 @@ class AdminBatch {
   final String name;
   final DateTime startDate;
   final DateTime endDate;
-  final double price;
+  final double realPrice;
+  final double finalPrice;
   final int seatsTotal;
   final int seatsLeft;
   final bool isActive;
@@ -110,7 +111,8 @@ class AdminBatch {
     required this.name,
     required this.startDate,
     required this.endDate,
-    required this.price,
+    required this.realPrice,
+    required this.finalPrice,
     required this.seatsTotal,
     required this.seatsLeft,
     required this.isActive,
@@ -124,7 +126,8 @@ class AdminBatch {
       name: data['name'] ?? '',
       startDate: (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       endDate: (data['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      price: (data['price'] as num?)?.toDouble() ?? 0.0,
+      realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
+      finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? (data['price'] as num?)?.toDouble() ?? 0.0,
       seatsTotal: data['seatsTotal'] ?? 0,
       seatsLeft: data['seatsLeft'] ?? 0,
       isActive: data['isActive'] ?? true,
@@ -138,7 +141,8 @@ class AdminBatch {
       'name': name,
       'startDate': Timestamp.fromDate(startDate),
       'endDate': Timestamp.fromDate(endDate),
-      'price': price,
+      'realPrice': realPrice,
+      'finalPrice': finalPrice,
       'seatsTotal': seatsTotal,
       'seatsLeft': seatsLeft,
       'isActive': isActive,

@@ -29,7 +29,8 @@ class Batch {
   final String id;
   final String name;
   final DateTime startDate;
-  final double price;
+  final double realPrice;
+  final double finalPrice;
   int seatsLeft;
   final String duration;
   final String thumbnailUrl;
@@ -39,7 +40,8 @@ class Batch {
     required this.id,
     required this.name,
     required this.startDate,
-    required this.price,
+    required this.realPrice,
+    required this.finalPrice,
     required this.seatsLeft,
     required this.duration,
     this.thumbnailUrl = '',

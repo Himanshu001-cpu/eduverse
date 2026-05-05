@@ -24,18 +24,19 @@ class CsvImporter {
       final line = lines[i].trim();
       if (line.isEmpty) continue;
       final parts = line.split(',');
-      if (parts.length < 5) continue;
+      if (parts.length < 6) continue;
 
-      // Simple CSV parsing (name, price, seats, startDate, endDate)
+      // Simple CSV parsing (name, realPrice, finalPrice, seats, startDate, endDate)
       batches.add(AdminBatch(
         id: '', // New batch
         courseId: courseId,
         name: parts[0].trim(),
-        price: double.tryParse(parts[1]) ?? 0.0,
-        seatsTotal: int.tryParse(parts[2]) ?? 0,
-        seatsLeft: int.tryParse(parts[2]) ?? 0,
-        startDate: DateTime.tryParse(parts[3]) ?? DateTime.now(),
-        endDate: DateTime.tryParse(parts[4]) ?? DateTime.now(),
+        realPrice: double.tryParse(parts[1]) ?? 0.0,
+        finalPrice: double.tryParse(parts[2]) ?? 0.0,
+        seatsTotal: int.tryParse(parts[3]) ?? 0,
+        seatsLeft: int.tryParse(parts[3]) ?? 0,
+        startDate: DateTime.tryParse(parts[4]) ?? DateTime.now(),
+        endDate: DateTime.tryParse(parts[5]) ?? DateTime.now(),
         isActive: true,
       ));
     }

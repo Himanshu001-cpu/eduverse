@@ -260,7 +260,8 @@ class BannerSlider extends StatelessWidget {
               id: batchDoc.id,
               name: b['name'] ?? 'Batch',
               startDate: startDate,
-              price: (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
+              realPrice: (b['realPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
+              finalPrice: (b['finalPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
               seatsLeft: b['seatsLeft'] ?? 0,
               duration: _calculateDuration(
                 startDate,
@@ -294,7 +295,8 @@ class BannerSlider extends StatelessWidget {
                 id: batchId,
                 name: b['name'] ?? 'Batch',
                 startDate: startDate,
-                price: (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
+                realPrice: (b['realPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
+                finalPrice: (b['finalPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
                 seatsLeft: b['seatsLeft'] ?? 0,
                 duration: b['duration'] ?? '3 months',
                 isEnrolled: b['isEnrolled'] ?? false,
@@ -313,7 +315,7 @@ class BannerSlider extends StatelessWidget {
         if (batches.isEmpty) continue;
 
         // Find lowest price among all batches
-        final lowestPrice = batches.map((b) => b.price).reduce((a, b) => a < b ? a : b);
+        final lowestPrice = batches.map((b) => b.finalPrice).reduce((a, b) => a < b ? a : b);
 
         final course = Course(
           id: courseDoc.id,

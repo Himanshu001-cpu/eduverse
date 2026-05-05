@@ -391,7 +391,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           name: batchId, // Fallback to ID if not found
           startDate: DateTime.now(),
           endDate: DateTime.now(),
-          price: 0,
+          realPrice: 0,
+          finalPrice: 0,
           seatsTotal: 0,
           seatsLeft: 0,
           isActive: true,

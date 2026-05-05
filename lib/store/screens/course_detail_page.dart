@@ -49,7 +49,12 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
               name: b['name'] ?? 'Default Batch',
               startDate:
                   (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              price:
+              realPrice:
+                  (b['realPrice'] as num?)?.toDouble() ??
+                  (b['price'] as num?)?.toDouble() ??
+                  widget.course.priceDefault,
+              finalPrice:
+                  (b['finalPrice'] as num?)?.toDouble() ??
                   (b['price'] as num?)?.toDouble() ??
                   widget.course.priceDefault,
               seatsLeft: b['seatsLeft'] ?? 0,
@@ -235,13 +240,49 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(
-                  '₹${batch.price.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '₹${batch.finalPrice.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                        if (batch.realPrice > batch.finalPrice) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '₹${batch.realPrice.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              decoration: TextDecoration.lineThrough,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '${((batch.realPrice - batch.finalPrice) / batch.realPrice * 100).toStringAsFixed(0)}% OFF',
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
                 const Spacer(),
                 if (isEnrolled)
@@ -302,7 +343,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       courseId: widget.course.id,
       batchId: batch.id,
       title: '${widget.course.title} - ${batch.name}',
-      price: batch.price,
+      price: batch.finalPrice,
     );
 
     Navigator.push(

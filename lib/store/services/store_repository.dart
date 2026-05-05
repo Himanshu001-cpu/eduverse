@@ -44,7 +44,8 @@ class StoreRepository {
                 startDate: b['startDate'] != null
                     ? DateTime.parse(b['startDate'])
                     : DateTime.now(),
-                price: (b['price'] as num?)?.toDouble() ?? 0.0,
+                realPrice: (b['realPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? 0.0,
+                finalPrice: (b['finalPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? 0.0,
                 seatsLeft: b['seatsLeft'] ?? 0,
                 duration: b['duration'] ?? '',
                 thumbnailUrl: b['thumbnailUrl'] ?? '',
@@ -81,7 +82,13 @@ class StoreRepository {
               name: b['name'] ?? 'Default Batch',
               startDate:
                   (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              price:
+              realPrice:
+                  (b['realPrice'] as num?)?.toDouble() ??
+                  (b['price'] as num?)?.toDouble() ??
+                  (data['priceDefault'] as num?)?.toDouble() ??
+                  0.0,
+              finalPrice:
+                  (b['finalPrice'] as num?)?.toDouble() ??
                   (b['price'] as num?)?.toDouble() ??
                   (data['priceDefault'] as num?)?.toDouble() ??
                   0.0,
