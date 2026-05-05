@@ -30,9 +30,12 @@ class LiveClassesScreen extends StatelessWidget {
                   onPressed: () {
                     showDialog(
                       context: context,
-                      builder: (_) => LinkLiveClassDialog(
-                        targetCourseId: courseId!,
-                        targetBatchId: batchId!,
+                      builder: (_) => Provider<FirebaseAdminService>.value(
+                        value: adminService,
+                        child: LinkLiveClassDialog(
+                          targetCourseId: courseId!,
+                          targetBatchId: batchId!,
+                        ),
                       ),
                     );
                   },
@@ -96,9 +99,12 @@ class LiveClassesScreen extends StatelessWidget {
                       onPressed: () {
                         showDialog(
                           context: context,
-                          builder: (_) => LinkLiveClassDialog(
-                            targetCourseId: courseId!,
-                            targetBatchId: batchId!,
+                          builder: (_) => Provider<FirebaseAdminService>.value(
+                            value: adminService,
+                            child: LinkLiveClassDialog(
+                              targetCourseId: courseId!,
+                              targetBatchId: batchId!,
+                            ),
                           ),
                         );
                       },

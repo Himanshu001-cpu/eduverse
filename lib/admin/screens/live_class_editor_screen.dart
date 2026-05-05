@@ -201,12 +201,16 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
               icon: const Icon(Icons.share),
               tooltip: 'Link to Batches',
               onPressed: () {
+                final adminService = context.read<FirebaseAdminService>();
                 showDialog(
                   context: context,
-                  builder: (_) => LinkClassToBatchDialog(
-                    liveClass: widget.liveClass!,
-                    sourceCourseId: widget.courseId,
-                    sourceBatchId: widget.batchId,
+                  builder: (_) => Provider<FirebaseAdminService>.value(
+                    value: adminService,
+                    child: LinkClassToBatchDialog(
+                      liveClass: widget.liveClass!,
+                      sourceCourseId: widget.courseId,
+                      sourceBatchId: widget.batchId,
+                    ),
                   ),
                 );
               },
