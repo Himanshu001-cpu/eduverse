@@ -446,7 +446,7 @@ class _TestCard extends StatelessWidget {
                         onPressed: null,
                         icon: const Icon(Icons.lock_clock, size: 16),
                         label: Text(
-                          '${scheduledAt!.day}/${scheduledAt.month} at ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
+                          '${scheduledAt.day}/${scheduledAt.month} at ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
                           style: const TextStyle(fontSize: 12),
                         ),
                       )

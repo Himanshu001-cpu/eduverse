@@ -113,14 +113,17 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
   @override
   void initState() {
     super.initState();
-    _notifyOnSave = widget.feedItem == null;
+    _notifyOnSave = true;
     _currentFeedItemId = widget.feedItem?.id;
     _initControllers();
     if (widget.feedItem != null) {
       _loadExistingItem();
     }
     _loadSubjects();
-    _autoSaveTimer = Timer.periodic(const Duration(seconds: 15), (_) => _autoSave());
+    _autoSaveTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _autoSave(),
+    );
   }
 
   Future<void> _loadSubjects() async {
@@ -490,7 +493,6 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
     }
   }
 
-
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -645,7 +647,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         updatedAt: DateTime.now(), // Always update to current time on save
       );
 
-      await FeedRepository().addFeedItem(newItem, sendNotification: _notifyOnSave);
+      await FeedRepository().addFeedItem(
+        newItem,
+        sendNotification: _notifyOnSave,
+      );
       _currentFeedItemId = id;
 
       if (mounted) {
@@ -710,8 +715,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         if (_isAutoSaving)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            child: Text('Saving...',
-                style: TextStyle(fontSize: 12, color: Colors.white70)),
+            child: Text(
+              'Saving...',
+              style: TextStyle(fontSize: 12, color: Colors.white70),
+            ),
           ),
       ],
       body: _isLoading
@@ -739,7 +746,9 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
                     // Notification Toggle
                     SwitchListTile(
                       title: const Text('Send Push Notification on Save'),
-                      subtitle: const Text('Notify all users about this content update'),
+                      subtitle: const Text(
+                        'Notify all users about this content update',
+                      ),
                       value: _notifyOnSave,
                       onChanged: (val) => setState(() => _notifyOnSave = val),
                       contentPadding: EdgeInsets.zero,
@@ -775,7 +784,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         SwitchListTile(
           title: const Text('Publicly Visible'),
           value: _isPublic,
-          onChanged: (val) => setState(() { _isPublic = val; _hasUnsavedChanges = true; }),
+          onChanged: (val) => setState(() {
+            _isPublic = val;
+            _hasUnsavedChanges = true;
+          }),
         ),
         DropdownButtonFormField<ContentType>(
           initialValue: _selectedType,
@@ -787,7 +799,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
             );
           }).toList(),
           onChanged: widget.feedItem == null
-              ? (val) => setState(() { _selectedType = val!; _hasUnsavedChanges = true; })
+              ? (val) => setState(() {
+                  _selectedType = val!;
+                  _hasUnsavedChanges = true;
+                })
               : null, // Lock type for editing to prevent schema mismatch
         ),
         const SizedBox(height: 16),
@@ -801,7 +816,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         ThumbnailUploadWidget(
           currentUrl: _thumbnailUrl,
           storagePath: 'feed/thumbnails',
-          onUploaded: (url) => setState(() { _thumbnailUrl = url; _hasUnsavedChanges = true; }),
+          onUploaded: (url) => setState(() {
+            _thumbnailUrl = url;
+            _hasUnsavedChanges = true;
+          }),
           height: 150,
         ),
         const SizedBox(height: 16),
@@ -877,7 +895,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
               ),
             );
           }).toList(),
-          onChanged: (val) => setState(() { _selectedColor = val!; _hasUnsavedChanges = true; }),
+          onChanged: (val) => setState(() {
+            _selectedColor = val!;
+            _hasUnsavedChanges = true;
+          }),
         ),
       ],
     );
@@ -902,7 +923,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
               title: const Text('Live Video'),
               subtitle: const Text('Enable for YouTube live streams'),
               value: _isLive,
-              onChanged: (val) => setState(() { _isLive = val; _hasUnsavedChanges = true; }),
+              onChanged: (val) => setState(() {
+                _isLive = val;
+                _hasUnsavedChanges = true;
+              }),
               secondary: Icon(
                 Icons.live_tv,
                 color: _isLive ? Colors.red : null,

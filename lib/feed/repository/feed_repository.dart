@@ -63,15 +63,16 @@ class FeedRepository {
   /// Add a new feed item and create a notification for all users
   Future<void> addFeedItem(
     FeedItem item, {
-    bool sendNotification = true,
+    bool sendNotification = false,
   }) async {
-    await _firestore
-        .collection(FirestorePaths.feed)
-        .doc(item.id)
-        .set(item.toJson());
+    final docRef = _firestore.collection(FirestorePaths.feed).doc(item.id);
+    final shouldNotify = sendNotification && item.isPublic;
 
-    // Create a global notification for all users
-    if (sendNotification && item.isPublic) {
+    await docRef.set(item.toJson());
+
+    // Pushes are sent only when the caller explicitly requests it.
+    // Autosaves and silent creates call this with sendNotification: false.
+    if (shouldNotify) {
       await _notificationRepo.createGlobalNotification(
         title: _getNotificationTitle(item.type),
         body: item.title,
