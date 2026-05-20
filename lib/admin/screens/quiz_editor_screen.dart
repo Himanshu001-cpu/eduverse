@@ -295,7 +295,10 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
         quizNegativeMarking: negativeMarking,
       );
 
-      await FeedRepository().addFeedItem(newItem);
+      await FeedRepository().addFeedItem(
+        newItem,
+        notificationPolicy: FeedNotificationPolicy.silent,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

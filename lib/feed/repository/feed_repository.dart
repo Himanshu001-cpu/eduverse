@@ -6,6 +6,8 @@ import 'package:eduverse/core/notifications/notification_repository.dart';
 import 'package:eduverse/core/notifications/notification_model.dart';
 import 'package:eduverse/feed/models/comment_model.dart';
 
+enum FeedNotificationPolicy { silent, notifyUsers }
+
 class FeedRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final NotificationRepository _notificationRepo = NotificationRepository();
@@ -60,18 +62,21 @@ class FeedRepository {
     }
   }
 
-  /// Add a new feed item and create a notification for all users
+  /// Add or replace a feed item.
+  ///
+  /// Notifications are opt-in per save call so autosave, drafts, and silent
+  /// edits cannot accidentally notify users.
   Future<void> addFeedItem(
     FeedItem item, {
-    bool sendNotification = false,
+    required FeedNotificationPolicy notificationPolicy,
   }) async {
     final docRef = _firestore.collection(FirestorePaths.feed).doc(item.id);
-    final shouldNotify = sendNotification && item.isPublic;
+    final shouldNotify =
+        notificationPolicy == FeedNotificationPolicy.notifyUsers &&
+        item.isPublic;
 
     await docRef.set(item.toJson());
 
-    // Pushes are sent only when the caller explicitly requests it.
-    // Autosaves and silent creates call this with sendNotification: false.
     if (shouldNotify) {
       await _notificationRepo.createGlobalNotification(
         title: _getNotificationTitle(item.type),

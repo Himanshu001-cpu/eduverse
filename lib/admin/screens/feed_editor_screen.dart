@@ -108,12 +108,12 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
   bool _isPublic = true;
   bool _isLive = false;
   bool _isLoading = false;
-  bool _notifyOnSave = true;
+  bool _notifyOnSave = false;
 
   @override
   void initState() {
     super.initState();
-    _notifyOnSave = true;
+    _notifyOnSave = false;
     _currentFeedItemId = widget.feedItem?.id;
     _initControllers();
     if (widget.feedItem != null) {
@@ -478,7 +478,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
         updatedAt: DateTime.now(), // Always update to current time on save
       );
 
-      await FeedRepository().addFeedItem(newItem, sendNotification: false);
+      await FeedRepository().addFeedItem(
+        newItem,
+        notificationPolicy: FeedNotificationPolicy.silent,
+      );
       _currentFeedItemId = id;
 
       if (mounted) {
@@ -649,7 +652,9 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
 
       await FeedRepository().addFeedItem(
         newItem,
-        sendNotification: _notifyOnSave,
+        notificationPolicy: _notifyOnSave
+            ? FeedNotificationPolicy.notifyUsers
+            : FeedNotificationPolicy.silent,
       );
       _currentFeedItemId = id;
 
@@ -745,9 +750,11 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
 
                     // Notification Toggle
                     SwitchListTile(
-                      title: const Text('Send Push Notification on Save'),
+                      title: const Text(
+                        'Send Push Notification with this Save',
+                      ),
                       subtitle: const Text(
-                        'Notify all users about this content update',
+                        'Off by default to avoid duplicate notifications',
                       ),
                       value: _notifyOnSave,
                       onChanged: (val) => setState(() => _notifyOnSave = val),
