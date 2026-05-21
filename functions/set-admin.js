@@ -1,8 +1,6 @@
 /**
- * Admin Setup Script
- * 
- * This script sets custom claims on a Firebase user to make them an admin.
- * Run this ONCE to bootstrap your first superadmin user.
+ * Bootstraps user permissions and roles.
+ * Run this ONCE to bootstrap your first admin user.
  * 
  * Prerequisites:
  * 1. Download your Firebase service account key from:
@@ -13,9 +11,9 @@
  *   node set-admin.js <USER_UID> <ROLE>
  * 
  * Example:
- *   node set-admin.js abc123xyz superadmin
+ *   node set-admin.js abc123xyz admin
  * 
- * Valid roles: superadmin, admin, content_manager, support, user
+ * Valid roles: admin, content_manager, support, user
  */
 
 const admin = require('firebase-admin');

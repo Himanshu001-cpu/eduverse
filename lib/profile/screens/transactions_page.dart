@@ -198,7 +198,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: ['All', 'Success', 'Failed', 'Pending'].map((
+                        children: ['All', 'Success', 'Refunded', 'Failed', 'Pending'].map((
                           filter,
                         ) {
                           final isSelected = _filter == filter;
@@ -272,6 +272,10 @@ class _TransactionCard extends StatelessWidget {
       case 'failed':
         statusColor = Colors.red;
         statusIcon = Icons.error;
+        break;
+      case 'refunded':
+        statusColor = Colors.blue;
+        statusIcon = Icons.replay_circle_filled;
         break;
       default:
         statusColor = Colors.orange;

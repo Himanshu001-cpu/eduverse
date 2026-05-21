@@ -24,8 +24,9 @@ class AuthService {
 
     try {
       final userData = await _userService.getCurrentUserData(user.uid);
-      debugPrint('Checking admin status for ${user.email}: role=${userData?['role']}');
-      return userData?['role'] == 'admin';
+      final role = userData?['role'];
+      debugPrint('Checking admin status for ${user.email}: role=$role');
+      return role == 'admin' || role == 'superadmin';
     } catch (e) {
       debugPrint('Error checking admin status: $e');
       return false;

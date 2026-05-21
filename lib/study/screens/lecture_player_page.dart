@@ -188,6 +188,63 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
     );
   }
 
+  void _onQualityChanged(String quality) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Switching to $quality...')));
+  }
+
+  void _showQualitySheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    'Quality for current video',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Divider(color: Colors.grey),
+                ...['Auto', '1080p', '720p', '480p', '360p', '240p', '144p'].map(
+                  (q) => ListTile(
+                    leading: Icon(Icons.hd, color: Colors.blue[300]),
+                    title: Text(q, style: const TextStyle(color: Colors.white)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _onQualityChanged(q);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Determine the player widget
@@ -230,6 +287,7 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
             onPlay: () => _youtubeController!.play(),
             onPause: () => _youtubeController!.pause(),
             onToggleFullScreen: () => _youtubeController!.toggleFullScreenMode(),
+            onShowQuality: _showQualitySheet,
             currentPlaybackSpeed: _playbackSpeed,
             onPlaybackSpeedChanged: (speed) {
               setState(() => _playbackSpeed = speed);
@@ -254,21 +312,33 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text(widget.title),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
       body: SafeArea(
+        top: true,
         child: Column(
           children: [
-            Expanded(
-              flex: 2,
-              child: Center(child: playerWidget),
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Container(
+                    color: Colors.black,
+                    child: Center(child: playerWidget),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.black.withValues(alpha: 0.5),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ),
+              ],
             ),
             Expanded(
-              flex: 3,
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(

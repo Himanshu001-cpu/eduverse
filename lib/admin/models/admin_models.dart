@@ -294,12 +294,52 @@ class AdminUser {
   }
 }
 
+class AdminPurchaseItem {
+  final String courseId;
+  final String batchId;
+  final String? testSeriesId;
+  final String title;
+  final double price;
+  final int quantity;
+
+  AdminPurchaseItem({
+    required this.courseId,
+    required this.batchId,
+    this.testSeriesId,
+    required this.title,
+    required this.price,
+    this.quantity = 1,
+  });
+
+  factory AdminPurchaseItem.fromMap(Map<String, dynamic> map) {
+    return AdminPurchaseItem(
+      courseId: map['courseId'] ?? '',
+      batchId: map['batchId'] ?? '',
+      testSeriesId: map['testSeriesId'] as String?,
+      title: map['title'] ?? '',
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      quantity: map['quantity'] as int? ?? 1,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'courseId': courseId,
+        'batchId': batchId,
+        if (testSeriesId != null) 'testSeriesId': testSeriesId,
+        'title': title,
+        'price': price,
+        'quantity': quantity,
+      };
+}
+
 class AdminPurchase {
   final String id;
   final String userId;
   final double amount;
   final String status; // success, failed, refunded
   final DateTime createdAt;
+  final String paymentMethod;
+  final List<AdminPurchaseItem> items;
 
   AdminPurchase({
     required this.id,
@@ -307,15 +347,61 @@ class AdminPurchase {
     required this.amount,
     required this.status,
     required this.createdAt,
+    required this.paymentMethod,
+    required this.items,
   });
 
   factory AdminPurchase.fromMap(Map<String, dynamic> data, String id) {
+    // 1. Resilient Date parsing
+    DateTime? parsedDate;
+    if (data['createdAt'] != null) {
+      if (data['createdAt'] is Timestamp) {
+        parsedDate = (data['createdAt'] as Timestamp).toDate();
+      } else if (data['createdAt'] is String) {
+        parsedDate = DateTime.tryParse(data['createdAt'] as String);
+      }
+    }
+    if (parsedDate == null && data['timestamp'] != null) {
+      if (data['timestamp'] is Timestamp) {
+        parsedDate = (data['timestamp'] as Timestamp).toDate();
+      } else if (data['timestamp'] is String) {
+        parsedDate = DateTime.tryParse(data['timestamp'] as String);
+      }
+    }
+
+    // 2. Resilient Item parsing
+    List<AdminPurchaseItem> parsedItems = [];
+    if (data['items'] != null) {
+      parsedItems = (data['items'] as List<dynamic>)
+          .map((item) => AdminPurchaseItem.fromMap(Map<String, dynamic>.from(item)))
+          .toList();
+    } else {
+      // Backwards compatibility/legacy fields support
+      final String? courseId = data['courseId'] as String?;
+      final String? batchId = data['batchId'] as String?;
+      final String? testSeriesId = data['testSeriesId'] as String?;
+      if (courseId != null || batchId != null || testSeriesId != null) {
+        parsedItems = [
+          AdminPurchaseItem(
+            courseId: courseId ?? '',
+            batchId: batchId ?? '',
+            testSeriesId: testSeriesId,
+            title: data['courseTitle'] ?? data['title'] ?? 'Course Enrollment',
+            price: (data['amount'] as num?)?.toDouble() ?? 0.0,
+            quantity: 1,
+          )
+        ];
+      }
+    }
+
     return AdminPurchase(
       id: id,
       userId: data['userId'] ?? '',
       amount: (data['amount'] as num?)?.toDouble() ?? 0.0,
       status: data['status'] ?? 'pending',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: parsedDate ?? DateTime.now(),
+      paymentMethod: data['paymentMethod'] ?? 'unknown',
+      items: parsedItems,
     );
   }
 }
@@ -561,6 +647,9 @@ class AdminLiveClass {
   /// Tracks which batches this class is linked to.
   /// Each entry: { 'courseId': '...', 'batchId': '...' }
   final List<Map<String, String>> linkedBatches;
+  /// If this class is a linked copy, tracks where it is linked from.
+  /// Format: { 'courseId': '...', 'batchId': '...', 'originalId': '...', 'source': '...' }
+  final Map<String, String>? linkedFrom;
 
   AdminLiveClass({
     required this.id,
@@ -577,6 +666,7 @@ class AdminLiveClass {
     this.chapter = '',
     this.lectureNo,
     this.linkedBatches = const [],
+    this.linkedFrom,
   });
 
   factory AdminLiveClass.fromMap(Map<String, dynamic> data, String id) {
@@ -599,6 +689,9 @@ class AdminLiveClass {
               ?.map((e) => Map<String, String>.from(e as Map))
               .toList() ??
           [],
+      linkedFrom: data['linkedFrom'] != null
+          ? Map<String, String>.from(data['linkedFrom'] as Map)
+          : null,
     );
   }
 
@@ -618,6 +711,7 @@ class AdminLiveClass {
       'chapter': chapter,
       'lectureNo': lectureNo,
       'linkedBatches': linkedBatches,
+      'linkedFrom': linkedFrom,
     };
   }
 }

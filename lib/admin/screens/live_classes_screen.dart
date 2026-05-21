@@ -176,9 +176,12 @@ class LiveClassesScreen extends StatelessWidget {
                                 children: [
                                   Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    DateFormat('MMM dd, yyyy HH:mm').format(item.startTime),
-                                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                                  Expanded(
+                                    child: Text(
+                                      DateFormat('MMM dd, yyyy HH:mm').format(item.startTime),
+                                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -189,9 +192,12 @@ class LiveClassesScreen extends StatelessWidget {
                                   children: [
                                     Icon(Icons.link, size: 14, color: Colors.blue[400]),
                                     const SizedBox(width: 4),
-                                    Text(
-                                      'Linked to ${item.linkedBatches.length} batch${item.linkedBatches.length > 1 ? "es" : ""}',
-                                      style: TextStyle(color: Colors.blue[400], fontSize: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'Linked to ${item.linkedBatches.length} batch${item.linkedBatches.length > 1 ? "es" : ""}',
+                                        style: TextStyle(color: Colors.blue[400], fontSize: 12),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -261,39 +267,125 @@ class LiveClassesScreen extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context, FirebaseAdminService adminService, AdminLiveClass item) {
+    final isLinked = item.linkedFrom != null || item.linkedBatches.isNotEmpty;
+
+    if (!isLinked) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Delete Class?'),
+          content: Text('Are you sure you want to delete "${item.title}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  if (batchId != null && courseId != null) {
+                    await adminService.deleteBatchLiveClass(courseId!, batchId!, item.id);
+                  } else {
+                    await adminService.deleteLiveClass(item.id);
+                  }
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Class deleted successfully')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error deleting: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Class is linked - show choice dialog
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Class?'),
-        content: Text('Are you sure you want to delete "${item.title}"?'),
+        title: const Text('Delete Linked Class?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '"${item.title}" is linked across multiple batches/courses.',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Choose how you want to proceed with the deletion:',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          OutlinedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
               try {
                 if (batchId != null && courseId != null) {
-                  await adminService.deleteBatchLiveClass(courseId!, batchId!, item.id);
+                  await adminService.deleteBatchLiveClass(courseId!, batchId!, item.id, deleteAllLinked: false);
                 } else {
-                  await adminService.deleteLiveClass(item.id);
+                  await adminService.deleteLiveClass(item.id, deleteAllLinked: false);
                 }
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Class deleted successfully')),
+                    const SnackBar(content: Text('Removed from this batch successfully')),
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error deleting: $e')),
+                    SnackBar(content: Text('Error: $e')),
                   );
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text('This Batch Only'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                if (batchId != null && courseId != null) {
+                  await adminService.deleteBatchLiveClass(courseId!, batchId!, item.id, deleteAllLinked: true);
+                } else {
+                  await adminService.deleteLiveClass(item.id, deleteAllLinked: true);
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Deleted from all batches successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('All Linked Batches'),
           ),
         ],
       ),

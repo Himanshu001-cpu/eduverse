@@ -55,7 +55,7 @@ class AdminScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentRoute = ModalRoute.of(context)?.settings.name;
-    final isDashboard = currentRoute == '/dashboard';
+    final isDashboard = currentRoute == '/' || currentRoute == '/dashboard';
 
     return Scaffold(
       appBar: AppBar(
@@ -128,7 +128,8 @@ class AdminScaffold extends StatelessWidget {
     IconData icon,
   ) {
     final currentRoute = ModalRoute.of(context)?.settings.name;
-    final isSelected = currentRoute == route;
+    final isSelected = currentRoute == route ||
+        (route == '/dashboard' && currentRoute == '/');
 
     return ListTile(
       leading: Icon(icon),

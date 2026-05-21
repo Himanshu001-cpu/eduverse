@@ -9,10 +9,6 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin']
       );
     }
-    
-    function isSuperAdmin() {
-      return request.auth != null && request.auth.token.role == 'superadmin';
-    }
 
     // User profiles: Users can read/write their own profile
     match /users/{uid} {

@@ -1,5 +1,6 @@
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
+import Razorpay = require("razorpay");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -64,7 +65,7 @@ export const onPurchaseCreate = functions.firestore
 
 // 2. enrollStudent: Callable for admins
 export const enrollStudent = functions.https.onCall(async (data, context) => {
-    if (!context.auth || !['admin', 'superadmin'].includes(context.auth.token.role as string)) {
+    if (!context.auth || (context.auth.token.role !== 'admin' && context.auth.token.role !== 'superadmin')) {
         throw new functions.https.HttpsError('permission-denied', 'Not an admin');
     }
 
@@ -92,15 +93,15 @@ export const generateInvoice = functions.https.onCall(async (_data, _context) =>
 // 5. setAdminRole: Callable to set admin custom claims
 // Call this from Firebase Console, Admin SDK, or a secure admin interface
 export const setAdminRole = functions.https.onCall(async (data, context) => {
-    // Check if the caller is a superadmin (or first-time bootstrap)
+    // Check if the caller is an admin (or first-time bootstrap)
     const callerRole = context.auth?.token?.role as string | undefined;
 
-    // For first-time setup, allow if no superadmin exists yet
-    // After that, only superadmin can assign roles
-    if (callerRole && callerRole !== 'superadmin') {
+    // For first-time setup, allow if no admin exists yet
+    // After that, only admin can assign roles
+    if (callerRole && callerRole !== 'admin' && callerRole !== 'superadmin') {
         throw new functions.https.HttpsError(
             'permission-denied',
-            'Only superadmin can assign admin roles'
+            'Only admins can assign roles'
         );
     }
 
@@ -154,11 +155,12 @@ export const setAdminRole = functions.https.onCall(async (data, context) => {
 
 // 6. removeAdminRole: Revoke admin privileges
 export const removeAdminRole = functions.https.onCall(async (data, context) => {
-    // Only superadmin can remove roles
-    if ((context.auth?.token?.role as string | undefined) !== 'superadmin') {
+    // Only admin can remove roles
+    const callerRole = context.auth?.token?.role as string | undefined;
+    if (callerRole !== 'admin' && callerRole !== 'superadmin') {
         throw new functions.https.HttpsError(
             'permission-denied',
-            'Only superadmin can remove admin roles'
+            'Only admins can remove roles'
         );
     }
 
@@ -425,6 +427,11 @@ export const sendUpdateReminders = functions.pubsub
 
 // 11. onLiveViewerDisconnect: Decrement viewer count on ungraceful disconnect
 // Triggers when a user's RTDB presence node is removed (by onDisconnect handler)
+// NOTE: This function is commented out because Realtime Database is not enabled on this Firebase project yet.
+// Since the project lacks a default RTDB instance, the Firebase SDK throws an error during CLI analysis.
+// Once you click "Create Database" under the "Realtime Database" tab in the Firebase Console,
+// you can uncomment this block and re-deploy.
+/*
 export const onLiveViewerDisconnect = functions.database
     .ref('live_viewers/{sessionKey}/{userId}')
     .onDelete(async (snapshot, context) => {
@@ -470,3 +477,91 @@ export const onLiveViewerDisconnect = functions.database
             console.error('Error decrementing viewer count on disconnect:', error);
         }
     });
+*/
+
+// 12. refundPurchase: Secure admin gateway refund
+export const refundPurchase = functions.https.onCall(async (data, context) => {
+    // A. Validate role - must be admin
+    if (!context.auth || (context.auth.token.role !== 'admin' && context.auth.token.role !== 'superadmin')) {
+        throw new functions.https.HttpsError(
+            'permission-denied',
+            'Unauthorized: Only admins can trigger payment refunds.'
+        );
+    }
+
+    const { purchaseId } = data;
+    if (!purchaseId || typeof purchaseId !== 'string') {
+        throw new functions.https.HttpsError(
+            'invalid-argument',
+            'Purchase ID is required.'
+        );
+    }
+
+    try {
+        // B. Fetch payment record
+        const purchaseSnap = await db.collection("purchases").doc(purchaseId).get();
+        if (!purchaseSnap.exists) {
+            throw new functions.https.HttpsError('not-found', 'Transaction record not found.');
+        }
+
+        const purchase = purchaseSnap.data()!;
+        const paymentId = purchase.paymentId || purchaseId;
+        const amount = purchase.amount;
+
+        if (purchase.status === 'refunded') {
+            throw new functions.https.HttpsError(
+                'failed-precondition',
+                'This transaction has already been refunded.'
+            );
+        }
+
+        // C. Initialize Razorpay Client dynamically inside call by loading from Firestore config/razorpay
+        const configSnap = await db.collection("config").doc("razorpay").get();
+        if (!configSnap.exists) {
+            throw new functions.https.HttpsError(
+                'failed-precondition',
+                'Razorpay credentials are not configured in Firestore database (config/razorpay).'
+            );
+        }
+
+        const config = configSnap.data()!;
+        const keyId = config.keyId;
+        const keySecret = config.keySecret;
+
+        if (!keyId || !keySecret) {
+            throw new functions.https.HttpsError(
+                'failed-precondition',
+                'Razorpay keys are missing in Firestore configuration (config/razorpay).'
+            );
+        }
+
+        const razorpay = new Razorpay({
+            key_id: keyId,
+            key_secret: keySecret
+        });
+
+        // D. Request refund from Razorpay API (amount in paise, so multiply by 100)
+        const refundResponse = await razorpay.payments.refund(paymentId, {
+            amount: Math.round(amount * 100),
+            notes: {
+                refundedBy: context.auth.uid,
+                reason: "Refunded via Admin Dashboard"
+            }
+        });
+
+        console.log(`Razorpay refund succeeded for payment ${paymentId}. Refund ID: ${refundResponse.id}`);
+        return { success: true, refundId: refundResponse.id };
+
+    } catch (error) {
+        // Re-throw HttpsErrors directly to preserve specific error codes
+        if (error instanceof functions.https.HttpsError) {
+            throw error;
+        }
+        const err = error as Error;
+        console.error("Razorpay refund gateway error:", err);
+        throw new functions.https.HttpsError(
+            'internal',
+            `Razorpay gateway error: ${err.message}`
+        );
+    }
+});

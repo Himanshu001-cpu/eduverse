@@ -31,6 +31,7 @@ import 'models/test_series_models.dart';
 class AdminRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case '/':
       case '/dashboard':
         return MaterialPageRoute(
           settings: settings,

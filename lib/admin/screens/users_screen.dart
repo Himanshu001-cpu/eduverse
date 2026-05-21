@@ -237,15 +237,15 @@ class _UsersScreenState extends State<UsersScreen> {
                                     onSelected: (action) => _handleAction(action, user),
                                     itemBuilder: (context) => [
                                       PopupMenuItem(
-                                        value: user.role == 'admin' ? 'make_student' : 'make_admin',
+                                        value: (user.role == 'admin' || user.role == 'superadmin') ? 'make_student' : 'make_admin',
                                         child: Row(
                                           children: [
                                             Icon(
-                                              user.role == 'admin' ? Icons.person : Icons.admin_panel_settings,
+                                              (user.role == 'admin' || user.role == 'superadmin') ? Icons.person : Icons.admin_panel_settings,
                                               size: 20,
                                             ),
                                             const SizedBox(width: 8),
-                                            Text(user.role == 'admin' ? 'Make Student' : 'Make Admin'),
+                                            Text((user.role == 'admin' || user.role == 'superadmin') ? 'Make Student' : 'Make Admin'),
                                           ],
                                         ),
                                       ),
@@ -285,6 +285,7 @@ class _UsersScreenState extends State<UsersScreen> {
   Color _getRoleColor(String role) {
     switch (role) {
       case 'admin':
+      case 'superadmin':
         return Colors.purple;
       case 'student':
         return Colors.blue;

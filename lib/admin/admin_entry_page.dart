@@ -211,7 +211,7 @@ class _AdminAppWithBackHandlingState extends State<_AdminAppWithBackHandling> {
           final currentRoute = _routeObserver.currentRoute;
           
           // If on dashboard (only one route in stack), show exit confirmation
-          if (currentRoute == '/dashboard') {
+          if (currentRoute == '/' || currentRoute == '/dashboard') {
             _showExitConfirmation();
           } else {
             // Not on dashboard, navigate back within admin panel
@@ -237,7 +237,7 @@ class _AdminAppWithBackHandlingState extends State<_AdminAppWithBackHandling> {
               foregroundColor: Colors.white,
             ),
           ),
-          initialRoute: '/dashboard',
+          initialRoute: '/',
           onGenerateRoute: AdminRouter.generateRoute,
         ),
       ),
@@ -247,17 +247,17 @@ class _AdminAppWithBackHandlingState extends State<_AdminAppWithBackHandling> {
 
 /// Navigator observer that tracks the current route in the admin panel
 class _AdminRouteObserver extends NavigatorObserver {
-  final List<String> _routeStack = ['/dashboard'];
+  final List<String> _routeStack = ['/'];
   final Function(String) onRouteChanged;
   
   _AdminRouteObserver({required this.onRouteChanged});
   
-  String get currentRoute => _routeStack.isNotEmpty ? _routeStack.last : '/dashboard';
+  String get currentRoute => _routeStack.isNotEmpty ? _routeStack.last : '/';
   
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
-    final routeName = route.settings.name ?? '/dashboard';
+    final routeName = route.settings.name ?? '/';
     _routeStack.add(routeName);
     onRouteChanged(routeName);
   }
@@ -268,9 +268,9 @@ class _AdminRouteObserver extends NavigatorObserver {
     if (_routeStack.isNotEmpty) {
       _routeStack.removeLast();
     }
-    // Ensure we always have at least dashboard in the stack
+    // Ensure we always have at least root in the stack
     if (_routeStack.isEmpty) {
-      _routeStack.add('/dashboard');
+      _routeStack.add('/');
     }
     onRouteChanged(currentRoute);
   }
@@ -281,7 +281,7 @@ class _AdminRouteObserver extends NavigatorObserver {
     if (_routeStack.isNotEmpty) {
       _routeStack.removeLast();
     }
-    final routeName = newRoute?.settings.name ?? '/dashboard';
+    final routeName = newRoute?.settings.name ?? '/';
     _routeStack.add(routeName);
     onRouteChanged(routeName);
   }
@@ -294,7 +294,7 @@ class _AdminRouteObserver extends NavigatorObserver {
       _routeStack.remove(routeName);
     }
     if (_routeStack.isEmpty) {
-      _routeStack.add('/dashboard');
+      _routeStack.add('/');
     }
     onRouteChanged(currentRoute);
   }
