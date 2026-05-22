@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
-import 'chapter_detail_screen.dart';
+import 'lecture_player_page.dart';
 
 class SubjectDetailScreen extends StatefulWidget {
   final String courseId;
@@ -21,16 +22,21 @@ class SubjectDetailScreen extends StatefulWidget {
 }
 
 class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
-  List<_ChapterInfo> _chapters = [];
+  List<String> _currentPath = [];
   bool _isLoading = true;
+  String _searchQuery = '';
+
+  List<StudyLecture> _allLectures = [];
+  List<StudyNote> _allNotes = [];
+  List<StudyDpp> _allDpps = [];
 
   @override
   void initState() {
     super.initState();
-    _loadChapters();
+    _loadAllResources();
   }
 
-  Future<void> _loadChapters() async {
+  Future<void> _loadAllResources() async {
     final controller = context.read<StudyController>();
     try {
       final results = await Future.wait([
@@ -39,297 +45,526 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
         controller.repository.getBatchDpps(widget.courseId, widget.batchId),
       ]);
 
-      final lectures = (results[0] as List<StudyLecture>)
-          .where((l) => l.subject == widget.subject);
-      final notes = (results[1] as List<StudyNote>)
-          .where((n) => n.subject == widget.subject);
-      final dpps = (results[2] as List<StudyDpp>)
-          .where((d) => d.subject == widget.subject);
-
-      // Aggregate unique chapters
-      final chapterSet = <String>{};
-      for (final l in lectures) {
-        if (l.chapter.isNotEmpty) chapterSet.add(l.chapter);
-      }
-      for (final n in notes) {
-        if (n.chapter.isNotEmpty) chapterSet.add(n.chapter);
-      }
-      for (final d in dpps) {
-        if (d.chapter.isNotEmpty) chapterSet.add(d.chapter);
-      }
-
-      final chapterList = chapterSet.toList()..sort();
-
-      // Build chapter info with counts
-      final chapters = chapterList.map((ch) {
-        final lectureCount = lectures.where((l) => l.chapter == ch).length;
-        final noteCount = notes.where((n) => n.chapter == ch).length;
-        final dppCount = dpps.where((d) => d.chapter == ch).length;
-        return _ChapterInfo(
-          name: ch,
-          lectureCount: lectureCount,
-          noteCount: noteCount,
-          dppCount: dppCount,
-        );
-      }).toList();
-
       if (mounted) {
         setState(() {
-          _chapters = chapters;
+          _allLectures = (results[0] as List<StudyLecture>).where((l) => l.subject == widget.subject).toList();
+          _allNotes = (results[1] as List<StudyNote>).where((n) => n.subject == widget.subject).toList();
+          _allDpps = (results[2] as List<StudyDpp>).where((d) => d.subject == widget.subject).toList();
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primaryColor = theme.colorScheme.primary;
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.subject)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final currentFullPath = _currentPath.join('/');
+
+    // 1. Filter resource items at current directory level
+    final filteredLectures = _allLectures.where((l) => l.chapter == currentFullPath && l.type != 'folder').toList();
+    final filteredNotes = _allNotes.where((n) => n.chapter == currentFullPath).toList();
+    final filteredDpps = _allDpps.where((d) => d.chapter == currentFullPath).toList();
+
+    // 2. Identify unique subfolder segments directly beneath current path
+    final Set<String> directSubfolders = {};
+
+    void checkPath(String ch) {
+      if (ch.isEmpty) return;
+      if (currentFullPath.isEmpty) {
+        final parts = ch.split('/');
+        if (parts.isNotEmpty) directSubfolders.add(parts[0]);
+      } else {
+        final prefix = '$currentFullPath/';
+        if (ch.startsWith(prefix)) {
+          final remainder = ch.substring(prefix.length);
+          final parts = remainder.split('/');
+          if (parts.isNotEmpty) directSubfolders.add(parts[0]);
+        }
+      }
+    }
+
+    // Include explicit folder placeholders
+    for (final l in _allLectures) {
+      if (l.type == 'folder') {
+        checkPath(l.chapter.isEmpty ? l.title : '${l.chapter}/${l.title}');
+      }
+    }
+    for (final l in _allLectures) {
+      if (l.type != 'folder') checkPath(l.chapter);
+    }
+    for (final n in _allNotes) {
+      checkPath(n.chapter);
+    }
+    for (final d in _allDpps) {
+      checkPath(d.chapter);
+    }
+
+    final subfoldersList = directSubfolders.toList()..sort();
+
+    // 3. Filter files/subfolders if search query is active
+    List<dynamic> activeFiles = [];
+    if (_searchQuery.isEmpty) {
+      activeFiles.addAll(filteredLectures);
+      activeFiles.addAll(filteredNotes);
+      activeFiles.addAll(filteredDpps);
+    } else {
+      final q = _searchQuery.toLowerCase();
+      activeFiles.addAll(_allLectures.where((l) => l.type != 'folder' && l.title.toLowerCase().contains(q)));
+      activeFiles.addAll(_allNotes.where((n) => n.title.toLowerCase().contains(q)));
+      activeFiles.addAll(_allDpps.where((d) => d.title.toLowerCase().contains(q)));
+    }
+
+    // Sort files: Lectures sorted by orderIndex/lectureNo, others by date
+    activeFiles.sort((a, b) {
+      int getOrder(dynamic item) {
+        if (item is StudyLecture) return item.orderIndex;
+        return 9999;
+      }
+      return getOrder(a).compareTo(getOrder(b));
+    });
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.subject),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              setState(() => _isLoading = true);
+              _loadAllResources();
+            },
+          )
+        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _chapters.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.folder_open, size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No chapters found for this subject.',
-                        style: TextStyle(color: Colors.grey.shade500),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.grey.shade50, Colors.indigo.shade50.withOpacity(0.2)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Glassmorphic search bar
+            _buildSearchBar(),
+            // Breadcrumbs navigation
+            _buildBreadcrumbs(),
+            // Main list / grids
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadAllResources,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    // Subfolders (only if search is empty)
+                    if (_searchQuery.isEmpty && subfoldersList.isNotEmpty) ...[
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 8),
+                          child: Text(
+                            'FOLDERS',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2),
+                          ),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverGrid(
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 220,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.4,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final folderName = subfoldersList[index];
+                              final targetPath = currentFullPath.isEmpty ? folderName : '$currentFullPath/$folderName';
+
+                              // Recursively count folder items
+                              final rLecCount = _allLectures.where((l) => l.type != 'folder' && (l.chapter == targetPath || l.chapter.startsWith('$targetPath/'))).length;
+                              final rNoteCount = _allNotes.where((n) => n.chapter == targetPath || n.chapter.startsWith('$targetPath/')).length;
+                              final rDppCount = _allDpps.where((d) => d.chapter == targetPath || d.chapter.startsWith('$targetPath/')).length;
+
+                              return _buildFolderCard(folderName, rLecCount, rNoteCount, rDppCount);
+                            },
+                            childCount: subfoldersList.length,
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadChapters,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _chapters.length + 1, // +1 for header
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        // Header
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [primaryColor.withValues(alpha: 0.12), primaryColor.withValues(alpha: 0.04)],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
-                            ),
-                            child: Row(
+
+                    // Files section
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 8),
+                        child: Text(
+                          'RESOURCES',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2),
+                        ),
+                      ),
+                    ),
+
+                    if (activeFiles.isEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.all(48.0),
+                          child: Center(
+                            child: Column(
                               children: [
-                                Icon(Icons.subject, color: primaryColor),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        widget.subject,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 16,
-                                          color: primaryColor,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${_chapters.length} chapter${_chapters.length != 1 ? 's' : ''}',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: primaryColor.withValues(alpha: 0.7),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                Icon(Icons.insert_drive_file_outlined, size: 48, color: Colors.grey.shade400),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _searchQuery.isEmpty ? 'No resources in this folder level.' : 'No resources match your search.',
+                                  style: const TextStyle(color: Colors.grey),
                                 ),
                               ],
                             ),
                           ),
-                        );
-                      }
-
-                      final chapter = _chapters[index - 1];
-                      return _ChapterCard(
-                        chapter: chapter,
-                        index: index,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChangeNotifierProvider.value(
-                                value: context.read<StudyController>(),
-                                child: ChapterDetailScreen(
-                                  courseId: widget.courseId,
-                                  batchId: widget.batchId,
-                                  subject: widget.subject,
-                                  chapter: chapter.name,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-    );
-  }
-}
-
-class _ChapterInfo {
-  final String name;
-  final int lectureCount;
-  final int noteCount;
-  final int dppCount;
-
-  _ChapterInfo({
-    required this.name,
-    required this.lectureCount,
-    required this.noteCount,
-    required this.dppCount,
-  });
-
-  int get totalItems => lectureCount + noteCount + dppCount;
-}
-
-class _ChapterCard extends StatelessWidget {
-  final _ChapterInfo chapter;
-  final int index;
-  final VoidCallback onTap;
-
-  const _ChapterCard({
-    required this.chapter,
-    required this.index,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        elevation: 1.5,
-        shadowColor: Colors.black12,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                // Chapter number
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.indigo.shade300,
-                        Colors.indigo.shade600,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$index',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                // Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        chapter.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                          color: Colors.grey.shade900,
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final item = activeFiles[index];
+                              return _buildFileItemTile(item);
+                            },
+                            childCount: activeFiles.length,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          if (chapter.lectureCount > 0)
-                            _MiniChip(
-                              icon: Icons.play_circle_fill,
-                              label: '${chapter.lectureCount}',
-                              color: Colors.blue,
-                            ),
-                          if (chapter.noteCount > 0)
-                            _MiniChip(
-                              icon: Icons.description,
-                              label: '${chapter.noteCount}',
-                              color: Colors.orange,
-                            ),
-                          if (chapter.dppCount > 0)
-                            _MiniChip(
-                              icon: Icons.assignment,
-                              label: '${chapter.dppCount}',
-                              color: Colors.deepPurple,
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-                Icon(Icons.chevron_right, color: Colors.grey.shade400),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
-}
 
-class _MiniChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _MiniChip({required this.icon, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 13, color: color),
-        const SizedBox(width: 3),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.indigo.shade900.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: TextField(
+        onChanged: (val) => setState(() => _searchQuery = val),
+        decoration: InputDecoration(
+          hintText: 'Search videos, notes, DPPs...',
+          hintStyle: TextStyle(color: Colors.grey.shade400),
+          prefixIcon: const Icon(Icons.search, color: Colors.indigo),
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildBreadcrumbs() {
+    final List<Widget> children = [];
+
+    // Root Icon
+    children.add(
+      IconButton(
+        icon: const Icon(Icons.grid_view_rounded, size: 20, color: Colors.indigo),
+        onPressed: () {
+          setState(() {
+            _currentPath = [];
+          });
+        },
+      ),
+    );
+
+    for (int i = 0; i < _currentPath.length; i++) {
+      final segment = _currentPath[i];
+      children.add(Icon(Icons.chevron_right, size: 14, color: Colors.grey.shade400));
+      children.add(
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () {
+            setState(() {
+              _currentPath = _currentPath.sublist(0, i + 1);
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Text(
+              segment,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Colors.indigo,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      height: 48,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.indigo.shade50.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.indigo.shade100.withOpacity(0.5)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: children,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFolderCard(String name, int lecs, int notes, int dpps) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _currentPath.add(name);
+        });
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [Colors.indigo.shade600, Colors.purple.shade700],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.indigo.shade700.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.white.withOpacity(0.2),
+              radius: 18,
+              child: const Icon(Icons.folder_open_outlined, color: Colors.white, size: 20),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$lecs Lec • $notes Note${notes != 1 ? 's' : ''}',
+                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.w500),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFileItemTile(dynamic item) {
+    IconData iconData = Icons.insert_drive_file;
+    Color iconColor = Colors.grey;
+    String typeLabel = '';
+    String title = '';
+    String subtitle = '';
+    Widget? trailingWidget;
+
+    if (item is StudyLecture) {
+      iconData = Icons.play_circle_fill;
+      iconColor = Colors.red.shade700;
+      typeLabel = 'Video';
+      title = item.title;
+      subtitle = item.lectureNo != null ? 'Lecture #${item.lectureNo}' : 'Video Lesson';
+
+      // Trailing watch indicator
+      trailingWidget = item.isWatched
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, size: 12, color: Colors.green.shade800),
+                  const SizedBox(width: 4),
+                  Text('WATCHED', style: TextStyle(color: Colors.green.shade800, fontSize: 9, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            )
+          : CircleAvatar(
+              backgroundColor: Colors.red.shade50,
+              child: Icon(Icons.play_arrow, color: Colors.red.shade700),
+            );
+    } else if (item is StudyNote) {
+      iconData = Icons.picture_as_pdf;
+      iconColor = Colors.orange.shade800;
+      typeLabel = 'Note';
+      title = item.title;
+      subtitle = 'PDF Document';
+
+      trailingWidget = IconButton(
+        icon: const Icon(Icons.download_for_offline_outlined, color: Colors.orange),
+        onPressed: () async {
+          if (item.fileUrl != null) {
+            final url = Uri.parse(item.fileUrl!);
+            if (await canLaunchUrl(url)) {
+              await launchUrl(url);
+            }
+          }
+        },
+      );
+    } else if (item is StudyDpp) {
+      iconData = Icons.assignment;
+      iconColor = Colors.purple.shade700;
+      typeLabel = 'DPP';
+      title = item.title;
+      subtitle = 'Daily Practice Problem';
+
+      trailingWidget = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.assignment, color: Colors.purple),
+            tooltip: 'View Question',
+            onPressed: () async {
+              final url = Uri.parse(item.dppPdfUrl);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              }
+            },
+          ),
+          if (item.solutionPdfUrl.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.done_all_rounded, color: Colors.green),
+              tooltip: 'View Solution',
+              onPressed: () async {
+                final url = Uri.parse(item.solutionPdfUrl);
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url);
+                }
+              },
+            ),
+        ],
+      );
+    }
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: CircleAvatar(
+          backgroundColor: iconColor.withOpacity(0.1),
+          radius: 22,
+          child: Icon(iconData, color: iconColor, size: 24),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    typeLabel,
+                    style: TextStyle(color: iconColor, fontSize: 9, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+              ],
+            ),
+          ],
+        ),
+        trailing: trailingWidget,
+        onTap: () async {
+          if (item is StudyLecture) {
+            // Open lecture player
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LecturePlayerPage(
+                  videoUrl: item.videoUrl,
+                  title: item.title,
+                  description: item.description,
+                ),
+              ),
+            );
+            // Mark watched
+            try {
+              final controller = context.read<StudyController>();
+              await controller.markLectureWatched(widget.courseId, widget.batchId, item.id, true);
+            } catch (_) {}
+          } else if (item is StudyNote) {
+            if (item.fileUrl != null) {
+              final url = Uri.parse(item.fileUrl!);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              }
+            }
+          } else if (item is StudyDpp) {
+            final url = Uri.parse(item.dppPdfUrl);
+            if (await canLaunchUrl(url)) {
+              await launchUrl(url);
+            }
+          }
+        },
+      ),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'screens/courses_list_screen.dart';
 import 'screens/course_editor_screen.dart';
 import 'screens/batch_editor_screen.dart';
 import 'screens/lecture_editor_screen.dart';
+import 'screens/combination_packs_screen.dart';
 import 'screens/users_screen.dart';
 import 'screens/enrollments_screen.dart';
 import 'screens/purchases_screen.dart';
@@ -106,7 +107,13 @@ class AdminRouter {
           builder: (_) => LectureEditorScreen(
             courseId: args['courseId']!,
             batchId: args['batchId']!,
+            initialResourceType: args['initialResourceType'],
           ),
+        );
+      case '/combination_packs':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const CombinationPacksScreen(),
         );
       case '/users':
         return MaterialPageRoute(

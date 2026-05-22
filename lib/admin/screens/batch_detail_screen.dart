@@ -187,8 +187,12 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
                   color: Colors.orange,
                   onTap: () => Navigator.pushNamed(
                     context,
-                    '/batch_notes',
-                    arguments: {'courseId': widget.courseId, 'batchId': widget.batch.id},
+                    '/lecture_editor',
+                    arguments: {
+                      'courseId': widget.courseId,
+                      'batchId': widget.batch.id,
+                      'initialResourceType': 'note',
+                    },
                   ),
                 ),
                 _ResourceCard(
@@ -220,8 +224,12 @@ class _BatchDetailScreenState extends State<BatchDetailScreen> {
                   color: Colors.deepPurple,
                   onTap: () => Navigator.pushNamed(
                     context,
-                    '/batch_dpps',
-                    arguments: {'courseId': widget.courseId, 'batchId': widget.batch.id},
+                    '/lecture_editor',
+                    arguments: {
+                      'courseId': widget.courseId,
+                      'batchId': widget.batch.id,
+                      'initialResourceType': 'dpp',
+                    },
                   ),
                 ),
               ],

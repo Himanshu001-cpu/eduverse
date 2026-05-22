@@ -67,6 +67,7 @@ class CartItem {
   final String courseId;
   final String batchId;
   final String? testSeriesId;
+  final String? combinationPackId;
   final String title;
   final double price;
   final int quantity;
@@ -75,6 +76,7 @@ class CartItem {
     required this.courseId,
     required this.batchId,
     this.testSeriesId,
+    this.combinationPackId,
     required this.title,
     required this.price,
     this.quantity = 1,
@@ -84,18 +86,20 @@ class CartItem {
     'courseId': courseId,
     'batchId': batchId,
     if (testSeriesId != null) 'testSeriesId': testSeriesId,
+    if (combinationPackId != null) 'combinationPackId': combinationPackId,
     'title': title,
     'price': price,
     'quantity': quantity,
   };
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-    courseId: json['courseId'],
-    batchId: json['batchId'],
+    courseId: json['courseId'] ?? '',
+    batchId: json['batchId'] ?? '',
     testSeriesId: json['testSeriesId'] as String?,
-    title: json['title'],
-    price: json['price'],
-    quantity: json['quantity'],
+    combinationPackId: json['combinationPackId'] as String?,
+    title: json['title'] ?? '',
+    price: (json['price'] as num?)?.toDouble() ?? 0.0,
+    quantity: json['quantity'] ?? 1,
   );
 }
 
@@ -151,4 +155,45 @@ class PaymentMethod {
     required this.description,
     required this.icon,
   });
+}
+
+class CombinationPack {
+  final String id;
+  final String title;
+  final String description;
+  final String thumbnailUrl;
+  final double realPrice;
+  final double finalPrice;
+  final List<Map<String, String>> batches; // list of { 'courseId': '...', 'batchId': '...' }
+  final List<String> testSeries; // list of test series IDs
+  final bool isActive;
+
+  CombinationPack({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.thumbnailUrl,
+    required this.realPrice,
+    required this.finalPrice,
+    required this.batches,
+    required this.testSeries,
+    required this.isActive,
+  });
+
+  factory CombinationPack.fromMap(Map<String, dynamic> data, String id) {
+    return CombinationPack(
+      id: id,
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      thumbnailUrl: data['thumbnailUrl'] ?? '',
+      realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
+      finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? 0.0,
+      batches: (data['batches'] as List<dynamic>?)
+              ?.map((e) => Map<String, String>.from(e as Map))
+              .toList() ??
+          [],
+      testSeries: List<String>.from(data['testSeries'] ?? []),
+      isActive: data['isActive'] ?? true,
+    );
+  }
 }

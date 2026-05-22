@@ -155,7 +155,7 @@ class StudyLecture {
       isLocked: data['isLocked'] ?? false,
       isWatched: data['isWatched'] ?? false,
       type: data['type'] ?? 'video',
-      duration: data['durationSeconds'] != null ? Duration(seconds: data['durationSeconds']) : null,
+      duration: data['durationSeconds'] != null ? Duration(seconds: (data['durationSeconds'] as num).toInt()) : null,
       lectureNo: data['lectureNo'],
       linkedNoteIds: List<String>.from(data['linkedNoteIds'] ?? []),
     );

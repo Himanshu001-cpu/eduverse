@@ -11,46 +11,110 @@ export const onPurchaseCreate = functions.firestore
     .onCreate(async (snap, context) => {
         const purchase = snap.data();
         const userId = purchase.userId;
-        const courseId = purchase.courseId; // Assuming single item purchase for simplicity
-        const batchId = purchase.batchId;
 
-        if (!userId || !courseId || !batchId) return;
+        if (!userId) return;
 
-        const batchRef = db.collection("courses").doc(courseId).collection("batches").doc(batchId);
+        // Extract items. If items is empty/undefined, fall back to single item from courseId and batchId
+        let items = purchase.items as any[];
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            const courseId = purchase.courseId;
+            const batchId = purchase.batchId;
+            if (courseId && batchId) {
+                items = [{ courseId, batchId }];
+            } else {
+                items = [];
+            }
+        }
+
+        if (items.length === 0) {
+            console.log("No items found to process for purchase:", context.params.purchaseId);
+            return;
+        }
 
         try {
             await db.runTransaction(async (t) => {
-                const batchDoc = await t.get(batchRef);
-                if (!batchDoc.exists) throw new Error("Batch not found");
+                // List to store resolved course-batches to enroll
+                const batchesToEnroll: { courseId: string; batchId: string; combinationPackId?: string }[] = [];
 
-                const seatsLeft = batchDoc.data()?.seatsLeft ?? 0;
-                if (seatsLeft <= 0) {
-                    throw new Error("No seats available");
+                // 1. Resolve all items (including combination packs)
+                for (const item of items) {
+                    const combinationPackId = item.combinationPackId;
+                    const courseId = item.courseId;
+                    const batchId = item.batchId;
+
+                    if (combinationPackId) {
+                        const comboRef = db.collection("combination_packs").doc(combinationPackId);
+                        const comboDoc = await t.get(comboRef);
+                        if (comboDoc.exists) {
+                            const comboData = comboDoc.data();
+                            const bundledBatches = comboData?.batches || [];
+                            for (const b of bundledBatches) {
+                                if (b.courseId && b.batchId) {
+                                    batchesToEnroll.push({
+                                        courseId: b.courseId,
+                                        batchId: b.batchId,
+                                        combinationPackId
+                                    });
+                                }
+                            }
+                        } else {
+                            console.warn(`Combination pack ${combinationPackId} not found in database.`);
+                        }
+                    } else if (courseId && batchId && batchId !== "test_series") {
+                        batchesToEnroll.push({ courseId, batchId });
+                    }
                 }
 
-                // Decrement seats
-                t.update(batchRef, { seatsLeft: seatsLeft - 1 });
+                if (batchesToEnroll.length === 0) {
+                    console.log("No course batches resolved to enroll for purchase:", context.params.purchaseId);
+                    return;
+                }
 
-                // Create enrollment
-                const enrollmentId = `${userId}_${batchId}`;
-                const enrollmentRef = db.collection("enrollments").doc(enrollmentId);
-                t.set(enrollmentRef, {
-                    userId,
-                    courseId,
-                    batchId,
-                    enrolledAt: admin.firestore.FieldValue.serverTimestamp(),
-                    status: 'active'
-                });
+                // 2. Process each course-batch enrollment and seat decrement
+                for (const target of batchesToEnroll) {
+                    const batchRef = db.collection("courses").doc(target.courseId).collection("batches").doc(target.batchId);
+                    const batchDoc = await t.get(batchRef);
 
-                // Audit log
-                const auditRef = db.collection("audits").doc();
-                t.set(auditRef, {
-                    action: "system_enroll",
-                    entityType: "enrollment",
-                    entityId: enrollmentId,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    details: { purchaseId: context.params.purchaseId }
-                });
+                    if (batchDoc.exists) {
+                        const seatsLeft = batchDoc.data()?.seatsLeft ?? 0;
+                        if (seatsLeft <= 0) {
+                            console.warn(
+                                `Warning: No seats available for course ${target.courseId}, batch ${target.batchId}. ` +
+                                `Overriding and granting enrollment since payment succeeded.`
+                            );
+                        } else {
+                            // Decrement seats
+                            t.update(batchRef, { seatsLeft: seatsLeft - 1 });
+                        }
+                    } else {
+                        console.warn(`Batch doc not found: courses/${target.courseId}/batches/${target.batchId}`);
+                    }
+
+                    // Create enrollment
+                    const enrollmentId = `${userId}_${target.batchId}`;
+                    const enrollmentRef = db.collection("enrollments").doc(enrollmentId);
+                    t.set(enrollmentRef, {
+                        userId,
+                        courseId: target.courseId,
+                        batchId: target.batchId,
+                        enrolledAt: admin.firestore.FieldValue.serverTimestamp(),
+                        status: "active",
+                        ...(target.combinationPackId ? { combinationPackId: target.combinationPackId } : {})
+                    }, { merge: true });
+
+                    // Audit log
+                    const auditRef = db.collection("audits").doc();
+                    t.set(auditRef, {
+                        action: "system_enroll",
+                        entityType: "enrollment",
+                        entityId: enrollmentId,
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        details: {
+                            purchaseId: context.params.purchaseId,
+                            ...(target.combinationPackId ? { combinationPackId: target.combinationPackId } : {})
+                        }
+                    });
+                }
             });
 
             // Update purchase status to success
@@ -58,7 +122,7 @@ export const onPurchaseCreate = functions.firestore
 
         } catch (error) {
             const err = error as Error;
-            console.error("Enrollment failed", err);
+            console.error("Enrollment failed for purchase:", context.params.purchaseId, err);
             await snap.ref.update({ status: "failed", error: err.message });
         }
     });

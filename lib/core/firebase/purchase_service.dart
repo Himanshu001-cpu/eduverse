@@ -23,98 +23,143 @@ class PurchaseService {
       debugPrint('  item[$i]: ${items[i]}');
     }
 
-    final batch = _firestore.batch();
+    final purchaseId = _firestore.collection(FirestorePaths.purchases).doc().id;
 
-    // 1. Create Purchase Record (History)
-    final purchaseRef = _firestore.collection(FirestorePaths.purchases).doc();
-    final purchaseId = purchaseRef.id;
-
-    batch.set(purchaseRef, {
-      'purchaseId': purchaseId,
-      'userId': uid,
-      'amount': amount,
-      'paymentId': paymentId,
-      'paymentMethod': method,
-      'status': status,
-      'items': items,
-      'timestamp': FieldValue.serverTimestamp(),
-      'createdAt': FieldValue.serverTimestamp(),
-      if (gstNumber != null && gstNumber.isNotEmpty) 'gstNumber': gstNumber,
-      if (promoCode != null && promoCode.isNotEmpty) 'promoCode': promoCode,
-      if (discountAmount != null && discountAmount > 0)
-        'discountAmount': discountAmount,
-    });
-
-    // 2. Create/Update Enrolled Courses (Access Control)
-    // This allows manual enrollments to be added here without a purchase record
-    final userEnrollmentRef = _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('enrolledCourses');
-    final userRef = _firestore.collection('users').doc(uid);
-
-    // Collect test series IDs to grant access
-    final List<String> testSeriesIds = [];
-    // Collect enrollment IDs for user doc array update (admin panel visibility)
-    final List<String> enrollmentIds = [];
-
-    for (var item in items) {
-      final courseId = item['courseId'] as String?;
-      final batchId = item['batchId'] as String?;
-      final testSeriesId = item['testSeriesId'] as String?;
-
-      debugPrint('  Processing item: courseId=$courseId, batchId=$batchId, testSeriesId=$testSeriesId');
-
-      // Check if this item is a test series purchase
-      if (testSeriesId != null && testSeriesId.isNotEmpty) {
-        debugPrint('  -> Test series item detected');
-        testSeriesIds.add(testSeriesId);
-      } else if (batchId == 'test_series' && courseId != null) {
-        // Fallback: legacy marker-based detection
-        debugPrint('  -> Legacy test series item detected');
-        testSeriesIds.add(courseId);
-      } else if (courseId != null && batchId != null) {
-        // Standard course/batch enrollment
-        final enrollmentId = '${courseId}_$batchId';
-        final enrollmentDoc = userEnrollmentRef.doc(enrollmentId);
-
-        debugPrint('  -> Course enrollment: $enrollmentId');
-
-        batch.set(enrollmentDoc, {
-          'courseId': courseId,
-          'batchId': batchId,
-          'enrolledAt': FieldValue.serverTimestamp(),
-          'purchaseId': purchaseId, // Link back to purchase for reference
-          'status': 'active',
-        }, SetOptions(merge: true));
-
-        enrollmentIds.add(enrollmentId);
-      } else {
-        debugPrint('  -> SKIPPED: courseId or batchId is null');
-      }
-    }
-
-    // 2b. Update user doc enrolledCourses array (for admin panel visibility)
-    debugPrint('enrollmentIds to write: $enrollmentIds');
-    if (enrollmentIds.isNotEmpty) {
-      batch.set(userRef, {
-        'enrolledCourses': FieldValue.arrayUnion(enrollmentIds),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      debugPrint('  -> Will update user doc enrolledCourses array');
-    }
-
-    // 3. Grant access to purchased Test Series
-    debugPrint('testSeriesIds to write: $testSeriesIds');
-    if (testSeriesIds.isNotEmpty) {
-      batch.update(userRef, {
-        'purchasedTestSeries': FieldValue.arrayUnion(testSeriesIds),
-      });
-    }
-
-    // Commit both operations atomically
     try {
-      await batch.commit();
+      await _firestore.runTransaction((transaction) async {
+        // 1. READ PHASE: Fetch all unique combination packs first
+        final Map<String, DocumentSnapshot> comboSnapshots = {};
+        for (var item in items) {
+          final combinationPackId = item['combinationPackId'] as String?;
+          if (combinationPackId != null && combinationPackId.isNotEmpty) {
+            if (!comboSnapshots.containsKey(combinationPackId)) {
+              final docRef = _firestore.collection('combination_packs').doc(combinationPackId);
+              final snap = await transaction.get(docRef);
+              comboSnapshots[combinationPackId] = snap;
+            }
+          }
+        }
+
+        // 2. WRITE PHASE: Perform writes atomically
+        // 2a. Create Purchase Record (History)
+        final purchaseRef = _firestore.collection(FirestorePaths.purchases).doc(purchaseId);
+        transaction.set(purchaseRef, {
+          'purchaseId': purchaseId,
+          'userId': uid,
+          'amount': amount,
+          'paymentId': paymentId,
+          'paymentMethod': method,
+          'status': status,
+          'items': items,
+          'timestamp': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+          if (gstNumber != null && gstNumber.isNotEmpty) 'gstNumber': gstNumber,
+          if (promoCode != null && promoCode.isNotEmpty) 'promoCode': promoCode,
+          if (discountAmount != null && discountAmount > 0)
+            'discountAmount': discountAmount,
+        });
+
+        // 2b. Enrollments access control setup
+        final userEnrollmentRef = _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('enrolledCourses');
+        final userRef = _firestore.collection('users').doc(uid);
+
+        final List<String> testSeriesIds = [];
+        final List<String> enrollmentIds = [];
+
+        for (var item in items) {
+          final courseId = item['courseId'] as String?;
+          final batchId = item['batchId'] as String?;
+          final testSeriesId = item['testSeriesId'] as String?;
+          final combinationPackId = item['combinationPackId'] as String?;
+
+          debugPrint('  Processing item: courseId=$courseId, batchId=$batchId, testSeriesId=$testSeriesId, combinationPackId=$combinationPackId');
+
+          // Check if this item is a combination pack
+          if (combinationPackId != null && combinationPackId.isNotEmpty) {
+            debugPrint('  -> Combination pack item detected: $combinationPackId');
+            final snap = comboSnapshots[combinationPackId];
+            if (snap != null && snap.exists) {
+              final comboData = snap.data() as Map<String, dynamic>;
+              
+              // Process bundled course batches
+              final bundledBatches = comboData['batches'] as List<dynamic>? ?? [];
+              for (var b in bundledBatches) {
+                final bMap = Map<String, dynamic>.from(b as Map);
+                final cId = bMap['courseId'] as String?;
+                final bId = bMap['batchId'] as String?;
+                if (cId != null && bId != null) {
+                  final enrollmentId = '${cId}_$bId';
+                  final enrollmentDoc = userEnrollmentRef.doc(enrollmentId);
+
+                  debugPrint('     -> Bundle Course enrollment: $enrollmentId');
+
+                  transaction.set(enrollmentDoc, {
+                    'courseId': cId,
+                    'batchId': bId,
+                    'enrolledAt': FieldValue.serverTimestamp(),
+                    'purchaseId': purchaseId,
+                    'status': 'active',
+                    'combinationPackId': combinationPackId, // Trace link
+                  }, SetOptions(merge: true));
+
+                  enrollmentIds.add(enrollmentId);
+                }
+              }
+
+              // Process bundled test series
+              final bundledTestSeries = comboData['testSeries'] as List<dynamic>? ?? [];
+              for (var ts in bundledTestSeries) {
+                if (ts is String && ts.isNotEmpty) {
+                  debugPrint('     -> Bundle Test series: $ts');
+                  testSeriesIds.add(ts);
+                }
+              }
+            }
+          } else if (testSeriesId != null && testSeriesId.isNotEmpty) {
+            debugPrint('  -> Test series item detected: $testSeriesId');
+            testSeriesIds.add(testSeriesId);
+          } else if (batchId == 'test_series' && courseId != null) {
+            debugPrint('  -> Legacy test series item detected: $courseId');
+            testSeriesIds.add(courseId);
+          } else if (courseId != null && batchId != null) {
+            final enrollmentId = '${courseId}_$batchId';
+            final enrollmentDoc = userEnrollmentRef.doc(enrollmentId);
+
+            debugPrint('  -> Course enrollment: $enrollmentId');
+
+            transaction.set(enrollmentDoc, {
+              'courseId': courseId,
+              'batchId': batchId,
+              'enrolledAt': FieldValue.serverTimestamp(),
+              'purchaseId': purchaseId,
+              'status': 'active',
+            }, SetOptions(merge: true));
+
+            enrollmentIds.add(enrollmentId);
+          } else {
+            debugPrint('  -> SKIPPED: invalid course, batch, test series or combination pack configuration');
+          }
+        }
+
+        // 2c. Update user document with enrolled courses and test series arrays
+        if (enrollmentIds.isNotEmpty || testSeriesIds.isNotEmpty) {
+          final Map<String, dynamic> userUpdate = {
+            'updatedAt': FieldValue.serverTimestamp(),
+          };
+          if (enrollmentIds.isNotEmpty) {
+            debugPrint('user enrollments update: $enrollmentIds');
+            userUpdate['enrolledCourses'] = FieldValue.arrayUnion(enrollmentIds);
+          }
+          if (testSeriesIds.isNotEmpty) {
+            debugPrint('user test series update: $testSeriesIds');
+            userUpdate['purchasedTestSeries'] = FieldValue.arrayUnion(testSeriesIds);
+          }
+          transaction.set(userRef, userUpdate, SetOptions(merge: true));
+        }
+      });
       debugPrint('=== PurchaseService.createPurchase SUCCESS (purchaseId: $purchaseId) ===');
     } catch (e) {
       debugPrint('=== PurchaseService.createPurchase FAILED: $e ===');

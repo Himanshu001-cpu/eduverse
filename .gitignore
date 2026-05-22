@@ -57,3 +57,7 @@ android/key.properties
 # Environment files
 .env
 .env.*
+
+# Python scripts
+*.py
+

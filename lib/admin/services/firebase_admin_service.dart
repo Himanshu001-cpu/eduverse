@@ -1583,4 +1583,194 @@ class FirebaseAdminService {
         .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
         .toList();
   }
+
+  // ============ COMBINATION PACKS ============
+  Stream<List<AdminCombinationPack>> getCombinationPacks() {
+    return _db
+        .collection('combination_packs')
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => AdminCombinationPack.fromMap(doc.data(), doc.id))
+              .toList();
+        });
+  }
+
+  Future<void> saveCombinationPack(
+    AdminCombinationPack pack, {
+    bool isNew = false,
+  }) async {
+    final data = pack.toMap();
+    if (isNew) {
+      await _db.collection('combination_packs').add(data);
+    } else {
+      await _db.collection('combination_packs').doc(pack.id).set(data, SetOptions(merge: true));
+    }
+    await _logAudit(
+      isNew ? 'create_combination_pack' : 'update_combination_pack',
+      'combination_pack',
+      pack.id,
+      data,
+    );
+  }
+
+  Future<void> deleteCombinationPack(String id) async {
+    await _db.collection('combination_packs').doc(id).delete();
+    await _logAudit('delete_combination_pack', 'combination_pack', id, {});
+  }
+
+  // ============ RECURSIVE FOLDER PREFIX RENAME ============
+  Future<void> recursivelyRenameFolder({
+    required String courseId,
+    required String batchId,
+    required String subject,
+    required String oldFolderPath,
+    required String newFolderPath,
+  }) async {
+    final String oldPrefix = oldFolderPath.endsWith('/') ? oldFolderPath : '$oldFolderPath/';
+    final String newPrefix = newFolderPath.endsWith('/') ? newFolderPath : '$newFolderPath/';
+
+    final batch = _db.batch();
+
+    // 1. Rename folder and lessons
+    final lessonsSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('lessons')
+        .where('subject', isEqualTo: subject)
+        .get();
+
+    for (final doc in lessonsSnap.docs) {
+      final ch = doc.data()['chapter'] as String? ?? '';
+      if (ch == oldFolderPath) {
+        batch.update(doc.reference, {'chapter': newFolderPath});
+      } else if (ch.startsWith(oldPrefix)) {
+        final remaining = ch.substring(oldPrefix.length);
+        batch.update(doc.reference, {'chapter': '$newPrefix$remaining'});
+      }
+    }
+
+    // 2. Rename notes
+    final notesSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('notes')
+        .where('subject', isEqualTo: subject)
+        .get();
+
+    for (final doc in notesSnap.docs) {
+      final ch = doc.data()['chapter'] as String? ?? '';
+      if (ch == oldFolderPath) {
+        batch.update(doc.reference, {'chapter': newFolderPath});
+      } else if (ch.startsWith(oldPrefix)) {
+        final remaining = ch.substring(oldPrefix.length);
+        batch.update(doc.reference, {'chapter': '$newPrefix$remaining'});
+      }
+    }
+
+    // 3. Rename DPPs
+    final dppsSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('dpps')
+        .where('subject', isEqualTo: subject)
+        .get();
+
+    for (final doc in dppsSnap.docs) {
+      final ch = doc.data()['chapter'] as String? ?? '';
+      if (ch == oldFolderPath) {
+        batch.update(doc.reference, {'chapter': newFolderPath});
+      } else if (ch.startsWith(oldPrefix)) {
+        final remaining = ch.substring(oldPrefix.length);
+        batch.update(doc.reference, {'chapter': '$newPrefix$remaining'});
+      }
+    }
+
+    await batch.commit();
+
+    await _logAudit('rename_folder', 'folder', oldFolderPath, {
+      'courseId': courseId,
+      'batchId': batchId,
+      'subject': subject,
+      'oldFolderPath': oldFolderPath,
+      'newFolderPath': newFolderPath,
+    });
+  }
+
+  // ============ RECURSIVE FOLDER DELETE ============
+  Future<void> recursivelyDeleteFolder({
+    required String courseId,
+    required String batchId,
+    required String subject,
+    required String folderPath,
+  }) async {
+    final String prefix = folderPath.endsWith('/') ? folderPath : '$folderPath/';
+    final batch = _db.batch();
+
+    // 1. Delete folder placeholders and lessons
+    final lessonsSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('lessons')
+        .where('subject', isEqualTo: subject)
+        .get();
+
+    for (final doc in lessonsSnap.docs) {
+      final ch = doc.data()['chapter'] as String? ?? '';
+      if (ch == folderPath || ch.startsWith(prefix)) {
+        batch.delete(doc.reference);
+      }
+    }
+
+    // 2. Delete notes
+    final notesSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('notes')
+        .where('subject', isEqualTo: subject)
+        .get();
+
+    for (final doc in notesSnap.docs) {
+      final ch = doc.data()['chapter'] as String? ?? '';
+      if (ch == folderPath || ch.startsWith(prefix)) {
+        batch.delete(doc.reference);
+      }
+    }
+
+    // 3. Delete DPPs
+    final dppsSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .collection('dpps')
+        .where('subject', isEqualTo: subject)
+        .get();
+
+    for (final doc in dppsSnap.docs) {
+      final ch = doc.data()['chapter'] as String? ?? '';
+      if (ch == folderPath || ch.startsWith(prefix)) {
+        batch.delete(doc.reference);
+      }
+    }
+
+    await batch.commit();
+
+    await _logAudit('delete_folder_recursive', 'folder', folderPath, {
+      'courseId': courseId,
+      'batchId': batchId,
+      'subject': subject,
+      'folderPath': folderPath,
+    });
+  }
 }

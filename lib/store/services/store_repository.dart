@@ -155,6 +155,21 @@ class StoreRepository {
     return '$days days';
   }
 
+  // --- Combination Packs ---
+
+  /// Get all active combination packs
+  Stream<List<CombinationPack>> getCombinationPacks() {
+    return _firestore
+        .collection('combination_packs')
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => CombinationPack.fromMap(doc.data(), doc.id))
+              .toList();
+        });
+  }
+
   // --- Purchases ---
 
   Future<void> createPurchase(Purchase purchase) async {

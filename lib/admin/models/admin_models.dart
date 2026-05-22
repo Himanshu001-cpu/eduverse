@@ -225,6 +225,37 @@ class AdminLecture {
       'linkedFrom': linkedFrom,
     };
   }
+
+  AdminLecture copyWith({
+    String? title,
+    String? description,
+    int? orderIndex,
+    String? type,
+    String? storagePath,
+    bool? isLocked,
+    String? subject,
+    String? chapter,
+    int? lectureNo,
+    List<String>? linkedNoteIds,
+    List<Map<String, String>>? linkedBatches,
+    Map<String, String>? linkedFrom,
+  }) {
+    return AdminLecture(
+      id: id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      orderIndex: orderIndex ?? this.orderIndex,
+      type: type ?? this.type,
+      storagePath: storagePath ?? this.storagePath,
+      isLocked: isLocked ?? this.isLocked,
+      subject: subject ?? this.subject,
+      chapter: chapter ?? this.chapter,
+      lectureNo: lectureNo ?? this.lectureNo,
+      linkedNoteIds: linkedNoteIds ?? this.linkedNoteIds,
+      linkedBatches: linkedBatches ?? this.linkedBatches,
+      linkedFrom: linkedFrom ?? this.linkedFrom,
+    );
+  }
 }
 
 class AdminUser {
@@ -732,3 +763,87 @@ class AdminLiveClass {
     };
   }
 }
+
+class AdminCombinationPack {
+  final String id;
+  final String title;
+  final String description;
+  final String thumbnailUrl;
+  final double realPrice;
+  final double finalPrice;
+  final List<Map<String, String>> batches; // list of { 'courseId': '...', 'batchId': '...' }
+  final List<String> testSeries; // list of test series IDs
+  final bool isActive;
+  final DateTime createdAt;
+
+  AdminCombinationPack({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.thumbnailUrl,
+    required this.realPrice,
+    required this.finalPrice,
+    required this.batches,
+    required this.testSeries,
+    required this.isActive,
+    required this.createdAt,
+  });
+
+  factory AdminCombinationPack.fromMap(Map<String, dynamic> data, String id) {
+    return AdminCombinationPack(
+      id: id,
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      thumbnailUrl: data['thumbnailUrl'] ?? '',
+      realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
+      finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? 0.0,
+      batches: (data['batches'] as List<dynamic>?)
+              ?.map((e) => Map<String, String>.from(e as Map))
+              .toList() ??
+          [],
+      testSeries: List<String>.from(data['testSeries'] ?? []),
+      isActive: data['isActive'] ?? true,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'thumbnailUrl': thumbnailUrl,
+      'realPrice': realPrice,
+      'finalPrice': finalPrice,
+      'batches': batches,
+      'testSeries': testSeries,
+      'isActive': isActive,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  AdminCombinationPack copyWith({
+    String? title,
+    String? description,
+    String? thumbnailUrl,
+    double? realPrice,
+    double? finalPrice,
+    List<Map<String, String>>? batches,
+    List<String>? testSeries,
+    bool? isActive,
+    DateTime? createdAt,
+  }) {
+    return AdminCombinationPack(
+      id: id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      realPrice: realPrice ?? this.realPrice,
+      finalPrice: finalPrice ?? this.finalPrice,
+      batches: batches ?? this.batches,
+      testSeries: testSeries ?? this.testSeries,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+}
+
