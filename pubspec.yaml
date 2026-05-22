@@ -67,6 +67,7 @@ dependencies:
   razorpay_flutter: ^1.4.0
   permission_handler: ^11.3.1
   firebase_messaging: 16.0.4
+  firebase_app_check: ^0.4.1+4
   flutter_local_notifications: ^18.0.0
   
   # Deep linking

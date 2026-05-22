@@ -541,11 +541,11 @@ class FirebaseAdminService {
 
   // Update user role
   Future<void> updateUserRole(String userId, String newRole) async {
-    await _db.collection('users').doc(userId).update({
+    final callable = _functions.httpsCallable('setAdminRole');
+    await callable.call({
+      'uid': userId,
       'role': newRole,
-      'updatedAt': FieldValue.serverTimestamp(),
     });
-    await _logAudit('update_user_role', 'user', userId, {'newRole': newRole});
   }
 
   // Toggle user disabled status

@@ -26,6 +26,18 @@ class AuthService {
       final userData = await _userService.getCurrentUserData(user.uid);
       final role = userData?['role'];
       debugPrint('Checking admin status for ${user.email}: role=$role');
+      
+      if (role != null) {
+        // Detect claims mismatch and trigger transparent force token refresh if DB role differs from Auth claim
+        final idTokenResult = await user.getIdTokenResult(false);
+        final claimRole = idTokenResult.claims?['role'];
+        if (claimRole != role) {
+          debugPrint('Auth claims mismatch: cached claim role is "$claimRole" but Firestore role is "$role". Force-refreshing token...');
+          await user.getIdToken(true);
+          debugPrint('Auth claims successfully synchronized.');
+        }
+      }
+
       return role == 'admin' || role == 'superadmin';
     } catch (e) {
       debugPrint('Error checking admin status: $e');

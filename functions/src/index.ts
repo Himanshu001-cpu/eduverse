@@ -114,7 +114,7 @@ export const setAdminRole = functions.https.onCall(async (data, context) => {
         );
     }
 
-    const validRoles = ['superadmin', 'admin', 'content_manager', 'support', 'user'];
+    const validRoles = ['superadmin', 'admin', 'content_manager', 'support', 'user', 'student'];
     if (!role || !validRoles.includes(role)) {
         throw new functions.https.HttpsError(
             'invalid-argument',
@@ -174,12 +174,12 @@ export const removeAdminRole = functions.https.onCall(async (data, context) => {
     }
 
     try {
-        // Set role to 'user' (remove admin privileges)
-        await admin.auth().setCustomUserClaims(uid, { role: 'user' });
+        // Set role to 'student' (remove admin privileges)
+        await admin.auth().setCustomUserClaims(uid, { role: 'student' });
 
         // Update users collection
         await db.collection('users').doc(uid).set(
-            { role: 'user', updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+            { role: 'student', updatedAt: admin.firestore.FieldValue.serverTimestamp() },
             { merge: true }
         );
 
@@ -557,11 +557,34 @@ export const refundPurchase = functions.https.onCall(async (data, context) => {
         if (error instanceof functions.https.HttpsError) {
             throw error;
         }
-        const err = error as Error;
-        console.error("Razorpay refund gateway error:", err);
+        console.error("Razorpay refund gateway error:", error);
+        
+        // Extract a human-readable error message from Razorpay's custom error response
+        let errorMessage = "Unknown Razorpay error";
+        if (error) {
+            if (typeof error === 'string') {
+                errorMessage = error;
+            } else if (typeof error === 'object') {
+                const errObj = error as any;
+                if (errObj.error && typeof errObj.error.description === 'string') {
+                    errorMessage = errObj.error.description;
+                } else if (typeof errObj.description === 'string') {
+                    errorMessage = errObj.description;
+                } else if (typeof errObj.message === 'string') {
+                    errorMessage = errObj.message;
+                } else {
+                    try {
+                        errorMessage = JSON.stringify(error);
+                    } catch (e) {
+                        errorMessage = String(error);
+                    }
+                }
+            }
+        }
+
         throw new functions.https.HttpsError(
             'internal',
-            `Razorpay gateway error: ${err.message}`
+            `Razorpay gateway error: ${errorMessage}`
         );
     }
 });

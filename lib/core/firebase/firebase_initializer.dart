@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eduverse/core/firebase/firebase_options.dart';
 
@@ -14,6 +15,16 @@ class FirebaseInitializer {
         options: DefaultFirebaseOptions.currentPlatform,
       );
       debugPrint('Firebase initialized successfully');
+
+      try {
+        await FirebaseAppCheck.instance.activate(
+          providerAndroid: kDebugMode ? const AndroidDebugProvider() : AndroidPlayIntegrityProvider(),
+          providerApple: kDebugMode ? const AppleDebugProvider() : AppleAppAttestProvider(),
+        );
+        debugPrint('Firebase App Check activated successfully (${kDebugMode ? "Debug Mode" : "Production Mode"})');
+      } catch (appCheckError) {
+        debugPrint('Warning: Failed to activate Firebase App Check: $appCheckError');
+      }
     } on FirebaseException catch (e) {
       if (e.code == 'duplicate-app') {
         debugPrint('Firebase already initialized (duplicate-app caught)');

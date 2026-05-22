@@ -163,6 +163,12 @@ class AdminLecture {
   final String chapter;
   final int? lectureNo;
   final List<String> linkedNoteIds;
+  /// Tracks which batches this lecture is linked to.
+  /// Each entry: { 'courseId': '...', 'batchId': '...' }
+  final List<Map<String, String>> linkedBatches;
+  /// If this lecture is a linked copy, tracks where it is linked from.
+  /// Format: { 'courseId': '...', 'batchId': '...', 'originalId': '...' }
+  final Map<String, String>? linkedFrom;
 
   AdminLecture({
     required this.id,
@@ -176,6 +182,8 @@ class AdminLecture {
     this.chapter = '',
     this.lectureNo,
     this.linkedNoteIds = const [],
+    this.linkedBatches = const [],
+    this.linkedFrom,
   });
 
   factory AdminLecture.fromMap(Map<String, dynamic> data, String id) {
@@ -191,6 +199,13 @@ class AdminLecture {
       chapter: data['chapter'] ?? '',
       lectureNo: data['lectureNo'] as int?,
       linkedNoteIds: List<String>.from(data['linkedNoteIds'] ?? []),
+      linkedBatches: (data['linkedBatches'] as List<dynamic>?)
+              ?.map((e) => Map<String, String>.from(e as Map))
+              .toList() ??
+          [],
+      linkedFrom: data['linkedFrom'] != null
+          ? Map<String, String>.from(data['linkedFrom'] as Map)
+          : null,
     );
   }
 
@@ -206,6 +221,8 @@ class AdminLecture {
       'chapter': chapter,
       'lectureNo': lectureNo,
       'linkedNoteIds': linkedNoteIds,
+      'linkedBatches': linkedBatches,
+      'linkedFrom': linkedFrom,
     };
   }
 }
