@@ -2,7 +2,7 @@
 // ignore_for_file: type=lint
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+    show defaultTargetPlatform, kIsWeb, TargetPlatform, kReleaseMode;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -16,18 +16,29 @@ import 'package:flutter/foundation.dart'
 /// ```
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
+    // Dynamically switch environment based on compilation mode or compile-time variable
+    const String env = String.fromEnvironment('APP_ENV', defaultValue: kReleaseMode ? 'prod' : 'dev');
+
+    if (env == 'prod') {
+      return _prodOptions;
+    } else {
+      return _devOptions;
+    }
+  }
+
+  static FirebaseOptions get _devOptions {
     if (kIsWeb) {
-      return web;
+      return webDev;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return android;
+        return androidDev;
       case TargetPlatform.iOS:
-        return ios;
+        return iosDev;
       case TargetPlatform.macOS:
-        return macos;
+        return macosDev;
       case TargetPlatform.windows:
-        return windows;
+        return windowsDev;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -40,7 +51,38 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
+  static FirebaseOptions get _prodOptions {
+    if (kIsWeb) {
+      return webProd;
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return androidProd;
+      case TargetPlatform.iOS:
+        return iosProd;
+      case TargetPlatform.macOS:
+        // Defaulting to macOS dev config as prod macOS config is not registered
+        return macosDev;
+      case TargetPlatform.windows:
+        // Defaulting to Windows dev config as prod Windows config is not registered
+        return windowsDev;
+      case TargetPlatform.linux:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for linux - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
+    }
+  }
+
+  // ==========================================
+  // DEVELOPMENT CONFIGURATIONS (eduverse-dad5e / eduverse-6aa1d)
+  // ==========================================
+
+  static const FirebaseOptions webDev = FirebaseOptions(
     apiKey: 'AIzaSyCBCYmb1VpP3DqVsPDwr0rMP0dzniv_7yA',
     appId: '1:465308079104:web:0258746f5c01c3948cb4e5',
     messagingSenderId: '465308079104',
@@ -51,7 +93,7 @@ class DefaultFirebaseOptions {
     measurementId: 'G-7XM3WMBM7H',
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
+  static const FirebaseOptions androidDev = FirebaseOptions(
     apiKey: 'AIzaSyA1mLEiMU76w_U7QnIC7yOmR316tsoeEs4',
     appId: '1:465308079104:android:3f59ce57c51d2b118cb4e5',
     messagingSenderId: '465308079104',
@@ -60,7 +102,7 @@ class DefaultFirebaseOptions {
     storageBucket: 'eduverse-dad5e.firebasestorage.app',
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
+  static const FirebaseOptions iosDev = FirebaseOptions(
     apiKey: 'AIzaSyDUPNJ5AkQynKUPDu8xzKXweiNhHxHKi4U',
     appId: '1:465308079104:ios:c35d1b6752455b0a8cb4e5',
     messagingSenderId: '465308079104',
@@ -70,7 +112,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.eduverse.learning',
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
+  static const FirebaseOptions macosDev = FirebaseOptions(
     apiKey: 'AIzaSyD5OICGKwxsjvBvRWePDJJ-eTKk7fRwmoQ',
     appId: '1:985191148054:ios:9ea428772ebf73f7e56337',
     messagingSenderId: '985191148054',
@@ -79,7 +121,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.eduverse.learning',
   );
 
-  static const FirebaseOptions windows = FirebaseOptions(
+  static const FirebaseOptions windowsDev = FirebaseOptions(
     apiKey: 'AIzaSyDIK4ZUQvzPk09VRrQscXzBGY73ruBeEnA',
     appId: '1:985191148054:web:4b02803047ef32e9e56337',
     messagingSenderId: '985191148054',
@@ -87,5 +129,35 @@ class DefaultFirebaseOptions {
     authDomain: 'eduverse-6aa1d.firebaseapp.com',
     storageBucket: 'eduverse-6aa1d.firebasestorage.app',
     measurementId: 'G-LP1P8XTX37',
+  );
+
+  // ==========================================
+  // PRODUCTION CONFIGURATIONS (eduverse-prod-da5e)
+  // ==========================================
+
+  static const FirebaseOptions webProd = FirebaseOptions(
+    apiKey: 'AIzaSyAs_4BqqM_hDjcIHbst542UCjS2R_Vi8ck',
+    appId: '1:671349381253:web:bbe2f7dc453911360c31ec',
+    messagingSenderId: '671349381253',
+    projectId: 'eduverse-prod-da5e',
+    authDomain: 'eduverse-prod-da5e.firebaseapp.com',
+    storageBucket: 'eduverse-prod-da5e.firebasestorage.app',
+  );
+
+  static const FirebaseOptions androidProd = FirebaseOptions(
+    apiKey: 'AIzaSyCd7Y4wupOoaVev4NgCQBDicP1xB0KBYVU',
+    appId: '1:671349381253:android:b48683f7dafccafb0c31ec',
+    messagingSenderId: '671349381253',
+    projectId: 'eduverse-prod-da5e',
+    storageBucket: 'eduverse-prod-da5e.firebasestorage.app',
+  );
+
+  static const FirebaseOptions iosProd = FirebaseOptions(
+    apiKey: 'AIzaSyC6poVFfCcp_ZAJ_alyu2QNZZBajbZJD_E',
+    appId: '1:671349381253:ios:582e27da7ff26ac80c31ec',
+    messagingSenderId: '671349381253',
+    projectId: 'eduverse-prod-da5e',
+    storageBucket: 'eduverse-prod-da5e.firebasestorage.app',
+    iosBundleId: 'com.eduverse.learning',
   );
 }
