@@ -116,6 +116,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           (e) => PromoCartItem(
             courseId: e.courseId,
             batchId: e.batchId,
+            combinationPackId: e.combinationPackId,
+            testSeriesId: e.testSeriesId,
             price: e.price,
           ),
         )

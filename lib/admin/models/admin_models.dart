@@ -775,6 +775,7 @@ class AdminCombinationPack {
   final List<String> testSeries; // list of test series IDs
   final bool isActive;
   final DateTime createdAt;
+  final DateTime? updatedAt;
 
   AdminCombinationPack({
     required this.id,
@@ -787,9 +788,11 @@ class AdminCombinationPack {
     required this.testSeries,
     required this.isActive,
     required this.createdAt,
+    this.updatedAt,
   });
 
   factory AdminCombinationPack.fromMap(Map<String, dynamic> data, String id) {
+    final createdAtVal = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
     return AdminCombinationPack(
       id: id,
       title: data['title'] ?? '',
@@ -803,7 +806,8 @@ class AdminCombinationPack {
           [],
       testSeries: List<String>.from(data['testSeries'] ?? []),
       isActive: data['isActive'] ?? true,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: createdAtVal,
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? createdAtVal,
     );
   }
 
@@ -817,7 +821,6 @@ class AdminCombinationPack {
       'batches': batches,
       'testSeries': testSeries,
       'isActive': isActive,
-      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
@@ -831,6 +834,7 @@ class AdminCombinationPack {
     List<String>? testSeries,
     bool? isActive,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return AdminCombinationPack(
       id: id,
@@ -843,6 +847,7 @@ class AdminCombinationPack {
       testSeries: testSeries ?? this.testSeries,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

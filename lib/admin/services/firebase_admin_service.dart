@@ -10,11 +10,29 @@ import 'package:eduverse/core/notifications/notification_repository.dart';
 import 'package:eduverse/core/notifications/notification_model.dart';
 
 class FirebaseAdminService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
-  final NotificationRepository _notificationRepo = NotificationRepository();
+  final FirebaseAuth? _customAuth;
+  final FirebaseFirestore? _customDb;
+  final FirebaseStorage? _customStorage;
+  final FirebaseFunctions? _customFunctions;
+
+  FirebaseAuth get _auth => _customAuth ?? FirebaseAuth.instance;
+  FirebaseFirestore get _db => _customDb ?? FirebaseFirestore.instance;
+  FirebaseStorage get _storage => _customStorage ?? FirebaseStorage.instance;
+  FirebaseFunctions get _functions => _customFunctions ?? FirebaseFunctions.instance;
+  final NotificationRepository? _customNotificationRepo;
+  NotificationRepository get _notificationRepo => _customNotificationRepo ?? NotificationRepository();
+
+  FirebaseAdminService({
+    FirebaseAuth? auth,
+    FirebaseFirestore? db,
+    FirebaseStorage? storage,
+    FirebaseFunctions? functions,
+    NotificationRepository? notificationRepo,
+  })  : _customAuth = auth,
+        _customDb = db,
+        _customStorage = storage,
+        _customFunctions = functions,
+        _customNotificationRepo = notificationRepo;
 
   // Auth
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -1602,21 +1620,34 @@ class FirebaseAdminService {
   }) async {
     final data = pack.toMap();
     if (isNew) {
-      await _db.collection('combination_packs').add(data);
+      data['createdAt'] = FieldValue.serverTimestamp();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      final docRef = await _db.collection('combination_packs').add(data);
+      await _logAudit('create_combination_pack', 'combination_pack', docRef.id, data);
     } else {
+      data.remove('createdAt'); // Prevent creation time overwrite
+      data['updatedAt'] = FieldValue.serverTimestamp();
       await _db.collection('combination_packs').doc(pack.id).set(data, SetOptions(merge: true));
+      await _logAudit('update_combination_pack', 'combination_pack', pack.id, data);
     }
-    await _logAudit(
-      isNew ? 'create_combination_pack' : 'update_combination_pack',
-      'combination_pack',
-      pack.id,
-      data,
-    );
   }
 
   Future<void> deleteCombinationPack(String id) async {
     await _db.collection('combination_packs').doc(id).delete();
     await _logAudit('delete_combination_pack', 'combination_pack', id, {});
+  }
+
+  @visibleForTesting
+  Future<void> commitInChunks(List<void Function(WriteBatch)> operations) async {
+    const chunkSize = 400; // Leave 100 operations headroom
+    for (var i = 0; i < operations.length; i += chunkSize) {
+      final batch = _db.batch();
+      final end = (i + chunkSize).clamp(0, operations.length);
+      for (var j = i; j < end; j++) {
+        operations[j](batch);
+      }
+      await batch.commit();
+    }
   }
 
   // ============ RECURSIVE FOLDER PREFIX RENAME ============
@@ -1630,7 +1661,7 @@ class FirebaseAdminService {
     final String oldPrefix = oldFolderPath.endsWith('/') ? oldFolderPath : '$oldFolderPath/';
     final String newPrefix = newFolderPath.endsWith('/') ? newFolderPath : '$newFolderPath/';
 
-    final batch = _db.batch();
+    final List<void Function(WriteBatch)> operations = [];
 
     // 1. Rename folder and lessons
     final lessonsSnap = await _db
@@ -1645,10 +1676,10 @@ class FirebaseAdminService {
     for (final doc in lessonsSnap.docs) {
       final ch = doc.data()['chapter'] as String? ?? '';
       if (ch == oldFolderPath) {
-        batch.update(doc.reference, {'chapter': newFolderPath});
+        operations.add((batch) => batch.update(doc.reference, {'chapter': newFolderPath}));
       } else if (ch.startsWith(oldPrefix)) {
         final remaining = ch.substring(oldPrefix.length);
-        batch.update(doc.reference, {'chapter': '$newPrefix$remaining'});
+        operations.add((batch) => batch.update(doc.reference, {'chapter': '$newPrefix$remaining'}));
       }
     }
 
@@ -1665,10 +1696,10 @@ class FirebaseAdminService {
     for (final doc in notesSnap.docs) {
       final ch = doc.data()['chapter'] as String? ?? '';
       if (ch == oldFolderPath) {
-        batch.update(doc.reference, {'chapter': newFolderPath});
+        operations.add((batch) => batch.update(doc.reference, {'chapter': newFolderPath}));
       } else if (ch.startsWith(oldPrefix)) {
         final remaining = ch.substring(oldPrefix.length);
-        batch.update(doc.reference, {'chapter': '$newPrefix$remaining'});
+        operations.add((batch) => batch.update(doc.reference, {'chapter': '$newPrefix$remaining'}));
       }
     }
 
@@ -1685,14 +1716,14 @@ class FirebaseAdminService {
     for (final doc in dppsSnap.docs) {
       final ch = doc.data()['chapter'] as String? ?? '';
       if (ch == oldFolderPath) {
-        batch.update(doc.reference, {'chapter': newFolderPath});
+        operations.add((batch) => batch.update(doc.reference, {'chapter': newFolderPath}));
       } else if (ch.startsWith(oldPrefix)) {
         final remaining = ch.substring(oldPrefix.length);
-        batch.update(doc.reference, {'chapter': '$newPrefix$remaining'});
+        operations.add((batch) => batch.update(doc.reference, {'chapter': '$newPrefix$remaining'}));
       }
     }
 
-    await batch.commit();
+    await commitInChunks(operations);
 
     await _logAudit('rename_folder', 'folder', oldFolderPath, {
       'courseId': courseId,
@@ -1711,7 +1742,7 @@ class FirebaseAdminService {
     required String folderPath,
   }) async {
     final String prefix = folderPath.endsWith('/') ? folderPath : '$folderPath/';
-    final batch = _db.batch();
+    final List<void Function(WriteBatch)> operations = [];
 
     // 1. Delete folder placeholders and lessons
     final lessonsSnap = await _db
@@ -1726,7 +1757,7 @@ class FirebaseAdminService {
     for (final doc in lessonsSnap.docs) {
       final ch = doc.data()['chapter'] as String? ?? '';
       if (ch == folderPath || ch.startsWith(prefix)) {
-        batch.delete(doc.reference);
+        operations.add((batch) => batch.delete(doc.reference));
       }
     }
 
@@ -1743,7 +1774,7 @@ class FirebaseAdminService {
     for (final doc in notesSnap.docs) {
       final ch = doc.data()['chapter'] as String? ?? '';
       if (ch == folderPath || ch.startsWith(prefix)) {
-        batch.delete(doc.reference);
+        operations.add((batch) => batch.delete(doc.reference));
       }
     }
 
@@ -1760,11 +1791,11 @@ class FirebaseAdminService {
     for (final doc in dppsSnap.docs) {
       final ch = doc.data()['chapter'] as String? ?? '';
       if (ch == folderPath || ch.startsWith(prefix)) {
-        batch.delete(doc.reference);
+        operations.add((batch) => batch.delete(doc.reference));
       }
     }
 
-    await batch.commit();
+    await commitInChunks(operations);
 
     await _logAudit('delete_folder_recursive', 'folder', folderPath, {
       'courseId': courseId,

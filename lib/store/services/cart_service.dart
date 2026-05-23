@@ -5,24 +5,27 @@ import '../models/store_models.dart';
 /// Service for managing user's shopping cart in Firestore.
 /// Uses per-user subcollection: /users/{uid}/cart/{itemId}
 class CartService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore? _customDb;
+  FirebaseFirestore get _db => _customDb ?? FirebaseFirestore.instance;
+
+  CartService({FirebaseFirestore? firestore}) : _customDb = firestore;
 
   /// Get cart collection reference for a user
   CollectionReference<Map<String, dynamic>> _cartRef(String uid) =>
       _db.collection('users').doc(uid).collection('cart');
 
+  String getCartDocId(CartItem item) {
+    if (item.combinationPackId != null && item.combinationPackId!.isNotEmpty) {
+      return 'combo_${item.combinationPackId}';
+    }
+    return '${item.courseId}_${item.batchId}';
+  }
+
   /// Watch cart items as a stream (real-time updates)
   Stream<List<CartItem>> watchCart(String uid) {
     return _cartRef(uid).snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return CartItem(
-          courseId: data['courseId'] ?? '',
-          batchId: data['batchId'] ?? '',
-          title: data['title'] ?? '',
-          price: (data['price'] as num?)?.toDouble() ?? 0.0,
-          quantity: data['quantity'] ?? 1,
-        );
+        return CartItem.fromJson(doc.data());
       }).toList();
     });
   }
@@ -32,14 +35,7 @@ class CartService {
     try {
       final snapshot = await _cartRef(uid).get();
       return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return CartItem(
-          courseId: data['courseId'] ?? '',
-          batchId: data['batchId'] ?? '',
-          title: data['title'] ?? '',
-          price: (data['price'] as num?)?.toDouble() ?? 0.0,
-          quantity: data['quantity'] ?? 1,
-        );
+        return CartItem.fromJson(doc.data());
       }).toList();
     } catch (e) {
       debugPrint('Failed to get cart: $e');
@@ -50,12 +46,13 @@ class CartService {
   /// Add item to cart (or update quantity if exists)
   Future<void> addToCart(String uid, CartItem item) async {
     try {
-      // Use courseId_batchId as document ID to prevent duplicates
-      final docId = '${item.courseId}_${item.batchId}';
+      final docId = getCartDocId(item);
       
       await _cartRef(uid).doc(docId).set({
         'courseId': item.courseId,
         'batchId': item.batchId,
+        'combinationPackId': item.combinationPackId,
+        'testSeriesId': item.testSeriesId,
         'title': item.title,
         'price': item.price,
         'quantity': item.quantity,
@@ -70,9 +67,11 @@ class CartService {
   }
 
   /// Remove item from cart
-  Future<void> removeFromCart(String uid, String courseId, String batchId) async {
+  Future<void> removeFromCart(String uid, String courseId, String batchId, {String? combinationPackId}) async {
     try {
-      final docId = '${courseId}_$batchId';
+      final docId = combinationPackId != null && combinationPackId.isNotEmpty
+          ? 'combo_$combinationPackId'
+          : '${courseId}_$batchId';
       await _cartRef(uid).doc(docId).delete();
       debugPrint('Removed from cart: $docId');
     } catch (e) {
@@ -82,9 +81,11 @@ class CartService {
   }
 
   /// Update item quantity in cart
-  Future<void> updateQuantity(String uid, String courseId, String batchId, int quantity) async {
+  Future<void> updateQuantity(String uid, String courseId, String batchId, int quantity, {String? combinationPackId}) async {
     try {
-      final docId = '${courseId}_$batchId';
+      final docId = combinationPackId != null && combinationPackId.isNotEmpty
+          ? 'combo_$combinationPackId'
+          : '${courseId}_$batchId';
       if (quantity <= 0) {
         await _cartRef(uid).doc(docId).delete();
       } else {
@@ -113,9 +114,11 @@ class CartService {
   }
 
   /// Check if item is in cart
-  Future<bool> isInCart(String uid, String courseId, String batchId) async {
+  Future<bool> isInCart(String uid, String courseId, String batchId, {String? combinationPackId}) async {
     try {
-      final docId = '${courseId}_$batchId';
+      final docId = combinationPackId != null && combinationPackId.isNotEmpty
+          ? 'combo_$combinationPackId'
+          : '${courseId}_$batchId';
       final doc = await _cartRef(uid).doc(docId).get();
       return doc.exists;
     } catch (e) {

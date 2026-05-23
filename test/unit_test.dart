@@ -2,7 +2,151 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/admin/models/admin_models.dart';
+import 'package:eduverse/store/services/cart_service.dart';
+import 'package:eduverse/admin/services/firebase_admin_service.dart';
+import 'package:eduverse/core/firebase/purchase_service.dart';
+import 'package:eduverse/core/firebase/promo_code_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+// Mocks for testing commitInChunks
+class MockFirestore extends Fake implements FirebaseFirestore {
+  final List<MockWriteBatch> batches = [];
+
+  @override
+  WriteBatch batch() {
+    final b = MockWriteBatch();
+    batches.add(b);
+    return b;
+  }
+}
+
+class MockWriteBatch extends Fake implements WriteBatch {
+  final Map<DocumentReference, Map<String, dynamic>> setWrites = {};
+  int operationsCount = 0;
+  int commitsCount = 0;
+
+  @override
+  void set<T>(DocumentReference<T> documentReference, T data, [SetOptions? options]) {
+    setWrites[documentReference as DocumentReference] = data as Map<String, dynamic>;
+    operationsCount++;
+  }
+
+  @override
+  void update(DocumentReference documentReference, Map<String, dynamic> data) {
+    operationsCount++;
+  }
+
+  @override
+  void delete(DocumentReference documentReference) {
+    operationsCount++;
+  }
+
+  @override
+  Future<void> commit() async {
+    commitsCount++;
+  }
+}
+
+class MockDocumentReference extends Fake implements DocumentReference {}
+
+// Mocks for testing backfill migration
+class MockMigrationFirestore extends Fake implements FirebaseFirestore {
+  final MockQueryCollection purchasesCollection = MockQueryCollection();
+  final MockQueryCollection comboCollection = MockQueryCollection();
+  final MockUsersCollection usersCollection = MockUsersCollection();
+  final MockWriteBatch batchInstance = MockWriteBatch();
+
+  @override
+  CollectionReference<Map<String, dynamic>> collection(String path) {
+    if (path == 'purchases') return purchasesCollection;
+    if (path == 'combination_packs') return comboCollection;
+    if (path == 'users') return usersCollection;
+    throw UnimplementedError('Collection path $path not mocked');
+  }
+
+  @override
+  WriteBatch batch() => batchInstance;
+}
+
+class MockQueryCollection extends Fake implements CollectionReference<Map<String, dynamic>> {
+  final List<DocumentSnapshot<Map<String, dynamic>>> docs = [];
+
+  @override
+  Future<QuerySnapshot<Map<String, dynamic>>> get([GetOptions? options]) async {
+    return MockQuerySnapshot(docs);
+  }
+}
+
+class MockQuerySnapshot extends Fake implements QuerySnapshot<Map<String, dynamic>> {
+  @override
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
+
+  MockQuerySnapshot(List<DocumentSnapshot<Map<String, dynamic>>> documentSnapshots)
+      : docs = documentSnapshots.cast<QueryDocumentSnapshot<Map<String, dynamic>>>();
+}
+
+class MockQueryDocumentSnapshot extends Fake implements QueryDocumentSnapshot<Map<String, dynamic>> {
+  final String _id;
+  final Map<String, dynamic> _data;
+
+  MockQueryDocumentSnapshot(this._id, this._data);
+
+  @override
+  String get id => _id;
+
+  @override
+  Map<String, dynamic> data([SnapshotOptions? options]) => _data;
+
+  @override
+  DocumentReference<Map<String, dynamic>> get reference => MockDocumentReferenceWithPath(id);
+}
+
+class MockDocumentReferenceWithPath extends Fake implements DocumentReference<Map<String, dynamic>> {
+  final String pathId;
+  MockDocumentReferenceWithPath(this.pathId);
+
+  @override
+  String get id => pathId;
+}
+
+class MockUsersCollection extends Fake implements CollectionReference<Map<String, dynamic>> {
+  final Map<String, MockUserDocumentReference> userDocs = {};
+
+  @override
+  DocumentReference<Map<String, dynamic>> doc([String? path]) {
+    return userDocs.putIfAbsent(path!, () => MockUserDocumentReference(path));
+  }
+}
+
+class MockUserDocumentReference extends Fake implements DocumentReference<Map<String, dynamic>> {
+  final String userId;
+  final Map<String, dynamic> setWrites = {};
+  final Map<String, MockSubcollection> subcollections = {};
+
+  MockUserDocumentReference(this.userId);
+
+  @override
+  String get id => userId;
+
+  @override
+  Future<void> set(Map<String, dynamic> data, [SetOptions? options]) async {
+    setWrites.addAll(data);
+  }
+
+  @override
+  CollectionReference<Map<String, dynamic>> collection(String path) {
+    return subcollections.putIfAbsent(path, () => MockSubcollection());
+  }
+}
+
+class MockSubcollection extends Fake implements CollectionReference<Map<String, dynamic>> {
+  final Map<String, MockUserDocumentReference> docs = {};
+
+  @override
+  DocumentReference<Map<String, dynamic>> doc([String? path]) {
+    return docs.putIfAbsent(path!, () => MockUserDocumentReference(path));
+  }
+}
 
 void main() {
   group('StudyLecture Unit Tests', () {
@@ -161,6 +305,46 @@ void main() {
       expect(deserialized.price, 1500.0);
       expect(deserialized.quantity, 1);
     });
+
+    test('CartItem.fromJson handles null vs empty vs present fields safely', () {
+      // 1. All fields present
+      final jsonBoth = {
+        'courseId': 'c123',
+        'batchId': 'b456',
+        'combinationPackId': 'combo789',
+        'testSeriesId': 'ts456',
+        'title': 'Test Item',
+        'price': 150.0,
+        'quantity': 2,
+      };
+      final itemBoth = CartItem.fromJson(jsonBoth);
+      expect(itemBoth.combinationPackId, 'combo789');
+      expect(itemBoth.testSeriesId, 'ts456');
+
+      // 2. combinationPackId is empty string, testSeriesId is null
+      final jsonEmptyPack = {
+        'courseId': 'c123',
+        'batchId': 'b456',
+        'combinationPackId': '',
+        'testSeriesId': null,
+        'title': 'Test Item',
+        'price': 150.0,
+      };
+      final itemEmptyPack = CartItem.fromJson(jsonEmptyPack);
+      expect(itemEmptyPack.combinationPackId, '');
+      expect(itemEmptyPack.testSeriesId, isNull);
+
+      // 3. combinationPackId and testSeriesId missing entirely
+      final jsonMissing = {
+        'courseId': 'c123',
+        'batchId': 'b456',
+        'title': 'Test Item',
+        'price': 150.0,
+      };
+      final itemMissing = CartItem.fromJson(jsonMissing);
+      expect(itemMissing.combinationPackId, isNull);
+      expect(itemMissing.testSeriesId, isNull);
+    });
   });
 
   group('CombinationPack Unit Tests', () {
@@ -217,9 +401,14 @@ void main() {
       expect(data['title'], 'Admin Pack');
       expect(data['realPrice'], 500.0);
       expect(data['isActive'], false);
-      expect(data['createdAt'], isA<Timestamp>());
+      expect(data['createdAt'], isNull);
 
-      final deserialized = AdminCombinationPack.fromMap(data, 'adm_combo');
+      final Map<String, dynamic> firestoreData = {
+        ...data,
+        'createdAt': Timestamp.fromDate(createdTime),
+      };
+
+      final deserialized = AdminCombinationPack.fromMap(firestoreData, 'adm_combo');
       expect(deserialized.id, 'adm_combo');
       expect(deserialized.title, 'Admin Pack');
       expect(deserialized.realPrice, 500.0);
@@ -233,6 +422,268 @@ void main() {
       expect(updated.title, 'New Title');
       expect(updated.isActive, true);
       expect(updated.id, 'adm_combo'); // remains unchanged
+    });
+  });
+
+  group('Remediation Extended Unit Tests', () {
+    test('CartService.getCartDocId returns correct ID format for all types', () {
+      final cartService = CartService();
+
+      // Legacy/standard item
+      final courseBatchItem = CartItem(
+        courseId: 'c123',
+        batchId: 'b456',
+        title: 'Physics course batch',
+        price: 999.0,
+      );
+      expect(cartService.getCartDocId(courseBatchItem), 'c123_b456');
+
+      // Combination pack item
+      final comboPackItem = CartItem(
+        courseId: '',
+        batchId: '',
+        combinationPackId: 'combo789',
+        title: 'Awesome Combination Pack',
+        price: 1999.0,
+      );
+      expect(cartService.getCartDocId(comboPackItem), 'combo_combo789');
+
+      // Test series item (using legacy/backward-compatible scheme)
+      final testSeriesItem = CartItem(
+        courseId: 'ts456',
+        batchId: 'test_series',
+        testSeriesId: 'ts456',
+        title: 'Mega Test Series',
+        price: 499.0,
+      );
+      expect(cartService.getCartDocId(testSeriesItem), 'ts456_test_series');
+    });
+
+    test('PromoCartItem.uniqueKey returns correct formatted key', () {
+      // Combination pack
+      const comboPromoItem = PromoCartItem(
+        courseId: '',
+        batchId: '',
+        combinationPackId: 'combo789',
+        price: 1999.0,
+      );
+      expect(comboPromoItem.uniqueKey, 'combo_combo789');
+
+      // Test series (using legacy/backward-compatible scheme)
+      const testSeriesPromoItem = PromoCartItem(
+        courseId: 'ts456',
+        batchId: 'test_series',
+        testSeriesId: 'ts456',
+        price: 499.0,
+      );
+      expect(testSeriesPromoItem.uniqueKey, 'ts456_test_series');
+
+      // Standard item
+      const standardPromoItem = PromoCartItem(
+        courseId: 'c123',
+        batchId: 'b456',
+        price: 999.0,
+      );
+      expect(standardPromoItem.uniqueKey, 'c123_b456');
+    });
+
+    test('PromoCode.isApplicableToItem checks exclusion and inclusion limits correctly', () {
+      // Promo code with no course restrictions (but combos/test series excluded by default)
+      const generalPromo = PromoCode(
+        code: 'WELCOME50',
+        type: 'percentage',
+        value: 50.0,
+      );
+
+      // Promo code with explicit combination pack / test series inclusion
+      const inclusivePromo = PromoCode(
+        code: 'INCLUSIVE',
+        type: 'percentage',
+        value: 10.0,
+        applicableCourseIds: ['combo789', 'ts456', 'c123'],
+      );
+
+      // Verify general promo: applies to standard course batch
+      expect(
+        generalPromo.isApplicableToItem(
+          courseId: 'c123',
+          batchId: 'b456',
+        ),
+        isTrue,
+      );
+
+      // Verify general promo: does NOT apply to combo pack by default
+      expect(
+        generalPromo.isApplicableToItem(
+          courseId: '',
+          batchId: '',
+          combinationPackId: 'combo789',
+        ),
+        isFalse,
+      );
+
+      // Verify general promo: does NOT apply to test series by default
+      expect(
+        generalPromo.isApplicableToItem(
+          courseId: 'ts456',
+          batchId: 'test_series',
+          testSeriesId: 'ts456',
+        ),
+        isFalse,
+      );
+
+      // Verify inclusive promo: applies to explicitly allowed combination pack
+      expect(
+        inclusivePromo.isApplicableToItem(
+          courseId: '',
+          batchId: '',
+          combinationPackId: 'combo789',
+        ),
+        isTrue,
+      );
+
+      // Verify inclusive promo: applies to explicitly allowed test series
+      expect(
+        inclusivePromo.isApplicableToItem(
+          courseId: 'ts456',
+          batchId: 'test_series',
+          testSeriesId: 'ts456',
+        ),
+        isTrue,
+      );
+
+      // Verify inclusive promo: does not apply to non-listed combo pack
+      expect(
+        inclusivePromo.isApplicableToItem(
+          courseId: '',
+          batchId: '',
+          combinationPackId: 'combo999',
+        ),
+        isFalse,
+      );
+    });
+
+    test('AdminCombinationPack parses updatedAt correctly with fallback logic', () {
+      final now = DateTime.now();
+      final createdAtTimestamp = Timestamp.fromDate(now.subtract(const Duration(days: 1)));
+      final updatedAtTimestamp = Timestamp.fromDate(now);
+
+      // 1. Parse map with both createdAt and updatedAt
+      final dataWithBoth = {
+        'title': 'Test Combo Pack',
+        'realPrice': 1200.0,
+        'finalPrice': 600.0,
+        'batches': <Map<String, String>>[],
+        'testSeries': <String>[],
+        'isActive': true,
+        'createdAt': createdAtTimestamp,
+        'updatedAt': updatedAtTimestamp,
+      };
+
+      final parsedBoth = AdminCombinationPack.fromMap(dataWithBoth, 'pack_123');
+      expect(parsedBoth.createdAt, createdAtTimestamp.toDate());
+      expect(parsedBoth.updatedAt, updatedAtTimestamp.toDate());
+
+      // 2. Parse map with missing updatedAt (should fallback to createdAt)
+      final dataMissingUpdated = {
+        'title': 'Test Combo Pack',
+        'realPrice': 1200.0,
+        'finalPrice': 600.0,
+        'batches': <Map<String, String>>[],
+        'testSeries': <String>[],
+        'isActive': true,
+        'createdAt': createdAtTimestamp,
+      };
+
+      final parsedMissingUpdated = AdminCombinationPack.fromMap(dataMissingUpdated, 'pack_456');
+      expect(parsedMissingUpdated.createdAt, createdAtTimestamp.toDate());
+      expect(parsedMissingUpdated.updatedAt, createdAtTimestamp.toDate()); // fallback matches createdAt
+    });
+
+    test('FirebaseAdminService.commitInChunks handles boundary limits correctly', () async {
+      final mockFirestore = MockFirestore();
+      final adminService = FirebaseAdminService(db: mockFirestore);
+
+      // 1. 0 operations
+      await adminService.commitInChunks([]);
+      expect(mockFirestore.batches.length, 0);
+
+      // 2. 400 operations (exactly 1 chunk)
+      final docRef = MockDocumentReference();
+      final ops400 = List<void Function(WriteBatch)>.generate(
+        400,
+        (index) => (batch) => batch.delete(docRef),
+      );
+      await adminService.commitInChunks(ops400);
+      expect(mockFirestore.batches.length, 1);
+      expect(mockFirestore.batches[0].operationsCount, 400);
+      expect(mockFirestore.batches[0].commitsCount, 1);
+
+      // 3. 401 operations (should break into 2 chunks: 400 and 1)
+      mockFirestore.batches.clear();
+      final ops401 = List<void Function(WriteBatch)>.generate(
+        401,
+        (index) => (batch) => batch.delete(docRef),
+      );
+      await adminService.commitInChunks(ops401);
+      expect(mockFirestore.batches.length, 2);
+      expect(mockFirestore.batches[0].operationsCount, 400);
+      expect(mockFirestore.batches[0].commitsCount, 1);
+      expect(mockFirestore.batches[1].operationsCount, 1);
+      expect(mockFirestore.batches[1].commitsCount, 1);
+    });
+
+    test('PurchaseService migrateExistingPurchasesToUserDoc processes combo packs and test series correctly', () async {
+      final mockFirestore = MockMigrationFirestore();
+      final purchaseService = PurchaseService(firestore: mockFirestore);
+
+      // 1. Setup a mock combination pack in combination_packs collection
+      final comboPackDoc = MockQueryDocumentSnapshot('combo123', {
+        'batches': [
+          {'courseId': 'courseA', 'batchId': 'batchA'},
+          {'courseId': 'courseB', 'batchId': 'batchB'},
+        ],
+        'testSeries': ['tsA', 'tsB'],
+        'isActive': true,
+      });
+      mockFirestore.comboCollection.docs.add(comboPackDoc);
+
+      // 2. Setup a successful purchase of this combo pack in purchases collection
+      final purchaseDoc = MockQueryDocumentSnapshot('purchase123', {
+        'userId': 'userXYZ',
+        'status': 'completed',
+        'items': [
+          {
+            'courseId': '',
+            'batchId': '',
+            'combinationPackId': 'combo123',
+          }
+        ]
+      });
+      mockFirestore.purchasesCollection.docs.add(purchaseDoc);
+
+      // 3. Run migration
+      final result = await purchaseService.migrateExistingPurchasesToUserDoc();
+      expect(result, contains('Migration complete'));
+
+      // 4. Verify mock document sets
+      final userXYZDoc = mockFirestore.usersCollection.userDocs['userXYZ'];
+      expect(userXYZDoc, isNotNull);
+      expect(userXYZDoc!.setWrites['enrolledCourses'], isNotNull);
+      expect(userXYZDoc.setWrites['purchasedTestSeries'], isNotNull);
+
+      // Verify subcollection docs were set
+      final subRef1 = userXYZDoc.subcollections['enrolledCourses']?.docs['courseA_batchA'];
+      expect(subRef1, isNotNull);
+      expect(subRef1!.setWrites['status'], 'active');
+      expect(subRef1.setWrites['courseId'], 'courseA');
+      expect(subRef1.setWrites['batchId'], 'batchA');
+
+      final subRef2 = userXYZDoc.subcollections['enrolledCourses']?.docs['courseB_batchB'];
+      expect(subRef2, isNotNull);
+      expect(subRef2!.setWrites['status'], 'active');
+      expect(subRef2.setWrites['courseId'], 'courseB');
+      expect(subRef2.setWrites['batchId'], 'batchB');
     });
   });
 }

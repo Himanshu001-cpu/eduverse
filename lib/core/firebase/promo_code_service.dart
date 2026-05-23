@@ -80,7 +80,18 @@ class PromoCode {
   }
 
   /// Check if this promo code applies to a specific item
-  bool isApplicableToItem(String courseId, String batchId) {
+  bool isApplicableToItem({
+    required String courseId,
+    required String batchId,
+    String? combinationPackId,
+    String? testSeriesId,
+  }) {
+    if (combinationPackId != null && combinationPackId.isNotEmpty) {
+      return applicableCourseIds != null && applicableCourseIds!.contains(combinationPackId);
+    }
+    if (testSeriesId != null && testSeriesId.isNotEmpty) {
+      return applicableCourseIds != null && applicableCourseIds!.contains(testSeriesId);
+    }
     // If no course restriction, applies to all
     final courseMatch =
         applicableCourseIds == null ||
@@ -121,7 +132,7 @@ class PromoCodeResult {
   final double discountAmount;
   final String? errorMessage;
   final PromoCode? promoCode;
-  // Map of "courseId_batchId" -> discounted price for each applicable item
+  // Map of uniqueKey -> discounted price for each applicable item
   final Map<String, double> itemDiscounts;
 
   const PromoCodeResult({
@@ -154,13 +165,24 @@ class PromoCodeResult {
 class PromoCartItem {
   final String courseId;
   final String batchId;
+  final String? combinationPackId;
+  final String? testSeriesId;
   final double price;
 
   const PromoCartItem({
     required this.courseId,
     required this.batchId,
+    this.combinationPackId,
+    this.testSeriesId,
     required this.price,
   });
+
+  String get uniqueKey {
+    if (combinationPackId != null && combinationPackId!.isNotEmpty) {
+      return 'combo_$combinationPackId';
+    }
+    return '${courseId}_$batchId';
+  }
 }
 
 /// Service to validate and apply promo codes from Firestore
@@ -213,7 +235,12 @@ class PromoCodeService {
       double applicableTotal = 0;
       final applicableItems = <PromoCartItem>[];
       for (final item in cartItems) {
-        if (promoCode.isApplicableToItem(item.courseId, item.batchId)) {
+        if (promoCode.isApplicableToItem(
+          courseId: item.courseId,
+          batchId: item.batchId,
+          combinationPackId: item.combinationPackId,
+          testSeriesId: item.testSeriesId,
+        )) {
           applicableTotal += item.price;
           applicableItems.add(item);
         }
@@ -237,7 +264,7 @@ class PromoCodeService {
       // Calculate per-item discounts proportionally
       final itemDiscounts = <String, double>{};
       for (final item in applicableItems) {
-        final key = '${item.courseId}_${item.batchId}';
+        final key = item.uniqueKey;
         final proportion = item.price / applicableTotal;
         final itemDiscount = double.parse(
           (totalDiscount * proportion).toStringAsFixed(2),

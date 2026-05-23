@@ -3,7 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:eduverse/store/models/store_models.dart';
 
 class StoreRepository {
+  // Singleton pattern
+  static final StoreRepository _instance = StoreRepository._internal();
+  factory StoreRepository() => _instance;
+  StoreRepository._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Stream<List<Course>>? _coursesStream;
+  Stream<List<CombinationPack>>? _comboPacksStream;
 
   // Collection References
   CollectionReference<Map<String, dynamic>> get _coursesRef =>
@@ -15,7 +23,7 @@ class StoreRepository {
 
   /// Get all published courses (filtered for public visibility)
   Stream<List<Course>> getCourses() {
-    return _coursesRef.where('visibility', isEqualTo: 'published').snapshots().asyncMap((
+    _coursesStream ??= _coursesRef.where('visibility', isEqualTo: 'published').snapshots().asyncMap((
       snapshot,
     ) async {
       final courses = <Course>[];
@@ -143,6 +151,7 @@ class StoreRepository {
 
       return courses;
     });
+    return _coursesStream!;
   }
 
   // Helper to calculate duration string from start and end dates
@@ -159,7 +168,7 @@ class StoreRepository {
 
   /// Get all active combination packs
   Stream<List<CombinationPack>> getCombinationPacks() {
-    return _firestore
+    _comboPacksStream ??= _firestore
         .collection('combination_packs')
         .where('isActive', isEqualTo: true)
         .snapshots()
@@ -168,6 +177,7 @@ class StoreRepository {
               .map((doc) => CombinationPack.fromMap(doc.data(), doc.id))
               .toList();
         });
+    return _comboPacksStream!;
   }
 
   // --- Purchases ---

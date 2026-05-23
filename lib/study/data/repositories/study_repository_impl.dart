@@ -143,7 +143,7 @@ class StudyRepositoryImpl implements IStudyRepository {
         );
       }
     } catch (e) {
-      // ignore
+      debugPrint('Error fetching progress for batch $batchId: $e');
     }
     return (progress: 0.0, completed: 0);
   }

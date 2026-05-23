@@ -284,6 +284,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Combination Packs: Auth read, Admin write
+    match /combination_packs/{packId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
     
     // Topic Nodes (Map Work): Public/Auth read, Admin write
     match /topics/{topicId} {

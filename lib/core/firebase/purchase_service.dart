@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:eduverse/core/firebase/firestore_paths.dart';
 
 class PurchaseService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore? _customFirestore;
+  FirebaseFirestore get _firestore => _customFirestore ?? FirebaseFirestore.instance;
+
+  PurchaseService({FirebaseFirestore? firestore}) : _customFirestore = firestore;
 
   Future<String> createPurchase({
     required String uid,
@@ -231,6 +234,13 @@ class PurchaseService {
       final purchasesSnap =
           await _firestore.collection(FirestorePaths.purchases).get();
 
+      // 1a. Get all combination packs for bundle resolution during backfill
+      final comboSnap = await _firestore.collection('combination_packs').get();
+      final Map<String, Map<String, dynamic>> combinationPacks = {};
+      for (final doc in comboSnap.docs) {
+        combinationPacks[doc.id] = doc.data();
+      }
+
       // 2. Group enrollment IDs by userId
       final Map<String, Set<String>> userEnrollments = {};
       final Map<String, Set<String>> userTestSeries = {};
@@ -248,8 +258,34 @@ class PurchaseService {
           final courseId = item['courseId'] as String?;
           final batchId = item['batchId'] as String?;
           final testSeriesId = item['testSeriesId'] as String?;
+          final combinationPackId = item['combinationPackId'] as String?;
 
-          if (testSeriesId != null && testSeriesId.isNotEmpty) {
+          if (combinationPackId != null && combinationPackId.isNotEmpty) {
+            final comboData = combinationPacks[combinationPackId];
+            if (comboData != null) {
+              // Process bundled course batches
+              final bundledBatches = comboData['batches'] as List<dynamic>? ?? [];
+              for (var b in bundledBatches) {
+                final bMap = Map<String, dynamic>.from(b as Map);
+                final cId = bMap['courseId'] as String?;
+                final bId = bMap['batchId'] as String?;
+                if (cId != null && bId != null) {
+                  final enrollmentId = '${cId}_$bId';
+                  userEnrollments
+                      .putIfAbsent(userId, () => {})
+                      .add(enrollmentId);
+                }
+              }
+
+              // Process bundled test series
+              final bundledTestSeries = comboData['testSeries'] as List<dynamic>? ?? [];
+              for (var ts in bundledTestSeries) {
+                if (ts is String && ts.isNotEmpty) {
+                  userTestSeries.putIfAbsent(userId, () => {}).add(ts);
+                }
+              }
+            }
+          } else if (testSeriesId != null && testSeriesId.isNotEmpty) {
             userTestSeries.putIfAbsent(userId, () => {}).add(testSeriesId);
           } else if (batchId == 'test_series' && courseId != null) {
             userTestSeries.putIfAbsent(userId, () => {}).add(courseId);

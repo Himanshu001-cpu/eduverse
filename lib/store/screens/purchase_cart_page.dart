@@ -109,6 +109,8 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
           (e) => PromoCartItem(
             courseId: e.courseId,
             batchId: e.batchId,
+            combinationPackId: e.combinationPackId,
+            testSeriesId: e.testSeriesId,
             price: e.price,
           ),
         )
@@ -341,7 +343,9 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
                     itemCount: _cartItems.length,
                     itemBuilder: (context, index) {
                       final item = _cartItems[index];
-                      final key = '${item.courseId}_${item.batchId}';
+                      final key = item.combinationPackId != null && item.combinationPackId!.isNotEmpty
+                          ? 'combo_${item.combinationPackId}'
+                          : '${item.courseId}_${item.batchId}';
                       final discountedPrice = _itemDiscounts[key];
                       return CartItemTile(
                         item: item,
@@ -403,7 +407,22 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
           children: [
             // Coupon input / applied coupon
             if (_appliedCouponCode != null)
-              _buildAppliedCouponBanner()
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildAppliedCouponBanner(),
+                  if (_cartItems.any((item) =>
+                      (item.combinationPackId != null && item.combinationPackId!.isNotEmpty) ||
+                      (item.testSeriesId != null && item.testSeriesId!.isNotEmpty && item.batchId == 'test_series')))
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8, left: 4),
+                      child: Text(
+                        '* Coupon discounts do not apply to Combination Packs or Test Series unless explicitly specified.',
+                        style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                ],
+              )
             else
               _buildCouponInput(),
             const SizedBox(height: 20),
