@@ -1,3 +1,4 @@
+// ignore_for_file: subtype_of_sealed_class
 import 'package:flutter_test/flutter_test.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/store/models/store_models.dart';

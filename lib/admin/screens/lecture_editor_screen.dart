@@ -114,7 +114,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.indigo.shade900.withOpacity(0.3),
+                  color: Colors.indigo.shade900.withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 )
@@ -422,7 +422,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.purple.shade100),
                               borderRadius: BorderRadius.circular(10),
-                              color: Colors.purple.shade50.withOpacity(0.4),
+                              color: Colors.purple.shade50.withValues(alpha: 0.4),
                             ),
                             child: ListTile(
                               dense: true,
@@ -663,7 +663,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
+                    color: iconColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(

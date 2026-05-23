@@ -151,7 +151,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.grey.shade50, Colors.indigo.shade50.withOpacity(0.2)],
+            colors: [Colors.grey.shade50, Colors.indigo.shade50.withValues(alpha: 0.2)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -264,11 +264,11 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.indigo.shade900.withOpacity(0.04),
+            color: Colors.indigo.shade900.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -335,9 +335,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.indigo.shade50.withOpacity(0.4),
+        color: Colors.indigo.shade50.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.indigo.shade100.withOpacity(0.5)),
+        border: Border.all(color: Colors.indigo.shade100.withValues(alpha: 0.5)),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -367,7 +367,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.indigo.shade700.withOpacity(0.15),
+              color: Colors.indigo.shade700.withValues(alpha: 0.15),
               blurRadius: 8,
               offset: const Offset(0, 4),
             )
@@ -378,7 +378,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.2),
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
               radius: 18,
               child: const Icon(Icons.folder_open_outlined, color: Colors.white, size: 20),
             ),
@@ -394,7 +394,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                 const SizedBox(height: 4),
                 Text(
                   '$lecs Lec • $notes Note${notes != 1 ? 's' : ''}',
-                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w500),
                 ),
               ],
             )
@@ -500,7 +500,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         leading: CircleAvatar(
-          backgroundColor: iconColor.withOpacity(0.1),
+          backgroundColor: iconColor.withValues(alpha: 0.1),
           radius: 22,
           child: Icon(iconData, color: iconColor, size: 24),
         ),
@@ -517,7 +517,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
