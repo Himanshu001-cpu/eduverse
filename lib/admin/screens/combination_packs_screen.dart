@@ -490,7 +490,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(labelText: 'Select Course', border: OutlineInputBorder()),
-                    value: selectedCourseId,
+                    initialValue: selectedCourseId,
                     items: courses.map((c) => DropdownMenuItem(value: c.id, child: Text(c.title))).toList(),
                     onChanged: (val) {
                       final course = courses.firstWhere((c) => c.id == val);
@@ -519,7 +519,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
 
                         return DropdownButtonFormField<String>(
                           decoration: const InputDecoration(labelText: 'Select Batch', border: OutlineInputBorder()),
-                          value: selectedBatchId,
+                          initialValue: selectedBatchId,
                           items: batches.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
                           onChanged: (val) {
                             final batch = batches.firstWhere((b) => b.id == val);

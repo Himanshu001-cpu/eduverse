@@ -679,7 +679,7 @@ void _showComboPackDetails(BuildContext context, CombinationPack pack) {
       .toList();
   
   final tsIds = pack.testSeries
-      .map((id) => id as String)
+
       .where((id) => id.isNotEmpty)
       .toSet()
       .toList();
