@@ -1,7 +1,7 @@
 {
   "projects": {
-    "default": "eduverse-dad5e",
-    "development": "eduverse-dad5e",
-    "production": "eduverse-prod-da5e"
+    "default": "eduverse-prod-da5e",
+    "development": "eduverse-prod-da5e",
+    "production": "eduverse-dad5e"
   }
 }
