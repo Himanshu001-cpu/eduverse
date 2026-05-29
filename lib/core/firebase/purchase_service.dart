@@ -31,38 +31,23 @@ class PurchaseService {
     try {
       await _firestore.runTransaction((transaction) async {
         // 1. READ PHASE: Fetch all unique combination packs first
-        final Map<String, DocumentSnapshot> comboSnapshots = {};
+        final Map<String, Map<String, dynamic>> comboPacksData = {};
         for (var item in items) {
           final combinationPackId = item['combinationPackId'] as String?;
           if (combinationPackId != null && combinationPackId.isNotEmpty) {
-            if (!comboSnapshots.containsKey(combinationPackId)) {
+            if (!comboPacksData.containsKey(combinationPackId)) {
               final docRef = _firestore.collection('combination_packs').doc(combinationPackId);
               final snap = await transaction.get(docRef);
-              comboSnapshots[combinationPackId] = snap;
+              if (snap.exists && snap.data() != null) {
+                comboPacksData[combinationPackId] = Map<String, dynamic>.from(snap.data()!);
+              }
             }
           }
         }
 
         // 2. WRITE PHASE: Perform writes atomically
-        // 2a. Create Purchase Record (History)
-        final purchaseRef = _firestore.collection(FirestorePaths.purchases).doc(purchaseId);
-        transaction.set(purchaseRef, {
-          'purchaseId': purchaseId,
-          'userId': uid,
-          'amount': amount,
-          'paymentId': paymentId,
-          'paymentMethod': method,
-          'status': status,
-          'items': items,
-          'timestamp': FieldValue.serverTimestamp(),
-          'createdAt': FieldValue.serverTimestamp(),
-          if (gstNumber != null && gstNumber.isNotEmpty) 'gstNumber': gstNumber,
-          if (promoCode != null && promoCode.isNotEmpty) 'promoCode': promoCode,
-          if (discountAmount != null && discountAmount > 0)
-            'discountAmount': discountAmount,
-        });
-
-        // 2b. Enrollments access control setup
+        final List<Map<String, dynamic>> finalItemsToWrite = [];
+        
         final userEnrollmentRef = _firestore
             .collection('users')
             .doc(uid)
@@ -78,17 +63,15 @@ class PurchaseService {
           final testSeriesId = item['testSeriesId'] as String?;
           final combinationPackId = item['combinationPackId'] as String?;
 
-          debugPrint('  Processing item: courseId=$courseId, batchId=$batchId, testSeriesId=$testSeriesId, combinationPackId=$combinationPackId');
+          finalItemsToWrite.add(item); // Write the original item
 
-          // Check if this item is a combination pack
+          // A. Process Combination Pack
           if (combinationPackId != null && combinationPackId.isNotEmpty) {
-            debugPrint('  -> Combination pack item detected: $combinationPackId');
-            final snap = comboSnapshots[combinationPackId];
-            if (snap != null && snap.exists) {
-              final comboData = snap.data() as Map<String, dynamic>;
-              
-              // Process bundled course batches
-              final bundledBatches = comboData['batches'] as List<dynamic>? ?? [];
+            debugPrint('  -> Processing combination pack: $combinationPackId');
+            final comboData = comboPacksData[combinationPackId];
+            if (comboData != null) {
+              // Expand bundled course batches
+              final List<dynamic> bundledBatches = comboData['batches'] ?? [];
               for (var b in bundledBatches) {
                 final bMap = Map<String, dynamic>.from(b as Map);
                 final cId = bMap['courseId'] as String?;
@@ -109,25 +92,48 @@ class PurchaseService {
                   }, SetOptions(merge: true));
 
                   enrollmentIds.add(enrollmentId);
+                  
+                  // Append expanded batch to finalItemsToWrite for trigger decrementing
+                  finalItemsToWrite.add({
+                    'courseId': cId,
+                    'batchId': bId,
+                    'title': bMap['batchName'] ?? 'Bundled Course Batch',
+                    'price': 0.0,
+                    'combinationPackId': combinationPackId,
+                  });
                 }
               }
 
-              // Process bundled test series
-              final bundledTestSeries = comboData['testSeries'] as List<dynamic>? ?? [];
+              // Expand bundled test series
+              final List<dynamic> bundledTestSeries = comboData['testSeries'] ?? [];
               for (var ts in bundledTestSeries) {
                 if (ts is String && ts.isNotEmpty) {
                   debugPrint('     -> Bundle Test series: $ts');
                   testSeriesIds.add(ts);
+                  
+                  // Append expanded test series to finalItemsToWrite
+                  finalItemsToWrite.add({
+                    'testSeriesId': ts,
+                    'title': 'Bundled Test Series',
+                    'price': 0.0,
+                    'combinationPackId': combinationPackId,
+                  });
                 }
               }
             }
-          } else if (testSeriesId != null && testSeriesId.isNotEmpty) {
+          }
+          // B. Process Test Series Item
+          else if (testSeriesId != null && testSeriesId.isNotEmpty) {
             debugPrint('  -> Test series item detected: $testSeriesId');
             testSeriesIds.add(testSeriesId);
-          } else if (batchId == 'test_series' && courseId != null) {
+          }
+          // C. Process Legacy Test Series Item
+          else if (batchId == 'test_series' && courseId != null) {
             debugPrint('  -> Legacy test series item detected: $courseId');
             testSeriesIds.add(courseId);
-          } else if (courseId != null && batchId != null) {
+          }
+          // D. Process Standard Course Batch Enrollment
+          else if (courseId != null && batchId != null && courseId != 'combination_pack') {
             final enrollmentId = '${courseId}_$batchId';
             final enrollmentDoc = userEnrollmentRef.doc(enrollmentId);
 
@@ -146,6 +152,24 @@ class PurchaseService {
             debugPrint('  -> SKIPPED: invalid course, batch, test series or combination pack configuration');
           }
         }
+
+        // Set purchase record
+        final purchaseRef = _firestore.collection(FirestorePaths.purchases).doc(purchaseId);
+        transaction.set(purchaseRef, {
+          'purchaseId': purchaseId,
+          'userId': uid,
+          'amount': amount,
+          'paymentId': paymentId,
+          'paymentMethod': method,
+          'status': status,
+          'items': finalItemsToWrite,
+          'timestamp': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+          if (gstNumber != null && gstNumber.isNotEmpty) 'gstNumber': gstNumber,
+          if (promoCode != null && promoCode.isNotEmpty) 'promoCode': promoCode,
+          if (discountAmount != null && discountAmount > 0)
+            'discountAmount': discountAmount,
+        });
 
         // 2c. Update user document with enrolled courses and test series arrays
         if (enrollmentIds.isNotEmpty || testSeriesIds.isNotEmpty) {

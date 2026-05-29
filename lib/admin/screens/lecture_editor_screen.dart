@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../services/firebase_admin_service.dart';
 import '../models/admin_models.dart';
 import '../widgets/admin_scaffold.dart';
+import '../widgets/media_uploader.dart';
+import '../widgets/link_lecture_to_batch_dialog.dart';
 
 class LectureEditorScreen extends StatefulWidget {
   final String courseId;
@@ -37,20 +39,39 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
   Widget build(BuildContext context) {
     final service = context.read<FirebaseAdminService>();
 
-    return StreamBuilder<List<AdminLecture>>(
-      stream: service.getLectures(widget.courseId, widget.batchId),
-      builder: (context, lecturesSnap) {
-        return StreamBuilder<List<AdminNote>>(
-          stream: service.getBatchNotes(widget.courseId, widget.batchId),
-          builder: (context, notesSnap) {
-            return StreamBuilder<List<AdminDpp>>(
-              stream: service.getBatchDpps(widget.courseId, widget.batchId),
-              builder: (context, dppsSnap) {
-                final lectures = lecturesSnap.data ?? [];
-                final notes = notesSnap.data ?? [];
-                final dpps = dppsSnap.data ?? [];
+    return StreamBuilder<AdminBatch>(
+      stream: service.getBatch(widget.courseId, widget.batchId),
+      builder: (context, batchSnap) {
+        if (!batchSnap.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final batch = batchSnap.data!;
+        final isCourseBatch = batch.isCourseBatch;
 
-                return _buildExplorer(context, service, lectures, notes, dpps);
+        return StreamBuilder<List<AdminLecture>>(
+          stream: isCourseBatch
+              ? service.getCourseLecturesCombined(widget.courseId)
+              : service.getLectures(widget.courseId, widget.batchId),
+          builder: (context, lecturesSnap) {
+            return StreamBuilder<List<AdminNote>>(
+              stream: isCourseBatch
+                  ? service.getCourseNotesCombined(widget.courseId)
+                  : service.getBatchNotes(widget.courseId, widget.batchId),
+              builder: (context, notesSnap) {
+                return StreamBuilder<List<AdminDpp>>(
+                  stream: isCourseBatch
+                      ? service.getCourseDppsCombined(widget.courseId)
+                      : service.getBatchDpps(widget.courseId, widget.batchId),
+                  builder: (context, dppsSnap) {
+                    final lectures = lecturesSnap.data ?? [];
+                    final notes = notesSnap.data ?? [];
+                    final dpps = dppsSnap.data ?? [];
+
+                    return _buildExplorer(context, service, lectures, notes, dpps);
+                  },
+                );
               },
             );
           },
@@ -340,46 +361,75 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
           // Filters and Actions Row
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Filter Choice Chips
-                Row(
-                  children: [
-                    _buildFilterChip('All', 'all'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Videos', 'video'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Notes', 'note'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('DPPs', 'dpp'),
-                  ],
-                ),
-                // Create New Actions Row
-                Wrap(
-                  spacing: 8,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 600;
+                final chipsWidget = SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('All', 'all'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Videos', 'video'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Notes', 'note'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('DPPs', 'dpp'),
+                    ],
+                  ),
+                );
+
+                final actionsWidget = Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     ElevatedButton.icon(
                       onPressed: () => _showAddFolderDialog(context, service),
-                      icon: const Icon(Icons.create_new_folder),
-                      label: const Text('Add Folder'),
+                      icon: const Icon(Icons.create_new_folder, size: 16),
+                      label: const Text('Add Folder', style: TextStyle(fontSize: 12)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.purple.shade700,
                         foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       onPressed: () => _showAddResourceDialog(context, service),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Item'),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Add Item', style: TextStyle(fontSize: 12)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.indigo,
                         foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                   ],
-                )
-              ],
+                );
+
+                if (isMobile) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      chipsWidget,
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [actionsWidget],
+                      ),
+                    ],
+                  );
+                } else {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(child: chipsWidget),
+                      actionsWidget,
+                    ],
+                  );
+                }
+              },
             ),
           ),
 
@@ -403,10 +453,10 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverGrid(
                       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 280,
+                        maxCrossAxisExtent: 220,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 12,
-                        childAspectRatio: 2.2,
+                        childAspectRatio: 1.35,
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -417,61 +467,116 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                           final rLecCount = lectures.where((l) => l.subject == _selectedSubject && l.type != 'folder' && (l.chapter == targetPath || l.chapter.startsWith('$targetPath/'))).length;
                           final rNoteCount = notes.where((n) => n.subject == _selectedSubject && (n.chapter == targetPath || n.chapter.startsWith('$targetPath/'))).length;
                           final rDppCount = dpps.where((d) => d.subject == _selectedSubject && (d.chapter == targetPath || d.chapter.startsWith('$targetPath/'))).length;
+                          final totalItems = rLecCount + rNoteCount + rDppCount;
 
-                          return Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.purple.shade100),
-                              borderRadius: BorderRadius.circular(10),
-                              color: Colors.purple.shade50.withValues(alpha: 0.4),
-                            ),
-                            child: ListTile(
-                              dense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              leading: Icon(Icons.folder_open, color: Colors.purple.shade700, size: 28),
-                              title: Text(
-                                folderName,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _currentPath.add(folderName);
+                              });
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.purple.shade100, width: 1.2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.purple.shade900.withValues(alpha: 0.04),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  )
+                                ],
                               ),
-                              subtitle: Text(
-                                '$rLecCount Lec • $rNoteCount Note • $rDppCount DPP',
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  _currentPath.add(folderName);
-                                });
-                              },
-                              trailing: PopupMenuButton<String>(
-                                icon: const Icon(Icons.more_vert, size: 18),
-                                onSelected: (val) {
-                                  if (val == 'rename') {
-                                    _showRenameFolderDialog(context, service, folderName);
-                                  } else if (val == 'delete') {
-                                    _showDeleteFolderDialog(context, service, folderName);
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(
-                                    value: 'rename',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.edit, size: 16),
-                                        SizedBox(width: 8),
-                                        Text('Rename'),
-                                      ],
-                                    ),
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.purple.shade50,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          Icons.folder,
+                                          color: Colors.purple.shade700,
+                                          size: 24,
+                                        ),
+                                      ),
+                                      PopupMenuButton<String>(
+                                        icon: Icon(Icons.more_vert, size: 16, color: Colors.grey.shade600),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onSelected: (val) {
+                                          if (val == 'rename') {
+                                            _showRenameFolderDialog(context, service, folderName);
+                                          } else if (val == 'delete') {
+                                            _showDeleteFolderDialog(context, service, folderName);
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          const PopupMenuItem(
+                                            value: 'rename',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.edit, size: 14),
+                                                SizedBox(width: 8),
+                                                Text('Rename', style: TextStyle(fontSize: 13)),
+                                              ],
+                                            ),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.delete, color: Colors.red, size: 14),
+                                                SizedBox(width: 8),
+                                                Text('Delete', style: TextStyle(color: Colors.red, fontSize: 13)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete, color: Colors.red, size: 16),
-                                        SizedBox(width: 8),
-                                        Text('Delete', style: TextStyle(color: Colors.red)),
-                                      ],
-                                    ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        folderName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          color: Colors.grey.shade800,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.insert_drive_file_outlined,
+                                            size: 10,
+                                            color: Colors.grey.shade500,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            totalItems == 0 ? 'Empty' : '$totalItems items',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.grey.shade600,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -682,6 +787,24 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (item is AdminLecture)
+              IconButton(
+                icon: const Icon(Icons.share, size: 20, color: Colors.blue),
+                tooltip: 'Link to Batches',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => Provider<FirebaseAdminService>.value(
+                      value: service,
+                      child: LinkLectureToBatchDialog(
+                        lecture: item,
+                        sourceCourseId: widget.courseId,
+                        sourceBatchId: widget.batchId,
+                      ),
+                    ),
+                  );
+                },
+              ),
             IconButton(
               icon: const Icon(Icons.edit, size: 20),
               onPressed: () => _showEditResourceDialog(context, service, existingItem: item),
@@ -947,108 +1070,132 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(existingItem == null ? 'New $type' : 'Edit $type'),
-        content: SizedBox(
-          width: 450,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: val1Controller,
-                  decoration: InputDecoration(
-                    labelText: type == 'video'
-                        ? 'YouTube Video URL'
-                        : (type == 'note' ? 'Note PDF URL' : 'DPP PDF URL'),
-                    border: const OutlineInputBorder(),
+      builder: (context) => Provider<FirebaseAdminService>.value(
+        value: service,
+        child: AlertDialog(
+          title: Text(existingItem == null ? 'New $type' : 'Edit $type'),
+          content: SizedBox(
+            width: 450,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
                   ),
-                ),
-                const SizedBox(height: 12),
-                if (type == 'video')
+                  const SizedBox(height: 12),
                   TextField(
-                    controller: val2Controller,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Lecture Number (Optional)', border: OutlineInputBorder()),
-                  )
-                else if (type == 'note')
-                  TextField(
-                    controller: val2Controller,
-                    decoration: const InputDecoration(labelText: 'Note Subtitle (Optional)', border: OutlineInputBorder()),
-                  )
-                else if (type == 'dpp')
-                  TextField(
-                    controller: val2Controller,
-                    decoration: const InputDecoration(labelText: 'Solution PDF URL (Optional)', border: OutlineInputBorder()),
+                    controller: val1Controller,
+                    decoration: InputDecoration(
+                      labelText: type == 'video'
+                          ? 'YouTube Video URL'
+                          : (type == 'note' ? 'Note PDF URL' : 'DPP PDF URL'),
+                      border: const OutlineInputBorder(),
+                    ),
                   ),
-              ],
+                  if (type == 'note' || type == 'dpp') ...[
+                    const SizedBox(height: 8),
+                    MediaUploader(
+                      path: 'courses/${widget.courseId}/batches/${widget.batchId}/$type',
+                      onUploadComplete: (url) {
+                        val1Controller.text = url;
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  if (type == 'video')
+                    TextField(
+                      controller: val2Controller,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Lecture Number (Optional)', border: OutlineInputBorder()),
+                    )
+                  else if (type == 'note')
+                    TextField(
+                      controller: val2Controller,
+                      decoration: const InputDecoration(labelText: 'Note Subtitle (Optional)', border: OutlineInputBorder()),
+                    )
+                  else if (type == 'dpp')
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: val2Controller,
+                          decoration: const InputDecoration(labelText: 'Solution PDF URL (Optional)', border: OutlineInputBorder()),
+                        ),
+                        const SizedBox(height: 8),
+                        MediaUploader(
+                          path: 'courses/${widget.courseId}/batches/${widget.batchId}/solutions',
+                          onUploadComplete: (url) {
+                            val2Controller.text = url;
+                          },
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final title = titleController.text.trim();
+                final val1 = val1Controller.text.trim();
+                final val2 = val2Controller.text.trim();
+
+                if (title.isEmpty || val1.isEmpty) return;
+
+                final currentFullPath = _currentPath.join('/');
+
+                if (type == 'video') {
+                  final lecture = AdminLecture(
+                    id: existingItem?.id ?? '',
+                    title: title,
+                    description: '',
+                    orderIndex: existingItem?.orderIndex ?? 0,
+                    type: 'video',
+                    storagePath: val1,
+                    isLocked: existingItem?.isLocked ?? false,
+                    subject: _selectedSubject!,
+                    chapter: currentFullPath,
+                    lectureNo: int.tryParse(val2),
+                    linkedNoteIds: existingItem?.linkedNoteIds ?? [],
+                  );
+                  await service.saveLecture(widget.courseId, widget.batchId, lecture, isNew: existingItem == null);
+                } else if (type == 'note') {
+                  final note = AdminNote(
+                    id: existingItem?.id ?? '',
+                    title: title,
+                    subtitle: val2,
+                    pdfUrl: val1,
+                    createdAt: existingItem?.createdAt ?? DateTime.now(),
+                    subject: _selectedSubject!,
+                    chapter: currentFullPath,
+                  );
+                  await service.saveBatchNote(widget.courseId, widget.batchId, note, isNew: existingItem == null);
+                } else if (type == 'dpp') {
+                  final dpp = AdminDpp(
+                    id: existingItem?.id ?? '',
+                    title: title,
+                    subject: _selectedSubject!,
+                    chapter: currentFullPath,
+                    dppPdfUrl: val1,
+                    solutionPdfUrl: val2,
+                    createdAt: existingItem?.createdAt ?? DateTime.now(),
+                  );
+                  await service.saveBatchDpp(widget.courseId, widget.batchId, dpp, isNew: existingItem == null);
+                }
+
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final title = titleController.text.trim();
-              final val1 = val1Controller.text.trim();
-              final val2 = val2Controller.text.trim();
-
-              if (title.isEmpty || val1.isEmpty) return;
-
-              final currentFullPath = _currentPath.join('/');
-
-              if (type == 'video') {
-                final lecture = AdminLecture(
-                  id: existingItem?.id ?? '',
-                  title: title,
-                  description: '',
-                  orderIndex: existingItem?.orderIndex ?? 0,
-                  type: 'video',
-                  storagePath: val1,
-                  isLocked: existingItem?.isLocked ?? false,
-                  subject: _selectedSubject!,
-                  chapter: currentFullPath,
-                  lectureNo: int.tryParse(val2),
-                  linkedNoteIds: existingItem?.linkedNoteIds ?? [],
-                );
-                await service.saveLecture(widget.courseId, widget.batchId, lecture, isNew: existingItem == null);
-              } else if (type == 'note') {
-                final note = AdminNote(
-                  id: existingItem?.id ?? '',
-                  title: title,
-                  subtitle: val2,
-                  pdfUrl: val1,
-                  createdAt: existingItem?.createdAt ?? DateTime.now(),
-                  subject: _selectedSubject!,
-                  chapter: currentFullPath,
-                );
-                await service.saveBatchNote(widget.courseId, widget.batchId, note, isNew: existingItem == null);
-              } else if (type == 'dpp') {
-                final dpp = AdminDpp(
-                  id: existingItem?.id ?? '',
-                  title: title,
-                  subject: _selectedSubject!,
-                  chapter: currentFullPath,
-                  dppPdfUrl: val1,
-                  solutionPdfUrl: val2,
-                  createdAt: existingItem?.createdAt ?? DateTime.now(),
-                );
-                await service.saveBatchDpp(widget.courseId, widget.batchId, dpp, isNew: existingItem == null);
-              }
-
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }

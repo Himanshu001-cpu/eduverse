@@ -1,4 +1,5 @@
 
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -159,6 +160,203 @@ class FirebaseAdminService {
               .map((doc) => AdminBatch.fromMap(doc.data(), doc.id))
               .toList();
         });
+  }
+
+  Stream<AdminBatch> getBatch(String courseId, String batchId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('batches')
+        .doc(batchId)
+        .snapshots()
+        .map((doc) => AdminBatch.fromMap(doc.data() ?? {}, doc.id));
+  }
+
+  Stream<List<AdminLecture>> getCourseLecturesCombined(String courseId) {
+    late StreamController<List<AdminLecture>> controller;
+    StreamSubscription? batchesSubscription;
+    final lessonsSubscriptions = <String, StreamSubscription>{};
+    final latestLessons = <String, List<AdminLecture>>{};
+
+    void emitMerged() {
+      final merged = <AdminLecture>[];
+      final seenIds = <String>{};
+      for (final list in latestLessons.values) {
+        for (final item in list) {
+          if (!seenIds.contains(item.id)) {
+            seenIds.add(item.id);
+            merged.add(item);
+          }
+        }
+      }
+      merged.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+      if (!controller.isClosed) {
+        controller.add(merged);
+      }
+    }
+
+    controller = StreamController<List<AdminLecture>>(
+      onListen: () {
+        batchesSubscription = getBatches(courseId).listen((batches) {
+          final batchIds = batches.map((b) => b.id).toSet();
+          lessonsSubscriptions.keys
+              .where((id) => !batchIds.contains(id))
+              .toList()
+              .forEach((id) {
+            lessonsSubscriptions[id]?.cancel();
+            lessonsSubscriptions.remove(id);
+            latestLessons.remove(id);
+          });
+
+          for (final batch in batches) {
+            if (!lessonsSubscriptions.containsKey(batch.id)) {
+              lessonsSubscriptions[batch.id] = getLectures(courseId, batch.id).listen((lessons) {
+                latestLessons[batch.id] = lessons;
+                emitMerged();
+              });
+            }
+          }
+
+          if (batches.isEmpty) {
+            emitMerged();
+          }
+        }, onError: (err) {
+          if (!controller.isClosed) controller.addError(err);
+        });
+      },
+      onCancel: () {
+        batchesSubscription?.cancel();
+        for (final sub in lessonsSubscriptions.values) {
+          sub.cancel();
+        }
+      },
+    );
+
+    return controller.stream;
+  }
+
+  Stream<List<AdminNote>> getCourseNotesCombined(String courseId) {
+    late StreamController<List<AdminNote>> controller;
+    StreamSubscription? batchesSubscription;
+    final notesSubscriptions = <String, StreamSubscription>{};
+    final latestNotes = <String, List<AdminNote>>{};
+
+    void emitMerged() {
+      final merged = <AdminNote>[];
+      final seenIds = <String>{};
+      for (final list in latestNotes.values) {
+        for (final item in list) {
+          if (!seenIds.contains(item.id)) {
+            seenIds.add(item.id);
+            merged.add(item);
+          }
+        }
+      }
+      if (!controller.isClosed) {
+        controller.add(merged);
+      }
+    }
+
+    controller = StreamController<List<AdminNote>>(
+      onListen: () {
+        batchesSubscription = getBatches(courseId).listen((batches) {
+          final batchIds = batches.map((b) => b.id).toSet();
+          notesSubscriptions.keys
+              .where((id) => !batchIds.contains(id))
+              .toList()
+              .forEach((id) {
+            notesSubscriptions[id]?.cancel();
+            notesSubscriptions.remove(id);
+            latestNotes.remove(id);
+          });
+
+          for (final batch in batches) {
+            if (!notesSubscriptions.containsKey(batch.id)) {
+              notesSubscriptions[batch.id] = getBatchNotes(courseId, batch.id).listen((notes) {
+                latestNotes[batch.id] = notes;
+                emitMerged();
+              });
+            }
+          }
+
+          if (batches.isEmpty) {
+            emitMerged();
+          }
+        }, onError: (err) {
+          if (!controller.isClosed) controller.addError(err);
+        });
+      },
+      onCancel: () {
+        batchesSubscription?.cancel();
+        for (final sub in notesSubscriptions.values) {
+          sub.cancel();
+        }
+      },
+    );
+
+    return controller.stream;
+  }
+
+  Stream<List<AdminDpp>> getCourseDppsCombined(String courseId) {
+    late StreamController<List<AdminDpp>> controller;
+    StreamSubscription? batchesSubscription;
+    final dppsSubscriptions = <String, StreamSubscription>{};
+    final latestDpps = <String, List<AdminDpp>>{};
+
+    void emitMerged() {
+      final merged = <AdminDpp>[];
+      final seenIds = <String>{};
+      for (final list in latestDpps.values) {
+        for (final item in list) {
+          if (!seenIds.contains(item.id)) {
+            seenIds.add(item.id);
+            merged.add(item);
+          }
+        }
+      }
+      if (!controller.isClosed) {
+        controller.add(merged);
+      }
+    }
+
+    controller = StreamController<List<AdminDpp>>(
+      onListen: () {
+        batchesSubscription = getBatches(courseId).listen((batches) {
+          final batchIds = batches.map((b) => b.id).toSet();
+          dppsSubscriptions.keys
+              .where((id) => !batchIds.contains(id))
+              .toList()
+              .forEach((id) {
+            dppsSubscriptions[id]?.cancel();
+            dppsSubscriptions.remove(id);
+            latestDpps.remove(id);
+          });
+
+          for (final batch in batches) {
+            if (!dppsSubscriptions.containsKey(batch.id)) {
+              dppsSubscriptions[batch.id] = getBatchDpps(courseId, batch.id).listen((dpps) {
+                latestDpps[batch.id] = dpps;
+                emitMerged();
+              });
+            }
+          }
+
+          if (batches.isEmpty) {
+            emitMerged();
+          }
+        }, onError: (err) {
+          if (!controller.isClosed) controller.addError(err);
+        });
+      },
+      onCancel: () {
+        batchesSubscription?.cancel();
+        for (final sub in dppsSubscriptions.values) {
+          sub.cancel();
+        }
+      },
+    );
+
+    return controller.stream;
   }
 
   Future<void> saveBatch(
@@ -1460,6 +1658,97 @@ class FirebaseAdminService {
         for (final classDoc in classesSnap.docs) {
           result.add({
             'class': AdminLiveClass.fromMap(classDoc.data(), classDoc.id),
+            'courseId': courseDoc.id,
+            'batchId': batchDoc.id,
+            'courseName': courseName,
+            'batchName': batchName,
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /// Links an existing lecture to a target batch by copying its data.
+  /// Also updates the source lecture's linkedBatches array.
+  Future<void> linkLectureToBatch({
+    required AdminLecture sourceLecture,
+    required String sourceCourseId,
+    required String sourceBatchId,
+    required String targetCourseId,
+    required String targetBatchId,
+  }) async {
+    final data = sourceLecture.toMap();
+    // Remove linkedBatches from the copy — each copy is standalone
+    data.remove('linkedBatches');
+    // Mark it as a linked copy so we know it was imported
+    data['linkedFrom'] = {
+      'courseId': sourceCourseId,
+      'batchId': sourceBatchId,
+      'originalId': sourceLecture.id,
+    };
+
+    // 1. Write the lecture to the target batch's lessons
+    await _db
+        .collection('courses')
+        .doc(targetCourseId)
+        .collection('batches')
+        .doc(targetBatchId)
+        .collection('lessons')
+        .add(data);
+
+    // 2. Update the source lecture's linkedBatches array
+    await _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('batches')
+        .doc(sourceBatchId)
+        .collection('lessons')
+        .doc(sourceLecture.id)
+        .update({
+      'linkedBatches': FieldValue.arrayUnion([
+        {'courseId': targetCourseId, 'batchId': targetBatchId},
+      ]),
+    });
+
+    // 3. Send notification to enrolled users of target batch
+    await _notificationRepo.createBatchNotification(
+      title: '📚 New Lecture Linked',
+      body: sourceLecture.title,
+      targetType: NotificationTargetType.lecture,
+      targetId: sourceLecture.id,
+      batchId: targetBatchId,
+      courseId: targetCourseId,
+    );
+
+    await _logAudit('link_lecture', 'lecture', sourceLecture.id, {
+      'sourceCourse': sourceCourseId,
+      'sourceBatch': sourceBatchId,
+      'targetCourse': targetCourseId,
+      'targetBatch': targetBatchId,
+    });
+  }
+
+  /// Gets all lectures from ALL batches across all courses.
+  /// Used in the "Link Existing Lecture" dialog.
+  Future<List<Map<String, dynamic>>> getAllLecturesForLinking() async {
+    final result = <Map<String, dynamic>>[];
+
+    final coursesSnap = await _db.collection('courses').get();
+    for (final courseDoc in coursesSnap.docs) {
+      final courseName = courseDoc.data()['title'] ?? courseDoc.id;
+      final batchesSnap =
+          await courseDoc.reference.collection('batches').get();
+      for (final batchDoc in batchesSnap.docs) {
+        final batchName = batchDoc.data()['name'] ?? batchDoc.id;
+        final lecturesSnap = await batchDoc.reference
+            .collection('lessons')
+            .orderBy('orderIndex')
+            .get();
+        for (final lectureDoc in lecturesSnap.docs) {
+          result.add({
+            'lecture': AdminLecture.fromMap(lectureDoc.data(), lectureDoc.id),
             'courseId': courseDoc.id,
             'batchId': batchDoc.id,
             'courseName': courseName,

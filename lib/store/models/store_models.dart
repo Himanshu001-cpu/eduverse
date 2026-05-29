@@ -35,6 +35,7 @@ class Batch {
   final String duration;
   final String thumbnailUrl;
   bool isEnrolled;
+  final bool isCourseBatch;
 
   Batch({
     required this.id,
@@ -46,6 +47,7 @@ class Batch {
     required this.duration,
     this.thumbnailUrl = '',
     this.isEnrolled = false,
+    this.isCourseBatch = false,
   });
 }
 

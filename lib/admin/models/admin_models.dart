@@ -104,6 +104,7 @@ class AdminBatch {
   final int seatsLeft;
   final bool isActive;
   final String thumbnailUrl;
+  final bool isCourseBatch;
 
   AdminBatch({
     required this.id,
@@ -117,6 +118,7 @@ class AdminBatch {
     required this.seatsLeft,
     required this.isActive,
     this.thumbnailUrl = '',
+    this.isCourseBatch = false,
   });
 
   factory AdminBatch.fromMap(Map<String, dynamic> data, String id) {
@@ -132,6 +134,7 @@ class AdminBatch {
       seatsLeft: data['seatsLeft'] ?? 0,
       isActive: data['isActive'] ?? true,
       thumbnailUrl: data['thumbnailUrl'] ?? '',
+      isCourseBatch: data['isCourseBatch'] ?? false,
     );
   }
 
@@ -147,6 +150,7 @@ class AdminBatch {
       'seatsLeft': seatsLeft,
       'isActive': isActive,
       'thumbnailUrl': thumbnailUrl,
+      'isCourseBatch': isCourseBatch,
     };
   }
 }

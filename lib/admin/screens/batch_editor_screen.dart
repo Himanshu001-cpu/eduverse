@@ -137,6 +137,7 @@ class BatchEditorScreen extends StatelessWidget {
     DateTime startDate = batch?.startDate ?? DateTime.now().add(const Duration(days: 7));
     DateTime endDate = batch?.endDate ?? DateTime.now().add(const Duration(days: 90));
     bool isActive = batch?.isActive ?? true;
+    bool isCourseBatch = batch?.isCourseBatch ?? false;
     String thumbnailUrl = batch?.thumbnailUrl ?? '';
 
     showDialog(
@@ -234,6 +235,13 @@ class BatchEditorScreen extends StatelessWidget {
                   value: isActive,
                   onChanged: (v) => setState(() => isActive = v),
                 ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Is Course-Batch (All-Inclusive)'),
+                  subtitle: const Text('Automatically aggregates resources from all batches of this course'),
+                  value: isCourseBatch,
+                  onChanged: (v) => setState(() => isCourseBatch = v),
+                ),
                 ],
               ),
             ),
@@ -284,6 +292,7 @@ class BatchEditorScreen extends StatelessWidget {
                   seatsLeft: seatsLeft,
                   isActive: isActive,
                   thumbnailUrl: thumbnailUrl,
+                  isCourseBatch: isCourseBatch,
                 );
 
                 try {

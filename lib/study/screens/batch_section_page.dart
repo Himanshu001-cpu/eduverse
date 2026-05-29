@@ -897,7 +897,7 @@ class _SubjectCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Center(
-                    child: Icon(Icons.subject, color: Colors.white, size: 26),
+                    child: Icon(Icons.folder, color: Colors.white, size: 26),
                   ),
                 ),
                 const SizedBox(width: 14),

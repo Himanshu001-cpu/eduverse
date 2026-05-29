@@ -14,6 +14,36 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double? finalPrice;
+    double? realPrice;
+
+    // 1. Search for a Course-Batch (combination batch)
+    Batch? courseBatchObj;
+    for (final b in course.batches) {
+      if (b.isCourseBatch) {
+        courseBatchObj = b;
+        break;
+      }
+    }
+
+    if (courseBatchObj != null) {
+      finalPrice = courseBatchObj.finalPrice;
+      realPrice = courseBatchObj.realPrice;
+    } else if (course.batches.isNotEmpty) {
+      // 2. Fall back to starting price (minimum batch finalPrice)
+      Batch minPriceBatch = course.batches.first;
+      for (final b in course.batches) {
+        if (b.finalPrice < minPriceBatch.finalPrice) {
+          minPriceBatch = b;
+        }
+      }
+      finalPrice = minPriceBatch.finalPrice;
+      realPrice = minPriceBatch.realPrice;
+    } else {
+      // 3. Fall back to course default price
+      finalPrice = course.priceDefault;
+    }
+
     return Container(
       width: 160,
       margin: const EdgeInsets.only(right: 16),
@@ -72,6 +102,30 @@ class CourseCard extends StatelessWidget {
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Text(
+                  '₹${finalPrice.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+                if (realPrice != null && realPrice > finalPrice) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '₹${realPrice.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      decoration: TextDecoration.lineThrough,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

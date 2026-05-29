@@ -26,9 +26,7 @@ class StoreRepository {
     _coursesStream ??= _coursesRef.where('visibility', isEqualTo: 'published').snapshots().asyncMap((
       snapshot,
     ) async {
-      final courses = <Course>[];
-
-      for (final doc in snapshot.docs) {
+      final futures = snapshot.docs.map((doc) async {
         final data = doc.data();
 
         // Handle gradient colors - support both formats
@@ -57,7 +55,8 @@ class StoreRepository {
                 seatsLeft: b['seatsLeft'] ?? 0,
                 duration: b['duration'] ?? '',
                 thumbnailUrl: b['thumbnailUrl'] ?? '',
-                isEnrolled: b['isEnrolled'] ?? false, // Will be updated later
+                isEnrolled: b['isEnrolled'] ?? false,
+                isCourseBatch: b['isCourseBatch'] ?? false,
               );
             }),
           );
@@ -74,13 +73,11 @@ class StoreRepository {
           for (final batchDoc in batchSnapshot.docs) {
             final b = batchDoc.data();
 
-            // Filter out inactive batches (default to true if missing, e.g. legacy data)
+            // Filter out inactive batches
             final bool isActive = b['isActive'] ?? true;
             if (!isActive) continue;
 
             final batchId = batchDoc.id;
-
-            // Check if this batch is already in the list (avoid duplicates if migration happened)
             final existingIndex = batches.indexWhere(
               (element) => element.id == batchId,
             );
@@ -88,15 +85,12 @@ class StoreRepository {
             final newBatch = Batch(
               id: batchId,
               name: b['name'] ?? 'Default Batch',
-              startDate:
-                  (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              realPrice:
-                  (b['realPrice'] as num?)?.toDouble() ??
+              startDate: (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+              realPrice: (b['realPrice'] as num?)?.toDouble() ??
                   (b['price'] as num?)?.toDouble() ??
                   (data['priceDefault'] as num?)?.toDouble() ??
                   0.0,
-              finalPrice:
-                  (b['finalPrice'] as num?)?.toDouble() ??
+              finalPrice: (b['finalPrice'] as num?)?.toDouble() ??
                   (b['price'] as num?)?.toDouble() ??
                   (data['priceDefault'] as num?)?.toDouble() ??
                   0.0,
@@ -106,14 +100,13 @@ class StoreRepository {
                 (b['endDate'] as Timestamp?)?.toDate(),
               ),
               thumbnailUrl: b['thumbnailUrl'] ?? '',
-              isEnrolled: false, // Will be updated later
+              isEnrolled: false,
+              isCourseBatch: b['isCourseBatch'] ?? false,
             );
 
             if (existingIndex != -1) {
-              // Update existing
               batches[existingIndex] = newBatch;
             } else {
-              // Add new
               batches.add(newBatch);
             }
           }
@@ -121,33 +114,23 @@ class StoreRepository {
           debugPrint('Failed to fetch batches for course ${doc.id}: $e');
         }
 
-        // 3. Update Enrollment Status for all batches
-        // Optimization: Fetch user purchases once outside the loop if possible,
-        // but here we are inside the course loop.
-        // We'll rely on the UI to check enrollment or do it here if we have userId.
-        // The previous code had `isEnrolled` in the model, but it was just reading from JSON or defaulting to false.
-        // We really should check against real purchases if we want it to be accurate.
-        // However, `getCourses` doesn't take a userId.
-        // The UI (CourseDetailScreen/StorePage) handles "Enroll Now" vs "Go to Course" logic often by checking purchases again or the user passing logic.
-        // But let's keep the `isEnrolled` as false by default here, as strictly `getCourses` is public data.
-        // The StorePage or DetailPage can update the state.
-
-        courses.add(
-          Course(
-            id: doc.id,
-            title: data['title'] ?? '',
-            subtitle: data['subtitle'] ?? '',
-            description: data['description'] ?? '',
-            emoji: data['emoji'] ?? '📚', // Default emoji if not set
-            gradientColors: gradientColors.length >= 2
-                ? gradientColors
-                : [Colors.blue, Colors.blueAccent],
-            thumbnailUrl: data['thumbnailUrl'] ?? '',
-            priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
-            batches: batches,
-          ),
+        return Course(
+          id: doc.id,
+          title: data['title'] ?? '',
+          subtitle: data['subtitle'] ?? '',
+          description: data['description'] ?? '',
+          emoji: data['emoji'] ?? '📚',
+          gradientColors: gradientColors.length >= 2
+              ? gradientColors
+              : [Colors.blue, Colors.blueAccent],
+          thumbnailUrl: data['thumbnailUrl'] ?? '',
+          priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
+          batches: batches,
         );
-      }
+      }).toList();
+
+      final results = await Future.wait(futures);
+      final courses = results.toList();
 
       return courses;
     });

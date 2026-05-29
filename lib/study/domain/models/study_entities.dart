@@ -62,6 +62,7 @@ class StudyBatch {
   final int totalLectures;
   final int completedLectures;
   final double progress; // 0.0 to 1.0
+  final bool isCourseBatch;
 
   const StudyBatch({
     required this.id,
@@ -75,6 +76,7 @@ class StudyBatch {
     this.totalLectures = 0,
     this.completedLectures = 0,
     this.progress = 0.0,
+    this.isCourseBatch = false,
   });
 
   StudyBatch copyWith({
@@ -89,6 +91,7 @@ class StudyBatch {
     int? totalLectures,
     int? completedLectures,
     double? progress,
+    bool? isCourseBatch,
   }) {
     return StudyBatch(
       id: id ?? this.id,
@@ -102,6 +105,7 @@ class StudyBatch {
       totalLectures: totalLectures ?? this.totalLectures,
       completedLectures: completedLectures ?? this.completedLectures,
       progress: progress ?? this.progress,
+      isCourseBatch: isCourseBatch ?? this.isCourseBatch,
     );
   }
 }
@@ -278,6 +282,8 @@ class StudyLiveClass {
   final String status; // 'upcoming', 'live', 'completed'
   final String? youtubeUrl;
   final String thumbnailUrl;
+  final String subject;
+  final String chapter;
 
   const StudyLiveClass({
     required this.id,
@@ -289,6 +295,8 @@ class StudyLiveClass {
     this.status = 'upcoming',
     this.youtubeUrl,
     this.thumbnailUrl = '',
+    this.subject = '',
+    this.chapter = '',
   });
 
   bool get isUpcoming => status == 'upcoming' && startTime.isAfter(DateTime.now());

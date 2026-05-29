@@ -28,15 +28,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     final isAdmin = await _authService.isAdmin();
     if (isAdmin) {
-      // Allow admins to take screenshots
+      // Allow admins to take screenshots and record screen
       await ScreenProtector.preventScreenshotOff();
       await ScreenProtector.protectDataLeakageOff();
-      debugPrint('Screenshot protection DISABLED for admin: ${user.email}');
+      await ScreenProtector.preventScreenRecordOff();
+      debugPrint('Screenshot & Recording protection DISABLED for admin: ${user.email}');
     } else {
-      // Prevent non-admin users from taking screenshots
+      // Prevent non-admin users from taking screenshots and recording screen
       await ScreenProtector.preventScreenshotOn();
       await ScreenProtector.protectDataLeakageOn();
-      debugPrint('Screenshot protection ENABLED for user: ${user.email}');
+      await ScreenProtector.preventScreenRecordOn();
+      debugPrint('Screenshot & Recording protection ENABLED for user: ${user.email}');
     }
   }
 
@@ -44,6 +46,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (kIsWeb) return;
     // When user is not authenticated, no need for protection
     // (nothing sensitive on login screen)
+    await ScreenProtector.preventScreenshotOff();
+    await ScreenProtector.protectDataLeakageOff();
+    await ScreenProtector.preventScreenRecordOff();
   }
 
   @override

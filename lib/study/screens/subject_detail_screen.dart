@@ -393,7 +393,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$lecs Lec • $notes Note${notes != 1 ? 's' : ''}',
+                  '$lecs Lec • $notes Note${notes != 1 ? 's' : ''} • $dpps DPP${dpps != 1 ? 's' : ''}',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w500),
                 ),
               ],

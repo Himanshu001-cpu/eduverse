@@ -194,7 +194,7 @@ class _CoursesContent extends StatelessWidget {
             );
           }),
           SizedBox(
-            height: 180,
+            height: 210,
             child: StreamBuilder<List<Course>>(
               stream: StoreRepository().getCourses(),
               builder: (context, snapshot) {
@@ -247,7 +247,7 @@ class _CoursesContent extends StatelessWidget {
             );
           }),
           SizedBox(
-            height: 180,
+            height: 210,
             child: StreamBuilder<List<Course>>(
               stream: StoreRepository().getCourses(),
               builder: (context, snapshot) {
