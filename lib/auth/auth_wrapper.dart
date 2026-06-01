@@ -23,32 +23,58 @@ class _AuthWrapperState extends State<AuthWrapper> {
   final AuthService _authService = AuthService();
   String? _lastUserId;
 
-  Future<void> _updateScreenProtection(User user) async {
-    if (kIsWeb) return;
+  bool _updatingProtection = false;
 
-    final isAdmin = await _authService.isAdmin();
-    if (isAdmin) {
-      // Allow admins to take screenshots and record screen
-      await ScreenProtector.preventScreenshotOff();
-      await ScreenProtector.protectDataLeakageOff();
-      await ScreenProtector.preventScreenRecordOff();
-      debugPrint('Screenshot & Recording protection DISABLED for admin: ${user.email}');
-    } else {
-      // Prevent non-admin users from taking screenshots and recording screen
-      await ScreenProtector.preventScreenshotOn();
-      await ScreenProtector.protectDataLeakageOn();
-      await ScreenProtector.preventScreenRecordOn();
-      debugPrint('Screenshot & Recording protection ENABLED for user: ${user.email}');
+  Future<void> _updateScreenProtection(User user) async {
+    if (kIsWeb || _updatingProtection) return;
+    _updatingProtection = true;
+
+    try {
+      final isAdmin = await _authService.isAdmin();
+      if (!mounted) return;
+      if (isAdmin) {
+        // Allow admins to take screenshots and record screen
+        await ScreenProtector.preventScreenshotOff();
+        if (!mounted) return;
+        await ScreenProtector.protectDataLeakageOff();
+        if (!mounted) return;
+        debugPrint('Screenshot & screen-record protection DISABLED for admin: ${user.email}');
+      } else {
+        // preventScreenshotOn + protectDataLeakageOn together set Android's
+        // FLAG_SECURE which blocks both screenshots AND screen recording.
+        await ScreenProtector.preventScreenshotOn();
+        if (!mounted) return;
+        await ScreenProtector.protectDataLeakageOn();
+        if (!mounted) return;
+        debugPrint('Screenshot & screen-record protection ENABLED for user: ${user.email}');
+      }
+    } catch (e) {
+      debugPrint('Error updating screen protection: $e');
+    } finally {
+      if (mounted) {
+        _updatingProtection = false;
+      }
     }
   }
 
   Future<void> _disableScreenProtection() async {
-    if (kIsWeb) return;
-    // When user is not authenticated, no need for protection
-    // (nothing sensitive on login screen)
-    await ScreenProtector.preventScreenshotOff();
-    await ScreenProtector.protectDataLeakageOff();
-    await ScreenProtector.preventScreenRecordOff();
+    if (kIsWeb || _updatingProtection) return;
+    _updatingProtection = true;
+
+    try {
+      // When user is not authenticated, no need for protection
+      // (nothing sensitive on login screen)
+      await ScreenProtector.preventScreenshotOff();
+      if (!mounted) return;
+      await ScreenProtector.protectDataLeakageOff();
+      if (!mounted) return;
+    } catch (e) {
+      debugPrint('Error disabling screen protection: $e');
+    } finally {
+      if (mounted) {
+        _updatingProtection = false;
+      }
+    }
   }
 
   @override
@@ -66,7 +92,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           return _ErrorScreen(
             error: snapshot.error.toString(),
             onRetry: () {
-              // Force rebuild
+              setState(() {});
             },
           );
         }
@@ -83,8 +109,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         // User is not authenticated
-        _lastUserId = null;
-        _disableScreenProtection();
+        if (_lastUserId != null) {
+          _lastUserId = null;
+          _disableScreenProtection();
+        }
 
         // Web: show landing page with features
         // Mobile: show login page

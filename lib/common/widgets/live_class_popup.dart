@@ -8,8 +8,6 @@ import 'package:eduverse/core/services/live_class_notifier_service.dart';
 class LiveClassPopup extends StatefulWidget {
   const LiveClassPopup({super.key});
 
-  static final Set<String> _dismissedClassIds = {};
-
   @override
   State<LiveClassPopup> createState() => _LiveClassPopupState();
 }
@@ -19,6 +17,8 @@ class _LiveClassPopupState extends State<LiveClassPopup> with SingleTickerProvid
   late Animation<Offset> _offsetAnimation;
   late Animation<double> _fadeAnimation;
   ActiveLiveClass? _currentActive;
+  ActiveLiveClass? _pendingUpdate;
+  bool _hasPendingCallback = false;
 
   @override
   void initState() {
@@ -50,49 +50,58 @@ class _LiveClassPopupState extends State<LiveClassPopup> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<LiveClassNotifierService>(
-      builder: (context, service, child) {
-        // Find the first active live class that has not been dismissed
-        final activeList = service.activeClasses
-            .where((ac) => !LiveClassPopup._dismissedClassIds.contains(ac.liveClass.id))
-            .toList();
+    return Positioned(
+      left: 16,
+      bottom: 96, // Elevated above bottom navigation bar
+      child: Consumer<LiveClassNotifierService>(
+        builder: (context, service, child) {
+          // Find the first active live class that has not been dismissed
+          final activeList = service.activeClasses
+              .where((ac) => !service.dismissedClassIds.contains(ac.liveClass.id))
+              .toList();
 
-        if (activeList.isEmpty) {
-          if (_currentActive != null) {
-            _animController.reverse().then((_) {
-              if (mounted) {
+          final nextActive = activeList.isEmpty ? null : activeList.first;
+
+          final shouldUpdate = (_currentActive == null && nextActive != null) ||
+              (nextActive?.liveClass.id != _currentActive?.liveClass.id);
+
+          if (shouldUpdate) {
+            _pendingUpdate = nextActive;
+            if (!_hasPendingCallback) {
+              _hasPendingCallback = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _hasPendingCallback = false;
+                if (!mounted) return;
+                final update = _pendingUpdate;
                 setState(() {
-                  _currentActive = null;
+                  _currentActive = update;
                 });
-              }
-            });
+                if (update == null) {
+                  _animController.reverse();
+                } else {
+                  _animController.forward(from: 0.0);
+                }
+              });
+            }
           }
-          return const SizedBox.shrink();
-        }
 
-        final nextActive = activeList.first;
+          if (_currentActive == null) {
+            return const SizedBox.shrink();
+          }
 
-        if (_currentActive == null || _currentActive!.liveClass.id != nextActive.liveClass.id) {
-          _currentActive = nextActive;
-          _animController.forward(from: 0.0);
-        }
-
-        return Positioned(
-          left: 16,
-          bottom: 96, // Elevated above bottom navigation bar
-          child: SlideTransition(
+          return SlideTransition(
             position: _offsetAnimation,
             child: FadeTransition(
               opacity: _fadeAnimation,
-              child: _buildPopupCard(context, _currentActive!),
+              child: _buildPopupCard(context, service, _currentActive!),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildPopupCard(BuildContext context, ActiveLiveClass active) {
+  Widget _buildPopupCard(BuildContext context, LiveClassNotifierService service, ActiveLiveClass active) {
     final liveClass = active.liveClass;
     
     return Container(
@@ -237,10 +246,8 @@ class _LiveClassPopupState extends State<LiveClassPopup> with SingleTickerProvid
                         icon: const Icon(Icons.close, color: Colors.white60, size: 18),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        onTap: () {
-                          setState(() {
-                            LiveClassPopup._dismissedClassIds.add(liveClass.id);
-                          });
+                        onPressed: () {
+                          service.dismissClass(liveClass.id);
                         },
                       ),
                       const SizedBox(height: 24),

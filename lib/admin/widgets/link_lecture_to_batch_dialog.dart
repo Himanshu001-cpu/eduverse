@@ -30,6 +30,7 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
 
   /// Set of selected target "courseId_batchId" keys
   final Set<String> _selectedTargets = {};
+  final Set<String> _newlyLinkedKeys = {};
   bool _isLinking = false;
 
   @override
@@ -64,49 +65,93 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
   }
 
   bool _isAlreadyLinked(String courseId, String batchId) {
+    final key = '${courseId}___$batchId';
+    if (_newlyLinkedKeys.contains(key)) return true;
     return widget.lecture.linkedBatches.any(
       (lb) => lb['courseId'] == courseId && lb['batchId'] == batchId,
     );
   }
 
   Future<void> _linkSelected() async {
-    if (_selectedTargets.isEmpty) return;
+    if (_selectedTargets.isEmpty || _isLinking) return;
+    final targetsSnapshot = Set<String>.from(_selectedTargets);
     setState(() => _isLinking = true);
 
     try {
       final service = context.read<FirebaseAdminService>();
+      final List<String> succeeded = [];
+      final List<Map<String, String>> failed = [];
 
-      for (final key in _selectedTargets) {
-        final parts = key.split('___');
-        final targetCourseId = parts[0];
-        final targetBatchId = parts[1];
+      for (final key in targetsSnapshot) {
+        final index = key.indexOf('___');
+        if (index == -1) continue;
+        final targetCourseId = key.substring(0, index);
+        final targetBatchId = key.substring(index + 3);
 
-        await service.linkLectureToBatch(
-          sourceLecture: widget.lecture,
-          sourceCourseId: widget.sourceCourseId,
-          sourceBatchId: widget.sourceBatchId,
-          targetCourseId: targetCourseId,
-          targetBatchId: targetBatchId,
-        );
+        try {
+          await service.linkLectureToBatch(
+            sourceLecture: widget.lecture,
+            sourceCourseId: widget.sourceCourseId,
+            sourceBatchId: widget.sourceBatchId,
+            targetCourseId: targetCourseId,
+            targetBatchId: targetBatchId,
+          );
+          succeeded.add(key);
+        } catch (e) {
+          failed.add({
+            'key': key,
+            'error': e.toString(),
+          });
+        }
       }
 
       if (mounted) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Linked to ${_selectedTargets.length} batch${_selectedTargets.length > 1 ? 'es' : ''}',
+        setState(() {
+          for (final key in succeeded) {
+            _selectedTargets.remove(key);
+            _newlyLinkedKeys.add(key);
+          }
+        });
+
+        if (failed.isEmpty) {
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(context, true);
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                'Linked to ${succeeded.length} batch${succeeded.length > 1 ? 'es' : ''}',
+              ),
+              backgroundColor: Colors.green,
             ),
-            backgroundColor: Colors.green,
-          ),
-        );
+          );
+        } else {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Partial Link Failure'),
+              content: Text(
+                'Successfully linked to ${succeeded.length} batches, but failed to link to ${failed.length} batches.\n\n'
+                'The failed ones remain selected. You can retry linking them.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLinking = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLinking = false);
       }
     }
   }
@@ -331,17 +376,19 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
                     )
                   : Checkbox(
                       value: isSelected,
-                      onChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            _selectedTargets.add(key);
-                          } else {
-                            _selectedTargets.remove(key);
-                          }
-                        });
-                      },
+                      onChanged: _isLinking
+                          ? null
+                          : (val) {
+                              setState(() {
+                                if (val == true) {
+                                  _selectedTargets.add(key);
+                                } else {
+                                  _selectedTargets.remove(key);
+                                }
+                              });
+                            },
                     ),
-              onTap: (isCurrent || isLinked)
+              onTap: (isCurrent || isLinked || _isLinking)
                   ? null
                   : () {
                       setState(() {

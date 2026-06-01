@@ -5,7 +5,7 @@ import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 
 /// Dialog that shows all existing live classes from every course/batch,
-/// allowing the admin to pick one to link into the current batch.
+/// allowing the admin to pick ONE OR MORE to link into the current batch.
 class LinkLiveClassDialog extends StatefulWidget {
   /// The courseId + batchId of the *target* batch we want to link into.
   final String targetCourseId;
@@ -25,9 +25,15 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
   List<Map<String, dynamic>> _allClasses = [];
   List<Map<String, dynamic>> _filteredClasses = [];
   bool _isLoading = true;
+  bool _isLinking = false;
   String _searchQuery = '';
   final _searchController = TextEditingController();
   String? _error;
+
+  /// Keys: '${courseId}___${batchId}___${classId}' for uniqueness
+  final Set<String> _selectedKeys = {};
+  /// Track classes linked during this dialog session (to grey them out on retry)
+  final Set<String> _newlyLinkedKeys = {};
 
   @override
   void initState() {
@@ -41,11 +47,24 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
     super.dispose();
   }
 
+  /// Unique key for a class entry
+  String _entryKey(Map<String, dynamic> entry) {
+    final liveClass = entry['class'] as AdminLiveClass;
+    final courseId = entry['courseId'] as String;
+    final batchId = entry['batchId'] as String;
+    return '${courseId}___${batchId}___${liveClass.id}';
+  }
+
+  bool _isAlreadyLinked(Map<String, dynamic> entry) {
+    final key = _entryKey(entry);
+    return _newlyLinkedKeys.contains(key);
+  }
+
   Future<void> _loadClasses() async {
     try {
       final service = context.read<FirebaseAdminService>();
       final classes = await service.getAllLiveClassesForLinking();
-      
+
       // Filter out classes that are already in the target batch
       final filtered = classes.where((entry) {
         return !(entry['courseId'] == widget.targetCourseId &&
@@ -81,85 +100,130 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
           return liveClass.title.toLowerCase().contains(lowerQuery) ||
               liveClass.subject.toLowerCase().contains(lowerQuery) ||
               liveClass.instructorName.toLowerCase().contains(lowerQuery) ||
-              (entry['courseName'] as String)
-                  .toLowerCase()
-                  .contains(lowerQuery) ||
-              (entry['batchName'] as String)
-                  .toLowerCase()
-                  .contains(lowerQuery);
+              (entry['courseName'] as String).toLowerCase().contains(lowerQuery) ||
+              (entry['batchName'] as String).toLowerCase().contains(lowerQuery);
         }).toList();
       }
     });
   }
 
-  Future<void> _linkClass(Map<String, dynamic> entry) async {
-    final liveClass = entry['class'] as AdminLiveClass;
-    final sourceCourseId = entry['courseId'] as String;
-    final sourceBatchId = entry['batchId'] as String;
+  Future<void> _linkSelected() async {
+    if (_selectedKeys.isEmpty || _isLinking) return;
 
-    // Show confirmation
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Link Class?'),
-        content: Text(
-          'Link "${liveClass.title}" from '
-          '${entry['courseName']} / ${entry['batchName']} '
-          'to this batch?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Link'),
-          ),
-        ],
-      ),
-    );
+    final targetsSnapshot = Set<String>.from(_selectedKeys);
+    setState(() => _isLinking = true);
 
-    if (confirm != true || !mounted) return;
+    // Build a lookup map: key -> entry
+    final entryByKey = <String, Map<String, dynamic>>{
+      for (final e in _allClasses) _entryKey(e): e,
+    };
+
+    final List<String> succeeded = [];
+    final List<Map<String, String>> failed = [];
 
     try {
       final service = context.read<FirebaseAdminService>();
 
-      if (sourceCourseId.isEmpty && sourceBatchId.isEmpty) {
-        // Linking from free live classes
-        await service.linkFreeLiveClassToBatch(
-          sourceClass: liveClass,
-          targetCourseId: widget.targetCourseId,
-          targetBatchId: widget.targetBatchId,
-        );
-      } else {
-        // Linking from another batch
-        await service.linkLiveClassToBatch(
-          sourceClass: liveClass,
-          sourceCourseId: sourceCourseId,
-          sourceBatchId: sourceBatchId,
-          targetCourseId: widget.targetCourseId,
-          targetBatchId: widget.targetBatchId,
-        );
+      for (final key in targetsSnapshot) {
+        final entry = entryByKey[key];
+        if (entry == null) continue;
+
+        final liveClass = entry['class'] as AdminLiveClass;
+        final sourceCourseId = entry['courseId'] as String;
+        final sourceBatchId = entry['batchId'] as String;
+
+        try {
+          if (sourceCourseId.isEmpty && sourceBatchId.isEmpty) {
+            // Linking from free live classes
+            await service.linkFreeLiveClassToBatch(
+              sourceClass: liveClass,
+              targetCourseId: widget.targetCourseId,
+              targetBatchId: widget.targetBatchId,
+            );
+          } else {
+            // Linking from another batch
+            await service.linkLiveClassToBatch(
+              sourceClass: liveClass,
+              sourceCourseId: sourceCourseId,
+              sourceBatchId: sourceBatchId,
+              targetCourseId: widget.targetCourseId,
+              targetBatchId: widget.targetBatchId,
+            );
+          }
+          succeeded.add(key);
+        } catch (e) {
+          failed.add({'key': key, 'title': liveClass.title, 'error': e.toString()});
+        }
       }
 
-      if (mounted) {
+      if (!mounted) return;
+
+      setState(() {
+        for (final key in succeeded) {
+          _selectedKeys.remove(key);
+          _newlyLinkedKeys.add(key);
+        }
+      });
+
+      if (failed.isEmpty) {
+        // All succeeded — close dialog and show snackbar
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
-            content: Text('"${liveClass.title}" linked successfully'),
+            content: Text(
+              'Linked ${succeeded.length} class${succeeded.length > 1 ? 'es' : ''} successfully',
+            ),
             backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Partial failure — keep dialog open, show details
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Partial Link Failure'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '✅ Linked ${succeeded.length} class${succeeded.length > 1 ? 'es' : ''}.\n'
+                  '❌ Failed to link ${failed.length}:',
+                ),
+                const SizedBox(height: 8),
+                ...failed.map((f) => Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '• ${f['title']}: ${f['error']}',
+                        style: const TextStyle(fontSize: 12, color: Colors.red),
+                      ),
+                    )),
+                const SizedBox(height: 8),
+                const Text(
+                  'Failed items remain selected — you can retry.',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.red),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLinking = false);
       }
     }
   }
@@ -171,8 +235,8 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.75,
-          maxWidth: 600,
+          maxHeight: MediaQuery.of(context).size.height * 0.80,
+          maxWidth: 620,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -182,13 +246,12 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
               padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
               child: Row(
                 children: [
-                  const Icon(Icons.link, color: Colors.blue),
+                  const Icon(Icons.add_link, color: Colors.blue),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
-                      'Link Existing Class',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      'Link Live Classes',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   IconButton(
@@ -230,9 +293,44 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
             ),
 
             // Body
-            Expanded(
-              child: _buildBody(),
-            ),
+            Expanded(child: _buildBody()),
+
+            // Footer with Link button
+            if (!_isLoading && _error == null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      '${_selectedKeys.length} selected',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: _selectedKeys.isEmpty || _isLinking ? null : _linkSelected,
+                      icon: _isLinking
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.link, size: 18),
+                      label: Text(_isLinking ? 'Linking...' : 'Link'),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -264,8 +362,7 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.video_camera_front_outlined,
-                  size: 48, color: Colors.grey),
+              Icon(Icons.video_camera_front_outlined, size: 48, color: Colors.grey),
               SizedBox(height: 12),
               Text(
                 'No live classes found in other batches',
@@ -298,6 +395,9 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
         final liveClass = entry['class'] as AdminLiveClass;
         final courseName = entry['courseName'] as String;
         final batchName = entry['batchName'] as String;
+        final key = _entryKey(entry);
+        final isLinked = _isAlreadyLinked(entry);
+        final isSelected = _selectedKeys.contains(key);
 
         final isLive = liveClass.status == 'live';
         final statusColor = isLive
@@ -307,8 +407,7 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
                 : Colors.blue;
 
         return ListTile(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           leading: CircleAvatar(
             radius: 22,
             backgroundImage: liveClass.thumbnailUrl.isNotEmpty
@@ -322,23 +421,25 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
             liveClass.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: isLinked ? Colors.grey : null,
+            ),
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(Icons.folder_outlined,
-                      size: 13, color: Colors.grey[600]),
+                  Icon(Icons.folder_outlined, size: 13, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       '$courseName › $batchName',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          TextStyle(color: Colors.grey[600], fontSize: 12),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ),
                 ],
@@ -354,8 +455,7 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -369,16 +469,46 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
                       ),
                     ),
                   ),
+                  if (isLinked) ...[
+                    const SizedBox(width: 8),
+                    const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                    const SizedBox(width: 2),
+                    const Text(
+                      'Linked',
+                      style: TextStyle(color: Colors.green, fontSize: 11),
+                    ),
+                  ],
                 ],
               ),
             ],
           ),
-          trailing: IconButton(
-            icon: const Icon(Icons.add_link, color: Colors.blue),
-            tooltip: 'Link this class',
-            onPressed: () => _linkClass(entry),
-          ),
-          onTap: () => _linkClass(entry),
+          trailing: isLinked
+              ? const Icon(Icons.link, color: Colors.green, size: 22)
+              : Checkbox(
+                  value: isSelected,
+                  onChanged: _isLinking
+                      ? null
+                      : (val) {
+                          setState(() {
+                            if (val == true) {
+                              _selectedKeys.add(key);
+                            } else {
+                              _selectedKeys.remove(key);
+                            }
+                          });
+                        },
+                ),
+          onTap: (isLinked || _isLinking)
+              ? null
+              : () {
+                  setState(() {
+                    if (_selectedKeys.contains(key)) {
+                      _selectedKeys.remove(key);
+                    } else {
+                      _selectedKeys.add(key);
+                    }
+                  });
+                },
         );
       },
     );

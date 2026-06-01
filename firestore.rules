@@ -254,8 +254,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Test Series: Auth read, Admin write
+    // Test Series: Public/Auth read, Admin write
     match /test_series/{testSeriesId} {
+      allow read: if resource.data.visibility == 'published';
       allow read: if request.auth != null;
       allow write: if isAdmin();
 
@@ -284,8 +285,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Combination Packs: Auth read, Admin write
+    // Combination Packs: Public/Auth read, Admin write
     match /combination_packs/{packId} {
+      allow read: if resource.data.isActive == true;
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }
@@ -319,7 +321,7 @@ service cloud.firestore {
 
     // Free Live Classes: Public/Auth read, Admin write
     match /free_live_classes/{classId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if isAdmin();
       
       // Allow comments on free classes

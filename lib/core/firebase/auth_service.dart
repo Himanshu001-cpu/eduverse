@@ -18,9 +18,6 @@ class AuthService {
   Future<bool> isAdmin() async {
     final user = _auth.currentUser;
     if (user == null) return false;
-    
-    // Quick fallback for development/testing
-    if (user.email == 'admin@eduverse.com') return true;
 
     try {
       final userData = await _userService.getCurrentUserData(user.uid);
@@ -42,13 +39,6 @@ class AuthService {
     } catch (e) {
       debugPrint('Error checking admin status: $e');
       return false;
-    }
-  }
-
-  Future<void> syncAdminRole() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      await _userService.updateUserProfile(user.uid, {'role': 'admin'});
     }
   }
 

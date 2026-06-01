@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../feed/feed_page.dart';
 import '../study/study_page.dart';
 import '../store/store_page.dart';
@@ -17,6 +18,7 @@ class MainNavigationPage extends StatefulWidget {
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
+  final NewBatchPromotionService _newBatchPromotionService = NewBatchPromotionService();
 
   final List<Widget> _pages = const [
     FeedPage(),
@@ -28,8 +30,13 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      NewBatchPromotionService().checkForNewBatchPromotion(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        final result = await _newBatchPromotionService.getEligiblePromotion();
+        if (result != null && mounted) {
+          await _newBatchPromotionService.showPromoDialog(context, result);
+        }
+      }
     });
   }
 
@@ -37,7 +44,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<LiveClassNotifierService>(
-      create: (_) => LiveClassNotifierService(),
+      create: (_) => LiveClassNotifierService(
+        uid: FirebaseAuth.instance.currentUser!.uid,
+      ),
       child: Scaffold(
         body: Stack(
           children: [

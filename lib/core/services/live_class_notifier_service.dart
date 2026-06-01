@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 
@@ -29,30 +28,24 @@ class ActiveLiveClass {
 }
 
 class LiveClassNotifierService extends ChangeNotifier {
-  static final LiveClassNotifierService _instance = LiveClassNotifierService._internal();
-  factory LiveClassNotifierService() => _instance;
-  LiveClassNotifierService._internal() {
-    _init();
+  LiveClassNotifierService({required String uid}) {
+    _listenToEnrollments(uid);
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  StreamSubscription? _authSubscription;
   StreamSubscription? _enrollmentSubscription;
   final Map<String, StreamSubscription> _liveClassSubscriptions = {};
 
   List<ActiveLiveClass> _activeClasses = [];
-  List<ActiveLiveClass> get activeClasses => _activeClasses;
+  List<ActiveLiveClass> get activeClasses => List.unmodifiable(_activeClasses);
 
-  void _init() {
-    _authSubscription = _auth.authStateChanges().listen((user) {
-      if (user == null) {
-        _cleanup();
-      } else {
-        _listenToEnrollments(user.uid);
-      }
-    });
+  final Set<String> _dismissedClassIds = {};
+  Set<String> get dismissedClassIds => Set.unmodifiable(_dismissedClassIds);
+
+  void dismissClass(String classId) {
+    _dismissedClassIds.add(classId);
+    notifyListeners();
   }
 
   void _listenToEnrollments(String uid) {
@@ -82,13 +75,19 @@ class LiveClassNotifierService extends ChangeNotifier {
 
       // Cancel subscriptions for batches the user is no longer enrolled in
       final keysToRemove = _liveClassSubscriptions.keys.where((k) => !activeKeys.contains(k)).toList();
-      for (final key in keysToRemove) {
-        _liveClassSubscriptions[key]?.cancel();
-        _liveClassSubscriptions.remove(key);
-        // Clear active classes associated with this batch
-        _activeClasses.removeWhere((ac) => '${ac.courseId}___${ac.batchId}' == key);
+      if (keysToRemove.isNotEmpty) {
+        final updatedClasses = List<ActiveLiveClass>.from(_activeClasses);
+        for (final key in keysToRemove) {
+          _liveClassSubscriptions[key]?.cancel();
+          _liveClassSubscriptions.remove(key);
+          updatedClasses.removeWhere((ac) => '${ac.courseId}___${ac.batchId}' == key);
+        }
+        _activeClasses = updatedClasses;
       }
       notifyListeners();
+    }, onError: (err) {
+      debugPrint('LiveClassNotifierService enrollment snapshots error: $err');
+      // Don't cleanup — Firestore streams auto-reconnect on transient errors.
     });
   }
 
@@ -102,20 +101,24 @@ class LiveClassNotifierService extends ChangeNotifier {
         .where('status', isEqualTo: 'live')
         .snapshots()
         .listen((classSnap) {
-      // Remove previous active classes for this batch
-      _activeClasses.removeWhere((ac) => ac.courseId == courseId && ac.batchId == batchId);
+      // Remove previous active classes for this batch and add updated ones immutably
+      final updatedClasses = List<ActiveLiveClass>.from(_activeClasses);
+      updatedClasses.removeWhere((ac) => ac.courseId == courseId && ac.batchId == batchId);
 
       for (final doc in classSnap.docs) {
         final data = doc.data();
         final liveClass = _mapToStudyLiveClass(doc.id, data);
-        _activeClasses.add(ActiveLiveClass(
+        updatedClasses.add(ActiveLiveClass(
           liveClass: liveClass,
           courseId: courseId,
           batchId: batchId,
         ));
       }
 
+      _activeClasses = updatedClasses;
       notifyListeners();
+    }, onError: (err) {
+      debugPrint('LiveClassNotifierService live classes error for key $key: $err');
     });
   }
 
@@ -125,7 +128,7 @@ class LiveClassNotifierService extends ChangeNotifier {
       title: data['title'] ?? '',
       description: data['description'] ?? '',
       instructorName: data['instructorName'] ?? '',
-      startTime: (data['startTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      startTime: (data['startTime'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0),
       durationMinutes: data['durationMinutes'] ?? 60,
       status: data['status'] ?? 'upcoming',
       youtubeUrl: data['youtubeUrl'],
@@ -135,7 +138,7 @@ class LiveClassNotifierService extends ChangeNotifier {
     );
   }
 
-  void _cleanup() {
+  void _cleanup({bool notify = true}) {
     _enrollmentSubscription?.cancel();
     _enrollmentSubscription = null;
     for (final sub in _liveClassSubscriptions.values) {
@@ -143,13 +146,13 @@ class LiveClassNotifierService extends ChangeNotifier {
     }
     _liveClassSubscriptions.clear();
     _activeClasses.clear();
-    notifyListeners();
+    _dismissedClassIds.clear();
+    if (notify) notifyListeners();
   }
 
   @override
   void dispose() {
-    _authSubscription?.cancel();
-    _cleanup();
+    _cleanup(notify: false);
     super.dispose();
   }
 }

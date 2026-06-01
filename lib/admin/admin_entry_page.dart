@@ -40,11 +40,6 @@ class _AdminEntryPageState extends State<AdminEntryPage> {
 
       final isAdmin = await _authService.isAdmin();
 
-      // Ensure Firestore data matches for the hardcoded admin
-      if (isAdmin && _authService.currentUser?.email == 'admin@eduverse.com') {
-         await _authService.syncAdminRole();
-      }
-
       if (mounted) {
         setState(() {
           _isAdmin = isAdmin;
