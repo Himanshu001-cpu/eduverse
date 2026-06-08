@@ -21,7 +21,7 @@ class BatchNotesScreen extends StatelessWidget {
         onPressed: () => _showNoteDialog(context, service, null),
       ),
       body: StreamBuilder<List<AdminNote>>(
-        stream: service.getBatchNotes(courseId, batchId),
+        stream: service.getCourseNotes(courseId),
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -107,7 +107,7 @@ class BatchNotesScreen extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
-              service.deleteBatchNote(courseId, batchId, note.id);
+              service.deleteCourseNote(courseId, note.id);
               Navigator.pop(context);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
@@ -142,7 +142,7 @@ class BatchNotesScreen extends StatelessWidget {
             final subjects = subjectsSnapshot.data ?? [];
 
             return StreamBuilder<List<AdminLecture>>(
-              stream: service.getLectures(courseId, batchId),
+              stream: service.getLectures(courseId),
               builder: (context, lecturesSnapshot) {
                 final lectures = lecturesSnapshot.data ?? [];
 
@@ -425,7 +425,7 @@ class BatchNotesScreen extends StatelessWidget {
                               ],
                               if (pdfUrl == null || pdfUrl!.isEmpty)
                                 MediaUploader(
-                                  path: 'courses/$courseId/batches/$batchId/notes',
+                                  path: 'courses/$courseId/notes',
                                   onUploadComplete: (url) {
                                     setState(() => pdfUrl = url);
                                   },
@@ -454,9 +454,8 @@ class BatchNotesScreen extends StatelessWidget {
                               lectureId: selectedLectureId,
                             );
 
-                            await service.saveBatchNote(
+                            await service.saveCourseNote(
                               courseId,
-                              batchId,
                               updatedNote,
                               isNew: !isEditing,
                             );

@@ -3,20 +3,20 @@ import 'package:provider/provider.dart';
 import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 
-/// Dialog that allows an admin to link an existing lecture to additional
-/// batches. Shows a tree of Course → Batch and lets the admin select targets.
+/// Dialog that allows an admin to link existing lecture(s) to additional
+/// courses. Shows a list of courses and lets the admin select targets.
 class LinkLectureToBatchDialog extends StatefulWidget {
-  final AdminLecture lecture;
+  final List<AdminLecture> lectures;
 
-  /// The course/batch where this lecture currently lives.
+  /// The course where this lecture currently lives.
   final String sourceCourseId;
-  final String sourceBatchId;
 
   const LinkLectureToBatchDialog({
     super.key,
-    required this.lecture,
+    required this.lectures,
     required this.sourceCourseId,
-    required this.sourceBatchId,
+    // Keep sourceBatchId parameter for compatibility, but mark it optional/unused
+    String? sourceBatchId,
   });
 
   @override
@@ -28,7 +28,7 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
   bool _isLoading = true;
   String? _error;
 
-  /// Set of selected target "courseId_batchId" keys
+  /// Set of selected target course IDs
   final Set<String> _selectedTargets = {};
   final Set<String> _newlyLinkedKeys = {};
   bool _isLinking = false;
@@ -59,21 +59,21 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
     }
   }
 
-  bool _isCurrentBatch(String courseId, String batchId) {
-    return courseId == widget.sourceCourseId &&
-        batchId == widget.sourceBatchId;
+  bool _isCurrentCourse(String courseId) {
+    return courseId == widget.sourceCourseId;
   }
 
-  bool _isAlreadyLinked(String courseId, String batchId) {
-    final key = '${courseId}___$batchId';
-    if (_newlyLinkedKeys.contains(key)) return true;
-    return widget.lecture.linkedBatches.any(
-      (lb) => lb['courseId'] == courseId && lb['batchId'] == batchId,
+  bool _isAlreadyLinked(String courseId) {
+    if (_newlyLinkedKeys.contains(courseId)) return true;
+    
+    // Consider it already linked if ALL selected lectures are already linked
+    return widget.lectures.every(
+      (lec) => lec.linkedCourses.contains(courseId),
     );
   }
 
   Future<void> _linkSelected() async {
-    if (_selectedTargets.isEmpty || _isLinking) return;
+    if (_selectedTargets.isEmpty || _isLinking || widget.lectures.isEmpty) return;
     final targetsSnapshot = Set<String>.from(_selectedTargets);
     setState(() => _isLinking = true);
 
@@ -82,24 +82,20 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
       final List<String> succeeded = [];
       final List<Map<String, String>> failed = [];
 
-      for (final key in targetsSnapshot) {
-        final index = key.indexOf('___');
-        if (index == -1) continue;
-        final targetCourseId = key.substring(0, index);
-        final targetBatchId = key.substring(index + 3);
-
+      for (final targetCourseId in targetsSnapshot) {
         try {
-          await service.linkLectureToBatch(
-            sourceLecture: widget.lecture,
-            sourceCourseId: widget.sourceCourseId,
-            sourceBatchId: widget.sourceBatchId,
-            targetCourseId: targetCourseId,
-            targetBatchId: targetBatchId,
-          );
-          succeeded.add(key);
+          // Link all selected lectures to this target course
+          for (final lecture in widget.lectures) {
+            await service.linkLectureToCourse(
+              sourceLecture: lecture,
+              sourceCourseId: widget.sourceCourseId,
+              targetCourseId: targetCourseId,
+            );
+          }
+          succeeded.add(targetCourseId);
         } catch (e) {
           failed.add({
-            'key': key,
+            'key': targetCourseId,
             'error': e.toString(),
           });
         }
@@ -119,7 +115,9 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
           messenger.showSnackBar(
             SnackBar(
               content: Text(
-                'Linked to ${succeeded.length} batch${succeeded.length > 1 ? 'es' : ''}',
+                widget.lectures.length == 1
+                    ? 'Linked to ${succeeded.length} course${succeeded.length > 1 ? 's' : ''}'
+                    : 'Successfully linked ${widget.lectures.length} lectures to ${succeeded.length} course${succeeded.length > 1 ? 's' : ''}',
               ),
               backgroundColor: Colors.green,
             ),
@@ -130,7 +128,7 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
             builder: (context) => AlertDialog(
               title: const Text('Partial Link Failure'),
               content: Text(
-                'Successfully linked to ${succeeded.length} batches, but failed to link to ${failed.length} batches.\n\n'
+                'Successfully linked to ${succeeded.length} courses, but failed to link to ${failed.length} courses.\n\n'
                 'The failed ones remain selected. You can retry linking them.',
               ),
               actions: [
@@ -158,6 +156,10 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final lectureTitleText = widget.lectures.length == 1
+        ? widget.lectures.first.title
+        : '${widget.lectures.length} lectures selected for sharing';
+
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -180,15 +182,17 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Link Lecture to Batches',
-                          style: TextStyle(
+                        Text(
+                          widget.lectures.length == 1
+                              ? 'Link Lecture to Courses'
+                              : 'Link Lectures to Courses',
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          widget.lecture.title,
+                          lectureTitleText,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -208,8 +212,8 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
             ),
             const Divider(),
 
-            // Existing links info
-            if (widget.lecture.linkedBatches.isNotEmpty)
+            // Existing links info (only relevant for single-lecture link info)
+            if (widget.lectures.length == 1 && widget.lectures.first.linkedCourses.isNotEmpty)
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -218,7 +222,7 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
                     Icon(Icons.info_outline, size: 16, color: Colors.blue[300]),
                     const SizedBox(width: 6),
                     Text(
-                      'Already linked to ${widget.lecture.linkedBatches.length} batch${widget.lecture.linkedBatches.length > 1 ? 'es' : ''}',
+                      'Already linked to ${widget.lectures.first.linkedCourses.length} course${widget.lectures.first.linkedCourses.length > 1 ? 's' : ''}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue[400],
@@ -271,7 +275,6 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
                       ),
                     ),
                   ],
-                  mainAxisAlignment: MainAxisAlignment.end,
                 ),
               ),
           ],
@@ -299,7 +302,7 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(32),
-          child: Text('No courses or batches found'),
+          child: Text('No courses found'),
         ),
       );
     }
@@ -311,96 +314,74 @@ class _LinkLectureToBatchDialogState extends State<LinkLectureToBatchDialog> {
         final course = _coursesWithBatches[index];
         final courseId = course['courseId'] as String;
         final courseName = course['courseName'] as String;
-        final batches =
-            course['batches'] as List<Map<String, dynamic>>;
+        final isCurrent = _isCurrentCourse(courseId);
+        final isLinked = _isAlreadyLinked(courseId);
+        final isSelected = _selectedTargets.contains(courseId);
 
-        return ExpansionTile(
-          initiallyExpanded: true,
-          leading: const Icon(Icons.school, color: Colors.deepPurple),
+        return ListTile(
+          leading: Icon(
+            isCurrent
+                ? Icons.home
+                : isLinked
+                    ? Icons.link
+                    : Icons.school,
+            color: isCurrent
+                ? Colors.green
+                : isLinked
+                    ? Colors.blue
+                    : Colors.deepPurple,
+            size: 20,
+          ),
           title: Text(
             courseName,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 14,
+              color: (isCurrent || isLinked) ? Colors.grey : null,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          subtitle: Text(
-            '${batches.length} batch${batches.length != 1 ? 'es' : ''}',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-          children: batches.map((batch) {
-            final batchId = batch['id'] as String;
-            final batchName = batch['name'] as String;
-            final key = '${courseId}___$batchId';
-            final isCurrent = _isCurrentBatch(courseId, batchId);
-            final isLinked = _isAlreadyLinked(courseId, batchId);
-            final isSelected = _selectedTargets.contains(key);
-
-            return ListTile(
-              contentPadding: const EdgeInsets.only(left: 48, right: 16),
-              leading: Icon(
-                isCurrent
-                    ? Icons.home
-                    : isLinked
-                        ? Icons.link
-                        : Icons.group_outlined,
-                color: isCurrent
-                    ? Colors.green
-                    : isLinked
-                        ? Colors.blue
-                        : null,
-                size: 20,
-              ),
-              title: Text(
-                batchName,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: (isCurrent || isLinked)
-                      ? Colors.grey
-                      : null,
-                ),
-              ),
-              subtitle: isCurrent
+          subtitle: isCurrent
+              ? const Text(
+                  'Current course',
+                  style: TextStyle(fontSize: 11, color: Colors.green),
+                )
+              : isLinked
                   ? const Text(
-                      'Current batch',
-                      style: TextStyle(fontSize: 11, color: Colors.green),
+                      'Already linked',
+                      style: TextStyle(fontSize: 11, color: Colors.blue),
                     )
-                  : isLinked
-                      ? const Text(
-                          'Already linked',
-                          style: TextStyle(fontSize: 11, color: Colors.blue),
-                        )
-                      : null,
-              trailing: (isCurrent || isLinked)
-                  ? Icon(
-                      isCurrent ? Icons.check_circle : Icons.link,
-                      color: isCurrent ? Colors.green : Colors.blue,
-                      size: 20,
-                    )
-                  : Checkbox(
-                      value: isSelected,
-                      onChanged: _isLinking
-                          ? null
-                          : (val) {
-                              setState(() {
-                                if (val == true) {
-                                  _selectedTargets.add(key);
-                                } else {
-                                  _selectedTargets.remove(key);
-                                }
-                              });
-                            },
-                    ),
-              onTap: (isCurrent || isLinked || _isLinking)
-                  ? null
-                  : () {
-                      setState(() {
-                        if (_selectedTargets.contains(key)) {
-                          _selectedTargets.remove(key);
-                        } else {
-                          _selectedTargets.add(key);
-                        }
-                      });
-                    },
-            );
-          }).toList(),
+                  : null,
+          trailing: (isCurrent || isLinked)
+              ? Icon(
+                  isCurrent ? Icons.check_circle : Icons.link,
+                  color: isCurrent ? Colors.green : Colors.blue,
+                  size: 20,
+                )
+              : Checkbox(
+                  value: isSelected,
+                  onChanged: _isLinking
+                      ? null
+                      : (val) {
+                          setState(() {
+                            if (val == true) {
+                              _selectedTargets.add(courseId);
+                            } else {
+                              _selectedTargets.remove(courseId);
+                            }
+                          });
+                        },
+                ),
+          onTap: (isCurrent || isLinked || _isLinking)
+              ? null
+              : () {
+                  setState(() {
+                    if (_selectedTargets.contains(courseId)) {
+                      _selectedTargets.remove(courseId);
+                    } else {
+                      _selectedTargets.add(courseId);
+                    }
+                  });
+                },
         );
       },
     );

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:eduverse/store/models/store_models.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class StoreRepository {
   // Singleton pattern
@@ -10,7 +11,6 @@ class StoreRepository {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Stream<List<Course>>? _coursesStream;
   Stream<List<CombinationPack>>? _comboPacksStream;
 
   // Collection References
@@ -23,9 +23,31 @@ class StoreRepository {
 
   /// Get all published courses (filtered for public visibility)
   Stream<List<Course>> getCourses() {
-    _coursesStream ??= _coursesRef.where('visibility', isEqualTo: 'published').snapshots().asyncMap((
+    return _coursesRef.where('visibility', isEqualTo: 'published').snapshots().asyncMap((
       snapshot,
     ) async {
+      final user = FirebaseAuth.instance.currentUser;
+      final List<String> enrolledCourseIds = [];
+      if (user != null) {
+        try {
+          final enrollsSnapshot = await _firestore
+              .collection('users')
+              .doc(user.uid)
+              .collection('enrolledCourses')
+              .get();
+          for (final doc in enrollsSnapshot.docs) {
+            enrolledCourseIds.add(doc.id);
+            final data = doc.data();
+            final courseId = data['courseId'] as String?;
+            if (courseId != null) {
+              enrolledCourseIds.add(courseId);
+            }
+          }
+        } catch (e) {
+          debugPrint('Failed to fetch user enrollments: $e');
+        }
+      }
+
       final futures = snapshot.docs.map((doc) async {
         final data = doc.data();
 
@@ -39,80 +61,8 @@ class StoreRepository {
           gradientColors = [Colors.blue, Colors.blueAccent];
         }
 
-        // 1. Fetch batches from embedded array (Legacy/Seeded)
-        List<Batch> batches = [];
-        if (data['batches'] != null && (data['batches'] as List).isNotEmpty) {
-          batches.addAll(
-            (data['batches'] as List<dynamic>).map((b) {
-              return Batch(
-                id: b['id'] ?? '',
-                name: b['name'] ?? '',
-                startDate: b['startDate'] != null
-                    ? DateTime.parse(b['startDate'])
-                    : DateTime.now(),
-                realPrice: (b['realPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? 0.0,
-                finalPrice: (b['finalPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? 0.0,
-                seatsLeft: b['seatsLeft'] ?? 0,
-                duration: b['duration'] ?? '',
-                thumbnailUrl: b['thumbnailUrl'] ?? '',
-                isEnrolled: b['isEnrolled'] ?? false,
-                isCourseBatch: b['isCourseBatch'] ?? false,
-              );
-            }),
-          );
-        }
-
-        // 2. Fetch from subcollection (Admin-created) and merge
-        try {
-          final batchSnapshot = await _firestore
-              .collection('courses')
-              .doc(doc.id)
-              .collection('batches')
-              .get();
-
-          for (final batchDoc in batchSnapshot.docs) {
-            final b = batchDoc.data();
-
-            // Filter out inactive batches
-            final bool isActive = b['isActive'] ?? true;
-            if (!isActive) continue;
-
-            final batchId = batchDoc.id;
-            final existingIndex = batches.indexWhere(
-              (element) => element.id == batchId,
-            );
-
-            final newBatch = Batch(
-              id: batchId,
-              name: b['name'] ?? 'Default Batch',
-              startDate: (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              realPrice: (b['realPrice'] as num?)?.toDouble() ??
-                  (b['price'] as num?)?.toDouble() ??
-                  (data['priceDefault'] as num?)?.toDouble() ??
-                  0.0,
-              finalPrice: (b['finalPrice'] as num?)?.toDouble() ??
-                  (b['price'] as num?)?.toDouble() ??
-                  (data['priceDefault'] as num?)?.toDouble() ??
-                  0.0,
-              seatsLeft: b['seatsLeft'] ?? 0,
-              duration: _calculateDuration(
-                (b['startDate'] as Timestamp?)?.toDate(),
-                (b['endDate'] as Timestamp?)?.toDate(),
-              ),
-              thumbnailUrl: b['thumbnailUrl'] ?? '',
-              isEnrolled: false,
-              isCourseBatch: b['isCourseBatch'] ?? false,
-            );
-
-            if (existingIndex != -1) {
-              batches[existingIndex] = newBatch;
-            } else {
-              batches.add(newBatch);
-            }
-          }
-        } catch (e) {
-          debugPrint('Failed to fetch batches for course ${doc.id}: $e');
-        }
+        final isEnrolled = enrolledCourseIds.contains(doc.id) ||
+            enrolledCourseIds.any((key) => key.startsWith('${doc.id}_'));
 
         return Course(
           id: doc.id,
@@ -125,26 +75,38 @@ class StoreRepository {
               : [Colors.blue, Colors.blueAccent],
           thumbnailUrl: data['thumbnailUrl'] ?? '',
           priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
-          batches: batches,
+          realPrice: (data['realPrice'] as num?)?.toDouble() ??
+              (data['price'] as num?)?.toDouble() ??
+              (data['priceDefault'] as num?)?.toDouble() ??
+              0.0,
+          finalPrice: (data['finalPrice'] as num?)?.toDouble() ??
+              (data['price'] as num?)?.toDouble() ??
+              (data['priceDefault'] as num?)?.toDouble() ??
+              0.0,
+          startDate: data['startDate'] != null
+              ? (data['startDate'] is Timestamp
+                  ? (data['startDate'] as Timestamp).toDate()
+                  : DateTime.tryParse(data['startDate'].toString()))
+              : null,
+          endDate: data['endDate'] != null
+              ? (data['endDate'] is Timestamp
+                  ? (data['endDate'] as Timestamp).toDate()
+                  : DateTime.tryParse(data['endDate'].toString()))
+              : null,
+          seatsTotal: data['seatsTotal'] as int? ?? 0,
+          seatsLeft: data['seatsLeft'] as int? ?? 0,
+          duration: data['duration'] as String? ?? '',
+          isActive: data['isActive'] ?? true,
+          isEnrolled: isEnrolled,
         );
       }).toList();
 
       final results = await Future.wait(futures);
       final courses = results.toList();
 
-      return courses;
+      // Filter out enrolled courses from the store page
+      return courses.where((course) => !course.isEnrolled).toList();
     });
-    return _coursesStream!;
-  }
-
-  // Helper to calculate duration string from start and end dates
-  String _calculateDuration(DateTime? start, DateTime? end) {
-    if (start == null || end == null) return '3 months';
-    final days = end.difference(start).inDays;
-    if (days > 30) {
-      return '${(days / 30).round()} months';
-    }
-    return '$days days';
   }
 
   // --- Combination Packs ---
@@ -161,6 +123,39 @@ class StoreRepository {
               .toList();
         });
     return _comboPacksStream!;
+  }
+
+  // --- E-books ---
+
+  /// Get all active E-books
+  Stream<List<Ebook>> getEbooks() {
+    return _firestore
+        .collection('ebooks')
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final user = FirebaseAuth.instance.currentUser;
+      final List<String> purchasedEbookIds = [];
+      if (user != null) {
+        try {
+          final purchasesSnapshot = await _firestore
+              .collection('users')
+              .doc(user.uid)
+              .collection('purchasedEbooks')
+              .get();
+          for (final doc in purchasesSnapshot.docs) {
+            purchasedEbookIds.add(doc.id);
+          }
+        } catch (e) {
+          debugPrint('Failed to fetch user purchased e-books: $e');
+        }
+      }
+
+      return snapshot.docs.map((doc) {
+        final isOwned = purchasedEbookIds.contains(doc.id);
+        return Ebook.fromMap(doc.data(), doc.id, isOwned: isOwned);
+      }).toList();
+    });
   }
 
   // --- Purchases ---
@@ -199,18 +194,39 @@ class StoreRepository {
     }
   }
 
-  /// Check if user is enrolled in a specific course/batch
+  /// Check if user is enrolled in a specific course
   Future<bool> isEnrolled(
     String userId,
-    String courseId,
-    String batchId,
-  ) async {
+    String courseId, [
+    String batchId = '',
+  ]) async {
     try {
+      // 1. Direct subcollection check (fastest)
+      final enrollDoc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('enrolledCourses')
+          .doc(courseId)
+          .get();
+      if (enrollDoc.exists) return true;
+
+      // 2. Direct check with composite key if migrated
+      if (batchId.isNotEmpty) {
+        final enrollDocComposite = await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('enrolledCourses')
+            .doc('${courseId}_$batchId')
+            .get();
+        if (enrollDocComposite.exists) return true;
+      }
+
+      // 3. Fallback: Purchase list lookup
       final purchases = await getPurchases(userId);
       for (final purchase in purchases) {
         if (purchase.status == 'completed' || purchase.status == 'paid' || purchase.status == 'success') {
           for (final item in purchase.items) {
-            if (item.courseId == courseId && item.batchId == batchId) {
+            if (item.courseId == courseId) {
               return true;
             }
           }
@@ -236,12 +252,9 @@ class StoreRepository {
         );
   }
 
-  // --- Seeding ---
-
   // Seeding is disabled - data is now managed via Admin Panel
   @Deprecated('Data is now managed via Admin Panel')
   Future<void> seedInitialData() async {
-    // No-op: Courses should be created via Admin Panel
     debugPrint(
       'seedInitialData is deprecated. Use Admin Panel to manage courses.',
     );
@@ -272,8 +285,6 @@ class StoreRepository {
       for (final doc in snapshot.docs) {
         await doc.reference.delete();
       }
-      // Reseed
-      // seedInitialData is deprecated - data is now managed via Admin Panel
       debugPrint(
         'Data seeding is deprecated. Use Admin Panel to manage courses.',
       );

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/store/screens/course_detail_page.dart';
-import 'package:eduverse/study/screens/batch_section_page.dart';
+import 'package:eduverse/study/screens/course_section_page.dart';
 import 'package:eduverse/study/models/study_models.dart';
 import 'package:eduverse/feed/repository/feed_repository.dart';
 import 'package:eduverse/feed/screens/generic_feed_detail_router.dart';
@@ -56,30 +56,6 @@ class _DeepLinkCourseScreenState extends State<DeepLinkCourseScreen> {
       final data = doc.data()!;
       data['id'] = doc.id;
 
-      // Fetch batches subcollection
-      final batchesSnapshot = await FirebaseFirestore.instance
-          .collection('courses')
-          .doc(widget.courseId)
-          .collection('batches')
-          .get();
-
-      final batches = batchesSnapshot.docs.map((batchDoc) {
-        final batchData = batchDoc.data();
-        return Batch(
-          id: batchDoc.id,
-          name: batchData['name'] ?? '',
-          startDate: batchData['startDate'] != null 
-              ? (batchData['startDate'] as dynamic).toDate() 
-              : DateTime.now(),
-          realPrice: (batchData['realPrice'] as num?)?.toDouble() ?? (batchData['price'] as num?)?.toDouble() ?? 0.0,
-          finalPrice: (batchData['finalPrice'] as num?)?.toDouble() ?? (batchData['price'] as num?)?.toDouble() ?? 0.0,
-          seatsLeft: batchData['seatsLeft'] ?? 0,
-          duration: batchData['duration'] ?? '',
-          thumbnailUrl: batchData['thumbnailUrl'] ?? '',
-          isEnrolled: false,
-        );
-      }).toList();
-
       final course = Course(
         id: doc.id,
         title: data['title'] ?? '',
@@ -89,7 +65,22 @@ class _DeepLinkCourseScreenState extends State<DeepLinkCourseScreen> {
         thumbnailUrl: data['thumbnailUrl'] ?? '',
         gradientColors: _parseGradientColors(data['gradientColors']),
         priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
-        batches: batches,
+        realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
+        finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? 0.0,
+        startDate: data['startDate'] != null
+            ? (data['startDate'] is Timestamp
+                ? (data['startDate'] as Timestamp).toDate()
+                : DateTime.tryParse(data['startDate'].toString()))
+            : null,
+        endDate: data['endDate'] != null
+            ? (data['endDate'] is Timestamp
+                ? (data['endDate'] as Timestamp).toDate()
+                : DateTime.tryParse(data['endDate'].toString()))
+            : null,
+        seatsTotal: data['seatsTotal'] ?? 0,
+        seatsLeft: data['seatsLeft'] ?? 0,
+        duration: data['duration'] ?? '',
+        isActive: data['isActive'] ?? true,
       );
 
       if (!mounted) return;
@@ -209,7 +200,7 @@ class _DeepLinkBatchScreenState extends State<DeepLinkBatchScreen> {
 
       final courseData = courseDoc.data()!;
 
-      // Create StudyCourseModel for BatchSectionPage
+      // Create StudyCourseModel for CourseSectionPage
       final studyCourse = StudyCourseModel(
         id: widget.courseId,
         title: courseData['title'] ?? '',
@@ -230,7 +221,7 @@ class _DeepLinkBatchScreenState extends State<DeepLinkBatchScreen> {
               repository: StudyRepositoryImpl(),
               userId: FirebaseAuth.instance.currentUser?.uid ?? '',
             ),
-            child: BatchSectionPage(
+            child: CourseSectionPage(
               course: studyCourse,
               batchId: widget.batchId,
             ),

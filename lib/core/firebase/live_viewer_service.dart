@@ -21,8 +21,6 @@ class LiveViewerService {
     return _firestore
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('live_classes')
         .doc(liveClassId);
   }
@@ -34,7 +32,7 @@ class LiveViewerService {
     String liveClassId,
     String userId,
   ) {
-    final sessionKey = '${courseId}_${batchId}_${liveClassId}';
+    final sessionKey = '${courseId}_$liveClassId';
     return _rtdb.ref('live_viewers/$sessionKey/$userId');
   }
 

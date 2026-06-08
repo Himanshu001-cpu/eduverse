@@ -120,6 +120,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
               mute: false,
               enableCaption: true,
               isLive: widget.isLiveStream,
+              hideThumbnail: true,
             ),
           );
         }
@@ -368,12 +369,12 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
   }
 
   String get _commentsPath {
-    final String basePath = widget.isFreeClass ||
-            widget.courseId == null ||
-            widget.batchId == null
-        ? 'free_live_classes/${widget.lecture.id}'
-        : 'courses/${widget.courseId}/batches/${widget.batchId}/lessons/${widget.lecture.id}';
+    if (widget.isFreeClass || widget.courseId == null) {
+      final String basePath = 'free_live_classes/${widget.lecture.id}';
+      return widget.isLiveStream ? '$basePath/live_comments' : '$basePath/comments';
+    }
 
+    final String basePath = 'courses/${widget.courseId}/lessons/${widget.lecture.id}';
     return widget.isLiveStream ? '$basePath/live_comments' : '$basePath/comments';
   }
 

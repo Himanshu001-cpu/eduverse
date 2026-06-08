@@ -23,57 +23,59 @@ class _AuthWrapperState extends State<AuthWrapper> {
   final AuthService _authService = AuthService();
   String? _lastUserId;
 
-  bool _updatingProtection = false;
+  int _protectionSessionId = 0;
 
   Future<void> _updateScreenProtection(User user) async {
-    if (kIsWeb || _updatingProtection) return;
-    _updatingProtection = true;
+    if (kIsWeb) return;
+
+    _protectionSessionId++;
+    final sessionId = _protectionSessionId;
 
     try {
+      // SECURE-BY-DEFAULT: Immediately enable protection for the logged-in user session.
+      // This prevents a 1-3 second vulnerable window while the network check 'isAdmin()' runs.
+      await ScreenProtector.preventScreenshotOn();
+      if (sessionId != _protectionSessionId || !mounted) return;
+      await ScreenProtector.protectDataLeakageOn();
+      if (sessionId != _protectionSessionId || !mounted) return;
+      debugPrint('Screenshot & screen-record protection ENABLED by default for session: ${user.email}');
+
+      // Now verify if the user is an admin to determine if protection should be disabled.
       final isAdmin = await _authService.isAdmin();
-      if (!mounted) return;
+      if (sessionId != _protectionSessionId || !mounted) return;
+
       if (isAdmin) {
-        // Allow admins to take screenshots and record screen
+        // Disable protection only after successful admin verification.
         await ScreenProtector.preventScreenshotOff();
-        if (!mounted) return;
+        if (sessionId != _protectionSessionId || !mounted) return;
         await ScreenProtector.protectDataLeakageOff();
-        if (!mounted) return;
+        if (sessionId != _protectionSessionId || !mounted) return;
         debugPrint('Screenshot & screen-record protection DISABLED for admin: ${user.email}');
       } else {
-        // preventScreenshotOn + protectDataLeakageOn together set Android's
-        // FLAG_SECURE which blocks both screenshots AND screen recording.
-        await ScreenProtector.preventScreenshotOn();
-        if (!mounted) return;
-        await ScreenProtector.protectDataLeakageOn();
-        if (!mounted) return;
-        debugPrint('Screenshot & screen-record protection ENABLED for user: ${user.email}');
+        debugPrint('Screenshot & screen-record protection CONFIRMED for student: ${user.email}');
       }
     } catch (e) {
       debugPrint('Error updating screen protection: $e');
-    } finally {
-      if (mounted) {
-        _updatingProtection = false;
-      }
+      // On error, leave protection ENABLED as the safe, secure fallback.
     }
   }
 
   Future<void> _disableScreenProtection() async {
-    if (kIsWeb || _updatingProtection) return;
-    _updatingProtection = true;
+    if (kIsWeb) return;
+
+    _protectionSessionId++;
+    final sessionId = _protectionSessionId;
 
     try {
       // When user is not authenticated, no need for protection
       // (nothing sensitive on login screen)
       await ScreenProtector.preventScreenshotOff();
-      if (!mounted) return;
+      if (sessionId != _protectionSessionId || !mounted) return;
       await ScreenProtector.protectDataLeakageOff();
-      if (!mounted) return;
+      if (sessionId != _protectionSessionId || !mounted) return;
+      debugPrint('Screenshot & screen-record protection DISABLED (unauthenticated session)');
     } catch (e) {
       debugPrint('Error disabling screen protection: $e');
-    } finally {
-      if (mounted) {
-        _updatingProtection = false;
-      }
     }
   }
 

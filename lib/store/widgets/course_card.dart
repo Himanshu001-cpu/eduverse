@@ -1,4 +1,3 @@
-// file: lib/store/widgets/course_card.dart
 import 'package:flutter/material.dart';
 import 'package:eduverse/store/models/store_models.dart';
 
@@ -14,35 +13,12 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double? finalPrice;
-    double? realPrice;
+    final double finalPrice = course.finalPrice;
+    final double realPrice = course.realPrice;
 
-    // 1. Search for a Course-Batch (combination batch)
-    Batch? courseBatchObj;
-    for (final b in course.batches) {
-      if (b.isCourseBatch) {
-        courseBatchObj = b;
-        break;
-      }
-    }
-
-    if (courseBatchObj != null) {
-      finalPrice = courseBatchObj.finalPrice;
-      realPrice = courseBatchObj.realPrice;
-    } else if (course.batches.isNotEmpty) {
-      // 2. Fall back to starting price (minimum batch finalPrice)
-      Batch minPriceBatch = course.batches.first;
-      for (final b in course.batches) {
-        if (b.finalPrice < minPriceBatch.finalPrice) {
-          minPriceBatch = b;
-        }
-      }
-      finalPrice = minPriceBatch.finalPrice;
-      realPrice = minPriceBatch.realPrice;
-    } else {
-      // 3. Fall back to course default price
-      finalPrice = course.priceDefault;
-    }
+    final discountPercent = realPrice > 0 && realPrice > finalPrice
+        ? ((realPrice - finalPrice) / realPrice * 100).toStringAsFixed(0)
+        : null;
 
     return Container(
       width: 160,
@@ -58,29 +34,62 @@ class CourseCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: (course.gradientColors.isNotEmpty 
-                        ? course.gradientColors.first 
-                        : Colors.blue).withValues(alpha: 0.3),
+                    color: (course.gradientColors.isNotEmpty
+                            ? course.gradientColors.first
+                            : Colors.blue)
+                        .withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: course.thumbnailUrl.isNotEmpty
-                    ? Image.network(
-                        course.thumbnailUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return _buildFallback(showLoader: true);
-                        },
-                      )
-                    : _buildFallback(),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: course.thumbnailUrl.isNotEmpty
+                        ? Image.network(
+                            course.thumbnailUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (context, error, stackTrace) => _buildFallback(),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return _buildFallback(showLoader: true);
+                            },
+                          )
+                        : _buildFallback(),
+                  ),
+                  if (discountPercent != null)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2E7D32), // curated harmony green
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '$discountPercent% OFF',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
@@ -114,7 +123,7 @@ class CourseCard extends StatelessWidget {
                     color: Theme.of(context).primaryColor,
                   ),
                 ),
-                if (realPrice != null && realPrice > finalPrice) ...[
+                if (realPrice > finalPrice) ...[
                   const SizedBox(width: 6),
                   Text(
                     '₹${realPrice.toStringAsFixed(0)}',

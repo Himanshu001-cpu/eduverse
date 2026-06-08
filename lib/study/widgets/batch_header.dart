@@ -101,7 +101,7 @@ class _BatchHeaderState extends State<BatchHeader> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          'Batch: ${widget.batchId}', // Displaying Batch ID/Name
+                          widget.course.subtitle,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: Colors.white70),
                         ),

@@ -9,6 +9,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../models/admin_models.dart';
 import 'package:eduverse/core/notifications/notification_repository.dart';
 import 'package:eduverse/core/notifications/notification_model.dart';
+import 'package:eduverse/store/models/store_models.dart';
 
 class FirebaseAdminService {
   final FirebaseAuth? _customAuth;
@@ -65,6 +66,14 @@ class FirebaseAdminService {
               .map((doc) => AdminCourse.fromMap(doc.data(), doc.id))
               .toList();
         });
+  }
+
+  Stream<AdminCourse> getCourse(String courseId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .snapshots()
+        .map((doc) => AdminCourse.fromMap(doc.data() ?? {}, doc.id));
   }
 
   Future<void> saveCourse(AdminCourse course, {bool isNew = false}) async {
@@ -148,262 +157,24 @@ class FirebaseAdminService {
     await _logAudit('permanently_delete_course', 'course', courseId, {});
   }
 
-  // Batches
-  Stream<List<AdminBatch>> getBatches(String courseId) {
-    return _db
-        .collection('courses')
-        .doc(courseId)
-        .collection('batches')
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => AdminBatch.fromMap(doc.data(), doc.id))
-              .toList();
-        });
-  }
-
-  Stream<AdminBatch> getBatch(String courseId, String batchId) {
-    return _db
-        .collection('courses')
-        .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
-        .snapshots()
-        .map((doc) => AdminBatch.fromMap(doc.data() ?? {}, doc.id));
-  }
-
+  // Batches are deprecated. Collapsing directly to course lectures.
   Stream<List<AdminLecture>> getCourseLecturesCombined(String courseId) {
-    late StreamController<List<AdminLecture>> controller;
-    StreamSubscription? batchesSubscription;
-    final lessonsSubscriptions = <String, StreamSubscription>{};
-    final latestLessons = <String, List<AdminLecture>>{};
-
-    void emitMerged() {
-      final merged = <AdminLecture>[];
-      final seenIds = <String>{};
-      for (final list in latestLessons.values) {
-        for (final item in list) {
-          if (!seenIds.contains(item.id)) {
-            seenIds.add(item.id);
-            merged.add(item);
-          }
-        }
-      }
-      merged.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
-      if (!controller.isClosed) {
-        controller.add(merged);
-      }
-    }
-
-    controller = StreamController<List<AdminLecture>>(
-      onListen: () {
-        batchesSubscription = getBatches(courseId).listen((batches) {
-          final batchIds = batches.map((b) => b.id).toSet();
-          lessonsSubscriptions.keys
-              .where((id) => !batchIds.contains(id))
-              .toList()
-              .forEach((id) {
-            lessonsSubscriptions[id]?.cancel();
-            lessonsSubscriptions.remove(id);
-            latestLessons.remove(id);
-          });
-
-          for (final batch in batches) {
-            if (!lessonsSubscriptions.containsKey(batch.id)) {
-              lessonsSubscriptions[batch.id] = getLectures(courseId, batch.id).listen((lessons) {
-                latestLessons[batch.id] = lessons;
-                emitMerged();
-              });
-            }
-          }
-
-          if (batches.isEmpty) {
-            emitMerged();
-          }
-        }, onError: (err) {
-          if (!controller.isClosed) controller.addError(err);
-        });
-      },
-      onCancel: () {
-        batchesSubscription?.cancel();
-        for (final sub in lessonsSubscriptions.values) {
-          sub.cancel();
-        }
-      },
-    );
-
-    return controller.stream;
+    return getLectures(courseId);
   }
 
   Stream<List<AdminNote>> getCourseNotesCombined(String courseId) {
-    late StreamController<List<AdminNote>> controller;
-    StreamSubscription? batchesSubscription;
-    final notesSubscriptions = <String, StreamSubscription>{};
-    final latestNotes = <String, List<AdminNote>>{};
-
-    void emitMerged() {
-      final merged = <AdminNote>[];
-      final seenIds = <String>{};
-      for (final list in latestNotes.values) {
-        for (final item in list) {
-          if (!seenIds.contains(item.id)) {
-            seenIds.add(item.id);
-            merged.add(item);
-          }
-        }
-      }
-      if (!controller.isClosed) {
-        controller.add(merged);
-      }
-    }
-
-    controller = StreamController<List<AdminNote>>(
-      onListen: () {
-        batchesSubscription = getBatches(courseId).listen((batches) {
-          final batchIds = batches.map((b) => b.id).toSet();
-          notesSubscriptions.keys
-              .where((id) => !batchIds.contains(id))
-              .toList()
-              .forEach((id) {
-            notesSubscriptions[id]?.cancel();
-            notesSubscriptions.remove(id);
-            latestNotes.remove(id);
-          });
-
-          for (final batch in batches) {
-            if (!notesSubscriptions.containsKey(batch.id)) {
-              notesSubscriptions[batch.id] = getBatchNotes(courseId, batch.id).listen((notes) {
-                latestNotes[batch.id] = notes;
-                emitMerged();
-              });
-            }
-          }
-
-          if (batches.isEmpty) {
-            emitMerged();
-          }
-        }, onError: (err) {
-          if (!controller.isClosed) controller.addError(err);
-        });
-      },
-      onCancel: () {
-        batchesSubscription?.cancel();
-        for (final sub in notesSubscriptions.values) {
-          sub.cancel();
-        }
-      },
-    );
-
-    return controller.stream;
+    return getCourseNotes(courseId);
   }
 
   Stream<List<AdminDpp>> getCourseDppsCombined(String courseId) {
-    late StreamController<List<AdminDpp>> controller;
-    StreamSubscription? batchesSubscription;
-    final dppsSubscriptions = <String, StreamSubscription>{};
-    final latestDpps = <String, List<AdminDpp>>{};
-
-    void emitMerged() {
-      final merged = <AdminDpp>[];
-      final seenIds = <String>{};
-      for (final list in latestDpps.values) {
-        for (final item in list) {
-          if (!seenIds.contains(item.id)) {
-            seenIds.add(item.id);
-            merged.add(item);
-          }
-        }
-      }
-      if (!controller.isClosed) {
-        controller.add(merged);
-      }
-    }
-
-    controller = StreamController<List<AdminDpp>>(
-      onListen: () {
-        batchesSubscription = getBatches(courseId).listen((batches) {
-          final batchIds = batches.map((b) => b.id).toSet();
-          dppsSubscriptions.keys
-              .where((id) => !batchIds.contains(id))
-              .toList()
-              .forEach((id) {
-            dppsSubscriptions[id]?.cancel();
-            dppsSubscriptions.remove(id);
-            latestDpps.remove(id);
-          });
-
-          for (final batch in batches) {
-            if (!dppsSubscriptions.containsKey(batch.id)) {
-              dppsSubscriptions[batch.id] = getBatchDpps(courseId, batch.id).listen((dpps) {
-                latestDpps[batch.id] = dpps;
-                emitMerged();
-              });
-            }
-          }
-
-          if (batches.isEmpty) {
-            emitMerged();
-          }
-        }, onError: (err) {
-          if (!controller.isClosed) controller.addError(err);
-        });
-      },
-      onCancel: () {
-        batchesSubscription?.cancel();
-        for (final sub in dppsSubscriptions.values) {
-          sub.cancel();
-        }
-      },
-    );
-
-    return controller.stream;
-  }
-
-  Future<void> saveBatch(
-    String courseId,
-    AdminBatch batch, {
-    bool isNew = false,
-  }) async {
-    final data = batch.toMap();
-    if (isNew) {
-      await _db
-          .collection('courses')
-          .doc(courseId)
-          .collection('batches')
-          .add(data);
-    } else {
-      await _db
-          .collection('courses')
-          .doc(courseId)
-          .collection('batches')
-          .doc(batch.id)
-          .update(data);
-    }
-    await _logAudit(
-      isNew ? 'create_batch' : 'update_batch',
-      'batch',
-      batch.id,
-      data,
-    );
-  }
-
-  Future<void> deleteBatch(String courseId, String batchId) async {
-    await _db
-        .collection('courses')
-        .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
-        .delete();
-    await _logAudit('delete_batch', 'batch', batchId, {});
+    return getCourseDpps(courseId);
   }
 
   // Lessons
-  Stream<List<AdminLecture>> getLectures(String courseId, String batchId) {
+  Stream<List<AdminLecture>> getLectures(String courseId) {
     return _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('lessons')
         .orderBy('orderIndex')
         .snapshots()
@@ -413,54 +184,48 @@ class FirebaseAdminService {
         );
   }
 
-  Future<void> saveLecture(
+  Future<String> saveLecture(
     String courseId,
-    String batchId,
     AdminLecture lecture, {
     bool isNew = false,
   }) async {
     final data = lecture.toMap();
     if (isNew) {
-      await _db
+      final docRef = _db
           .collection('courses')
           .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
           .collection('lessons')
-          .add(data);
+          .doc();
+      await docRef.set(data);
 
       // Send notification to enrolled users
-      await _notificationRepo.createBatchNotification(
+      await _notificationRepo.createCourseNotification(
         title: '📚 New Lecture Added',
         body: lecture.title,
         targetType: NotificationTargetType.lecture,
-        targetId: lecture.id,
-        batchId: batchId,
+        targetId: docRef.id,
         courseId: courseId,
       );
+      return docRef.id;
     } else {
       await _db
           .collection('courses')
           .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
           .collection('lessons')
           .doc(lecture.id)
           .update(data);
+      return lecture.id;
     }
   }
 
   Future<void> deleteLecture(
     String courseId,
-    String batchId,
     String lectureId, {
     bool deleteAllLinked = false,
   }) async {
     final docRef = _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('lessons')
         .doc(lectureId);
 
@@ -476,85 +241,64 @@ class FirebaseAdminService {
     if (deleteAllLinked) {
       String originalId;
       String originalCourseId;
-      String originalBatchId;
-      List<dynamic> linkedBatchesList = [];
+      List<dynamic> linkedCoursesList = [];
 
       if (linkedFrom != null) {
         originalId = linkedFrom['originalId'] as String? ?? '';
         originalCourseId = linkedFrom['courseId'] as String? ?? '';
-        originalBatchId = linkedFrom['batchId'] as String? ?? '';
 
         final originalSnap = await _db
             .collection('courses')
             .doc(originalCourseId)
-            .collection('batches')
-            .doc(originalBatchId)
             .collection('lessons')
             .doc(originalId)
             .get();
 
         if (originalSnap.exists) {
-          linkedBatchesList = originalSnap.data()?['linkedBatches'] as List<dynamic>? ?? [];
+          linkedCoursesList = originalSnap.data()?['linkedCourses'] as List<dynamic>? ?? [];
         }
       } else {
         originalId = lectureId;
         originalCourseId = courseId;
-        originalBatchId = batchId;
-        linkedBatchesList = data['linkedBatches'] as List<dynamic>? ?? [];
+        linkedCoursesList = data['linkedCourses'] as List<dynamic>? ?? [];
       }
 
-      // Delete from all target batches
-      for (final lb in linkedBatchesList) {
-        if (lb is Map) {
-          final tCourseId = lb['courseId'] ?? '';
-          final tBatchId = lb['batchId'] ?? '';
-          if (tCourseId.isNotEmpty && tBatchId.isNotEmpty) {
-            final querySnap = await _db
-                .collection('courses')
-                .doc(tCourseId)
-                .collection('batches')
-                .doc(tBatchId)
-                .collection('lessons')
-                .where('linkedFrom.originalId', isEqualTo: originalId)
-                .get();
-            for (final doc in querySnap.docs) {
-              await doc.reference.delete();
-            }
-          }
+      // Delete from all target courses
+      for (final targetId in linkedCoursesList) {
+        if (targetId is String && targetId.isNotEmpty) {
+          await _db
+              .collection('courses')
+              .doc(targetId)
+              .collection('lessons')
+              .doc(originalId)
+              .delete();
         }
       }
 
       // Delete the original lecture
-      if (originalCourseId.isNotEmpty && originalBatchId.isNotEmpty) {
+      if (originalCourseId.isNotEmpty) {
         await _db
             .collection('courses')
             .doc(originalCourseId)
-            .collection('batches')
-            .doc(originalBatchId)
             .collection('lessons')
             .doc(originalId)
             .delete();
       }
     } else {
       // DELETE ONLY THIS INSTANCE
-      // If it's a linked copy, remove this batch from the original lecture's linkedBatches list
+      // If it's a linked copy, remove this course from the original lecture's linkedCourses list
       if (linkedFrom != null) {
         final originalId = linkedFrom['originalId'] as String? ?? '';
         final originalCourseId = linkedFrom['courseId'] as String? ?? '';
-        final originalBatchId = linkedFrom['batchId'] as String? ?? '';
 
-        if (originalCourseId.isNotEmpty && originalBatchId.isNotEmpty && originalId.isNotEmpty) {
+        if (originalCourseId.isNotEmpty && originalId.isNotEmpty) {
           await _db
               .collection('courses')
               .doc(originalCourseId)
-              .collection('batches')
-              .doc(originalBatchId)
               .collection('lessons')
               .doc(originalId)
               .update({
-            'linkedBatches': FieldValue.arrayRemove([
-              {'courseId': courseId, 'batchId': batchId}
-            ])
+            'linkedCourses': FieldValue.arrayRemove([courseId])
           });
         }
       }
@@ -565,7 +309,6 @@ class FirebaseAdminService {
 
     await _logAudit('delete_lecture', 'lecture', lectureId, {
       'courseId': courseId,
-      'batchId': batchId,
       'deleteAllLinked': deleteAllLinked,
     });
   }
@@ -588,13 +331,11 @@ class FirebaseAdminService {
   Future<void> enrollStudent(
     String userId,
     String courseId,
-    String batchId,
   ) async {
     final callable = _functions.httpsCallable('enrollStudent');
     await callable.call({
       'userId': userId,
       'courseId': courseId,
-      'batchId': batchId,
     });
   }
 
@@ -620,8 +361,8 @@ class FirebaseAdminService {
       for (final item in purchase.items) {
         if (item.testSeriesId != null && item.testSeriesId!.isNotEmpty) {
           await manualUnenrollTestSeries(purchase.userId, item.testSeriesId!);
-        } else if (item.courseId.isNotEmpty && item.batchId.isNotEmpty) {
-          final enrollmentId = '${item.courseId}_${item.batchId}';
+        } else if (item.courseId.isNotEmpty) {
+          final enrollmentId = item.courseId;
           await manualUnenrollUser(purchase.userId, enrollmentId);
         }
       }
@@ -886,9 +627,8 @@ class FirebaseAdminService {
   Future<void> manualEnrollUser(
     String userId,
     String courseId,
-    String batchId,
   ) async {
-    final enrollmentId = '${courseId}_$batchId';
+    final enrollmentId = courseId;
 
     // Add to user's enrolled courses ARRAY (Legacy/Admin View Support)
     await _db.collection('users').doc(userId).update({
@@ -904,7 +644,6 @@ class FirebaseAdminService {
         .doc(enrollmentId)
         .set({
           'courseId': courseId,
-          'batchId': batchId,
           'enrolledAt': FieldValue.serverTimestamp(),
           'status': 'active',
           'enrolledBy': 'admin_manual',
@@ -914,20 +653,18 @@ class FirebaseAdminService {
     await _db.collection('purchases').add({
       'userId': userId,
       'courseId': courseId,
-      'batchId': batchId,
       'amount': 0.0,
       'status': 'manual_enrollment',
       'paymentMethod': 'admin_manual',
       'createdAt': FieldValue.serverTimestamp(),
       'enrolledByAdmin': currentUser?.uid,
       'items': [
-        {'courseId': courseId, 'batchId': batchId, 'type': 'batch_enrollment'},
+        {'courseId': courseId, 'type': 'course_enrollment'},
       ],
     });
 
     await _logAudit('manual_enroll_user', 'user', userId, {
       'courseId': courseId,
-      'batchId': batchId,
     });
   }
 
@@ -1029,13 +766,11 @@ class FirebaseAdminService {
         });
   }
 
-  // Batch Resources: Notes
-  Stream<List<AdminNote>> getBatchNotes(String courseId, String batchId) {
+  // Course Resources: Notes
+  Stream<List<AdminNote>> getCourseNotes(String courseId) {
     return _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('notes')
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -1044,9 +779,8 @@ class FirebaseAdminService {
         );
   }
 
-  Future<void> saveBatchNote(
+  Future<void> saveCourseNote(
     String courseId,
-    String batchId,
     AdminNote note, {
     bool isNew = false,
   }) async {
@@ -1055,44 +789,35 @@ class FirebaseAdminService {
       await _db
           .collection('courses')
           .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
           .collection('notes')
           .add(data);
     } else {
       await _db
           .collection('courses')
           .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
           .collection('notes')
           .doc(note.id)
           .update(data);
     }
   }
 
-  Future<void> deleteBatchNote(
+  Future<void> deleteCourseNote(
     String courseId,
-    String batchId,
     String noteId,
   ) async {
     await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('notes')
         .doc(noteId)
         .delete();
   }
 
-  // Batch Resources: DPPs (Daily Practice Problems)
-  Stream<List<AdminDpp>> getBatchDpps(String courseId, String batchId) {
+  // Course Resources: DPPs (Daily Practice Problems)
+  Stream<List<AdminDpp>> getCourseDpps(String courseId) {
     return _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('dpps')
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -1101,9 +826,8 @@ class FirebaseAdminService {
         );
   }
 
-  Future<void> saveBatchDpp(
+  Future<void> saveCourseDpp(
     String courseId,
-    String batchId,
     AdminDpp dpp, {
     bool isNew = false,
   }) async {
@@ -1111,8 +835,6 @@ class FirebaseAdminService {
     final ref = _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('dpps');
     if (isNew) {
       await ref.add(data);
@@ -1121,31 +843,23 @@ class FirebaseAdminService {
     }
   }
 
-  Future<void> deleteBatchDpp(
+  Future<void> deleteCourseDpp(
     String courseId,
-    String batchId,
     String dppId,
   ) async {
     await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('dpps')
         .doc(dppId)
         .delete();
   }
 
-  // Batch Resources: Planner
-  Stream<List<AdminPlannerItem>> getBatchPlanner(
-    String courseId,
-    String batchId,
-  ) {
+  // Course Resources: Planner
+  Stream<List<AdminPlannerItem>> getCoursePlanner(String courseId) {
     return _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('planner')
         .orderBy('date')
         .snapshots()
@@ -1156,9 +870,8 @@ class FirebaseAdminService {
         );
   }
 
-  Future<void> saveBatchPlannerItem(
+  Future<void> saveCoursePlannerItem(
     String courseId,
-    String batchId,
     AdminPlannerItem item, {
     bool isNew = false,
   }) async {
@@ -1167,44 +880,35 @@ class FirebaseAdminService {
       await _db
           .collection('courses')
           .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
           .collection('planner')
           .add(data);
     } else {
       await _db
           .collection('courses')
           .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
           .collection('planner')
           .doc(item.id)
           .update(data);
     }
   }
 
-  Future<void> deleteBatchPlannerItem(
+  Future<void> deleteCoursePlannerItem(
     String courseId,
-    String batchId,
     String itemId,
   ) async {
     await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('planner')
         .doc(itemId)
         .delete();
   }
 
-  // Batch Resources: Quizzes
-  Stream<List<AdminQuiz>> getBatchQuizzes(String courseId, String batchId) {
+  // Course Resources: Quizzes
+  Stream<List<AdminQuiz>> getCourseQuizzes(String courseId) {
     return _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('quizzes')
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -1213,9 +917,8 @@ class FirebaseAdminService {
         );
   }
 
-  Future<void> saveBatchQuiz(
+  Future<void> saveCourseQuiz(
     String courseId,
-    String batchId,
     AdminQuiz quiz, {
     bool isNew = false,
   }) async {
@@ -1223,8 +926,6 @@ class FirebaseAdminService {
     final ref = _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('quizzes')
         .doc(quiz.id);
     if (isNew) {
@@ -1234,16 +935,13 @@ class FirebaseAdminService {
     }
   }
 
-  Future<void> deleteBatchQuiz(
+  Future<void> deleteCourseQuiz(
     String courseId,
-    String batchId,
     String quizId,
   ) async {
     await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('quizzes')
         .doc(quizId)
         .delete();
@@ -1306,18 +1004,13 @@ class FirebaseAdminService {
     }
 
     final liveClass = AdminLiveClass.fromMap(snap.data()!, snap.id);
-
     if (deleteAllLinked) {
-      // Delete from all target batches
-      for (final lb in liveClass.linkedBatches) {
-        final tCourseId = lb['courseId'] ?? '';
-        final tBatchId = lb['batchId'] ?? '';
-        if (tCourseId.isNotEmpty && tBatchId.isNotEmpty) {
+      // Delete from all target courses
+      for (final tCourseId in liveClass.linkedCourses) {
+        if (tCourseId.isNotEmpty) {
           final querySnap = await _db
               .collection('courses')
               .doc(tCourseId)
-              .collection('batches')
-              .doc(tBatchId)
               .collection('live_classes')
               .where('linkedFrom.originalId', isEqualTo: liveClassId)
               .get();
@@ -1328,22 +1021,19 @@ class FirebaseAdminService {
       }
     }
 
+    // Finally delete the current free class
     await docRef.delete();
+
     await _logAudit('delete_live_class', 'free_live_classes', liveClassId, {
       'deleteAllLinked': deleteAllLinked,
     });
   }
 
-  // Batch Live Classes (Scoped)
-  Stream<List<AdminLiveClass>> getBatchLiveClasses(
-    String courseId,
-    String batchId,
-  ) {
+  // Course Live Classes (Scoped)
+  Stream<List<AdminLiveClass>> getCourseLiveClasses(String courseId) {
     return _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('live_classes')
         .orderBy('startTime')
         .snapshots()
@@ -1354,9 +1044,8 @@ class FirebaseAdminService {
         });
   }
 
-  Future<void> saveBatchLiveClass(
+  Future<void> saveCourseLiveClass(
     String courseId,
-    String batchId,
     AdminLiveClass liveClass, {
     bool isNew = false,
   }) async {
@@ -1369,8 +1058,6 @@ class FirebaseAdminService {
         final lessonsSnapshot = await _db
             .collection('courses')
             .doc(courseId)
-            .collection('batches')
-            .doc(batchId)
             .collection('lessons')
             .orderBy('orderIndex', descending: true)
             .limit(1)
@@ -1383,17 +1070,13 @@ class FirebaseAdminService {
         }
 
         // 2. Create AdminLecture
-        // ignore: unused_local_variable
-        final _ = liveClass
-            .id; // Keep same ID or generate new? New ID is safer to avoid confusion
         final lecture = AdminLecture(
           id: Uuid().v4(), // Generate new ID for lecture
           title: liveClass.title,
           description: liveClass.description,
           orderIndex: nextOrderIndex,
           type: 'video',
-          storagePath: liveClass
-              .youtubeUrl, // Mapping youtube link to storagePath/videoUrl
+          storagePath: liveClass.youtubeUrl, // Mapping youtube link to storagePath/videoUrl
           isLocked: false,
           subject: liveClass.subject,
           chapter: liveClass.chapter,
@@ -1404,8 +1087,6 @@ class FirebaseAdminService {
         await _db
             .collection('courses')
             .doc(courseId)
-            .collection('batches')
-            .doc(batchId)
             .collection('lessons')
             .add(lecture.toMap());
 
@@ -1414,8 +1095,6 @@ class FirebaseAdminService {
           await _db
               .collection('courses')
               .doc(courseId)
-              .collection('batches')
-              .doc(batchId)
               .collection('live_classes')
               .doc(liveClass.id)
               .delete();
@@ -1425,13 +1104,10 @@ class FirebaseAdminService {
         await _logAudit('migrate_live_to_lecture', 'lecture', lecture.id, {
           'from_live_class': liveClass.id,
           'courseId': courseId,
-          'batchId': batchId,
         });
 
         return; // Exit function as we've moved it
       } catch (e) {
-        // If migration fails, fallback to just saving as live class but maybe log error?
-        // OR rethrow to let UI know.
         print('Error migrating live class to lecture: $e');
         rethrow;
       }
@@ -1441,49 +1117,41 @@ class FirebaseAdminService {
       await _db
           .collection('courses')
           .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
           .collection('live_classes')
           .add(data);
 
       // Send notification to enrolled users
-      await _notificationRepo.createBatchNotification(
-        title: ' New Live Class Scheduled',
+      await _notificationRepo.createCourseNotification(
+        title: '📺 New Live Class Scheduled',
         body: liveClass.title,
         targetType: NotificationTargetType.liveClass,
         targetId: liveClass.id,
-        batchId: batchId,
         courseId: courseId,
       );
     } else {
       await _db
           .collection('courses')
           .doc(courseId)
-          .collection('batches')
-          .doc(batchId)
           .collection('live_classes')
           .doc(liveClass.id)
           .update(data);
     }
     await _logAudit(
-      isNew ? 'create_batch_live_class' : 'update_batch_live_class',
+      isNew ? 'create_course_live_class' : 'update_course_live_class',
       'live_class',
       liveClass.id,
-      {'courseId': courseId, 'batchId': batchId, ...data},
+      {'courseId': courseId, ...data},
     );
   }
 
-  Future<void> deleteBatchLiveClass(
+  Future<void> deleteCourseLiveClass(
     String courseId,
-    String batchId,
     String liveClassId, {
     bool deleteAllLinked = false,
   }) async {
     final docRef = _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('live_classes')
         .doc(liveClassId);
 
@@ -1499,17 +1167,15 @@ class FirebaseAdminService {
     if (deleteAllLinked) {
       String originalId;
       String originalCourseId;
-      String originalBatchId;
       bool isFreeOriginal = false;
-      List<Map<String, String>> linkedBatchesList = [];
+      List<String> linkedCoursesList = [];
 
       if (linkedFrom != null) {
         originalId = linkedFrom['originalId'] as String? ?? '';
         originalCourseId = linkedFrom['courseId'] as String? ?? '';
-        originalBatchId = linkedFrom['batchId'] as String? ?? '';
         isFreeOriginal = linkedFrom['source'] == 'free_live_classes';
 
-        // Fetch original to get all linked batches
+        // Fetch original to get all linked courses
         DocumentSnapshot<Map<String, dynamic>> originalSnap;
         if (isFreeOriginal) {
           originalSnap = await _db.collection('free_live_classes').doc(originalId).get();
@@ -1517,8 +1183,6 @@ class FirebaseAdminService {
           originalSnap = await _db
               .collection('courses')
               .doc(originalCourseId)
-              .collection('batches')
-              .doc(originalBatchId)
               .collection('live_classes')
               .doc(originalId)
               .get();
@@ -1526,26 +1190,21 @@ class FirebaseAdminService {
 
         if (originalSnap.exists) {
           final originalClass = AdminLiveClass.fromMap(originalSnap.data()!, originalSnap.id);
-          linkedBatchesList = originalClass.linkedBatches;
+          linkedCoursesList = originalClass.linkedCourses;
         }
       } else {
         originalId = liveClass.id;
         originalCourseId = courseId;
-        originalBatchId = batchId;
         isFreeOriginal = false;
-        linkedBatchesList = liveClass.linkedBatches;
+        linkedCoursesList = liveClass.linkedCourses;
       }
 
-      // Delete from all target batches
-      for (final lb in linkedBatchesList) {
-        final tCourseId = lb['courseId'] ?? '';
-        final tBatchId = lb['batchId'] ?? '';
-        if (tCourseId.isNotEmpty && tBatchId.isNotEmpty) {
+      // Delete from all target courses
+      for (final tCourseId in linkedCoursesList) {
+        if (tCourseId.isNotEmpty) {
           final querySnap = await _db
               .collection('courses')
               .doc(tCourseId)
-              .collection('batches')
-              .doc(tBatchId)
               .collection('live_classes')
               .where('linkedFrom.originalId', isEqualTo: originalId)
               .get();
@@ -1558,43 +1217,34 @@ class FirebaseAdminService {
       // Delete the original class
       if (isFreeOriginal) {
         await _db.collection('free_live_classes').doc(originalId).delete();
-      } else if (originalCourseId.isNotEmpty && originalBatchId.isNotEmpty) {
+      } else if (originalCourseId.isNotEmpty) {
         await _db
             .collection('courses')
             .doc(originalCourseId)
-            .collection('batches')
-            .doc(originalBatchId)
             .collection('live_classes')
             .doc(originalId)
             .delete();
       }
     } else {
       // DELETE ONLY THIS INSTANCE
-      // If it's a linked copy, remove this batch from the original class's linkedBatches list
+      // If it's a linked copy, remove this course from the original class's linkedCourses list
       if (linkedFrom != null) {
         final originalId = linkedFrom['originalId'] as String? ?? '';
         final originalCourseId = linkedFrom['courseId'] as String? ?? '';
-        final originalBatchId = linkedFrom['batchId'] as String? ?? '';
         final isFreeOriginal = linkedFrom['source'] == 'free_live_classes';
 
         if (isFreeOriginal) {
           await _db.collection('free_live_classes').doc(originalId).update({
-            'linkedBatches': FieldValue.arrayRemove([
-              {'courseId': courseId, 'batchId': batchId}
-            ])
+            'linkedCourses': FieldValue.arrayRemove([courseId])
           });
-        } else if (originalCourseId.isNotEmpty && originalBatchId.isNotEmpty) {
+        } else if (originalCourseId.isNotEmpty) {
           await _db
               .collection('courses')
               .doc(originalCourseId)
-              .collection('batches')
-              .doc(originalBatchId)
               .collection('live_classes')
               .doc(originalId)
               .update({
-            'linkedBatches': FieldValue.arrayRemove([
-              {'courseId': courseId, 'batchId': batchId}
-            ])
+            'linkedCourses': FieldValue.arrayRemove([courseId])
           });
         }
       }
@@ -1603,78 +1253,67 @@ class FirebaseAdminService {
     // Finally delete the current instance document
     await docRef.delete();
 
-    await _logAudit('delete_batch_live_class', 'live_class', liveClassId, {
+    await _logAudit('delete_course_live_class', 'live_class', liveClassId, {
       'courseId': courseId,
-      'batchId': batchId,
       'deleteAllLinked': deleteAllLinked,
     });
   }
 
   // ============ LIVE CLASS LINKING ============
 
-  /// Links an existing live class to a target batch by copying its data.
-  /// Also updates the source class's linkedBatches array.
-  Future<void> linkLiveClassToBatch({
+  /// Links an existing live class to a target course by copying its data.
+  /// Also updates the source class's linkedCourses array.
+  Future<void> linkLiveClassToCourse({
     required AdminLiveClass sourceClass,
     required String sourceCourseId,
-    required String sourceBatchId,
     required String targetCourseId,
-    required String targetBatchId,
   }) async {
     // Fail-fast validation
-    if (sourceCourseId.isEmpty || sourceBatchId.isEmpty || sourceClass.id.isEmpty) {
-      throw ArgumentError('Source course, batch, and class IDs must not be empty');
+    if (sourceCourseId.isEmpty || sourceClass.id.isEmpty) {
+      throw ArgumentError('Source course and class IDs must not be empty');
     }
-    if (targetCourseId.isEmpty || targetBatchId.isEmpty) {
-      throw ArgumentError('Target course and batch IDs must not be empty');
+    if (targetCourseId.isEmpty) {
+      throw ArgumentError('Target course ID must not be empty');
     }
 
     final data = sourceClass.toMap();
-    // Remove linkedBatches from the copy — each copy is standalone
-    data.remove('linkedBatches');
+    // Remove linkedCourses from the copy — each copy is standalone
+    data.remove('linkedCourses');
     // Mark it as a linked copy so we know it was imported
     data['linkedFrom'] = {
       'courseId': sourceCourseId,
-      'batchId': sourceBatchId,
       'originalId': sourceClass.id,
     };
 
     final batch = _db.batch();
 
-    // 1. Write the class to the target batch
+    // 1. Write the class to the target course
     final newClassRef = _db
         .collection('courses')
         .doc(targetCourseId)
-        .collection('batches')
-        .doc(targetBatchId)
         .collection('live_classes')
         .doc();
     batch.set(newClassRef, data);
 
-    // 2. Update the source class's linkedBatches array unconditionally (avoiding orphaned links)
+    // 2. Update the source class's linkedCourses array unconditionally (avoiding orphaned links)
     final sourceDocRef = _db
         .collection('courses')
         .doc(sourceCourseId)
-        .collection('batches')
-        .doc(sourceBatchId)
         .collection('live_classes')
         .doc(sourceClass.id);
     batch.update(sourceDocRef, {
-      'linkedBatches': FieldValue.arrayUnion([
-        {'courseId': targetCourseId, 'batchId': targetBatchId},
-      ]),
+      'linkedCourses': FieldValue.arrayUnion([targetCourseId]),
     });
 
     await batch.commit();
 
-    // 3. Send notification to enrolled users of target batch (wrapped in try/catch to be resilient)
+    // 3. Send notification to enrolled users of target course
     try {
-      await _notificationRepo.createBatchNotification(
+      await _notificationRepo.createCourseNotification(
         title: '📺 New Live Class Linked',
         body: sourceClass.title,
         targetType: NotificationTargetType.liveClass,
         targetId: sourceClass.id,
-        batchId: targetBatchId,
         courseId: targetCourseId,
       );
     } catch (e) {
@@ -1685,59 +1324,50 @@ class FirebaseAdminService {
     try {
       await _logAudit('link_live_class', 'live_class', sourceClass.id, {
         'sourceCourse': sourceCourseId,
-        'sourceBatch': sourceBatchId,
         'targetCourse': targetCourseId,
-        'targetBatch': targetBatchId,
       });
     } catch (e) {
       debugPrint('Non-critical: Failed to log audit for link: $e');
     }
   }
 
-  /// Links a free (global) live class to a target batch by copying its data.
-  Future<void> linkFreeLiveClassToBatch({
+  /// Links a free (global) live class to a target course by copying its data.
+  Future<void> linkFreeLiveClassToCourse({
     required AdminLiveClass sourceClass,
     required String targetCourseId,
-    required String targetBatchId,
   }) async {
     final data = sourceClass.toMap();
-    data.remove('linkedBatches');
+    data.remove('linkedCourses');
     data['linkedFrom'] = {
       'courseId': '',
-      'batchId': '',
       'originalId': sourceClass.id,
       'source': 'free_live_classes',
     };
 
     final batch = _db.batch();
 
-    // 1. Write the class to the target batch
+    // 1. Write the class to the target course
     final newClassRef = _db
         .collection('courses')
         .doc(targetCourseId)
-        .collection('batches')
-        .doc(targetBatchId)
         .collection('live_classes')
         .doc();
     batch.set(newClassRef, data);
 
-    // 2. Update the source free class's linkedBatches
+    // 2. Update the source free class's linkedCourses
     final sourceFreeRef = _db.collection('free_live_classes').doc(sourceClass.id);
     batch.update(sourceFreeRef, {
-      'linkedBatches': FieldValue.arrayUnion([
-        {'courseId': targetCourseId, 'batchId': targetBatchId},
-      ]),
+      'linkedCourses': FieldValue.arrayUnion([targetCourseId]),
     });
 
     await batch.commit();
 
     await _logAudit('link_free_live_class', 'live_class', sourceClass.id, {
       'targetCourse': targetCourseId,
-      'targetBatch': targetBatchId,
     });
   }
 
-  /// Gets all live classes from ALL batches across all courses.
+  /// Gets all live classes from ALL courses.
   /// Used in the "Link Existing Class" dialog.
   Future<List<Map<String, dynamic>>> getAllLiveClassesForLinking() async {
     final result = <Map<String, dynamic>>[];
@@ -1749,113 +1379,91 @@ class FirebaseAdminService {
       result.add({
         'class': AdminLiveClass.fromMap(doc.data(), doc.id),
         'courseId': '',
-        'batchId': '',
         'courseName': 'Free Classes',
-        'batchName': 'Global',
       });
     }
 
-    // 2. Fetch all courses and batches to cache their names (exactly 2 queries)
+    // 2. Fetch all courses to cache their names
     final coursesSnap = await _db.collection('courses').get();
     final courseCache = {
       for (final doc in coursesSnap.docs) doc.reference.path: doc.data()['title'] ?? doc.id
     };
 
-    final batchesSnap = await _db.collectionGroup('batches').get();
-    final batchCache = {
-      for (final doc in batchesSnap.docs) doc.reference.path: doc.data()['name'] ?? doc.id
-    };
-
-    // 3. Fetch all batch-scoped live classes in a single query
+    // 3. Fetch all course-scoped live classes in a single query
     final allClassesSnap = await _db
         .collectionGroup('live_classes')
         .orderBy('startTime')
         .get();
 
     for (final doc in allClassesSnap.docs) {
-      final batchRef = doc.reference.parent.parent;
-      final courseRef = batchRef?.parent.parent;
-
-      if (batchRef == null || courseRef == null) continue;
+      final courseRef = doc.reference.parent.parent;
+      if (courseRef == null) continue;
 
       final courseName = courseCache[courseRef.path] ?? courseRef.id;
-      final batchName = batchCache[batchRef.path] ?? batchRef.id;
 
       result.add({
         'class': AdminLiveClass.fromMap(doc.data(), doc.id),
         'courseId': courseRef.id,
-        'batchId': batchRef.id,
         'courseName': courseName,
-        'batchName': batchName,
       });
     }
 
     return result;
   }
 
-  /// Links an existing lecture to a target batch by copying its data.
-  /// Also updates the source lecture's linkedBatches array.
-  Future<void> linkLectureToBatch({
+  /// Links an existing lecture to a target course by copying its data.
+  /// Also updates the source lecture's linkedCourses array.
+  Future<void> linkLectureToCourse({
     required AdminLecture sourceLecture,
     required String sourceCourseId,
-    required String sourceBatchId,
     required String targetCourseId,
-    required String targetBatchId,
   }) async {
     // Fail-fast validation
-    if (sourceCourseId.isEmpty || sourceBatchId.isEmpty || sourceLecture.id.isEmpty) {
-      throw ArgumentError('Source course, batch, and lecture IDs must not be empty');
+    if (sourceCourseId.isEmpty || sourceLecture.id.isEmpty) {
+      throw ArgumentError('Source course and lecture IDs must not be empty');
     }
-    if (targetCourseId.isEmpty || targetBatchId.isEmpty) {
-      throw ArgumentError('Target course and batch IDs must not be empty');
+    if (targetCourseId.isEmpty) {
+      throw ArgumentError('Target course ID must not be empty');
     }
 
     final data = sourceLecture.toMap();
-    // Remove linkedBatches from the copy — each copy is standalone
-    data.remove('linkedBatches');
+    // Remove linkedCourses from the copy — each copy is standalone
+    data.remove('linkedCourses');
     // Mark it as a linked copy so we know it was imported
     data['linkedFrom'] = {
       'courseId': sourceCourseId,
-      'batchId': sourceBatchId,
       'originalId': sourceLecture.id,
     };
 
     final batch = _db.batch();
 
-    // 1. Write the lecture to the target batch's lessons
+    // 1. Write the lecture to the target course's lessons
     final newLectureRef = _db
         .collection('courses')
         .doc(targetCourseId)
-        .collection('batches')
-        .doc(targetBatchId)
         .collection('lessons')
         .doc();
     batch.set(newLectureRef, data);
 
-    // 2. Update the source lecture's linkedBatches array
+    // 2. Update the source lecture's linkedCourses array
     final sourceRef = _db
         .collection('courses')
         .doc(sourceCourseId)
-        .collection('batches')
-        .doc(sourceBatchId)
         .collection('lessons')
         .doc(sourceLecture.id);
     batch.update(sourceRef, {
-      'linkedBatches': FieldValue.arrayUnion([
-        {'courseId': targetCourseId, 'batchId': targetBatchId},
-      ]),
+      'linkedCourses': FieldValue.arrayUnion([targetCourseId]),
     });
 
     await batch.commit();
 
-    // 3. Send notification to enrolled users of target batch (wrapped in try/catch to be resilient)
+    // 3. Send notification to enrolled users of target course (wrapped in try/catch to be resilient)
     try {
-      await _notificationRepo.createBatchNotification(
+      await _notificationRepo.createCourseNotification(
         title: '📚 New Lecture Linked',
         body: sourceLecture.title,
         targetType: NotificationTargetType.lecture,
         targetId: sourceLecture.id,
-        batchId: targetBatchId,
         courseId: targetCourseId,
       );
     } catch (e) {
@@ -1866,13 +1474,26 @@ class FirebaseAdminService {
     try {
       await _logAudit('link_lecture', 'lecture', sourceLecture.id, {
         'sourceCourse': sourceCourseId,
-        'sourceBatch': sourceBatchId,
         'targetCourse': targetCourseId,
-        'targetBatch': targetBatchId,
       });
     } catch (e) {
       debugPrint('Non-critical: Failed to log audit for link: $e');
     }
+  }
+
+  /// Legacy wrapper for linkLectureToBatch
+  Future<void> linkLectureToBatch({
+    required AdminLecture sourceLecture,
+    required String sourceCourseId,
+    required String sourceBatchId,
+    required String targetCourseId,
+    required String targetBatchId,
+  }) async {
+    return linkLectureToCourse(
+      sourceLecture: sourceLecture,
+      sourceCourseId: sourceCourseId,
+      targetCourseId: targetCourseId,
+    );
   }
 
   /// Gets all lectures from ALL batches across all courses.
@@ -1941,14 +1562,12 @@ class FirebaseAdminService {
     final coursesSnap = await _db.collection('courses').get();
     for (final courseDoc in coursesSnap.docs) {
       final courseName = courseDoc.data()['title'] ?? courseDoc.id;
-      final batchesSnap =
-          await courseDoc.reference.collection('batches').get();
-      final batches = batchesSnap.docs.map((b) {
-        return {
-          'id': b.id,
-          'name': b.data()['name'] ?? b.id,
-        };
-      }).toList();
+      final batches = [
+        {
+          'id': '',
+          'name': 'Course Content',
+        }
+      ];
       result.add({
         'courseId': courseDoc.id,
         'courseName': courseName,
@@ -2046,23 +1665,28 @@ class FirebaseAdminService {
     await _logAudit('delete_from_quiz_pool', 'quizzes_pool', quizId, {});
   }
 
-  // ============ BATCH ENROLLMENT QUERIES ============
+  // ============ COURSE ENROLLMENT QUERIES ============
 
-  /// Get all users enrolled in a specific batch.
-  /// Queries users where enrolledCourses array contains '{courseId}_{batchId}'.
-  Future<List<AdminUser>> getEnrolledUsersForBatch(
+  /// Get all users enrolled in a specific course.
+  Future<List<AdminUser>> getEnrolledUsersForCourse(
     String courseId,
-    String batchId,
   ) async {
-    final enrollmentId = '${courseId}_$batchId';
     final snapshot = await _db
         .collection('users')
-        .where('enrolledCourses', arrayContains: enrollmentId)
+        .where('enrolledCourses', arrayContains: courseId)
         .get();
 
     return snapshot.docs
         .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
         .toList();
+  }
+
+  /// Get all users enrolled in a specific batch (legacy).
+  Future<List<AdminUser>> getEnrolledUsersForBatch(
+    String courseId,
+    String batchId,
+  ) async {
+    return getEnrolledUsersForCourse('${courseId}_$batchId');
   }
 
   // ============ COMBINATION PACKS ============
@@ -2100,6 +1724,41 @@ class FirebaseAdminService {
     await _logAudit('delete_combination_pack', 'combination_pack', id, {});
   }
 
+  // ============ E-BOOKS ============
+  Stream<List<Ebook>> getAdminEbooks() {
+    return _db
+        .collection('ebooks')
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => Ebook.fromMap(doc.data(), doc.id))
+              .toList();
+        });
+  }
+
+  Future<void> saveEbook(
+    Ebook ebook, {
+    bool isNew = false,
+  }) async {
+    final data = ebook.toMap();
+    if (isNew) {
+      data['createdAt'] = FieldValue.serverTimestamp();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      final docRef = await _db.collection('ebooks').add(data);
+      await _logAudit('create_ebook', 'ebook', docRef.id, data);
+    } else {
+      data.remove('createdAt');
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      await _db.collection('ebooks').doc(ebook.id).set(data, SetOptions(merge: true));
+      await _logAudit('update_ebook', 'ebook', ebook.id, data);
+    }
+  }
+
+  Future<void> deleteEbook(String id) async {
+    await _db.collection('ebooks').doc(id).delete();
+    await _logAudit('delete_ebook', 'ebook', id, {});
+  }
+
   @visibleForTesting
   Future<void> commitInChunks(List<void Function(WriteBatch)> operations) async {
     const chunkSize = 400; // Leave 100 operations headroom
@@ -2116,7 +1775,6 @@ class FirebaseAdminService {
   // ============ RECURSIVE FOLDER PREFIX RENAME ============
   Future<void> recursivelyRenameFolder({
     required String courseId,
-    required String batchId,
     required String subject,
     required String oldFolderPath,
     required String newFolderPath,
@@ -2130,8 +1788,6 @@ class FirebaseAdminService {
     final lessonsSnap = await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('lessons')
         .where('subject', isEqualTo: subject)
         .get();
@@ -2150,8 +1806,6 @@ class FirebaseAdminService {
     final notesSnap = await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('notes')
         .where('subject', isEqualTo: subject)
         .get();
@@ -2170,8 +1824,6 @@ class FirebaseAdminService {
     final dppsSnap = await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('dpps')
         .where('subject', isEqualTo: subject)
         .get();
@@ -2190,7 +1842,6 @@ class FirebaseAdminService {
 
     await _logAudit('rename_folder', 'folder', oldFolderPath, {
       'courseId': courseId,
-      'batchId': batchId,
       'subject': subject,
       'oldFolderPath': oldFolderPath,
       'newFolderPath': newFolderPath,
@@ -2200,7 +1851,6 @@ class FirebaseAdminService {
   // ============ RECURSIVE FOLDER DELETE ============
   Future<void> recursivelyDeleteFolder({
     required String courseId,
-    required String batchId,
     required String subject,
     required String folderPath,
   }) async {
@@ -2211,8 +1861,6 @@ class FirebaseAdminService {
     final lessonsSnap = await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('lessons')
         .where('subject', isEqualTo: subject)
         .get();
@@ -2228,8 +1876,6 @@ class FirebaseAdminService {
     final notesSnap = await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('notes')
         .where('subject', isEqualTo: subject)
         .get();
@@ -2245,8 +1891,6 @@ class FirebaseAdminService {
     final dppsSnap = await _db
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('dpps')
         .where('subject', isEqualTo: subject)
         .get();
@@ -2262,7 +1906,6 @@ class FirebaseAdminService {
 
     await _logAudit('delete_folder_recursive', 'folder', folderPath, {
       'courseId': courseId,
-      'batchId': batchId,
       'subject': subject,
       'folderPath': folderPath,
     });

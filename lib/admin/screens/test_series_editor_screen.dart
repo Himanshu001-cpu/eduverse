@@ -32,7 +32,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
   String _selectedSubject = '';
   String _thumbnailUrl = '';
   List<String> _subjects = [];
-  List<LinkedBatch> _linkedBatches = [];
+  List<LinkedCourse> _linkedCourses = [];
   bool _isSaving = false;
 
   bool get _isEditing => widget.testSeries != null;
@@ -62,7 +62,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
     _thumbnailUrl = ts?.thumbnailUrl ?? '';
     _category = ts?.category ?? 'General';
     _visibility = ts?.visibility ?? 'draft';
-    _linkedBatches = List.from(ts?.linkedBatches ?? []);
+    _linkedCourses = List.from(ts?.linkedCourses ?? []);
     _loadSubjects();
   }
 
@@ -173,7 +173,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
         gradientColors:
             widget.testSeries?.gradientColors ?? [0xFF4CAF50, 0xFF2E7D32],
         totalTests: widget.testSeries?.totalTests ?? 0,
-        linkedBatches: _linkedBatches,
+        linkedCourses: _linkedCourses,
         createdAt: widget.testSeries?.createdAt ?? DateTime.now(),
       );
 
@@ -204,7 +204,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
     }
   }
 
-  Future<void> _showLinkBatchDialog() async {
+  Future<void> _showLinkCourseDialog() async {
     final firestore = FirebaseFirestore.instance;
 
     // Fetch all courses
@@ -215,128 +215,54 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
 
     if (!mounted) return;
 
-    String? selectedCourseId;
-    String? selectedCourseName;
-
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
           return AlertDialog(
-            title: const Text('Link to Batch'),
+            title: const Text('Link to Course'),
             content: SizedBox(
               width: double.maxFinite,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Step 1: Select Course
-                  const Text(
-                    'Select Course:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedCourseId,
-                    isExpanded: true,
-                    hint: const Text('Choose a course'),
-                    items: courses
-                        .map(
-                          (c) => DropdownMenuItem(
-                            value: c.id,
-                            child: Text(
-                              c.title,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (val) {
-                      setDialogState(() {
-                        selectedCourseId = val;
-                        selectedCourseName = courses
-                            .firstWhere((c) => c.id == val)
-                            .title;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
+              child: courses.isEmpty
+                  ? const Text('No courses found.')
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: courses.length,
+                      itemBuilder: (context, idx) {
+                        final course = courses[idx];
+                        final isAlreadyLinked = _linkedCourses.any(
+                          (lc) => lc.courseId == course.id,
+                        );
 
-                  // Step 2: Select Batch (shown after course selection)
-                  if (selectedCourseId != null) ...[
-                    const Text(
-                      'Select Batch:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    StreamBuilder<QuerySnapshot>(
-                      stream: firestore
-                          .collection('courses')
-                          .doc(selectedCourseId)
-                          .collection('batches')
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-
-                        final batches = snapshot.data!.docs;
-                        if (batches.isEmpty) {
-                          return const Text(
-                            'No batches found',
-                            style: TextStyle(color: Colors.grey),
-                          );
-                        }
-
-                        return Column(
-                          children: batches.map((batchDoc) {
-                            final batchData =
-                                batchDoc.data() as Map<String, dynamic>;
-                            final batchName = batchData['name'] ?? 'Unnamed';
-                            final isAlreadyLinked = _linkedBatches.any(
-                              (lb) =>
-                                  lb.courseId == selectedCourseId &&
-                                  lb.batchId == batchDoc.id,
-                            );
-
-                            return ListTile(
-                              title: Text(batchName),
-                              trailing: isAlreadyLinked
-                                  ? const Chip(
-                                      label: Text(
-                                        'Linked',
-                                        style: TextStyle(fontSize: 11),
-                                      ),
-                                      backgroundColor: Colors.green,
-                                      labelStyle: TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : ElevatedButton(
-                                      onPressed: () {
-                                        final linked = LinkedBatch(
-                                          courseId: selectedCourseId!,
-                                          batchId: batchDoc.id,
-                                          courseName: selectedCourseName ?? '',
-                                          batchName: batchName,
-                                        );
-                                        setState(() {
-                                          _linkedBatches.add(linked);
-                                        });
-                                        setDialogState(() {});
-                                      },
-                                      child: const Text('Link'),
-                                    ),
-                            );
-                          }).toList(),
+                        return ListTile(
+                          title: Text(course.title),
+                          trailing: isAlreadyLinked
+                              ? const Chip(
+                                  label: Text(
+                                    'Linked',
+                                    style: TextStyle(fontSize: 11),
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  labelStyle: TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : ElevatedButton(
+                                  onPressed: () {
+                                    final linked = LinkedCourse(
+                                      courseId: course.id,
+                                      courseName: course.title,
+                                    );
+                                    setState(() {
+                                      _linkedCourses.add(linked);
+                                    });
+                                    setDialogState(() {});
+                                  },
+                                  child: const Text('Link'),
+                                ),
                         );
                       },
                     ),
-                  ],
-                ],
-              ),
             ),
             actions: [
               TextButton(
@@ -560,7 +486,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Linked Batches Card
+              // Linked Courses Card
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -571,21 +497,21 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Linked Batches',
+                            'Linked Courses',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           ElevatedButton.icon(
-                            onPressed: _showLinkBatchDialog,
+                            onPressed: _showLinkCourseDialog,
                             icon: const Icon(Icons.link, size: 18),
-                            label: const Text('Link to Batch'),
+                            label: const Text('Link to Course'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (_linkedBatches.isEmpty)
+                      if (_linkedCourses.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
@@ -594,7 +520,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
                           ),
                           child: const Center(
                             child: Text(
-                              'No batches linked yet.\nLink this test series to course batches so enrolled students can access it.',
+                              'No courses linked yet.\nLink this test series to courses so enrolled students can access it.',
                               textAlign: TextAlign.center,
                               style: TextStyle(color: Colors.grey),
                             ),
@@ -604,17 +530,15 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: _linkedBatches.map((lb) {
+                          children: _linkedCourses.map((lc) {
                             return Chip(
                               avatar: const Icon(Icons.school, size: 16),
-                              label: Text('${lb.courseName} → ${lb.batchName}'),
+                              label: Text(lc.courseName),
                               deleteIcon: const Icon(Icons.close, size: 16),
                               onDeleted: () {
                                 setState(() {
-                                  _linkedBatches.removeWhere(
-                                    (b) =>
-                                        b.courseId == lb.courseId &&
-                                        b.batchId == lb.batchId,
+                                  _linkedCourses.removeWhere(
+                                    (c) => c.courseId == lc.courseId,
                                   );
                                 });
                               },

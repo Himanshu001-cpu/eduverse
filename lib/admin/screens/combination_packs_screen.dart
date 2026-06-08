@@ -57,7 +57,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                     style: TextStyle(fontSize: 18, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  const Text('Tap "Create Bundle Pack" to start bundling courses, batches, and test series!'),
+                  const Text('Tap "Create Bundle Pack" to start bundling courses and test series!'),
                 ],
               ),
             );
@@ -177,7 +177,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                           Icon(Icons.layers, size: 14, color: Colors.indigo.shade700),
                           const SizedBox(width: 4),
                           Text(
-                            '${pack.batches.length} Batches',
+                            '${pack.courses.length} Courses',
                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(width: 12),
@@ -268,10 +268,9 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
     final finalPriceController = TextEditingController(text: existing?.finalPrice.toStringAsFixed(0) ?? '0');
     bool isActive = existing?.isActive ?? true;
 
-    // List of batches currently selected: { 'courseId': '...', 'batchId': '...', 'courseTitle': '...', 'batchTitle': '...' }
-    List<Map<String, String>> selectedBatches = List<Map<String, String>>.from(existing?.batches ?? []);
-
-    // List of test series IDs currently selected
+    // List of courses currently selected: { 'courseId': '...', 'courseTitle': '...' }
+    // We will dynamically fetch names of course list.
+    List<String> selectedCourses = List<String>.from(existing?.courses ?? []);
     List<String> selectedTestSeries = List<String>.from(existing?.testSeries ?? []);
 
     showDialog(
@@ -329,49 +328,60 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   const Divider(),
-                  // Bundled Batches Section
+                  // Bundled Courses Section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Bundled Batches', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      const Text('Bundled Courses', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                       TextButton.icon(
                         icon: const Icon(Icons.add),
-                        label: const Text('Add Batch'),
-                        onPressed: () => _showAddBatchPicker(context, service, (courseId, batchId, courseTitle, batchTitle) {
-                          // Prevent duplicate adding
-                          final exists = selectedBatches.any((b) => b['courseId'] == courseId && b['batchId'] == batchId);
-                          if (!exists) {
-                            setStateDialog(() {
-                              selectedBatches.add({
-                                'courseId': courseId,
-                                'batchId': batchId,
-                                'courseTitle': courseTitle,
-                                'batchTitle': batchTitle,
-                              });
-                            });
-                          }
+                        label: const Text('Add Course'),
+                        onPressed: () => _showAddCoursePicker(context, service, selectedCourses, (newSelected) {
+                          setStateDialog(() {
+                            selectedCourses = newSelected;
+                          });
                         }),
                       )
                     ],
                   ),
-                  if (selectedBatches.isEmpty)
+                  if (selectedCourses.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('No batches bundled yet.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+                      child: Text('No courses bundled yet.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
                     )
                   else
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: selectedBatches.map((item) {
-                        final label = '${item['courseTitle'] ?? item['courseId']} - ${item['batchTitle'] ?? item['batchId']}';
-                        return Chip(
-                          backgroundColor: Colors.indigo.shade50,
-                          side: BorderSide(color: Colors.indigo.shade200),
-                          label: Text(label, style: TextStyle(fontSize: 12, color: Colors.indigo.shade900)),
-                          onDeleted: () => setStateDialog(() => selectedBatches.remove(item)),
+                    StreamBuilder<List<AdminCourse>>(
+                      stream: service.getCourses(),
+                      builder: (context, coursesSnap) {
+                        final courses = coursesSnap.data ?? [];
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: selectedCourses.map((id) {
+                            final course = courses.firstWhere((c) => c.id == id,
+                                orElse: () => AdminCourse(
+                                      id: id,
+                                      title: id,
+                                      slug: '',
+                                      subtitle: '',
+                                      description: '',
+                                      tags: const [],
+                                      language: 'en',
+                                      level: 'beginner',
+                                      thumbnailUrl: '',
+                                      gradientColors: const [],
+                                      visibility: 'draft',
+                                      createdAt: DateTime.now(),
+                                    ));
+                            return Chip(
+                              backgroundColor: Colors.indigo.shade50,
+                              side: BorderSide(color: Colors.indigo.shade200),
+                              label: Text('${course.emoji} ${course.title}', style: TextStyle(fontSize: 12, color: Colors.indigo.shade900)),
+                              onDeleted: () => setStateDialog(() => selectedCourses.remove(id)),
+                            );
+                          }).toList(),
                         );
-                      }).toList(),
+                      },
                     ),
                   const SizedBox(height: 16),
                   const Divider(),
@@ -415,7 +425,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                                       visibility: 'published',
                                       subject: '',
                                       totalTests: 0,
-                                      linkedBatches: [],
+                                      linkedCourses: [],
                                       createdAt: DateTime.now(),
                                     ));
                             return Chip(
@@ -447,7 +457,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                   thumbnailUrl: thumbController.text.trim(),
                   realPrice: double.tryParse(realPriceController.text) ?? 0.0,
                   finalPrice: double.tryParse(finalPriceController.text) ?? 0.0,
-                  batches: selectedBatches,
+                  courses: selectedCourses,
                   testSeries: selectedTestSeries,
                   isActive: isActive,
                   createdAt: existing?.createdAt ?? DateTime.now(),
@@ -464,87 +474,65 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
     );
   }
 
-  void _showAddBatchPicker(
+  void _showAddCoursePicker(
     BuildContext context,
     FirebaseAdminService service,
-    void Function(String courseId, String batchId, String courseTitle, String batchTitle) onPicked,
+    List<String> currentSelected,
+    void Function(List<String> newSelected) onSaved,
   ) {
-    String? selectedCourseId;
-    String? selectedCourseTitle;
-    String? selectedBatchId;
-    String? selectedBatchTitle;
+    List<String> tempSelected = List<String>.from(currentSelected);
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setStatePicker) => AlertDialog(
-          title: const Text('Select Course & Batch'),
-          content: StreamBuilder<List<AdminCourse>>(
-            stream: service.getCourses(),
-            builder: (context, coursesSnap) {
-              if (!coursesSnap.hasData) return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
-              final courses = coursesSnap.data!;
+        builder: (context, setStateCourse) => AlertDialog(
+          title: const Text('Select Courses'),
+          content: SizedBox(
+            width: 400,
+            height: 400,
+            child: StreamBuilder<List<AdminCourse>>(
+              stream: service.getCourses(),
+              builder: (context, coursesSnap) {
+                if (!coursesSnap.hasData) return const Center(child: CircularProgressIndicator());
+                final courses = coursesSnap.data!;
 
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Select Course', border: OutlineInputBorder()),
-                    initialValue: selectedCourseId,
-                    items: courses.map((c) => DropdownMenuItem(value: c.id, child: Text(c.title))).toList(),
-                    onChanged: (val) {
-                      final course = courses.firstWhere((c) => c.id == val);
-                      setStatePicker(() {
-                        selectedCourseId = val;
-                        selectedCourseTitle = course.title;
-                        selectedBatchId = null;
-                        selectedBatchTitle = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  if (selectedCourseId != null)
-                    StreamBuilder<List<AdminBatch>>(
-                      stream: service.getBatches(selectedCourseId!),
-                      builder: (context, batchesSnap) {
-                        if (!batchesSnap.hasData) return const LinearProgressIndicator();
-                        final batches = batchesSnap.data!;
+                if (courses.isEmpty) {
+                  return const Center(child: Text('No courses available.'));
+                }
 
-                        if (batches.isEmpty) {
-                          return const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Text('No batches created for this course yet.', style: TextStyle(color: Colors.red)),
-                          );
-                        }
+                return ListView.builder(
+                  itemCount: courses.length,
+                  itemBuilder: (context, index) {
+                    final c = courses[index];
+                    final isChecked = tempSelected.contains(c.id);
 
-                        return DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(labelText: 'Select Batch', border: OutlineInputBorder()),
-                          initialValue: selectedBatchId,
-                          items: batches.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
-                          onChanged: (val) {
-                            final batch = batches.firstWhere((b) => b.id == val);
-                            setStatePicker(() {
-                              selectedBatchId = val;
-                              selectedBatchTitle = batch.name;
-                            });
-                          },
-                        );
+                    return CheckboxListTile(
+                      title: Text('${c.emoji} ${c.title}'),
+                      subtitle: Text(c.subtitle),
+                      value: isChecked,
+                      onChanged: (val) {
+                        setStateCourse(() {
+                          if (val == true) {
+                            tempSelected.add(c.id);
+                          } else {
+                            tempSelected.remove(c.id);
+                          }
+                        });
                       },
-                    ),
-                ],
-              );
-            },
+                    );
+                  },
+                );
+              },
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
-              onPressed: selectedCourseId != null && selectedBatchId != null
-                  ? () {
-                      onPicked(selectedCourseId!, selectedBatchId!, selectedCourseTitle!, selectedBatchTitle!);
-                      Navigator.pop(context);
-                    }
-                  : null,
-              child: const Text('Add'),
+              onPressed: () {
+                onSaved(tempSelected);
+                Navigator.pop(context);
+              },
+              child: const Text('Done'),
             ),
           ],
         ),

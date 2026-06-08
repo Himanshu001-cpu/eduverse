@@ -4,6 +4,7 @@ import 'package:eduverse/store/widgets/course_list_card.dart';
 import 'package:eduverse/store/screens/course_detail_page.dart';
 import 'package:eduverse/store/services/store_repository.dart';
 import 'package:eduverse/store/models/store_models.dart';
+import 'package:eduverse/store/screens/purchase_cart_page.dart';
 
 class SeeAllCoursesPage extends StatelessWidget {
   final String title;
@@ -59,12 +60,28 @@ class SeeAllCoursesPage extends StatelessWidget {
               return CourseListCard(
                 course: course,
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CourseDetailPage(course: course),
-                    ),
-                  );
+                  if (course.batches.length == 1) {
+                    final batch = course.batches.first;
+                    final cartItem = CartItem(
+                      courseId: course.id,
+                      batchId: batch.id,
+                      title: '${course.title} - ${batch.name}',
+                      price: batch.finalPrice,
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PurchaseCartPage(initialItems: [cartItem]),
+                      ),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CourseDetailPage(course: course),
+                      ),
+                    );
+                  }
                 },
               );
             },
@@ -74,3 +91,4 @@ class SeeAllCoursesPage extends StatelessWidget {
     );
   }
 }
+

@@ -18,6 +18,9 @@ class CartService {
     if (item.combinationPackId != null && item.combinationPackId!.isNotEmpty) {
       return 'combo_${item.combinationPackId}';
     }
+    if (item.ebookId != null && item.ebookId!.isNotEmpty) {
+      return 'ebook_${item.ebookId}';
+    }
     return '${item.courseId}_${item.batchId}';
   }
 
@@ -53,6 +56,7 @@ class CartService {
         'batchId': item.batchId,
         'combinationPackId': item.combinationPackId,
         'testSeriesId': item.testSeriesId,
+        'ebookId': item.ebookId,
         'title': item.title,
         'price': item.price,
         'quantity': item.quantity,
@@ -67,11 +71,13 @@ class CartService {
   }
 
   /// Remove item from cart
-  Future<void> removeFromCart(String uid, String courseId, String batchId, {String? combinationPackId}) async {
+  Future<void> removeFromCart(String uid, String courseId, String batchId, {String? combinationPackId, String? ebookId}) async {
     try {
       final docId = combinationPackId != null && combinationPackId.isNotEmpty
           ? 'combo_$combinationPackId'
-          : '${courseId}_$batchId';
+          : (ebookId != null && ebookId.isNotEmpty
+              ? 'ebook_$ebookId'
+              : '${courseId}_$batchId');
       await _cartRef(uid).doc(docId).delete();
       debugPrint('Removed from cart: $docId');
     } catch (e) {
@@ -81,11 +87,13 @@ class CartService {
   }
 
   /// Update item quantity in cart
-  Future<void> updateQuantity(String uid, String courseId, String batchId, int quantity, {String? combinationPackId}) async {
+  Future<void> updateQuantity(String uid, String courseId, String batchId, int quantity, {String? combinationPackId, String? ebookId}) async {
     try {
       final docId = combinationPackId != null && combinationPackId.isNotEmpty
           ? 'combo_$combinationPackId'
-          : '${courseId}_$batchId';
+          : (ebookId != null && ebookId.isNotEmpty
+              ? 'ebook_$ebookId'
+              : '${courseId}_$batchId');
       if (quantity <= 0) {
         await _cartRef(uid).doc(docId).delete();
       } else {
@@ -114,11 +122,13 @@ class CartService {
   }
 
   /// Check if item is in cart
-  Future<bool> isInCart(String uid, String courseId, String batchId, {String? combinationPackId}) async {
+  Future<bool> isInCart(String uid, String courseId, String batchId, {String? combinationPackId, String? ebookId}) async {
     try {
       final docId = combinationPackId != null && combinationPackId.isNotEmpty
           ? 'combo_$combinationPackId'
-          : '${courseId}_$batchId';
+          : (ebookId != null && ebookId.isNotEmpty
+              ? 'ebook_$ebookId'
+              : '${courseId}_$batchId');
       final doc = await _cartRef(uid).doc(docId).get();
       return doc.exists;
     } catch (e) {

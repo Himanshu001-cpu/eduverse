@@ -23,37 +23,47 @@ class _VersionCardState extends State<VersionCard> {
   }
 
   Future<void> _loadVersionInfo() async {
-    try {
-      // Get current app version
-      final packageInfo = await PackageInfo.fromPlatform();
-      final current = packageInfo.version;
+    String current = '1.1.2'; // Safe default matching pubspec.yaml
+    String latest = '1.1.2';
+    String url = '';
 
-      // Get latest version from Firestore
+    try {
+      // Get current app version with a quick timeout in case of web/platform asset issues
+      final packageInfo = await PackageInfo.fromPlatform().timeout(const Duration(seconds: 2));
+      if (packageInfo.version.isNotEmpty) {
+        current = packageInfo.version;
+      }
+    } catch (e) {
+      debugPrint('VersionCard: Error/Timeout loading PackageInfo: $e');
+    }
+
+    try {
+      // Get latest version from Firestore with a quick timeout to prevent hanging on offline cache/network issues
       final doc = await FirebaseFirestore.instance
           .collection('app_config')
           .doc('version')
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 3));
 
-      final data = doc.data();
-      final latest = data?['latestVersion'] as String? ?? current;
-      final url = data?['updateUrl'] as String? ?? '';
-
-      if (mounted) {
-        setState(() {
-          _currentVersion = current;
-          _latestVersion = latest;
-          _updateUrl = url;
-          _isLoading = false;
-        });
+      if (doc.exists) {
+        final data = doc.data();
+        latest = data?['latestVersion'] as String? ?? current;
+        url = data?['updateUrl'] as String? ?? '';
+      } else {
+        latest = current;
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _currentVersion = '?.?.?';
-          _latestVersion = '?.?.?';
-          _isLoading = false;
-        });
-      }
+      debugPrint('VersionCard: Error/Timeout loading Firestore config: $e');
+      latest = current; // Fallback to current version so card displays normally
+    }
+
+    if (mounted) {
+      setState(() {
+        _currentVersion = current;
+        _latestVersion = latest;
+        _updateUrl = url;
+        _isLoading = false;
+      });
     }
   }
 

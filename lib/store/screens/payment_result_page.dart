@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/store/screens/purchase_history_page.dart';
 import 'package:eduverse/store/screens/checkout_page.dart';
-import 'package:eduverse/study/screens/batch_section_page.dart';
+import 'package:eduverse/study/screens/course_section_page.dart';
 import 'package:eduverse/study/models/study_models.dart';
 
 class PaymentResultPage extends StatelessWidget {
@@ -97,7 +97,7 @@ class PaymentResultPage extends StatelessWidget {
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => BatchSectionPage(
+                            builder: (context) => CourseSectionPage(
                               course: studyCourse,
                               batchId: item.batchId,
                             ),

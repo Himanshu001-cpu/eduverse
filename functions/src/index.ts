@@ -14,13 +14,12 @@ export const onPurchaseCreate = functions.firestore
 
         if (!userId) return;
 
-        // Extract items. If items is empty/undefined, fall back to single item from courseId and batchId
+        // Extract items. If items is empty/undefined, fall back to single item from courseId
         let items = purchase.items as any[];
         if (!items || !Array.isArray(items) || items.length === 0) {
             const courseId = purchase.courseId;
-            const batchId = purchase.batchId;
-            if (courseId && batchId) {
-                items = [{ courseId, batchId }];
+            if (courseId) {
+                items = [{ courseId }];
             } else {
                 items = [];
             }
@@ -33,26 +32,24 @@ export const onPurchaseCreate = functions.firestore
 
         try {
             await db.runTransaction(async (t) => {
-                // List to store resolved course-batches to enroll
-                const batchesToEnroll: { courseId: string; batchId: string; combinationPackId?: string }[] = [];
+                // List to store resolved courses to enroll
+                const coursesToEnroll: { courseId: string; combinationPackId?: string }[] = [];
 
                 // 1. Resolve all items (including combination packs)
                 for (const item of items) {
                     const combinationPackId = item.combinationPackId;
                     const courseId = item.courseId;
-                    const batchId = item.batchId;
 
                     if (combinationPackId) {
                         const comboRef = db.collection("combination_packs").doc(combinationPackId);
                         const comboDoc = await t.get(comboRef);
                         if (comboDoc.exists) {
                             const comboData = comboDoc.data();
-                            const bundledBatches = comboData?.batches || [];
-                            for (const b of bundledBatches) {
-                                if (b.courseId && b.batchId) {
-                                    batchesToEnroll.push({
-                                        courseId: b.courseId,
-                                        batchId: b.batchId,
+                            const bundledCourses = comboData?.courses || [];
+                            for (const cId of bundledCourses) {
+                                if (cId) {
+                                    coursesToEnroll.push({
+                                        courseId: cId,
                                         combinationPackId
                                     });
                                 }
@@ -60,40 +57,39 @@ export const onPurchaseCreate = functions.firestore
                         } else {
                             console.warn(`Combination pack ${combinationPackId} not found in database.`);
                         }
-                    } else if (courseId && batchId && batchId !== "test_series") {
-                        batchesToEnroll.push({ courseId, batchId });
+                    } else if (courseId && courseId !== "test_series") {
+                        coursesToEnroll.push({ courseId });
                     }
                 }
 
-                if (batchesToEnroll.length === 0) {
-                    console.log("No course batches resolved to enroll for purchase:", context.params.purchaseId);
+                if (coursesToEnroll.length === 0) {
+                    console.log("No courses resolved to enroll for purchase:", context.params.purchaseId);
                     return;
                 }
 
-                // 2. Process each course-batch enrollment and seat decrement
-                for (const target of batchesToEnroll) {
-                    const batchRef = db.collection("courses").doc(target.courseId).collection("batches").doc(target.batchId);
-                    const batchDoc = await t.get(batchRef);
+                // 2. Process each course enrollment and seat decrement
+                for (const target of coursesToEnroll) {
+                    const courseRef = db.collection("courses").doc(target.courseId);
+                    const courseDoc = await t.get(courseRef);
 
-                    if (batchDoc.exists) {
-                        const seatsLeft = batchDoc.data()?.seatsLeft ?? 0;
+                    if (courseDoc.exists) {
+                        const seatsLeft = courseDoc.data()?.seatsLeft ?? 0;
                         if (seatsLeft <= 0) {
                             console.warn(
-                                `Warning: No seats available for course ${target.courseId}, batch ${target.batchId}. ` +
+                                `Warning: No seats available for course ${target.courseId}. ` +
                                 `Overriding and granting enrollment since payment succeeded.`
                             );
                         } else {
                             // Decrement seats
-                            t.update(batchRef, { seatsLeft: seatsLeft - 1 });
+                            t.update(courseRef, { seatsLeft: seatsLeft - 1 });
                         }
 
-                        // Create enrollment log
-                        const enrollmentId = `${userId}_${target.batchId}`;
+                        // Create enrollment log (uses courseId)
+                        const enrollmentId = `${userId}_${target.courseId}`;
                         const enrollmentRef = db.collection("enrollments").doc(enrollmentId);
                         t.set(enrollmentRef, {
                             userId,
                             courseId: target.courseId,
-                            batchId: target.batchId,
                             enrolledAt: admin.firestore.FieldValue.serverTimestamp(),
                             status: 'active',
                             purchaseId: context.params.purchaseId,
@@ -268,14 +264,13 @@ export const removeAdminRole = functions.https.onCall(async (data, context) => {
 
 // 7. incrementLessonView: Callable to increment view count
 export const incrementLessonView = functions.https.onCall(async (data, _context) => {
-    const { courseId, batchId, lessonId } = data;
+    const { courseId, lessonId } = data;
 
-    if (!courseId || !batchId || !lessonId) {
+    if (!courseId || !lessonId) {
         throw new functions.https.HttpsError('invalid-argument', 'Missing IDs');
     }
 
     const lessonRef = db.collection('courses').doc(courseId)
-        .collection('batches').doc(batchId)
         .collection('lessons').doc(lessonId);
 
     try {
@@ -322,11 +317,10 @@ export const onNotificationCreate = functions.firestore
 
         let usersQuery: admin.firestore.Query;
 
-        if (batchId) {
-            // Batch-specific: Get users enrolled in this batch
-            const enrollmentId = `${courseId}_${batchId}`;
+        if (courseId) {
+            // Course-specific: Get users enrolled in this course
             usersQuery = db.collection("users")
-                .where("enrolledCourses", "array-contains", enrollmentId);
+                .where("enrolledCourses", "array-contains", courseId);
         } else {
             // Global notification: Get all users with FCM tokens
             // Using ">" empty string to find any non-empty token values

@@ -54,36 +54,32 @@ class TestSeriesService {
     await _collection.doc(id).delete();
   }
 
-  /// Link a test series to a specific course batch.
-  Future<void> linkToBatch(String tsId, LinkedBatch batch) async {
+  /// Link a test series to a specific course.
+  Future<void> linkToCourse(String tsId, LinkedCourse course) async {
     await _collection.doc(tsId).update({
-      'linkedBatches': FieldValue.arrayUnion([batch.toMap()]),
+      'linkedCourses': FieldValue.arrayUnion([course.toMap()]),
     });
   }
 
-  /// Unlink a test series from a specific course batch.
-  Future<void> unlinkFromBatch(
+  /// Unlink a test series from a specific course.
+  Future<void> unlinkFromCourse(
     String tsId,
     String courseId,
-    String batchId,
   ) async {
     final doc = await _collection.doc(tsId).get();
     if (!doc.exists) return;
 
     final data = doc.data() as Map<String, dynamic>;
-    final batches = (data['linkedBatches'] as List<dynamic>? ?? [])
+    final courses = (data['linkedCourses'] as List<dynamic>? ?? [])
         .map((b) => b as Map<String, dynamic>)
-        .where((b) => !(b['courseId'] == courseId && b['batchId'] == batchId))
+        .where((b) => b['courseId'] != courseId)
         .toList();
 
-    await _collection.doc(tsId).update({'linkedBatches': batches});
+    await _collection.doc(tsId).update({'linkedCourses': courses});
   }
 
-  /// Get test series linked to a specific batch.
-  Stream<List<AdminTestSeries>> getTestSeriesForBatch(
-    String courseId,
-    String batchId,
-  ) {
+  /// Get test series linked to a specific course.
+  Stream<List<AdminTestSeries>> getTestSeriesForCourse(String courseId) {
     return _collection.snapshots().map(
       (snapshot) => snapshot.docs
           .map(
@@ -93,8 +89,8 @@ class TestSeriesService {
             ),
           )
           .where(
-            (ts) => ts.linkedBatches.any(
-              (b) => b.courseId == courseId && b.batchId == batchId,
+            (ts) => ts.linkedCourses.any(
+              (c) => c.courseId == courseId,
             ),
           )
           .toList(),

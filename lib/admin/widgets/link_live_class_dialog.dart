@@ -4,17 +4,17 @@ import 'package:provider/provider.dart';
 import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 
-/// Dialog that shows all existing live classes from every course/batch,
-/// allowing the admin to pick ONE OR MORE to link into the current batch.
+/// Dialog that shows all existing live classes from every course,
+/// allowing the admin to pick ONE OR MORE to link into the current course.
 class LinkLiveClassDialog extends StatefulWidget {
-  /// The courseId + batchId of the *target* batch we want to link into.
+  /// The courseId of the *target* course we want to link into.
   final String targetCourseId;
-  final String targetBatchId;
 
   const LinkLiveClassDialog({
     super.key,
     required this.targetCourseId,
-    required this.targetBatchId,
+    // Keep targetBatchId parameter for compatibility but mark it optional/unused
+    String? targetBatchId,
   });
 
   @override
@@ -30,7 +30,7 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
   final _searchController = TextEditingController();
   String? _error;
 
-  /// Keys: '${courseId}___${batchId}___${classId}' for uniqueness
+  /// Keys: '${courseId}___${classId}' for uniqueness
   final Set<String> _selectedKeys = {};
   /// Track classes linked during this dialog session (to grey them out on retry)
   final Set<String> _newlyLinkedKeys = {};
@@ -51,8 +51,7 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
   String _entryKey(Map<String, dynamic> entry) {
     final liveClass = entry['class'] as AdminLiveClass;
     final courseId = entry['courseId'] as String;
-    final batchId = entry['batchId'] as String;
-    return '${courseId}___${batchId}___${liveClass.id}';
+    return '${courseId}___${liveClass.id}';
   }
 
   bool _isAlreadyLinked(Map<String, dynamic> entry) {
@@ -65,10 +64,9 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
       final service = context.read<FirebaseAdminService>();
       final classes = await service.getAllLiveClassesForLinking();
 
-      // Filter out classes that are already in the target batch
+      // Filter out classes that are already in the target course
       final filtered = classes.where((entry) {
-        return !(entry['courseId'] == widget.targetCourseId &&
-            entry['batchId'] == widget.targetBatchId);
+        return !(entry['courseId'] == widget.targetCourseId);
       }).toList();
 
       if (mounted) {
@@ -100,8 +98,7 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
           return liveClass.title.toLowerCase().contains(lowerQuery) ||
               liveClass.subject.toLowerCase().contains(lowerQuery) ||
               liveClass.instructorName.toLowerCase().contains(lowerQuery) ||
-              (entry['courseName'] as String).toLowerCase().contains(lowerQuery) ||
-              (entry['batchName'] as String).toLowerCase().contains(lowerQuery);
+              (entry['courseName'] as String).toLowerCase().contains(lowerQuery);
         }).toList();
       }
     });
@@ -130,24 +127,20 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
 
         final liveClass = entry['class'] as AdminLiveClass;
         final sourceCourseId = entry['courseId'] as String;
-        final sourceBatchId = entry['batchId'] as String;
 
         try {
-          if (sourceCourseId.isEmpty && sourceBatchId.isEmpty) {
+          if (sourceCourseId.isEmpty) {
             // Linking from free live classes
-            await service.linkFreeLiveClassToBatch(
+            await service.linkFreeLiveClassToCourse(
               sourceClass: liveClass,
               targetCourseId: widget.targetCourseId,
-              targetBatchId: widget.targetBatchId,
             );
           } else {
-            // Linking from another batch
-            await service.linkLiveClassToBatch(
+            // Linking from another course
+            await service.linkLiveClassToCourse(
               sourceClass: liveClass,
               sourceCourseId: sourceCourseId,
-              sourceBatchId: sourceBatchId,
               targetCourseId: widget.targetCourseId,
-              targetBatchId: widget.targetBatchId,
             );
           }
           succeeded.add(key);
@@ -365,7 +358,7 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
               Icon(Icons.video_camera_front_outlined, size: 48, color: Colors.grey),
               SizedBox(height: 12),
               Text(
-                'No live classes found in other batches',
+                'No live classes found in other courses',
                 style: TextStyle(color: Colors.grey, fontSize: 15),
               ),
             ],
@@ -394,7 +387,6 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
         final entry = _filteredClasses[index];
         final liveClass = entry['class'] as AdminLiveClass;
         final courseName = entry['courseName'] as String;
-        final batchName = entry['batchName'] as String;
         final key = _entryKey(entry);
         final isLinked = _isAlreadyLinked(entry);
         final isSelected = _selectedKeys.contains(key);
@@ -436,7 +428,7 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      '$courseName › $batchName',
+                      courseName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: Colors.grey[600], fontSize: 12),

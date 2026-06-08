@@ -26,6 +26,8 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
   String? _selectedSubject;
   List<String> _currentPath = [];
   String _activeFilter = 'all'; // 'all', 'video', 'note', 'dpp'
+  bool _isSelectMode = false;
+  final Set<String> _selectedLectureIds = {};
 
   @override
   void initState() {
@@ -39,39 +41,20 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
   Widget build(BuildContext context) {
     final service = context.read<FirebaseAdminService>();
 
-    return StreamBuilder<AdminBatch>(
-      stream: service.getBatch(widget.courseId, widget.batchId),
-      builder: (context, batchSnap) {
-        if (!batchSnap.hasData) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final batch = batchSnap.data!;
-        final isCourseBatch = batch.isCourseBatch;
+    return StreamBuilder<List<AdminLecture>>(
+      stream: service.getLectures(widget.courseId),
+      builder: (context, lecturesSnap) {
+        return StreamBuilder<List<AdminNote>>(
+          stream: service.getCourseNotes(widget.courseId),
+          builder: (context, notesSnap) {
+            return StreamBuilder<List<AdminDpp>>(
+              stream: service.getCourseDpps(widget.courseId),
+              builder: (context, dppsSnap) {
+                final lectures = lecturesSnap.data ?? [];
+                final notes = notesSnap.data ?? [];
+                final dpps = dppsSnap.data ?? [];
 
-        return StreamBuilder<List<AdminLecture>>(
-          stream: isCourseBatch
-              ? service.getCourseLecturesCombined(widget.courseId)
-              : service.getLectures(widget.courseId, widget.batchId),
-          builder: (context, lecturesSnap) {
-            return StreamBuilder<List<AdminNote>>(
-              stream: isCourseBatch
-                  ? service.getCourseNotesCombined(widget.courseId)
-                  : service.getBatchNotes(widget.courseId, widget.batchId),
-              builder: (context, notesSnap) {
-                return StreamBuilder<List<AdminDpp>>(
-                  stream: isCourseBatch
-                      ? service.getCourseDppsCombined(widget.courseId)
-                      : service.getBatchDpps(widget.courseId, widget.batchId),
-                  builder: (context, dppsSnap) {
-                    final lectures = lecturesSnap.data ?? [];
-                    final notes = notesSnap.data ?? [];
-                    final dpps = dppsSnap.data ?? [];
-
-                    return _buildExplorer(context, service, lectures, notes, dpps);
-                  },
-                );
+                return _buildExplorer(context, service, lectures, notes, dpps);
               },
             );
           },
@@ -352,6 +335,81 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
 
     return AdminScaffold(
       title: _selectedSubject!,
+      actions: [
+        if (_isSelectMode) ...[
+          IconButton(
+            icon: const Icon(Icons.select_all),
+            tooltip: 'Select All Videos',
+            onPressed: () {
+              setState(() {
+                _selectedLectureIds.addAll(filteredLectures.map((l) => l.id));
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.deselect),
+            tooltip: 'Clear Selection',
+            onPressed: () {
+              setState(() {
+                _selectedLectureIds.clear();
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.close),
+            tooltip: 'Cancel Select Mode',
+            onPressed: () {
+              setState(() {
+                _isSelectMode = false;
+                _selectedLectureIds.clear();
+              });
+            },
+          ),
+        ] else ...[
+          if (filteredLectures.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.checklist),
+              tooltip: 'Select Multiple Lectures',
+              onPressed: () {
+                setState(() {
+                  _isSelectMode = true;
+                  _selectedLectureIds.clear();
+                });
+              },
+            ),
+        ]
+      ],
+      floatingActionButton: (_isSelectMode && _selectedLectureIds.isNotEmpty)
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                final selectedLectures = lectures
+                    .where((l) => _selectedLectureIds.contains(l.id))
+                    .toList();
+                showDialog(
+                  context: context,
+                  builder: (_) => Provider<FirebaseAdminService>.value(
+                    value: service,
+                    child: LinkLectureToBatchDialog(
+                      lectures: selectedLectures,
+                      sourceCourseId: widget.courseId,
+                      sourceBatchId: widget.batchId,
+                    ),
+                  ),
+                ).then((linked) {
+                  if (linked == true) {
+                    setState(() {
+                      _isSelectMode = false;
+                      _selectedLectureIds.clear();
+                    });
+                  }
+                });
+              },
+              icon: const Icon(Icons.share),
+              label: Text('Link ${_selectedLectureIds.length} Selected to Batches'),
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+            )
+          : null,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -379,7 +437,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                   ),
                 );
 
-                final actionsWidget = Row(
+                 final actionsWidget = Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ElevatedButton.icon(
@@ -395,7 +453,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
-                      onPressed: () => _showAddResourceDialog(context, service),
+                      onPressed: () => _showAddResourceDialog(context, service, notes, dpps),
                       icon: const Icon(Icons.add, size: 16),
                       label: const Text('Add Item', style: TextStyle(fontSize: 12)),
                       style: ElevatedButton.styleFrom(
@@ -405,6 +463,25 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
+                    if (filteredLectures.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _isSelectMode = !_isSelectMode;
+                            _selectedLectureIds.clear();
+                          });
+                        },
+                        icon: Icon(_isSelectMode ? Icons.close : Icons.share, size: 16),
+                        label: Text(_isSelectMode ? 'Cancel' : 'Link Multiple', style: const TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isSelectMode ? Colors.red.shade700 : Colors.teal.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
                   ],
                 );
 
@@ -619,7 +696,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
                           final item = combinedFiles[index];
-                          return _buildFileItemTile(context, service, item);
+                          return _buildFileItemTile(context, service, item, notes, dpps);
                         },
                         childCount: combinedFiles.length,
                       ),
@@ -723,6 +800,8 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     BuildContext context,
     FirebaseAdminService service,
     dynamic item,
+    List<AdminNote> allNotes,
+    List<AdminDpp> allDpps,
   ) {
     IconData iconData = Icons.insert_drive_file;
     Color iconColor = Colors.grey;
@@ -754,66 +833,104 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
       path = item.dppPdfUrl;
     }
 
-    return Card(
-      elevation: 0.5,
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(iconData, color: iconColor, size: 28),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
+    final isLec = item is AdminLecture;
+    final isSelected = isLec && _selectedLectureIds.contains(item.id);
+
+    return Opacity(
+      opacity: (_isSelectMode && !isLec) ? 0.4 : 1.0,
+      child: Card(
+        elevation: 0.5,
+        margin: const EdgeInsets.only(bottom: 8),
+        child: ListTile(
+          leading: Icon(iconData, color: iconColor, size: 28),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      typeLabel,
+                      style: TextStyle(color: iconColor, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  child: Text(
-                    typeLabel,
-                    style: TextStyle(color: iconColor, fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(subtitle, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(path, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (item is AdminLecture)
-              IconButton(
-                icon: const Icon(Icons.share, size: 20, color: Colors.blue),
-                tooltip: 'Link to Batches',
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => Provider<FirebaseAdminService>.value(
-                      value: service,
-                      child: LinkLectureToBatchDialog(
-                        lecture: item,
-                        sourceCourseId: widget.courseId,
-                        sourceBatchId: widget.batchId,
+                  const SizedBox(width: 8),
+                  Text(subtitle, style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(path, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            ],
+          ),
+          trailing: _isSelectMode
+              ? (isLec
+                  ? Checkbox(
+                      value: isSelected,
+                      onChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            _selectedLectureIds.add(item.id);
+                          } else {
+                            _selectedLectureIds.remove(item.id);
+                          }
+                        });
+                      },
+                    )
+                  : const SizedBox.shrink())
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isLec)
+                      IconButton(
+                        icon: const Icon(Icons.share, size: 20, color: Colors.blue),
+                        tooltip: 'Link to Batches',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => Provider<FirebaseAdminService>.value(
+                              value: service,
+                              child: LinkLectureToBatchDialog(
+                                lectures: [item],
+                                sourceCourseId: widget.courseId,
+                                sourceBatchId: widget.batchId,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 20),
+                      onPressed: () => _showEditResourceDialog(
+                        context,
+                        service,
+                        existingItem: item,
+                        allNotes: allNotes,
+                        allDpps: allDpps,
                       ),
                     ),
-                  );
-                },
-              ),
-            IconButton(
-              icon: const Icon(Icons.edit, size: 20),
-              onPressed: () => _showEditResourceDialog(context, service, existingItem: item),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-              onPressed: () => _showDeleteResourceConfirmation(context, service, item),
-            ),
-          ],
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                      onPressed: () => _showDeleteResourceConfirmation(context, service, item),
+                    ),
+                  ],
+                ),
+          onTap: (_isSelectMode && isLec)
+              ? () {
+                  setState(() {
+                    if (isSelected) {
+                      _selectedLectureIds.remove(item.id);
+                    } else {
+                      _selectedLectureIds.add(item.id);
+                    }
+                  });
+                }
+              : null,
         ),
       ),
     );
@@ -894,7 +1011,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                   subject: _selectedSubject!,
                   chapter: _currentPath.join('/'),
                 );
-                await service.saveLecture(widget.courseId, widget.batchId, placeholder, isNew: true);
+                await service.saveLecture(widget.courseId, placeholder, isNew: true);
                 if (context.mounted) Navigator.pop(context);
               }
             },
@@ -935,7 +1052,6 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                 // Call recursive rename in background
                 await service.recursivelyRenameFolder(
                   courseId: widget.courseId,
-                  batchId: widget.batchId,
                   subject: _selectedSubject!,
                   oldFolderPath: oldPath,
                   newFolderPath: newPath,
@@ -971,7 +1087,6 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
 
               await service.recursivelyDeleteFolder(
                 courseId: widget.courseId,
-                batchId: widget.batchId,
                 subject: _selectedSubject!,
                 folderPath: targetPath,
               );
@@ -985,7 +1100,12 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
   }
 
   // ================= GENERAL RESOURCE CREATION / EDIT DIALOG =================
-  void _showAddResourceDialog(BuildContext context, FirebaseAdminService service) {
+  void _showAddResourceDialog(
+    BuildContext context,
+    FirebaseAdminService service,
+    List<AdminNote> allNotes,
+    List<AdminDpp> allDpps,
+  ) {
     // Show select resource type dialog
     showDialog(
       context: context,
@@ -995,7 +1115,13 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
           SimpleDialogOption(
             onPressed: () {
               Navigator.pop(context);
-              _showEditResourceDialog(context, service, newType: 'video');
+              _showEditResourceDialog(
+                context,
+                service,
+                newType: 'video',
+                allNotes: allNotes,
+                allDpps: allDpps,
+              );
             },
             child: const Row(
               children: [
@@ -1008,7 +1134,13 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
           SimpleDialogOption(
             onPressed: () {
               Navigator.pop(context);
-              _showEditResourceDialog(context, service, newType: 'note');
+              _showEditResourceDialog(
+                context,
+                service,
+                newType: 'note',
+                allNotes: allNotes,
+                allDpps: allDpps,
+              );
             },
             child: Row(
               children: [
@@ -1021,7 +1153,13 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
           SimpleDialogOption(
             onPressed: () {
               Navigator.pop(context);
-              _showEditResourceDialog(context, service, newType: 'dpp');
+              _showEditResourceDialog(
+                context,
+                service,
+                newType: 'dpp',
+                allNotes: allNotes,
+                allDpps: allDpps,
+              );
             },
             child: Row(
               children: [
@@ -1041,6 +1179,8 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     FirebaseAdminService service, {
     dynamic existingItem,
     String? newType,
+    List<AdminNote> allNotes = const [],
+    List<AdminDpp> allDpps = const [],
   }) {
     final type = existingItem != null
         ? (existingItem is AdminLecture
@@ -1068,133 +1208,323 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
       }
     }
 
+    final currentFullPath = _currentPath.join('/');
+    final localNotes = allNotes
+        .where((n) => n.subject == _selectedSubject && n.chapter == currentFullPath)
+        .toList();
+    final localDpps = allDpps
+        .where((d) => d.subject == _selectedSubject && d.chapter == currentFullPath)
+        .toList();
+
+    final selectedNoteIds = <String>[];
+    final selectedDppIds = <String>[];
+
+    if (existingItem != null && existingItem is AdminLecture) {
+      selectedNoteIds.addAll(existingItem.linkedNoteIds);
+      for (final note in localNotes) {
+        if (note.lectureId == existingItem.id && !selectedNoteIds.contains(note.id)) {
+          selectedNoteIds.add(note.id);
+        }
+      }
+      for (final dpp in localDpps) {
+        if (dpp.lectureId == existingItem.id) {
+          selectedDppIds.add(dpp.id);
+        }
+      }
+    }
+
     showDialog(
       context: context,
       builder: (context) => Provider<FirebaseAdminService>.value(
         value: service,
-        child: AlertDialog(
-          title: Text(existingItem == null ? 'New $type' : 'Edit $type'),
-          content: SizedBox(
-            width: 450,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: val1Controller,
-                    decoration: InputDecoration(
-                      labelText: type == 'video'
-                          ? 'YouTube Video URL'
-                          : (type == 'note' ? 'Note PDF URL' : 'DPP PDF URL'),
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                  if (type == 'note' || type == 'dpp') ...[
-                    const SizedBox(height: 8),
-                    MediaUploader(
-                      path: 'courses/${widget.courseId}/batches/${widget.batchId}/$type',
-                      onUploadComplete: (url) {
-                        val1Controller.text = url;
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  if (type == 'video')
-                    TextField(
-                      controller: val2Controller,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Lecture Number (Optional)', border: OutlineInputBorder()),
-                    )
-                  else if (type == 'note')
-                    TextField(
-                      controller: val2Controller,
-                      decoration: const InputDecoration(labelText: 'Note Subtitle (Optional)', border: OutlineInputBorder()),
-                    )
-                  else if (type == 'dpp')
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: val2Controller,
-                          decoration: const InputDecoration(labelText: 'Solution PDF URL (Optional)', border: OutlineInputBorder()),
+        child: StatefulBuilder(
+          builder: (context, dialogSetState) {
+            return AlertDialog(
+              title: Text(existingItem == null ? 'New $type' : 'Edit $type'),
+              content: SizedBox(
+                width: 450,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: val1Controller,
+                        decoration: InputDecoration(
+                          labelText: type == 'video'
+                              ? 'YouTube Video URL'
+                              : (type == 'note' ? 'Note PDF URL' : 'DPP PDF URL'),
+                          border: const OutlineInputBorder(),
                         ),
+                      ),
+                      if (type == 'note' || type == 'dpp') ...[
                         const SizedBox(height: 8),
                         MediaUploader(
-                          path: 'courses/${widget.courseId}/batches/${widget.batchId}/solutions',
+                          path: 'courses/${widget.courseId}/batches/${widget.batchId}/$type',
                           onUploadComplete: (url) {
-                            val2Controller.text = url;
+                            val1Controller.text = url;
                           },
                         ),
                       ],
-                    ),
-                ],
+                      const SizedBox(height: 12),
+                      if (type == 'video') ...[
+                        TextField(
+                          controller: val2Controller,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'Lecture Number (Optional)', border: OutlineInputBorder()),
+                        ),
+                        const Divider(height: 32),
+                        Row(
+                          children: [
+                            Icon(Icons.description, color: Colors.orange.shade700, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Link Notes in this Folder',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (localNotes.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'No Notes found in this folder. Add Notes first to link them.',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+                            ),
+                          )
+                        else
+                          Container(
+                            constraints: const BoxConstraints(maxHeight: 180),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: localNotes.length,
+                              itemBuilder: (context, idx) {
+                                final note = localNotes[idx];
+                                final isChecked = selectedNoteIds.contains(note.id);
+                                return CheckboxListTile(
+                                  value: isChecked,
+                                  title: Text(
+                                    note.title,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  subtitle: note.subtitle.isNotEmpty
+                                      ? Text(note.subtitle, style: const TextStyle(fontSize: 11))
+                                      : null,
+                                  dense: true,
+                                  activeColor: Colors.indigo,
+                                  onChanged: (val) {
+                                    dialogSetState(() {
+                                      if (val == true) {
+                                        selectedNoteIds.add(note.id);
+                                      } else {
+                                        selectedNoteIds.remove(note.id);
+                                      }
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        const Divider(height: 32),
+                        Row(
+                          children: [
+                            Icon(Icons.assignment, color: Colors.purple.shade700, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Link DPPs in this Folder',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (localDpps.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'No DPPs found in this folder. Add DPPs first to link them.',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+                            ),
+                          )
+                        else
+                          Container(
+                            constraints: const BoxConstraints(maxHeight: 180),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: localDpps.length,
+                              itemBuilder: (context, idx) {
+                                final dpp = localDpps[idx];
+                                final isChecked = selectedDppIds.contains(dpp.id);
+                                return CheckboxListTile(
+                                  value: isChecked,
+                                  title: Text(
+                                    dpp.title,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  dense: true,
+                                  activeColor: Colors.indigo,
+                                  onChanged: (val) {
+                                    dialogSetState(() {
+                                      if (val == true) {
+                                        selectedDppIds.add(dpp.id);
+                                      } else {
+                                        selectedDppIds.remove(dpp.id);
+                                      }
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                      ] else if (type == 'note')
+                        TextField(
+                          controller: val2Controller,
+                          decoration: const InputDecoration(labelText: 'Note Subtitle (Optional)', border: OutlineInputBorder()),
+                        )
+                      else if (type == 'dpp')
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextField(
+                              controller: val2Controller,
+                              decoration: const InputDecoration(labelText: 'Solution PDF URL (Optional)', border: OutlineInputBorder()),
+                            ),
+                            const SizedBox(height: 8),
+                            MediaUploader(
+                              path: 'courses/${widget.courseId}/batches/${widget.batchId}/solutions',
+                              onUploadComplete: (url) {
+                                val2Controller.text = url;
+                              },
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final title = titleController.text.trim();
-                final val1 = val1Controller.text.trim();
-                final val2 = val2Controller.text.trim();
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final title = titleController.text.trim();
+                    final val1 = val1Controller.text.trim();
+                    final val2 = val2Controller.text.trim();
 
-                if (title.isEmpty || val1.isEmpty) return;
+                    if (title.isEmpty || val1.isEmpty) return;
 
-                final currentFullPath = _currentPath.join('/');
+                    final currentFullPath = _currentPath.join('/');
 
-                if (type == 'video') {
-                  final lecture = AdminLecture(
-                    id: existingItem?.id ?? '',
-                    title: title,
-                    description: '',
-                    orderIndex: existingItem?.orderIndex ?? 0,
-                    type: 'video',
-                    storagePath: val1,
-                    isLocked: existingItem?.isLocked ?? false,
-                    subject: _selectedSubject!,
-                    chapter: currentFullPath,
-                    lectureNo: int.tryParse(val2),
-                    linkedNoteIds: existingItem?.linkedNoteIds ?? [],
-                  );
-                  await service.saveLecture(widget.courseId, widget.batchId, lecture, isNew: existingItem == null);
-                } else if (type == 'note') {
-                  final note = AdminNote(
-                    id: existingItem?.id ?? '',
-                    title: title,
-                    subtitle: val2,
-                    pdfUrl: val1,
-                    createdAt: existingItem?.createdAt ?? DateTime.now(),
-                    subject: _selectedSubject!,
-                    chapter: currentFullPath,
-                  );
-                  await service.saveBatchNote(widget.courseId, widget.batchId, note, isNew: existingItem == null);
-                } else if (type == 'dpp') {
-                  final dpp = AdminDpp(
-                    id: existingItem?.id ?? '',
-                    title: title,
-                    subject: _selectedSubject!,
-                    chapter: currentFullPath,
-                    dppPdfUrl: val1,
-                    solutionPdfUrl: val2,
-                    createdAt: existingItem?.createdAt ?? DateTime.now(),
-                  );
-                  await service.saveBatchDpp(widget.courseId, widget.batchId, dpp, isNew: existingItem == null);
-                }
+                    if (type == 'video') {
+                      final lecture = AdminLecture(
+                        id: existingItem?.id ?? '',
+                        title: title,
+                        description: '',
+                        orderIndex: existingItem?.orderIndex ?? 0,
+                        type: 'video',
+                        storagePath: val1,
+                        isLocked: existingItem?.isLocked ?? false,
+                        subject: _selectedSubject!,
+                        chapter: currentFullPath,
+                        lectureNo: int.tryParse(val2),
+                        linkedNoteIds: selectedNoteIds,
+                      );
+                      final savedId = await service.saveLecture(widget.courseId, lecture, isNew: existingItem == null);
+ 
+                      // Update note lectureIds
+                      for (final note in localNotes) {
+                        final isSelected = selectedNoteIds.contains(note.id);
+                        final wasSelected = note.lectureId == savedId;
+                        if (isSelected != wasSelected) {
+                          final updatedNote = AdminNote(
+                            id: note.id,
+                            title: note.title,
+                            subtitle: note.subtitle,
+                            pdfUrl: note.pdfUrl,
+                            createdAt: note.createdAt,
+                            subject: note.subject,
+                            chapter: note.chapter,
+                            lectureId: isSelected ? savedId : null,
+                          );
+                          await service.saveCourseNote(widget.courseId, updatedNote, isNew: false);
+                        }
+                      }
+ 
+                      // Update dpp lectureIds
+                      for (final dpp in localDpps) {
+                        final isSelected = selectedDppIds.contains(dpp.id);
+                        final wasSelected = dpp.lectureId == savedId;
+                        if (isSelected != wasSelected) {
+                          final updatedDpp = AdminDpp(
+                            id: dpp.id,
+                            title: dpp.title,
+                            subject: dpp.subject,
+                            chapter: dpp.chapter,
+                            dppPdfUrl: dpp.dppPdfUrl,
+                            solutionPdfUrl: dpp.solutionPdfUrl,
+                            lectureId: isSelected ? savedId : null,
+                            createdAt: dpp.createdAt,
+                          );
+                          await service.saveCourseDpp(widget.courseId, updatedDpp, isNew: false);
+                        }
+                      }
+                    } else if (type == 'note') {
+                      final note = AdminNote(
+                        id: existingItem?.id ?? '',
+                        title: title,
+                        subtitle: val2,
+                        pdfUrl: val1,
+                        createdAt: existingItem?.createdAt ?? DateTime.now(),
+                        subject: _selectedSubject!,
+                        chapter: currentFullPath,
+                      );
+                      await service.saveCourseNote(widget.courseId, note, isNew: existingItem == null);
+                    } else if (type == 'dpp') {
+                      final dpp = AdminDpp(
+                        id: existingItem?.id ?? '',
+                        title: title,
+                        subject: _selectedSubject!,
+                        chapter: currentFullPath,
+                        dppPdfUrl: val1,
+                        solutionPdfUrl: val2,
+                        createdAt: existingItem?.createdAt ?? DateTime.now(),
+                      );
+                      await service.saveCourseDpp(widget.courseId, dpp, isNew: existingItem == null);
+                    }
 
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -1233,11 +1563,11 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               if (item is AdminLecture) {
-                await service.deleteLecture(widget.courseId, widget.batchId, item.id);
+                await service.deleteLecture(widget.courseId, item.id);
               } else if (item is AdminNote) {
-                await service.deleteBatchNote(widget.courseId, widget.batchId, item.id);
+                await service.deleteCourseNote(widget.courseId, item.id);
               } else if (item is AdminDpp) {
-                await service.deleteBatchDpp(widget.courseId, widget.batchId, item.id);
+                await service.deleteCourseDpp(widget.courseId, item.id);
               }
               if (context.mounted) Navigator.pop(context);
             },

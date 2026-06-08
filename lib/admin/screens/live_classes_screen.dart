@@ -8,19 +8,18 @@ import '../widgets/link_live_class_dialog.dart';
 
 class LiveClassesScreen extends StatelessWidget {
   final String? courseId;
-  final String? batchId;
   
-  const LiveClassesScreen({super.key, this.courseId, this.batchId});
+  const LiveClassesScreen({super.key, this.courseId, String? batchId});
 
   @override
   Widget build(BuildContext context) {
     // Get service reference before any async operations
     final adminService = context.read<FirebaseAdminService>();
-    final isBatchScoped = batchId != null && courseId != null;
+    final isCourseScoped = courseId != null && courseId!.isNotEmpty;
     
     return AdminScaffold(
-      title: isBatchScoped ? 'Batch Schedule' : 'Free Live Classes',
-      floatingActionButton: isBatchScoped
+      title: isCourseScoped ? 'Course Schedule' : 'Free Live Classes',
+      floatingActionButton: isCourseScoped
           ? Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -34,7 +33,6 @@ class LiveClassesScreen extends StatelessWidget {
                         value: adminService,
                         child: LinkLiveClassDialog(
                           targetCourseId: courseId!,
-                          targetBatchId: batchId!,
                         ),
                       ),
                     );
@@ -52,7 +50,6 @@ class LiveClassesScreen extends StatelessWidget {
                     '/live_class_editor', 
                     arguments: {
                       'courseId': courseId,
-                      'batchId': batchId,
                     }
                   ),
                   child: const Icon(Icons.add),
@@ -65,14 +62,13 @@ class LiveClassesScreen extends StatelessWidget {
                 '/live_class_editor', 
                 arguments: {
                   'courseId': courseId,
-                  'batchId': batchId,
                 }
               ),
               child: const Icon(Icons.add),
             ),
       body: StreamBuilder<List<AdminLiveClass>>(
-        stream: isBatchScoped
-            ? adminService.getBatchLiveClasses(courseId!, batchId!)
+        stream: isCourseScoped
+            ? adminService.getCourseLiveClasses(courseId!)
             : adminService.getLiveClasses(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -93,7 +89,7 @@ class LiveClassesScreen extends StatelessWidget {
                   Icon(Icons.video_camera_front_outlined, size: 64, color: Colors.grey[300]),
                   const SizedBox(height: 16),
                   const Text('No classes scheduled'),
-                  if (isBatchScoped) ...[
+                  if (isCourseScoped) ...[
                     const SizedBox(height: 8),
                     TextButton.icon(
                       onPressed: () {
@@ -103,13 +99,12 @@ class LiveClassesScreen extends StatelessWidget {
                             value: adminService,
                             child: LinkLiveClassDialog(
                               targetCourseId: courseId!,
-                              targetBatchId: batchId!,
                             ),
                           ),
                         );
                       },
                       icon: const Icon(Icons.add_link, size: 18),
-                      label: const Text('Link from another batch'),
+                      label: const Text('Link from another course'),
                     ),
                   ],
                 ],
@@ -124,7 +119,7 @@ class LiveClassesScreen extends StatelessWidget {
               final item = classes[index];
               final isLive = item.status == 'live';
               final isCompleted = item.status == 'completed';
-              final hasLinks = item.linkedBatches.isNotEmpty;
+              final hasLinks = item.linkedCourses.isNotEmpty;
 
               return Card(
                 elevation: isLive ? 4 : 1,
@@ -140,7 +135,6 @@ class LiveClassesScreen extends StatelessWidget {
                     arguments: {
                       'item': item,
                       'courseId': courseId,
-                      'batchId': batchId,
                     }
                   ),
                   child: Padding(
@@ -185,7 +179,7 @@ class LiveClassesScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              // Linked batches indicator
+                              // Linked courses indicator
                               if (hasLinks) ...[
                                 const SizedBox(height: 4),
                                 Row(
@@ -194,7 +188,7 @@ class LiveClassesScreen extends StatelessWidget {
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
-                                        'Linked to ${item.linkedBatches.length} batch${item.linkedBatches.length > 1 ? "es" : ""}',
+                                        'Linked to ${item.linkedCourses.length} course${item.linkedCourses.length > 1 ? "s" : ""}',
                                         style: TextStyle(color: Colors.blue[400], fontSize: 12),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -239,7 +233,6 @@ class LiveClassesScreen extends StatelessWidget {
                                     arguments: {
                                       'item': item,
                                       'courseId': courseId,
-                                      'batchId': batchId,
                                     }
                                   ),
                                 ),
@@ -267,7 +260,7 @@ class LiveClassesScreen extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context, FirebaseAdminService adminService, AdminLiveClass item) {
-    final isLinked = item.linkedFrom != null || item.linkedBatches.isNotEmpty;
+    final isLinked = item.linkedFrom != null || item.linkedCourses.isNotEmpty;
 
     if (!isLinked) {
       showDialog(
@@ -284,8 +277,8 @@ class LiveClassesScreen extends StatelessWidget {
               onPressed: () async {
                 Navigator.pop(dialogContext);
                 try {
-                  if (batchId != null && courseId != null) {
-                    await adminService.deleteBatchLiveClass(courseId!, batchId!, item.id);
+                  if (courseId != null && courseId!.isNotEmpty) {
+                    await adminService.deleteCourseLiveClass(courseId!, item.id);
                   } else {
                     await adminService.deleteLiveClass(item.id);
                   }
@@ -320,7 +313,7 @@ class LiveClassesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '"${item.title}" is linked across multiple batches/courses.',
+              '"${item.title}" is linked across multiple courses.',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
@@ -339,14 +332,14 @@ class LiveClassesScreen extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(dialogContext);
               try {
-                if (batchId != null && courseId != null) {
-                  await adminService.deleteBatchLiveClass(courseId!, batchId!, item.id, deleteAllLinked: false);
+                if (courseId != null && courseId!.isNotEmpty) {
+                  await adminService.deleteCourseLiveClass(courseId!, item.id, deleteAllLinked: false);
                 } else {
                   await adminService.deleteLiveClass(item.id, deleteAllLinked: false);
                 }
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Removed from this batch successfully')),
+                    const SnackBar(content: Text('Removed from this course successfully')),
                   );
                 }
               } catch (e) {
@@ -357,7 +350,7 @@ class LiveClassesScreen extends StatelessWidget {
                 }
               }
             },
-            child: const Text('This Batch Only'),
+            child: const Text('This Course Only'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -367,14 +360,14 @@ class LiveClassesScreen extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(dialogContext);
               try {
-                if (batchId != null && courseId != null) {
-                  await adminService.deleteBatchLiveClass(courseId!, batchId!, item.id, deleteAllLinked: true);
+                if (courseId != null && courseId!.isNotEmpty) {
+                  await adminService.deleteCourseLiveClass(courseId!, item.id, deleteAllLinked: true);
                 } else {
                   await adminService.deleteLiveClass(item.id, deleteAllLinked: true);
                 }
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Deleted from all batches successfully')),
+                    const SnackBar(content: Text('Deleted from all courses successfully')),
                   );
                 }
               } catch (e) {
@@ -385,11 +378,10 @@ class LiveClassesScreen extends StatelessWidget {
                 }
               }
             },
-            child: const Text('All Linked Batches'),
+            child: const Text('All Linked Courses'),
           ),
         ],
       ),
     );
   }
 }
-

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/study/study_repository.dart';
 import 'package:eduverse/study/models/study_models.dart';
-import 'batch_section_page.dart';
+import 'course_section_page.dart';
 
 class MyCoursesPage extends StatelessWidget {
   const MyCoursesPage({super.key});
@@ -86,7 +86,7 @@ class MyCoursesPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BatchSectionPage(
+                          builder: (context) => CourseSectionPage(
                             course: course,
                             batchId: '${course.id}-B1', // Mock batch ID
                           ),
@@ -119,7 +119,7 @@ class MyCoursesPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('My Batches'),
+        title: const Text('My Courses'),
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
@@ -131,7 +131,7 @@ class MyCoursesPage extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search batches...',
+                  hintText: 'Search courses...',
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Colors.white,
@@ -153,7 +153,7 @@ class MyCoursesPage extends StatelessWidget {
 
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(
-                      child: Text('No batches found. Enroll in a batch to see it here.'),
+                      child: Text('No courses found. Enroll in a course to see it here.'),
                     );
                   }
 

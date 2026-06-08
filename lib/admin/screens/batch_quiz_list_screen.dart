@@ -39,7 +39,7 @@ class BatchQuizListScreen extends StatelessWidget {
         ),
       ],
       body: StreamBuilder<List<AdminQuiz>>(
-        stream: adminService.getBatchQuizzes(courseId, batchId),
+        stream: adminService.getCourseQuizzes(courseId),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
              return Center(child: Text('Error: ${snapshot.error}'));
@@ -110,7 +110,7 @@ class BatchQuizListScreen extends StatelessWidget {
                              ),
                            );
                            if (confirm == true) {
-                             await adminService.deleteBatchQuiz(courseId, batchId, quiz.id);
+                             await adminService.deleteCourseQuiz(courseId, quiz.id);
                            }
                          },
                        ),

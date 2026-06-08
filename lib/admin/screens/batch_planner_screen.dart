@@ -21,7 +21,7 @@ class BatchPlannerScreen extends StatelessWidget {
         onPressed: () => _showAddDialog(context, service),
       ),
       body: StreamBuilder<List<AdminPlannerItem>>(
-        stream: service.getBatchPlanner(courseId, batchId),
+        stream: service.getCoursePlanner(courseId),
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -42,7 +42,7 @@ class BatchPlannerScreen extends StatelessWidget {
                   isThreeLine: true,
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => service.deleteBatchPlannerItem(courseId, batchId, item.id),
+                    onPressed: () => service.deleteCoursePlannerItem(courseId, item.id),
                   ),
                 ),
               );
@@ -95,7 +95,7 @@ class BatchPlannerScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                 ],
                 MediaUploader(
-                  path: 'courses/$courseId/batches/$batchId/planner',
+                  path: 'courses/$courseId/planner',
                   onUploadComplete: (url) {
                      setState(() => pdfUrl = url);
                   },
@@ -120,7 +120,7 @@ class BatchPlannerScreen extends StatelessWidget {
                   date: selectedDate,
                 );
                 
-                await service.saveBatchPlannerItem(courseId, batchId, item, isNew: true);
+                await service.saveCoursePlannerItem(courseId, item, isNew: true);
                 if (context.mounted) Navigator.pop(context);
               },
               child: const Text('Add'),

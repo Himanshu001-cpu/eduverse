@@ -355,9 +355,8 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
       );
 
       final adminService = Provider.of<FirebaseAdminService>(context, listen: false);
-      await adminService.saveBatchQuiz(
+      await adminService.saveCourseQuiz(
         widget.courseId,
-        widget.batchId,
         quiz,
         isNew: _currentQuizId == null,
       );
@@ -419,9 +418,8 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
         context,
         listen: false,
       );
-      await adminService.saveBatchQuiz(
+      await adminService.saveCourseQuiz(
         widget.courseId,
-        widget.batchId,
         quiz,
         isNew: _currentQuizId == null,
       );

@@ -90,6 +90,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
             mute: false,
             enableCaption: true,
             isLive: isLive,
+            hideThumbnail: true,
           ),
         )..addListener(_listener);
       }

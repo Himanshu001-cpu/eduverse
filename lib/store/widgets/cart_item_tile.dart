@@ -35,11 +35,27 @@ class CartItemTile extends StatelessWidget {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: item.ebookId != null && item.ebookId!.isNotEmpty
+                    ? Colors.orange.shade50
+                    : item.combinationPackId != null && item.combinationPackId!.isNotEmpty
+                        ? Colors.purple.shade50
+                        : Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
-              child: const Icon(Icons.school, size: 28, color: Colors.blue),
+              child: Icon(
+                item.ebookId != null && item.ebookId!.isNotEmpty
+                    ? Icons.menu_book
+                    : item.combinationPackId != null && item.combinationPackId!.isNotEmpty
+                        ? Icons.backpack
+                        : Icons.school,
+                size: 28,
+                color: item.ebookId != null && item.ebookId!.isNotEmpty
+                    ? Colors.orange
+                    : item.combinationPackId != null && item.combinationPackId!.isNotEmpty
+                        ? Colors.purple
+                        : Colors.blue,
+              ),
             ),
             const SizedBox(width: 16),
 
@@ -59,7 +75,11 @@ class CartItemTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Batch ID: ${item.batchId}',
+                    item.ebookId != null && item.ebookId!.isNotEmpty
+                        ? 'E-book'
+                        : item.combinationPackId != null && item.combinationPackId!.isNotEmpty
+                            ? 'Combo Pack'
+                            : 'Batch ID: ${item.batchId}',
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

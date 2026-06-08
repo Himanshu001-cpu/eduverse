@@ -80,6 +80,7 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
                 autoPlay: true,
                 mute: false,
                 isLive: widget.isLiveStream,
+                hideThumbnail: true,
               ),
             );
           }
@@ -490,7 +491,7 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
   }
 
   Future<List<Map<String, dynamic>>> _fetchLinkedNotes() async {
-    if (widget.courseId == null || widget.batchId == null) return [];
+    if (widget.courseId == null) return [];
     final db = FirebaseFirestore.instance;
     final List<Map<String, dynamic>> results = [];
     for (final noteId in widget.linkedNoteIds) {
@@ -498,8 +499,6 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
         final doc = await db
             .collection('courses')
             .doc(widget.courseId)
-            .collection('batches')
-            .doc(widget.batchId)
             .collection('notes')
             .doc(noteId)
             .get();

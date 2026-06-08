@@ -28,11 +28,14 @@ class ActiveLiveClass {
 }
 
 class LiveClassNotifierService extends ChangeNotifier {
-  LiveClassNotifierService({required String uid}) {
+  final FirebaseFirestore _firestore;
+
+  LiveClassNotifierService({
+    required String uid,
+    FirebaseFirestore? firestore,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance {
     _listenToEnrollments(uid);
   }
-
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   StreamSubscription? _enrollmentSubscription;
   final Map<String, StreamSubscription> _liveClassSubscriptions = {};
@@ -61,49 +64,45 @@ class LiveClassNotifierService extends ChangeNotifier {
       
       for (final doc in enrollmentSnap.docs) {
         final data = doc.data();
-        final courseId = data['courseId'] as String?;
-        final batchId = data['batchId'] as String?;
-        if (courseId == null || batchId == null) continue;
+        final courseId = data['courseId'] as String? ?? doc.id;
+        if (courseId.isEmpty) continue;
 
-        final key = '${courseId}___$batchId';
+        final key = courseId;
         activeKeys.add(key);
 
         if (!_liveClassSubscriptions.containsKey(key)) {
-          _subscribeToLiveClasses(courseId, batchId, key);
+          _subscribeToLiveClasses(courseId, key);
         }
       }
 
-      // Cancel subscriptions for batches the user is no longer enrolled in
+      // Cancel subscriptions for courses the user is no longer enrolled in
       final keysToRemove = _liveClassSubscriptions.keys.where((k) => !activeKeys.contains(k)).toList();
       if (keysToRemove.isNotEmpty) {
         final updatedClasses = List<ActiveLiveClass>.from(_activeClasses);
         for (final key in keysToRemove) {
           _liveClassSubscriptions[key]?.cancel();
           _liveClassSubscriptions.remove(key);
-          updatedClasses.removeWhere((ac) => '${ac.courseId}___${ac.batchId}' == key);
+          updatedClasses.removeWhere((ac) => ac.courseId == key);
         }
         _activeClasses = updatedClasses;
       }
       notifyListeners();
     }, onError: (err) {
       debugPrint('LiveClassNotifierService enrollment snapshots error: $err');
-      // Don't cleanup — Firestore streams auto-reconnect on transient errors.
     });
   }
 
-  void _subscribeToLiveClasses(String courseId, String batchId, String key) {
+  void _subscribeToLiveClasses(String courseId, String key) {
     _liveClassSubscriptions[key] = _firestore
         .collection('courses')
         .doc(courseId)
-        .collection('batches')
-        .doc(batchId)
         .collection('live_classes')
         .where('status', isEqualTo: 'live')
         .snapshots()
         .listen((classSnap) {
-      // Remove previous active classes for this batch and add updated ones immutably
+      // Remove previous active classes for this course and add updated ones immutably
       final updatedClasses = List<ActiveLiveClass>.from(_activeClasses);
-      updatedClasses.removeWhere((ac) => ac.courseId == courseId && ac.batchId == batchId);
+      updatedClasses.removeWhere((ac) => ac.courseId == courseId);
 
       for (final doc in classSnap.docs) {
         final data = doc.data();
@@ -111,7 +110,7 @@ class LiveClassNotifierService extends ChangeNotifier {
         updatedClasses.add(ActiveLiveClass(
           liveClass: liveClass,
           courseId: courseId,
-          batchId: batchId,
+          batchId: '', // Collapsed to course level, batchId is empty
         ));
       }
 

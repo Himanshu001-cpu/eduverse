@@ -8,6 +8,10 @@ import 'package:eduverse/admin/services/firebase_admin_service.dart';
 import 'package:eduverse/core/firebase/purchase_service.dart';
 import 'package:eduverse/core/firebase/promo_code_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:eduverse/core/services/new_batch_promotion_service.dart';
+import 'package:eduverse/core/services/live_class_notifier_service.dart';
 
 // Mocks for testing commitInChunks
 class MockFirestore extends Fake implements FirebaseFirestore {
@@ -146,6 +150,149 @@ class MockSubcollection extends Fake implements CollectionReference<Map<String, 
   @override
   DocumentReference<Map<String, dynamic>> doc([String? path]) {
     return docs.putIfAbsent(path!, () => MockUserDocumentReference(path));
+  }
+}
+
+// Mocks for NewBatchPromotionService and LiveClassNotifierService
+class MockAuth extends Fake implements FirebaseAuth {
+  final User? mockUser;
+  MockAuth(this.mockUser);
+
+  @override
+  User? get currentUser => mockUser;
+}
+
+class MockUser extends Fake implements User {
+  final String mockUid;
+  MockUser(this.mockUid);
+
+  @override
+  String get uid => mockUid;
+}
+
+class MockSharedPreferences extends Fake implements SharedPreferences {
+  final Map<String, bool> values = {};
+
+  @override
+  bool? getBool(String key) => values[key];
+
+  @override
+  Future<bool> setBool(String key, bool value) async {
+    values[key] = value;
+    return true;
+  }
+}
+
+class MockPromoFirestore extends Fake implements FirebaseFirestore {
+  final MockPromoCoursesCollection coursesCollection = MockPromoCoursesCollection();
+  final MockPromoUsersCollection usersCollection = MockPromoUsersCollection();
+
+  @override
+  CollectionReference<Map<String, dynamic>> collection(String path) {
+    if (path == 'courses') return coursesCollection;
+    if (path == 'users') return usersCollection;
+    throw UnimplementedError('Collection path $path not mocked');
+  }
+}
+
+class MockPromoCoursesCollection extends Fake implements CollectionReference<Map<String, dynamic>> {
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs = [];
+  final Map<String, MockPromoCourseDocRef> courseDocs = {};
+
+  @override
+  DocumentReference<Map<String, dynamic>> doc([String? path]) {
+    return courseDocs.putIfAbsent(path!, () => MockPromoCourseDocRef(path));
+  }
+
+  @override
+  Query<Map<String, dynamic>> where(Object field, {
+    Object? isEqualTo,
+    Object? isNotEqualTo,
+    Object? isLessThan,
+    Object? isLessThanOrEqualTo,
+    Object? isGreaterThan,
+    Object? isGreaterThanOrEqualTo,
+    Object? arrayContains,
+    Iterable<Object?>? arrayContainsAny,
+    Iterable<Object?>? whereIn,
+    Iterable<Object?>? whereNotIn,
+    bool? isNull,
+  }) {
+    return this;
+  }
+
+  @override
+  Future<QuerySnapshot<Map<String, dynamic>>> get([GetOptions? options]) async {
+    return MockQuerySnapshot(docs);
+  }
+}
+
+class MockPromoCourseDocRef extends Fake implements DocumentReference<Map<String, dynamic>> {
+  final String courseId;
+  final MockPromoEnrolledCollection liveClassesCollection = MockPromoEnrolledCollection();
+
+  MockPromoCourseDocRef(this.courseId);
+
+  @override
+  CollectionReference<Map<String, dynamic>> collection(String path) {
+    if (path == 'live_classes') return liveClassesCollection;
+    throw UnimplementedError('Subcollection path $path not mocked');
+  }
+}
+
+class MockPromoUsersCollection extends Fake implements CollectionReference<Map<String, dynamic>> {
+  final Map<String, MockPromoUserDocRef> userDocs = {};
+
+  @override
+  DocumentReference<Map<String, dynamic>> doc([String? path]) {
+    return userDocs.putIfAbsent(path!, () => MockPromoUserDocRef(path));
+  }
+}
+
+class MockPromoUserDocRef extends Fake implements DocumentReference<Map<String, dynamic>> {
+  final String userId;
+  final MockPromoEnrolledCollection enrolledCollection = MockPromoEnrolledCollection();
+
+  MockPromoUserDocRef(this.userId);
+
+  @override
+  CollectionReference<Map<String, dynamic>> collection(String path) {
+    if (path == 'enrolledCourses') return enrolledCollection;
+    throw UnimplementedError('Subcollection path $path not mocked');
+  }
+}
+
+class MockPromoEnrolledCollection extends Fake implements CollectionReference<Map<String, dynamic>> {
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs = [];
+
+  @override
+  Query<Map<String, dynamic>> where(Object field, {
+    Object? isEqualTo,
+    Object? isNotEqualTo,
+    Object? isLessThan,
+    Object? isLessThanOrEqualTo,
+    Object? isGreaterThan,
+    Object? isGreaterThanOrEqualTo,
+    Object? arrayContains,
+    Iterable<Object?>? arrayContainsAny,
+    Iterable<Object?>? whereIn,
+    Iterable<Object?>? whereNotIn,
+    bool? isNull,
+  }) {
+    return this;
+  }
+
+  @override
+  Future<QuerySnapshot<Map<String, dynamic>>> get([GetOptions? options]) async {
+    return MockQuerySnapshot(docs);
+  }
+
+  @override
+  Stream<QuerySnapshot<Map<String, dynamic>>> snapshots({
+    bool includeMetadataChanges = false,
+    ListenSource source = ListenSource.defaultSource,
+  }) {
+    return Stream.value(MockQuerySnapshot(docs));
   }
 }
 
@@ -374,7 +521,7 @@ void main() {
       expect(pack.finalPrice, 999.99);
       expect(pack.batches.length, 2);
       expect(pack.batches[0]['courseId'], 'c1');
-      expect(pack.batches[1]['batchId'], 'b2');
+      expect(pack.batches[1]['batchId'], '');
       expect(pack.testSeries, ['ts1', 'ts2']);
       expect(pack.isActive, true);
     });
@@ -390,9 +537,7 @@ void main() {
         thumbnailUrl: 'thumb_url',
         realPrice: 500.0,
         finalPrice: 250.0,
-        batches: const [
-          {'courseId': 'c1', 'batchId': 'b1'}
-        ],
+        courses: const ['c1'],
         testSeries: const ['ts1'],
         isActive: false,
         createdAt: createdTime,
@@ -685,6 +830,129 @@ void main() {
       expect(subRef2!.setWrites['status'], 'active');
       expect(subRef2.setWrites['courseId'], 'courseB');
       expect(subRef2.setWrites['batchId'], 'batchB');
+    });
+  });
+
+  group('NewBatchPromotionService Unit Tests', () {
+    test('getEligiblePromotion returns correct promo and filters enrolled courses & dismissed promos', () async {
+      final mockFirestore = MockPromoFirestore();
+      final mockAuth = MockAuth(MockUser('user123'));
+      final mockPrefs = MockSharedPreferences();
+
+      final promoService = NewBatchPromotionService(
+        firestore: mockFirestore,
+        auth: mockAuth,
+        prefs: mockPrefs,
+      );
+
+      // Add courses in courses collection
+      mockFirestore.coursesCollection.docs.addAll([
+        MockQueryDocumentSnapshot('course_physics', {
+          'title': 'Physics Course',
+          'subtitle': 'Learn physics',
+          'emoji': '⚡',
+          'isActive': true,
+          'visibility': 'published',
+          'startDate': Timestamp.fromDate(DateTime(2026, 6, 1)),
+        }),
+        MockQueryDocumentSnapshot('course_math', {
+          'title': 'Math Course',
+          'subtitle': 'Learn math',
+          'emoji': '📐',
+          'isActive': true,
+          'visibility': 'published',
+          'startDate': Timestamp.fromDate(DateTime(2026, 6, 10)), // newer launch
+        }),
+        MockQueryDocumentSnapshot('course_chemistry', {
+          'title': 'Chemistry Course',
+          'subtitle': 'Learn chemistry',
+          'emoji': '🧪',
+          'isActive': true,
+          'visibility': 'published',
+          'startDate': Timestamp.fromDate(DateTime(2026, 5, 20)), // older launch
+        }),
+      ]);
+
+      // Initially, user is not enrolled in anything and has not dismissed anything.
+      // So the newest course (course_math, 2026-06-10) should be promoted.
+      final result1 = await promoService.getEligiblePromotion();
+      expect(result1, isNotNull);
+      expect(result1!.course.id, 'course_math');
+      expect(result1.course.title, 'Math Course');
+
+      // Now, let's enroll the user in 'course_math'
+      final userDoc = mockFirestore.usersCollection.doc('user123') as MockPromoUserDocRef;
+      userDoc.enrolledCollection.docs.add(
+        MockQueryDocumentSnapshot('course_math', {
+          'courseId': 'course_math',
+          'status': 'active',
+        }),
+      );
+
+      // Now 'course_math' is enrolled. The next newest course is 'course_physics' (2026-06-01).
+      final result2 = await promoService.getEligiblePromotion();
+      expect(result2, isNotNull);
+      expect(result2!.course.id, 'course_physics');
+
+      // Now, let's mark 'course_physics' promo as dismissed in SharedPreferences
+      mockPrefs.values['shown_promo_batch_course_physics'] = true;
+
+      // The next eligible is chemistry (2026-05-20)
+      final result3 = await promoService.getEligiblePromotion();
+      expect(result3, isNotNull);
+      expect(result3!.course.id, 'course_chemistry');
+    });
+  });
+
+  group('LiveClassNotifierService Unit Tests', () {
+    test('subscribes to live classes and updates activeClasses', () async {
+      final mockFirestore = MockPromoFirestore();
+      
+      // 1. Enroll user in course_physics
+      final userDoc = mockFirestore.usersCollection.doc('user123') as MockPromoUserDocRef;
+      userDoc.enrolledCollection.docs.add(
+        MockQueryDocumentSnapshot('enroll_physics', {
+          'courseId': 'course_physics',
+          'status': 'active',
+        }),
+      );
+
+      // 2. Add a live class under course_physics/live_classes
+      final courseDoc = mockFirestore.coursesCollection.doc('course_physics') as MockPromoCourseDocRef;
+      courseDoc.liveClassesCollection.docs.add(
+        MockQueryDocumentSnapshot('live1', {
+          'title': 'Intro to Mechanics',
+          'description': 'Physics live session',
+          'instructorName': 'H. C. Verma',
+          'status': 'live',
+          'startTime': Timestamp.fromDate(DateTime(2026, 6, 5, 10, 0)),
+          'durationMinutes': 60,
+          'youtubeUrl': 'https://youtube.com/live_test',
+          'thumbnailUrl': 'https://thumbnail.url',
+          'subject': 'Mechanics',
+          'chapter': 'Kinematics',
+        }),
+      );
+
+      // 3. Initialize notifier
+      final notifier = LiveClassNotifierService(uid: 'user123', firestore: mockFirestore);
+      
+      // Let the stream subscriptions fire
+      await Future.delayed(Duration.zero);
+
+      expect(notifier.activeClasses.length, 1);
+      final active = notifier.activeClasses.first;
+      expect(active.courseId, 'course_physics');
+      expect(active.liveClass.id, 'live1');
+      expect(active.liveClass.title, 'Intro to Mechanics');
+      expect(active.liveClass.instructorName, 'H. C. Verma');
+      expect(active.batchId, '');
+
+      // 4. Test dismissal
+      notifier.dismissClass('live1');
+      expect(notifier.dismissedClassIds.contains('live1'), isTrue);
+
+      notifier.dispose();
     });
   });
 }

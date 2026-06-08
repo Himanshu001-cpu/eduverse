@@ -25,8 +25,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   // For manual enrollment
   List<AdminCourse> _courses = [];
   String? _selectedCourseId;
-  List<AdminBatch> _batches = [];
-  String? _selectedBatchId;
   bool _isEnrolling = false;
 
   // For manual test series enrollment
@@ -34,12 +32,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   String? _selectedTestSeriesId;
   bool _isEnrollingTS = false;
 
-  // For displaying enrolled courses with names
-  List<AdminBatch> _allEnrolledBatches = [];
-
   // Stream subscriptions
   StreamSubscription? _coursesSub;
-  StreamSubscription? _batchesSub;
   StreamSubscription? _testSeriesSub;
 
   @override
@@ -53,7 +47,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   @override
   void dispose() {
     _coursesSub?.cancel();
-    _batchesSub?.cancel();
     _testSeriesSub?.cancel();
     super.dispose();
   }
@@ -67,10 +60,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           _user = user;
           _isLoading = false;
         });
-        // Load batches for all enrolled courses
-        if (user != null) {
-          _loadEnrolledBatches(user.enrolledCourses);
-        }
       }
     } catch (e) {
       if (mounted) {
@@ -79,37 +68,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  // Load batches for all enrolled courses to display their names
-  Future<void> _loadEnrolledBatches(List<String> enrolledCourses) async {
-    final adminService = context.read<FirebaseAdminService>();
-    final Set<String> courseIds = {};
-    
-    // Extract unique course IDs from enrollment IDs
-    for (final enrollmentId in enrolledCourses) {
-      final parts = enrollmentId.split('_');
-      if (parts.isNotEmpty) {
-        courseIds.add(parts[0]);
-      }
-    }
-    
-    // Load batches for each course
-    List<AdminBatch> allBatches = [];
-    for (final courseId in courseIds) {
-      try {
-        final batches = await adminService.getBatches(courseId).first;
-        allBatches.addAll(batches);
-      } catch (e) {
-        debugPrint('Error loading batches for course $courseId: $e');
-      }
-    }
-    
-    if (mounted) {
-      setState(() {
-        _allEnrolledBatches = allBatches;
-      });
     }
   }
 
@@ -122,21 +80,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       }
     }, onError: (e) {
       debugPrint('Error loading courses: $e');
-    });
-  }
-
-  void _loadBatches(String courseId) {
-    final adminService = context.read<FirebaseAdminService>();
-    _batchesSub?.cancel();
-    _batchesSub = adminService.getBatches(courseId).listen((batches) {
-      if (mounted) {
-        setState(() {
-          _batches = batches;
-          _selectedBatchId = null;
-        });
-      }
-    }, onError: (e) {
-      debugPrint('Error loading batches: $e');
     });
   }
 
@@ -357,61 +300,27 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
   // Helper method to get enrollment display info
   Map<String, String> _getEnrollmentInfo(String enrollmentId) {
-    final parts = enrollmentId.split('_');
-    if (parts.length >= 2) {
-      final courseId = parts[0];
-      final batchId = parts.sublist(1).join('_'); // Handle batch IDs with underscores
-      
-      // Find course name
-      final course = _courses.firstWhere(
-        (c) => c.id == courseId,
-        orElse: () => AdminCourse(
-          id: courseId,
-          title: courseId, // Fallback to ID if not found
-          slug: '',
-          subtitle: '',
-          description: '',
-          tags: [],
-          language: 'en',
-          level: 'beginner',
-          thumbnailUrl: '',
-          gradientColors: [],
-          visibility: 'draft',
-          createdAt: DateTime.now(),
-        ),
-      );
-      
-      // Find batch name - look in loaded enrolled batches
-      String batchName = batchId;
-      final batch = _allEnrolledBatches.firstWhere(
-        (b) => b.id == batchId,
-        orElse: () => AdminBatch(
-          id: batchId,
-          courseId: courseId,
-          name: batchId, // Fallback to ID if not found
-          startDate: DateTime.now(),
-          endDate: DateTime.now(),
-          realPrice: 0,
-          finalPrice: 0,
-          seatsTotal: 0,
-          seatsLeft: 0,
-          isActive: true,
-        ),
-      );
-      batchName = batch.name;
-      
-      return {
-        'courseName': course.title,
-        'batchName': batchName,
-        'courseId': courseId,
-        'batchId': batchId,
-      };
-    }
+    final course = _courses.firstWhere(
+      (c) => c.id == enrollmentId,
+      orElse: () => AdminCourse(
+        id: enrollmentId,
+        title: enrollmentId, // Fallback to ID if not found
+        slug: '',
+        subtitle: '',
+        description: '',
+        tags: [],
+        language: 'en',
+        level: 'beginner',
+        thumbnailUrl: '',
+        gradientColors: [],
+        visibility: 'draft',
+        createdAt: DateTime.now(),
+      ),
+    );
+    
     return {
-      'courseName': enrollmentId,
-      'batchName': 'Unknown',
-      'courseId': '',
-      'batchId': '',
+      'courseName': course.title,
+      'courseId': course.id,
     };
   }
 
@@ -461,7 +370,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                     child: Icon(Icons.book),
                   ),
                   title: Text(info['courseName'] ?? enrollmentId),
-                  subtitle: Text('Batch: ${info['batchName'] ?? 'Unknown'}'),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     tooltip: 'Unenroll User',
@@ -498,7 +406,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const Text('Role', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              initialValue: _user!.role,
+              value: _user!.role,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -559,7 +467,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const Text('Select Course', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              initialValue: _selectedCourseId,
+              value: _selectedCourseId,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: 'Choose a course...',
@@ -573,40 +481,15 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
               }).toList(),
               onChanged: (value) {
                 setState(() => _selectedCourseId = value);
-                if (value != null) {
-                  _loadBatches(value);
-                }
               },
             ),
-            const SizedBox(height: 16),
-
-            // Batch dropdown
-            const Text('Select Batch', style: TextStyle(fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedBatchId,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Choose a batch...',
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              items: _batches.map((batch) {
-                return DropdownMenuItem(
-                  value: batch.id,
-                  child: Text(batch.name),
-                );
-              }).toList(),
-              onChanged: _selectedCourseId == null 
-                  ? null 
-                  : (value) => setState(() => _selectedBatchId = value),
-            ),
             const SizedBox(height: 24),
-
+ 
             // Enroll button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _selectedCourseId != null && _selectedBatchId != null && !_isEnrolling
+                onPressed: _selectedCourseId != null && !_isEnrolling
                     ? _enrollUser
                     : null,
                 icon: _isEnrolling 
@@ -719,7 +602,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const Text('Select Test Series', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              initialValue: _selectedTestSeriesId,
+              value: _selectedTestSeriesId,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: 'Choose a test series...',
@@ -856,7 +739,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   Future<void> _enrollUser() async {
-    if (_selectedCourseId == null || _selectedBatchId == null) return;
+    if (_selectedCourseId == null) return;
 
     setState(() => _isEnrolling = true);
 
@@ -865,7 +748,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       await adminService.manualEnrollUser(
         widget.userId,
         _selectedCourseId!,
-        _selectedBatchId!,
       );
       
       await _loadUser();
@@ -873,8 +755,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       if (mounted) {
         setState(() {
           _selectedCourseId = null;
-          _selectedBatchId = null;
-          _batches = [];
           _isEnrolling = false;
         });
         
@@ -898,13 +778,12 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Future<void> _confirmUnenroll(String enrollmentId) async {
     final info = _getEnrollmentInfo(enrollmentId);
     final courseName = info['courseName'] ?? enrollmentId;
-    final batchName = info['batchName'] ?? 'Unknown';
     
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirm Unenrollment'),
-        content: Text('Are you sure you want to remove the user from "$courseName" (Batch: $batchName)?\nThis action cannot be undone.'),
+        content: Text('Are you sure you want to remove the user from "$courseName"?\nThis action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -918,7 +797,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         ],
       ),
     );
-
+ 
     if (confirmed == true) {
       await _unenrollUser(enrollmentId);
     }

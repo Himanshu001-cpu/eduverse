@@ -4,19 +4,19 @@ import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 
 /// Dialog that allows an admin to link an existing live class to additional
-/// batches. Shows a tree of Course → Batch and lets the admin select targets.
+/// courses. Shows a list of courses and lets the admin select targets.
 class LinkClassToBatchDialog extends StatefulWidget {
   final AdminLiveClass liveClass;
 
-  /// The course/batch where this class currently lives.
+  /// The course where this class currently lives.
   final String? sourceCourseId;
-  final String? sourceBatchId;
 
   const LinkClassToBatchDialog({
     super.key,
     required this.liveClass,
     this.sourceCourseId,
-    this.sourceBatchId,
+    // Keep sourceBatchId parameter for compatibility, but mark it optional/unused
+    String? sourceBatchId,
   });
 
   @override
@@ -28,7 +28,7 @@ class _LinkClassToBatchDialogState extends State<LinkClassToBatchDialog> {
   bool _isLoading = true;
   String? _error;
 
-  /// Set of selected target "courseId_batchId" keys
+  /// Set of selected target course IDs
   final Set<String> _selectedTargets = {};
   bool _isLinking = false;
 
@@ -58,15 +58,12 @@ class _LinkClassToBatchDialogState extends State<LinkClassToBatchDialog> {
     }
   }
 
-  bool _isCurrentBatch(String courseId, String batchId) {
-    return courseId == widget.sourceCourseId &&
-        batchId == widget.sourceBatchId;
+  bool _isCurrentCourse(String courseId) {
+    return courseId == widget.sourceCourseId;
   }
 
-  bool _isAlreadyLinked(String courseId, String batchId) {
-    return widget.liveClass.linkedBatches.any(
-      (lb) => lb['courseId'] == courseId && lb['batchId'] == batchId,
-    );
+  bool _isAlreadyLinked(String courseId) {
+    return widget.liveClass.linkedCourses.contains(courseId);
   }
 
   Future<void> _linkSelected() async {
@@ -75,28 +72,19 @@ class _LinkClassToBatchDialogState extends State<LinkClassToBatchDialog> {
 
     try {
       final service = context.read<FirebaseAdminService>();
-      final isFreeClass =
-          (widget.sourceCourseId == null || widget.sourceCourseId!.isEmpty) &&
-          (widget.sourceBatchId == null || widget.sourceBatchId!.isEmpty);
+      final isFreeClass = widget.sourceCourseId == null || widget.sourceCourseId!.isEmpty;
 
-      for (final key in _selectedTargets) {
-        final parts = key.split('___');
-        final targetCourseId = parts[0];
-        final targetBatchId = parts[1];
-
+      for (final targetCourseId in _selectedTargets) {
         if (isFreeClass) {
-          await service.linkFreeLiveClassToBatch(
+          await service.linkFreeLiveClassToCourse(
             sourceClass: widget.liveClass,
             targetCourseId: targetCourseId,
-            targetBatchId: targetBatchId,
           );
         } else {
-          await service.linkLiveClassToBatch(
+          await service.linkLiveClassToCourse(
             sourceClass: widget.liveClass,
             sourceCourseId: widget.sourceCourseId!,
-            sourceBatchId: widget.sourceBatchId!,
             targetCourseId: targetCourseId,
-            targetBatchId: targetBatchId,
           );
         }
       }
@@ -106,7 +94,7 @@ class _LinkClassToBatchDialogState extends State<LinkClassToBatchDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Linked to ${_selectedTargets.length} batch${_selectedTargets.length > 1 ? 'es' : ''}',
+              'Linked to ${_selectedTargets.length} course${_selectedTargets.length > 1 ? 's' : ''}',
             ),
             backgroundColor: Colors.green,
           ),
@@ -147,7 +135,7 @@ class _LinkClassToBatchDialogState extends State<LinkClassToBatchDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Link to Batches',
+                          'Link to Courses',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -175,7 +163,7 @@ class _LinkClassToBatchDialogState extends State<LinkClassToBatchDialog> {
             const Divider(),
 
             // Existing links info
-            if (widget.liveClass.linkedBatches.isNotEmpty)
+            if (widget.liveClass.linkedCourses.isNotEmpty)
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -184,7 +172,7 @@ class _LinkClassToBatchDialogState extends State<LinkClassToBatchDialog> {
                     Icon(Icons.info_outline, size: 16, color: Colors.blue[300]),
                     const SizedBox(width: 6),
                     Text(
-                      'Already linked to ${widget.liveClass.linkedBatches.length} batch${widget.liveClass.linkedBatches.length > 1 ? 'es' : ''}',
+                      'Already linked to ${widget.liveClass.linkedCourses.length} course${widget.liveClass.linkedCourses.length > 1 ? 's' : ''}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue[400],
@@ -264,7 +252,7 @@ class _LinkClassToBatchDialogState extends State<LinkClassToBatchDialog> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(32),
-          child: Text('No courses or batches found'),
+          child: Text('No courses found'),
         ),
       );
     }
@@ -276,94 +264,72 @@ class _LinkClassToBatchDialogState extends State<LinkClassToBatchDialog> {
         final course = _coursesWithBatches[index];
         final courseId = course['courseId'] as String;
         final courseName = course['courseName'] as String;
-        final batches =
-            course['batches'] as List<Map<String, dynamic>>;
+        final isCurrent = _isCurrentCourse(courseId);
+        final isLinked = _isAlreadyLinked(courseId);
+        final isSelected = _selectedTargets.contains(courseId);
 
-        return ExpansionTile(
-          initiallyExpanded: true,
-          leading: const Icon(Icons.school, color: Colors.deepPurple),
+        return ListTile(
+          leading: Icon(
+            isCurrent
+                ? Icons.home
+                : isLinked
+                    ? Icons.link
+                    : Icons.school,
+            color: isCurrent
+                ? Colors.green
+                : isLinked
+                    ? Colors.blue
+                    : Colors.deepPurple,
+            size: 20,
+          ),
           title: Text(
             courseName,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 14,
+              color: (isCurrent || isLinked) ? Colors.grey : null,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          subtitle: Text(
-            '${batches.length} batch${batches.length != 1 ? 'es' : ''}',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-          children: batches.map((batch) {
-            final batchId = batch['id'] as String;
-            final batchName = batch['name'] as String;
-            final key = '${courseId}___$batchId';
-            final isCurrent = _isCurrentBatch(courseId, batchId);
-            final isLinked = _isAlreadyLinked(courseId, batchId);
-            final isSelected = _selectedTargets.contains(key);
-
-            return ListTile(
-              contentPadding: const EdgeInsets.only(left: 48, right: 16),
-              leading: Icon(
-                isCurrent
-                    ? Icons.home
-                    : isLinked
-                        ? Icons.link
-                        : Icons.group_outlined,
-                color: isCurrent
-                    ? Colors.green
-                    : isLinked
-                        ? Colors.blue
-                        : null,
-                size: 20,
-              ),
-              title: Text(
-                batchName,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: (isCurrent || isLinked)
-                      ? Colors.grey
-                      : null,
-                ),
-              ),
-              subtitle: isCurrent
+          subtitle: isCurrent
+              ? const Text(
+                  'Current course',
+                  style: TextStyle(fontSize: 11, color: Colors.green),
+                )
+              : isLinked
                   ? const Text(
-                      'Current batch',
-                      style: TextStyle(fontSize: 11, color: Colors.green),
+                      'Already linked',
+                      style: TextStyle(fontSize: 11, color: Colors.blue),
                     )
-                  : isLinked
-                      ? const Text(
-                          'Already linked',
-                          style: TextStyle(fontSize: 11, color: Colors.blue),
-                        )
-                      : null,
-              trailing: (isCurrent || isLinked)
-                  ? Icon(
-                      isCurrent ? Icons.check_circle : Icons.link,
-                      color: isCurrent ? Colors.green : Colors.blue,
-                      size: 20,
-                    )
-                  : Checkbox(
-                      value: isSelected,
-                      onChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            _selectedTargets.add(key);
-                          } else {
-                            _selectedTargets.remove(key);
-                          }
-                        });
-                      },
-                    ),
-              onTap: (isCurrent || isLinked)
-                  ? null
-                  : () {
-                      setState(() {
-                        if (_selectedTargets.contains(key)) {
-                          _selectedTargets.remove(key);
-                        } else {
-                          _selectedTargets.add(key);
-                        }
-                      });
-                    },
-            );
-          }).toList(),
+                  : null,
+          trailing: (isCurrent || isLinked)
+              ? Icon(
+                  isCurrent ? Icons.check_circle : Icons.link,
+                  color: isCurrent ? Colors.green : Colors.blue,
+                  size: 20,
+                )
+              : Checkbox(
+                  value: isSelected,
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _selectedTargets.add(courseId);
+                      } else {
+                        _selectedTargets.remove(courseId);
+                      }
+                    });
+                  },
+                ),
+          onTap: (isCurrent || isLinked)
+              ? null
+              : () {
+                  setState(() {
+                    if (_selectedTargets.contains(courseId)) {
+                      _selectedTargets.remove(courseId);
+                    } else {
+                      _selectedTargets.add(courseId);
+                    }
+                  });
+                },
         );
       },
     );

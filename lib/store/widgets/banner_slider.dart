@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eduverse/store/screens/course_detail_page.dart';
 import 'package:eduverse/store/models/store_models.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// A responsive banner slider that shows courses with most recently added batches
 class BannerSlider extends StatelessWidget {
@@ -52,7 +53,7 @@ class BannerSlider extends StatelessWidget {
               builder: (BuildContext context) {
                 return GestureDetector(
                   onTap: () {
-                    // Navigate to course detail page with full course data including batches
+                    // Navigate to course detail page with full course data
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -116,7 +117,7 @@ class BannerSlider extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // New batch badge
+                              // New course badge
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
@@ -124,7 +125,7 @@ class BannerSlider extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  'NEW BATCH ADDED',
+                                  'NEW COURSE LAUNCH',
                                   style: TextStyle(
                                     fontSize: screenWidth > 600 ? 11 : 10,
                                     fontWeight: FontWeight.bold,
@@ -141,23 +142,19 @@ class BannerSlider extends StatelessWidget {
                                   fontSize: screenWidth > 600 ? 24 : 20,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              // Latest batch name
-                              Text(
-                                banner.latestBatchName,
-                                style: TextStyle(
-                                  fontSize: screenWidth > 600 ? 16 : 14,
-                                  color: Colors.white70,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withValues(alpha: 0.5),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 12),
-                              // Batch count and price row
+                              // Full Access and pricing row
                               Row(
                                 children: [
                                   Container(
@@ -166,16 +163,16 @@ class BannerSlider extends StatelessWidget {
                                       color: Colors.white.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
-                                    child: Row(
+                                    child: const Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.groups, color: Colors.white, size: 14),
-                                        const SizedBox(width: 6),
+                                        Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                                        SizedBox(width: 6),
                                         Text(
-                                          '${banner.batchCount} ${banner.batchCount == 1 ? 'Batch' : 'Batches'}',
-                                          style: const TextStyle(
+                                          'Full Access',
+                                          style: TextStyle(
                                             color: Colors.white,
-                                            fontWeight: FontWeight.w500,
+                                            fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
                                         ),
@@ -188,9 +185,16 @@ class BannerSlider extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.1),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
                                     child: Text(
-                                      'From ₹${banner.lowestPrice.toInt()}',
+                                      '₹${banner.lowestPrice.toInt()}',
                                       style: TextStyle(
                                         color: banner.colors.first,
                                         fontWeight: FontWeight.bold,
@@ -215,20 +219,43 @@ class BannerSlider extends StatelessWidget {
     );
   }
 
-  /// Fetch courses with their batches, sorted by most recently added batch
+  /// Fetch courses, sorted by start date
   Future<List<_BannerData>> _getCoursesWithRecentBatches() async {
     final List<_BannerData> banners = [];
 
     try {
-      // Get all published courses
+      final user = FirebaseAuth.instance.currentUser;
+      final List<String> enrolledCourseIds = [];
+      if (user != null) {
+        try {
+          final enrollsSnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('enrolledCourses')
+              .get();
+          for (final doc in enrollsSnapshot.docs) {
+            final data = doc.data();
+            final courseId = data['courseId'] as String? ?? doc.id.split('_')[0];
+            if (courseId.isNotEmpty) {
+              enrolledCourseIds.add(courseId);
+            }
+          }
+        } catch (e) {
+          debugPrint('Failed to fetch user enrollments for banner: $e');
+        }
+      }
+
+      // Get all published active courses
       final courseSnapshot = await FirebaseFirestore.instance
           .collection('courses')
           .where('visibility', isEqualTo: 'published')
+          .where('isActive', isEqualTo: true)
           .get();
 
       for (final courseDoc in courseSnapshot.docs) {
         final courseData = courseDoc.data();
-        
+        final courseId = courseDoc.id;
+
         // Parse gradient colors
         List<Color> gradientColors = [Colors.blue, Colors.blueAccent];
         if (courseData['gradientColors'] != null) {
@@ -237,88 +264,16 @@ class BannerSlider extends StatelessWidget {
               .toList();
         }
 
-        // Fetch all batches for this course
-        List<Batch> batches = [];
-        DateTime? mostRecentBatchDate;
-        String latestBatchName = '';
+        final isEnrolled = enrolledCourseIds.contains(courseId);
 
-        // Fetch from subcollection (Admin-created)
-        try {
-          final batchSnapshot = await FirebaseFirestore.instance
-              .collection('courses')
-              .doc(courseDoc.id)
-              .collection('batches')
-              .where('isActive', isEqualTo: true)
-              .get();
+        // Skip if already enrolled
+        if (isEnrolled) continue;
 
-          for (final batchDoc in batchSnapshot.docs) {
-            final b = batchDoc.data();
-            final startDate = (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now();
-            final createdAt = (b['createdAt'] as Timestamp?)?.toDate() ?? startDate;
-            
-            batches.add(Batch(
-              id: batchDoc.id,
-              name: b['name'] ?? 'Batch',
-              startDate: startDate,
-              realPrice: (b['realPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
-              finalPrice: (b['finalPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
-              seatsLeft: b['seatsLeft'] ?? 0,
-              duration: _calculateDuration(
-                startDate,
-                (b['endDate'] as Timestamp?)?.toDate(),
-              ),
-              isEnrolled: false,
-            ));
-
-            // Track most recently created batch
-            if (mostRecentBatchDate == null || createdAt.isAfter(mostRecentBatchDate)) {
-              mostRecentBatchDate = createdAt;
-              latestBatchName = b['name'] ?? 'New Batch';
-            }
-          }
-        } catch (e) {
-          debugPrint('Error fetching batches for ${courseDoc.id}: $e');
-        }
-
-        // Also check embedded batches array (legacy support)
-        if (courseData['batches'] != null && (courseData['batches'] as List).isNotEmpty) {
-          final embeddedBatches = courseData['batches'] as List<dynamic>;
-          for (final b in embeddedBatches) {
-            final batchId = b['id'] ?? '';
-            // Avoid duplicates
-            if (!batches.any((batch) => batch.id == batchId)) {
-              final startDate = b['startDate'] != null 
-                  ? DateTime.tryParse(b['startDate']) ?? DateTime.now() 
-                  : DateTime.now();
-              
-              batches.add(Batch(
-                id: batchId,
-                name: b['name'] ?? 'Batch',
-                startDate: startDate,
-                realPrice: (b['realPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
-                finalPrice: (b['finalPrice'] as num?)?.toDouble() ?? (b['price'] as num?)?.toDouble() ?? (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
-                seatsLeft: b['seatsLeft'] ?? 0,
-                duration: b['duration'] ?? '3 months',
-                isEnrolled: b['isEnrolled'] ?? false,
-              ));
-
-              // Use embedded batch date if no subcollection batches
-              if (mostRecentBatchDate == null) {
-                mostRecentBatchDate = startDate;
-                latestBatchName = b['name'] ?? 'Batch';
-              }
-            }
-          }
-        }
-
-        // Skip courses with no batches
-        if (batches.isEmpty) continue;
-
-        // Find lowest price among all batches
-        final lowestPrice = batches.map((b) => b.finalPrice).reduce((a, b) => a < b ? a : b);
+        final realPrice = (courseData['realPrice'] as num?)?.toDouble() ?? 0.0;
+        final finalPrice = (courseData['finalPrice'] as num?)?.toDouble() ?? 0.0;
 
         final course = Course(
-          id: courseDoc.id,
+          id: courseId,
           title: courseData['title'] ?? '',
           subtitle: courseData['subtitle'] ?? '',
           description: courseData['description'] ?? '',
@@ -326,40 +281,46 @@ class BannerSlider extends StatelessWidget {
           gradientColors: gradientColors.length >= 2 ? gradientColors : [Colors.blue, Colors.blueAccent],
           thumbnailUrl: courseData['thumbnailUrl'] ?? '',
           priceDefault: (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
-          batches: batches, // Include all batches!
+          realPrice: realPrice,
+          finalPrice: finalPrice,
+          startDate: courseData['startDate'] != null
+              ? (courseData['startDate'] is Timestamp
+                  ? (courseData['startDate'] as Timestamp).toDate()
+                  : DateTime.tryParse(courseData['startDate'].toString()))
+              : null,
+          endDate: courseData['endDate'] != null
+              ? (courseData['endDate'] is Timestamp
+                  ? (courseData['endDate'] as Timestamp).toDate()
+                  : DateTime.tryParse(courseData['endDate'].toString()))
+              : null,
+          seatsTotal: courseData['seatsTotal'] ?? 0,
+          seatsLeft: courseData['seatsLeft'] ?? 0,
+          duration: courseData['duration'] ?? '',
+          isActive: courseData['isActive'] ?? true,
+          isEnrolled: isEnrolled,
         );
 
         banners.add(_BannerData(
-          courseTitle: courseData['title'] ?? 'Course',
-          latestBatchName: latestBatchName,
-          emoji: courseData['emoji'] ?? '📚',
-          colors: gradientColors.length >= 2 ? gradientColors : [Colors.blue, Colors.blueAccent],
-          thumbnailUrl: courseData['thumbnailUrl'] ?? '',
-          mostRecentBatchDate: mostRecentBatchDate ?? DateTime.now(),
-          lowestPrice: lowestPrice,
-          batchCount: batches.length,
+          courseTitle: course.title,
+          latestBatchName: 'Active Course',
+          emoji: course.emoji,
+          colors: course.gradientColors,
+          thumbnailUrl: course.thumbnailUrl,
+          mostRecentBatchDate: course.startDate ?? DateTime.now(),
+          lowestPrice: course.finalPrice,
+          batchCount: 1,
           course: course,
         ));
       }
 
-      // Sort by most recently added batch (newest first)
+      // Sort by start date (newest first)
       banners.sort((a, b) => b.mostRecentBatchDate.compareTo(a.mostRecentBatchDate));
       
-      // Limit to 5 courses
       return banners.take(5).toList();
     } catch (e) {
-      debugPrint('Error fetching courses with batches: $e');
+      debugPrint('Error fetching courses for banners: $e');
       return [];
     }
-  }
-
-  String _calculateDuration(DateTime? start, DateTime? end) {
-    if (start == null || end == null) return '3 months';
-    final days = end.difference(start).inDays;
-    if (days > 30) {
-      return '${(days / 30).round()} months';
-    }
-    return '$days days';
   }
 
   Widget _buildGradientBackground(_BannerData banner, double screenWidth, {bool showLoader = false}) {

@@ -56,12 +56,14 @@ class PurchaseService {
 
         final List<String> testSeriesIds = [];
         final List<String> enrollmentIds = [];
+        final List<String> ebookIds = [];
 
         for (var item in items) {
           final courseId = item['courseId'] as String?;
           final batchId = item['batchId'] as String?;
           final testSeriesId = item['testSeriesId'] as String?;
           final combinationPackId = item['combinationPackId'] as String?;
+          final ebookId = item['ebookId'] as String?;
 
           finalItemsToWrite.add(item); // Write the original item
 
@@ -132,7 +134,25 @@ class PurchaseService {
             debugPrint('  -> Legacy test series item detected: $courseId');
             testSeriesIds.add(courseId);
           }
-          // D. Process Standard Course Batch Enrollment
+          // D. Process E-book Item
+          else if (ebookId != null && ebookId.isNotEmpty) {
+            debugPrint('  -> E-book item detected: $ebookId');
+            final ebookDoc = _firestore
+                .collection('users')
+                .doc(uid)
+                .collection('purchasedEbooks')
+                .doc(ebookId);
+
+            transaction.set(ebookDoc, {
+              'ebookId': ebookId,
+              'purchasedAt': FieldValue.serverTimestamp(),
+              'purchaseId': purchaseId,
+              'status': 'active',
+            }, SetOptions(merge: true));
+
+            ebookIds.add(ebookId);
+          }
+          // E. Process Standard Course Batch Enrollment
           else if (courseId != null && batchId != null && courseId != 'combination_pack') {
             final enrollmentId = '${courseId}_$batchId';
             final enrollmentDoc = userEnrollmentRef.doc(enrollmentId);
@@ -149,7 +169,7 @@ class PurchaseService {
 
             enrollmentIds.add(enrollmentId);
           } else {
-            debugPrint('  -> SKIPPED: invalid course, batch, test series or combination pack configuration');
+            debugPrint('  -> SKIPPED: invalid course, batch, test series, combination pack or e-book configuration');
           }
         }
 
@@ -171,8 +191,8 @@ class PurchaseService {
             'discountAmount': discountAmount,
         });
 
-        // 2c. Update user document with enrolled courses and test series arrays
-        if (enrollmentIds.isNotEmpty || testSeriesIds.isNotEmpty) {
+        // 2c. Update user document with enrolled courses, test series and e-books arrays
+        if (enrollmentIds.isNotEmpty || testSeriesIds.isNotEmpty || ebookIds.isNotEmpty) {
           final Map<String, dynamic> userUpdate = {
             'updatedAt': FieldValue.serverTimestamp(),
           };
@@ -183,6 +203,10 @@ class PurchaseService {
           if (testSeriesIds.isNotEmpty) {
             debugPrint('user test series update: $testSeriesIds');
             userUpdate['purchasedTestSeries'] = FieldValue.arrayUnion(testSeriesIds);
+          }
+          if (ebookIds.isNotEmpty) {
+            debugPrint('user e-books update: $ebookIds');
+            userUpdate['purchasedEbooks'] = FieldValue.arrayUnion(ebookIds);
           }
           transaction.set(userRef, userUpdate, SetOptions(merge: true));
         }

@@ -96,6 +96,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
             flags: const YoutubePlayerFlags(
               autoPlay: false,
               mute: false,
+              hideThumbnail: true,
             ),
           );
         }
@@ -158,13 +159,12 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
         subject: _selectedSubject,
         chapter: _selectedChapter,
         lectureNo: int.tryParse(_lectureNoController.text),
-        linkedBatches: widget.liveClass?.linkedBatches ?? [],
+        linkedCourses: widget.liveClass?.linkedCourses ?? [],
       );
 
-      if (widget.courseId != null && widget.batchId != null) {
-        await context.read<FirebaseAdminService>().saveBatchLiveClass(
+      if (widget.courseId != null) {
+        await context.read<FirebaseAdminService>().saveCourseLiveClass(
           widget.courseId!, 
-          widget.batchId!, 
           newItem, 
           isNew: widget.liveClass == null
         );
@@ -577,8 +577,8 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                         child: const Text('Clear Thumbnail', style: TextStyle(color: Colors.red)),
                       ),
 
-                    // ---- Linked Batches Section (for existing classes) ----
-                    if (widget.liveClass != null && widget.liveClass!.linkedBatches.isNotEmpty) ...[
+                    // ---- Linked Courses Section (for existing classes) ----
+                    if (widget.liveClass != null && widget.liveClass!.linkedCourses.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       const Divider(),
                       const SizedBox(height: 8),
@@ -587,7 +587,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                           const Icon(Icons.link, size: 18, color: Colors.blue),
                           const SizedBox(width: 8),
                           Text(
-                            'Linked to ${widget.liveClass!.linkedBatches.length} other batch${widget.liveClass!.linkedBatches.length > 1 ? "es" : ""}',
+                            'Linked to ${widget.liveClass!.linkedCourses.length} other course${widget.liveClass!.linkedCourses.length > 1 ? "s" : ""}',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -597,7 +597,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      ...widget.liveClass!.linkedBatches.map((lb) {
+                      ...widget.liveClass!.linkedCourses.map((courseId) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Row(
@@ -607,7 +607,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Course: ${lb['courseId']} / Batch: ${lb['batchId']}',
+                                  'Course ID: $courseId',
                                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                                   overflow: TextOverflow.ellipsis,
                                 ),

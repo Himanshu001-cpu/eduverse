@@ -1,113 +1,40 @@
-// file: lib/store/screens/course_detail_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eduverse/store/models/store_models.dart';
-import 'package:eduverse/store/widgets/batch_badge.dart';
-import 'package:eduverse/study/screens/batch_section_page.dart';
+import 'package:eduverse/study/screens/course_section_page.dart';
 import 'package:eduverse/store/screens/purchase_cart_page.dart';
 import 'package:eduverse/study/models/study_models.dart'; // For StudyCourseModel conversion
 
-class CourseDetailPage extends StatefulWidget {
+class CourseDetailPage extends StatelessWidget {
   final Course course;
 
   const CourseDetailPage({super.key, required this.course});
 
   @override
-  State<CourseDetailPage> createState() => _CourseDetailPageState();
-}
-
-class _CourseDetailPageState extends State<CourseDetailPage> {
-  late List<Batch> _batches;
-  bool _isLoadingBatches = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _batches = List.from(widget.course.batches);
-    // If no batches were passed, fetch from Firebase
-    if (_batches.isEmpty) {
-      _fetchBatches();
-    }
-  }
-
-  Future<void> _fetchBatches() async {
-    setState(() => _isLoadingBatches = true);
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('courses')
-          .doc(widget.course.id)
-          .collection('batches')
-          .get();
-
-      final fetched = snapshot.docs
-          .where((doc) => doc.data()['isActive'] ?? true)
-          .map((doc) {
-            final b = doc.data();
-            return Batch(
-              id: doc.id,
-              name: b['name'] ?? 'Default Batch',
-              startDate:
-                  (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              realPrice:
-                  (b['realPrice'] as num?)?.toDouble() ??
-                  (b['price'] as num?)?.toDouble() ??
-                  widget.course.priceDefault,
-              finalPrice:
-                  (b['finalPrice'] as num?)?.toDouble() ??
-                  (b['price'] as num?)?.toDouble() ??
-                  widget.course.priceDefault,
-              seatsLeft: b['seatsLeft'] ?? 0,
-              duration: _calculateDuration(
-                (b['startDate'] as Timestamp?)?.toDate(),
-                (b['endDate'] as Timestamp?)?.toDate(),
-              ),
-              thumbnailUrl: b['thumbnailUrl'] ?? '',
-            );
-          })
-          .toList();
-
-      if (mounted) {
-        setState(() {
-          _batches = fetched;
-          _isLoadingBatches = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching batches: $e');
-      if (mounted) {
-        setState(() => _isLoadingBatches = false);
-      }
-    }
-  }
-
-  String _calculateDuration(DateTime? start, DateTime? end) {
-    if (start == null || end == null) return 'Flexible';
-    final days = end.difference(start).inDays;
-    if (days >= 365) return '${(days / 365).round()} year(s)';
-    if (days >= 30) return '${(days / 30).round()} month(s)';
-    return '$days days';
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isEnrolled = course.isEnrolled;
+    final discountPercent = course.realPrice > 0 && course.realPrice > course.finalPrice
+        ? ((course.realPrice - course.finalPrice) / course.realPrice * 100).toStringAsFixed(0)
+        : null;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: 220,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                widget.course.title,
-                style: const TextStyle(fontSize: 16),
+                course.title,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
               ),
-              background: widget.course.thumbnailUrl.isNotEmpty
+              background: course.thumbnailUrl.isNotEmpty
                   ? Stack(
                       fit: StackFit.expand,
                       children: [
                         Image.network(
-                          widget.course.thumbnailUrl,
+                          course.thumbnailUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               _buildGradientBackground(),
@@ -116,7 +43,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                             return _buildGradientBackground(showLoader: true);
                           },
                         ),
-                        // Dark overlay for text readability
                         Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -124,7 +50,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.transparent,
-                                Colors.black.withValues(alpha: 0.6),
+                                Colors.black.withValues(alpha: 0.75),
                               ],
                             ),
                           ),
@@ -136,60 +62,178 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Subtitle
                   Text(
-                    widget.course.subtitle,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(color: Colors.grey[700]),
+                    course.subtitle,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  if (widget.course.description.isNotEmpty) ...[
-                    const SizedBox(height: 20),
+                  const SizedBox(height: 24),
+
+                  // Key Details Card
+                  Card(
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          _buildDetailRow(
+                            context,
+                            Icons.calendar_today_outlined,
+                            'Start Date',
+                            course.startDate != null
+                                ? DateFormat('MMMM d, yyyy').format(course.startDate!)
+                                : 'Immediate Access',
+                          ),
+                          const Divider(height: 20),
+                          _buildDetailRow(
+                            context,
+                            Icons.hourglass_empty_outlined,
+                            'Duration',
+                            course.duration.isNotEmpty ? course.duration : 'Self-paced',
+                          ),
+                          const Divider(height: 20),
+                          _buildDetailRow(
+                            context,
+                            Icons.event_seat_outlined,
+                            'Seating Capacity',
+                            course.seatsTotal > 0
+                                ? '${course.seatsLeft} of ${course.seatsTotal} seats remaining'
+                                : 'Unlimited Access',
+                            valueColor: course.seatsLeft < 10 && course.seatsTotal > 0
+                                ? Colors.red.shade700
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Description
+                  if (course.description.isNotEmpty) ...[
                     const Text(
-                      'Description',
+                      'About This Course',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
-                      widget.course.description,
+                      course.description,
                       style: TextStyle(
                         fontSize: 15,
                         color: Colors.grey[800],
-                        height: 1.5,
+                        height: 1.6,
                       ),
                     ),
+                    const SizedBox(height: 32),
                   ],
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Available Batches',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_isLoadingBatches)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                  else if (_batches.isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Text(
-                          'No batches available yet',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[500],
-                          ),
+
+                  // Curated Purchase / Access Block
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Price Summary',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '₹${course.finalPrice.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.primaryColor,
+                                      ),
+                                    ),
+                                    if (course.realPrice > course.finalPrice) ...[
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '₹${course.realPrice.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          decoration: TextDecoration.lineThrough,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            if (discountPercent != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.green.shade200),
+                                ),
+                                child: Text(
+                                  '$discountPercent% OFF',
+                                  style: TextStyle(
+                                    color: Colors.green.shade800,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
-                    )
-                  else
-                    ..._batches.map((batch) => _buildBatchCard(context, batch)),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: isEnrolled
+                              ? ElevatedButton.icon(
+                                  onPressed: () => _navigateToStudy(context),
+                                  icon: const Icon(Icons.school),
+                                  label: const Text('Go to Lessons', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                )
+                              : ElevatedButton.icon(
+                                  onPressed: () => _addToCartAndCheckout(context),
+                                  icon: const Icon(Icons.shopping_cart),
+                                  label: const Text('Enroll Now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: theme.primaryColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -199,151 +243,66 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     );
   }
 
-  Widget _buildBatchCard(BuildContext context, Batch batch) {
-    final isEnrolled = batch.isEnrolled;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    batch.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+  Widget _buildDetailRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 22, color: Theme.of(context).primaryColor.withValues(alpha: 0.8)),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: valueColor ?? Colors.black87,
                 ),
-                if (isEnrolled)
-                  const BatchBadge(text: 'ENROLLED', color: Colors.green)
-                else if (batch.seatsLeft < 10)
-                  BatchBadge(
-                    text: '${batch.seatsLeft} SEATS LEFT',
-                    color: Colors.red,
-                  )
-                else
-                  BatchBadge(text: 'OPEN', color: Colors.blue),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text('Starts: ${DateFormat('MMM d, y').format(batch.startDate)}'),
-            Text('Duration: ${batch.duration}'),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '₹${batch.finalPrice.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                        ),
-                        if (batch.realPrice > batch.finalPrice) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            '₹${batch.realPrice.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              decoration: TextDecoration.lineThrough,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '${((batch.realPrice - batch.finalPrice) / batch.realPrice * 100).toStringAsFixed(0)}% OFF',
-                              style: const TextStyle(
-                                color: Colors.green,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                if (isEnrolled)
-                  ElevatedButton(
-                    onPressed: () {
-                      _navigateToBatch(context, batch);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Go to Lessons'),
-                  )
-                else
-                  ElevatedButton(
-                    onPressed: () {
-                      if (batch.seatsLeft <= 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Batch is full!')),
-                        );
-                        return;
-                      }
-                      _addToCartAndCheckout(context, batch);
-                    },
-                    child: const Text('Enroll Now'),
-                  ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  void _navigateToBatch(BuildContext context, Batch batch) {
-    // Convert store Course to study CourseModel for compatibility
+  void _navigateToStudy(BuildContext context) {
     final studyCourse = StudyCourseModel(
-      id: widget.course.id,
-      title: widget.course.title,
-      subtitle: widget.course.subtitle,
-      emoji: widget.course.emoji,
-      gradientColors: widget.course.gradientColors,
-      lessonCount: 0, // Mock
+      id: course.id,
+      title: course.title,
+      subtitle: course.subtitle,
+      emoji: course.emoji,
+      gradientColors: course.gradientColors,
+      lessonCount: 0,
       progress: 0.0,
     );
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            BatchSectionPage(course: studyCourse, batchId: batch.id),
+        builder: (context) => CourseSectionPage(course: studyCourse, batchId: ''),
       ),
     );
   }
 
-  void _addToCartAndCheckout(BuildContext context, Batch batch) {
+  void _addToCartAndCheckout(BuildContext context) {
     final cartItem = CartItem(
-      courseId: widget.course.id,
-      batchId: batch.id,
-      title: '${widget.course.title} - ${batch.name}',
-      price: batch.finalPrice,
+      courseId: course.id,
+      batchId: '',
+      title: course.title,
+      price: course.finalPrice,
     );
 
     Navigator.push(
@@ -358,8 +317,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: widget.course.gradientColors.isNotEmpty
-              ? widget.course.gradientColors
+          colors: course.gradientColors.isNotEmpty
+              ? course.gradientColors
               : [Colors.blue, Colors.blueAccent],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -370,7 +329,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
             ? const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
               )
-            : Text(widget.course.emoji, style: const TextStyle(fontSize: 64)),
+            : Text(course.emoji, style: const TextStyle(fontSize: 64)),
       ),
     );
   }

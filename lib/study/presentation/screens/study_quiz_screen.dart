@@ -66,8 +66,6 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
       final doc = await FirebaseFirestore.instance
           .collection('courses')
           .doc(widget.courseId)
-          .collection('batches')
-          .doc(widget.batchId)
           .collection('quizzes')
           .doc(widget.quizId)
           .get();

@@ -27,7 +27,7 @@ class NotificationRepository {
         .limit(50)
         .snapshots()
         .asyncMap((snapshot) async {
-      // Get user's enrolled batches
+      // Get user's enrolled courses
       final userDoc = await _firestore
           .collection(FirestorePaths.users)
           .doc(userId)
@@ -49,18 +49,16 @@ class NotificationRepository {
         final notification = NotificationModel.fromJson(data);
 
         // Include if:
-        // 1. Global notification (batchId is null)
-        // 2. Batch-specific and user is enrolled
+        // 1. Global notification
+        // 2. Course-specific and user is enrolled
         if (notification.isGlobal) {
           notifications.add(UserNotification(
             notification: notification,
             isRead: readNotifications.contains(notification.id),
           ));
-        } else if (notification.batchId != null) {
-          // Check if user is enrolled in this batch
-          // enrolledCourses format is typically "courseId_batchId"
-          final isEnrolled = enrolledCourses.any((enrollment) =>
-              enrollment.contains(notification.batchId!));
+        } else if (notification.courseId != null) {
+          // Check if user is enrolled in this course
+          final isEnrolled = enrolledCourses.contains(notification.courseId!);
           
           if (isEnrolled) {
             notifications.add(UserNotification(
@@ -119,6 +117,8 @@ class NotificationRepository {
     required NotificationTargetType targetType,
     required String targetId,
     String? imageUrl,
+    String? courseId,
+    String? batchId,
   }) async {
     try {
       final id = _firestore.collection(FirestorePaths.notifications).doc().id;
@@ -130,6 +130,8 @@ class NotificationRepository {
         type: NotificationType.feed,
         targetType: targetType,
         targetId: targetId,
+        courseId: courseId,
+        batchId: batchId,
         createdAt: DateTime.now(),
         imageUrl: imageUrl,
       );
@@ -141,13 +143,12 @@ class NotificationRepository {
     }
   }
 
-  /// Create a batch-specific notification (for enrolled users only)
-  Future<void> createBatchNotification({
+  /// Create a course-specific notification (for enrolled users only)
+  Future<void> createCourseNotification({
     required String title,
     required String body,
     required NotificationTargetType targetType,
     required String targetId,
-    required String batchId,
     required String courseId,
     String? imageUrl,
   }) async {
@@ -161,16 +162,73 @@ class NotificationRepository {
         type: NotificationType.batch,
         targetType: targetType,
         targetId: targetId,
-        batchId: batchId,
         courseId: courseId,
         createdAt: DateTime.now(),
         imageUrl: imageUrl,
       );
 
       await _notificationsRef.doc(id).set(notification.toJson());
-      debugPrint('Created batch notification for batch $batchId: $title');
+      debugPrint('Created course notification for course $courseId: $title');
     } catch (e) {
-      debugPrint('Error creating batch notification: $e');
+      debugPrint('Error creating course notification: $e');
+    }
+  }
+
+  /// Delete a notification globally (admin level)
+  Future<void> deleteNotification(String id) async {
+    try {
+      await _notificationsRef.doc(id).delete();
+      debugPrint('Deleted notification: $id');
+    } catch (e) {
+      debugPrint('Error deleting notification $id: $e');
+      rethrow;
+    }
+  }
+
+  /// Get all notifications globally (admin level)
+  Stream<List<NotificationModel>> getAllNotifications() {
+    return _notificationsRef
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => NotificationModel.fromJson(doc.data()))
+            .toList());
+  }
+
+  /// Create notifications for multiple courses efficiently using Firestore write batch
+  Future<void> createMultipleCourseNotifications({
+    required String title,
+    required String body,
+    required NotificationTargetType targetType,
+    required String targetId,
+    required List<String> targetCourses,
+    String? imageUrl,
+  }) async {
+    try {
+      final writeBatch = _firestore.batch();
+      for (final courseId in targetCourses) {
+        if (courseId.isEmpty) continue;
+
+        final id = _notificationsRef.doc().id;
+        final notification = NotificationModel(
+          id: id,
+          title: title,
+          body: body,
+          type: NotificationType.batch,
+          targetType: targetType,
+          targetId: targetId,
+          courseId: courseId,
+          createdAt: DateTime.now(),
+          imageUrl: imageUrl,
+        );
+
+        writeBatch.set(_notificationsRef.doc(id), notification.toJson());
+      }
+      await writeBatch.commit();
+      debugPrint('Created notifications for ${targetCourses.length} courses: $title');
+    } catch (e) {
+      debugPrint('Error creating multiple course notifications: $e');
+      rethrow;
     }
   }
 }

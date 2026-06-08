@@ -112,7 +112,20 @@ class _NotificationsPageState extends State<NotificationsPage> {
             );
           }
 
-          final notifications = snapshot.data ?? [];
+          final rawNotifications = snapshot.data ?? [];
+
+          // Client-side deduplication filter
+          final notifications = <UserNotification>[];
+          final seenKeys = <String>{};
+
+          for (final item in rawNotifications) {
+            final n = item.notification;
+            final key = '${n.title}_${n.body}_${n.imageUrl ?? ""}';
+            if (!seenKeys.contains(key)) {
+              seenKeys.add(key);
+              notifications.add(item);
+            }
+          }
 
           if (notifications.isEmpty) {
             return const EmptyState(
@@ -122,6 +135,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           }
 
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 12),
             itemCount: notifications.length,
             itemBuilder: (context, index) {
               final item = notifications[index];
@@ -136,53 +150,116 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 onDismissed: (_) => _deleteNotification(notification.id),
-                child: Container(
-                  color: item.isRead
-                      ? null
-                      : Theme.of(context).primaryColor.withValues(alpha: 0.05),
-                  child: ListTile(
-                    onTap: () => _handleNotificationTap(item),
-                    onLongPress: () => _showOptions(item),
-                    leading: CircleAvatar(
-                      backgroundColor: _getIconColor(notification.type).withValues(alpha: 0.1),
-                      child: Icon(
-                        _getIcon(notification.type),
-                        color: _getIconColor(notification.type),
-                        size: 20,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                  child: Card(
+                    elevation: item.isRead ? 0.5 : 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: item.isRead
+                            ? Colors.grey.shade200
+                            : Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                        width: 1,
                       ),
                     ),
-                    title: Text(
-                      notification.title,
-                      style: TextStyle(
-                        fontWeight: item.isRead ? FontWeight.normal : FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Text(
-                          notification.body,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatTime(notification.createdAt),
-                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                    trailing: item.isRead
-                        ? null
-                        : Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor,
-                              shape: BoxShape.circle,
+                    color: item.isRead ? Colors.white : Theme.of(context).primaryColor.withValues(alpha: 0.01),
+                    child: InkWell(
+                      onTap: () => _handleNotificationTap(item),
+                      onLongPress: () => _showOptions(item),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: _getIconColor(notification.type).withValues(alpha: 0.1),
+                                  child: Icon(
+                                    _getIcon(notification.type),
+                                    color: _getIconColor(notification.type),
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        notification.title,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: item.isRead ? FontWeight.w600 : FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _formatTime(notification.createdAt),
+                                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (!item.isRead)
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).primaryColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                              ],
                             ),
-                          ),
+                            const SizedBox(height: 12),
+                            Text(
+                              notification.body,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                color: Colors.grey[700],
+                                height: 1.4,
+                              ),
+                            ),
+                            if (notification.imageUrl != null && notification.imageUrl!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: AspectRatio(
+                                  aspectRatio: 16 / 9,
+                                  child: Image.network(
+                                    notification.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        color: Colors.grey.shade100,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey.shade100,
+                                        child: const Center(
+                                          child: Icon(Icons.broken_image_outlined, color: Colors.grey, size: 36),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               );

@@ -23,7 +23,12 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
   late TextEditingController _subtitleController;
   late TextEditingController _descriptionController;
   late TextEditingController _emojiController;
-  late TextEditingController _priceController;
+  late TextEditingController _realPriceController;
+  late TextEditingController _finalPriceController;
+  late TextEditingController _seatsTotalController;
+  late TextEditingController _seatsLeftController;
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   String _visibility = 'draft';
   String _level = 'beginner';
@@ -65,9 +70,20 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
       text: course?.description ?? '',
     );
     _emojiController = TextEditingController(text: course?.emoji ?? '📚');
-    _priceController = TextEditingController(
-      text: course?.priceDefault.toString() ?? '0',
+    _realPriceController = TextEditingController(
+      text: course?.realPrice?.toString() ?? course?.priceDefault.toString() ?? '0',
     );
+    _finalPriceController = TextEditingController(
+      text: course?.finalPrice?.toString() ?? course?.priceDefault.toString() ?? '0',
+    );
+    _seatsTotalController = TextEditingController(
+      text: course?.seatsTotal?.toString() ?? '',
+    );
+    _seatsLeftController = TextEditingController(
+      text: course?.seatsLeft?.toString() ?? '',
+    );
+    _startDate = course?.startDate;
+    _endDate = course?.endDate;
 
     _visibility = course?.visibility ?? 'draft';
     _level = course?.level ?? 'beginner';
@@ -88,7 +104,10 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
     _subtitleController.dispose();
     _descriptionController.dispose();
     _emojiController.dispose();
-    _priceController.dispose();
+    _realPriceController.dispose();
+    _finalPriceController.dispose();
+    _seatsTotalController.dispose();
+    _seatsLeftController.dispose();
     super.dispose();
   }
 
@@ -114,7 +133,13 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
         level: _level,
         thumbnailUrl: _thumbnailUrl,
         gradientColors: [_gradientStart.toARGB32(), _gradientEnd.toARGB32()],
-        priceDefault: double.tryParse(_priceController.text) ?? 0.0,
+        priceDefault: double.tryParse(_finalPriceController.text) ?? 0.0,
+        realPrice: double.tryParse(_realPriceController.text) ?? 0.0,
+        finalPrice: double.tryParse(_finalPriceController.text) ?? 0.0,
+        seatsTotal: int.tryParse(_seatsTotalController.text),
+        seatsLeft: int.tryParse(_seatsLeftController.text),
+        startDate: _startDate,
+        endDate: _endDate,
         visibility: _visibility,
         createdAt: widget.course?.createdAt ?? DateTime.now(),
       );
@@ -337,10 +362,46 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       children: [
                         Expanded(
                           child: TextFormField(
-                            controller: _priceController,
+                            controller: _realPriceController,
                             decoration: const InputDecoration(
-                              labelText: 'Default Price (₹)',
+                              labelText: 'Original/Real Price (₹) *',
                               prefixText: '₹ ',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: Validators.required,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _finalPriceController,
+                            decoration: const InputDecoration(
+                              labelText: 'Final/Discounted Price (₹) *',
+                              prefixText: '₹ ',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: Validators.required,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _seatsTotalController,
+                            decoration: const InputDecoration(
+                              labelText: 'Total Seats (Optional)',
                               border: OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
@@ -350,6 +411,74 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                           ),
                         ),
                         const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _seatsLeftController,
+                            decoration: const InputDecoration(
+                              labelText: 'Seats Left (Optional)',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: _startDate ?? DateTime.now(),
+                                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                                lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                              );
+                              if (date != null) {
+                                setState(() => _startDate = date);
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_today),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 54),
+                              alignment: Alignment.centerLeft,
+                            ),
+                            label: Text(_startDate == null ? 'Start Date' : 'Starts: ${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: _endDate ?? DateTime.now().add(const Duration(days: 90)),
+                                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                                lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                              );
+                              if (date != null) {
+                                setState(() => _endDate = date);
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_today),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 54),
+                              alignment: Alignment.centerLeft,
+                            ),
+                            label: Text(_endDate == null ? 'End Date' : 'Ends: ${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             initialValue: _visibility,
@@ -450,23 +579,6 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                       ],
                     ),
                     const SizedBox(height: 32),
-
-                    // Batch Management Button (for existing courses)
-                    if (widget.course != null) ...[
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          '/batch_editor',
-                          arguments: widget.course!.id,
-                        ),
-                        icon: const Icon(Icons.group),
-                        label: const Text('Manage Batches'),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
 
                     // Save Button
                     ElevatedButton.icon(

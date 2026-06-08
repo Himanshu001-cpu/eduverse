@@ -1,34 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Represents a link between a test series and a specific course batch.
-class LinkedBatch {
+/// Represents a link between a test series and a specific course.
+class LinkedCourse {
   final String courseId;
-  final String batchId;
   final String courseName;
-  final String batchName;
 
-  LinkedBatch({
+  LinkedCourse({
     required this.courseId,
-    required this.batchId,
     required this.courseName,
-    required this.batchName,
   });
 
-  factory LinkedBatch.fromMap(Map<String, dynamic> data) {
-    return LinkedBatch(
+  factory LinkedCourse.fromMap(Map<String, dynamic> data) {
+    return LinkedCourse(
       courseId: data['courseId'] ?? '',
-      batchId: data['batchId'] ?? '',
       courseName: data['courseName'] ?? '',
-      batchName: data['batchName'] ?? '',
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'courseId': courseId,
-      'batchId': batchId,
       'courseName': courseName,
-      'batchName': batchName,
     };
   }
 }
@@ -48,7 +40,7 @@ class AdminTestSeries {
   final String visibility; // draft, published, archived
   final int totalTests;
   final int durationMinutes;
-  final List<LinkedBatch> linkedBatches;
+  final List<LinkedCourse> linkedCourses;
   final DateTime createdAt;
 
   AdminTestSeries({
@@ -64,7 +56,7 @@ class AdminTestSeries {
     required this.visibility,
     this.totalTests = 0,
     this.durationMinutes = 0,
-    this.linkedBatches = const [],
+    this.linkedCourses = const [],
     required this.createdAt,
   });
 
@@ -90,9 +82,12 @@ class AdminTestSeries {
       visibility: data['visibility'] ?? 'draft',
       totalTests: data['totalTests'] ?? 0,
       durationMinutes: data['durationMinutes'] ?? 0,
-      linkedBatches:
+      linkedCourses:
+          (data['linkedCourses'] as List<dynamic>?)
+              ?.map((b) => LinkedCourse.fromMap(b as Map<String, dynamic>))
+              .toList() ??
           (data['linkedBatches'] as List<dynamic>?)
-              ?.map((b) => LinkedBatch.fromMap(b as Map<String, dynamic>))
+              ?.map((b) => LinkedCourse.fromMap(b as Map<String, dynamic>))
               .toList() ??
           [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -112,7 +107,7 @@ class AdminTestSeries {
       'visibility': visibility,
       'totalTests': totalTests,
       'durationMinutes': durationMinutes,
-      'linkedBatches': linkedBatches.map((b) => b.toMap()).toList(),
+      'linkedCourses': linkedCourses.map((b) => b.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
     };

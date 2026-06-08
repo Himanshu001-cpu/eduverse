@@ -14,6 +14,14 @@ class AdminCourse {
   final String thumbnailUrl;
   final List<int> gradientColors; // Store as int ARGB values for compatibility
   final double priceDefault; // Base price for the course
+  final double? realPrice;
+  final double? finalPrice;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final int? seatsTotal;
+  final int? seatsLeft;
+  final bool isActive;
+  final String? duration;
   final String visibility; // draft, published, archived
   final DateTime createdAt;
 
@@ -30,6 +38,14 @@ class AdminCourse {
     required this.thumbnailUrl,
     required this.gradientColors,
     this.priceDefault = 0.0,
+    this.realPrice,
+    this.finalPrice,
+    this.startDate,
+    this.endDate,
+    this.seatsTotal,
+    this.seatsLeft,
+    this.isActive = true,
+    this.duration,
     required this.visibility,
     required this.createdAt,
   });
@@ -53,6 +69,8 @@ class AdminCourse {
       colors = [0xFF2196F3, 0xFF1976D2]; // Default blue gradient
     }
 
+    final double priceDef = (data['priceDefault'] as num?)?.toDouble() ?? 0.0;
+
     return AdminCourse(
       id: id,
       title: data['title'] ?? '',
@@ -65,7 +83,15 @@ class AdminCourse {
       level: data['level'] ?? 'beginner',
       thumbnailUrl: data['thumbnailUrl'] ?? '',
       gradientColors: colors,
-      priceDefault: (data['priceDefault'] as num?)?.toDouble() ?? 0.0,
+      priceDefault: priceDef,
+      realPrice: (data['realPrice'] as num?)?.toDouble() ?? (data['price'] as num?)?.toDouble() ?? priceDef,
+      finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? (data['price'] as num?)?.toDouble() ?? priceDef,
+      startDate: (data['startDate'] as Timestamp?)?.toDate(),
+      endDate: (data['endDate'] as Timestamp?)?.toDate(),
+      seatsTotal: data['seatsTotal'] as int?,
+      seatsLeft: data['seatsLeft'] as int?,
+      isActive: data['isActive'] ?? true,
+      duration: data['duration'] as String?,
       visibility: data['visibility'] ?? 'draft',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -82,9 +108,16 @@ class AdminCourse {
       'language': language,
       'level': level,
       'thumbnailUrl': thumbnailUrl,
-      'gradientColors':
-          gradientColors, // Store as int array for store compatibility
+      'gradientColors': gradientColors, // Store as int array for store compatibility
       'priceDefault': priceDefault,
+      if (realPrice != null) 'realPrice': realPrice,
+      if (finalPrice != null) 'finalPrice': finalPrice,
+      if (startDate != null) 'startDate': Timestamp.fromDate(startDate!),
+      if (endDate != null) 'endDate': Timestamp.fromDate(endDate!),
+      if (seatsTotal != null) 'seatsTotal': seatsTotal,
+      if (seatsLeft != null) 'seatsLeft': seatsLeft,
+      'isActive': isActive,
+      if (duration != null) 'duration': duration,
       'visibility': visibility,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -92,68 +125,6 @@ class AdminCourse {
   }
 }
 
-class AdminBatch {
-  final String id;
-  final String courseId;
-  final String name;
-  final DateTime startDate;
-  final DateTime endDate;
-  final double realPrice;
-  final double finalPrice;
-  final int seatsTotal;
-  final int seatsLeft;
-  final bool isActive;
-  final String thumbnailUrl;
-  final bool isCourseBatch;
-
-  AdminBatch({
-    required this.id,
-    required this.courseId,
-    required this.name,
-    required this.startDate,
-    required this.endDate,
-    required this.realPrice,
-    required this.finalPrice,
-    required this.seatsTotal,
-    required this.seatsLeft,
-    required this.isActive,
-    this.thumbnailUrl = '',
-    this.isCourseBatch = false,
-  });
-
-  factory AdminBatch.fromMap(Map<String, dynamic> data, String id) {
-    return AdminBatch(
-      id: id,
-      courseId: data['courseId'] ?? '',
-      name: data['name'] ?? '',
-      startDate: (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      endDate: (data['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
-      finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? (data['price'] as num?)?.toDouble() ?? 0.0,
-      seatsTotal: data['seatsTotal'] ?? 0,
-      seatsLeft: data['seatsLeft'] ?? 0,
-      isActive: data['isActive'] ?? true,
-      thumbnailUrl: data['thumbnailUrl'] ?? '',
-      isCourseBatch: data['isCourseBatch'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'courseId': courseId,
-      'name': name,
-      'startDate': Timestamp.fromDate(startDate),
-      'endDate': Timestamp.fromDate(endDate),
-      'realPrice': realPrice,
-      'finalPrice': finalPrice,
-      'seatsTotal': seatsTotal,
-      'seatsLeft': seatsLeft,
-      'isActive': isActive,
-      'thumbnailUrl': thumbnailUrl,
-      'isCourseBatch': isCourseBatch,
-    };
-  }
-}
 
 class AdminLecture {
   final String id;
@@ -167,11 +138,10 @@ class AdminLecture {
   final String chapter;
   final int? lectureNo;
   final List<String> linkedNoteIds;
-  /// Tracks which batches this lecture is linked to.
-  /// Each entry: { 'courseId': '...', 'batchId': '...' }
-  final List<Map<String, String>> linkedBatches;
+  /// Tracks which courses this lecture is linked to.
+  final List<String> linkedCourses;
   /// If this lecture is a linked copy, tracks where it is linked from.
-  /// Format: { 'courseId': '...', 'batchId': '...', 'originalId': '...' }
+  /// Format: { 'courseId': '...', 'originalId': '...' }
   final Map<String, String>? linkedFrom;
 
   AdminLecture({
@@ -186,7 +156,7 @@ class AdminLecture {
     this.chapter = '',
     this.lectureNo,
     this.linkedNoteIds = const [],
-    this.linkedBatches = const [],
+    this.linkedCourses = const [],
     this.linkedFrom,
   });
 
@@ -203,10 +173,7 @@ class AdminLecture {
       chapter: data['chapter'] ?? '',
       lectureNo: data['lectureNo'] as int?,
       linkedNoteIds: List<String>.from(data['linkedNoteIds'] ?? []),
-      linkedBatches: (data['linkedBatches'] as List<dynamic>?)
-              ?.map((e) => Map<String, String>.from(e as Map))
-              .toList() ??
-          [],
+      linkedCourses: List<String>.from(data['linkedCourses'] ?? (data['linkedBatches'] as List<dynamic>?)?.map((e) => e['courseId'] as String).toList() ?? []),
       linkedFrom: data['linkedFrom'] != null
           ? Map<String, String>.from(data['linkedFrom'] as Map)
           : null,
@@ -225,7 +192,7 @@ class AdminLecture {
       'chapter': chapter,
       'lectureNo': lectureNo,
       'linkedNoteIds': linkedNoteIds,
-      'linkedBatches': linkedBatches,
+      'linkedCourses': linkedCourses,
       'linkedFrom': linkedFrom,
     };
   }
@@ -241,7 +208,7 @@ class AdminLecture {
     String? chapter,
     int? lectureNo,
     List<String>? linkedNoteIds,
-    List<Map<String, String>>? linkedBatches,
+    List<String>? linkedCourses,
     Map<String, String>? linkedFrom,
   }) {
     return AdminLecture(
@@ -256,7 +223,7 @@ class AdminLecture {
       chapter: chapter ?? this.chapter,
       lectureNo: lectureNo ?? this.lectureNo,
       linkedNoteIds: linkedNoteIds ?? this.linkedNoteIds,
-      linkedBatches: linkedBatches ?? this.linkedBatches,
+      linkedCourses: linkedCourses ?? this.linkedCourses,
       linkedFrom: linkedFrom ?? this.linkedFrom,
     );
   }
@@ -696,11 +663,10 @@ class AdminLiveClass {
   final String subject;
   final String chapter;
   final int? lectureNo;
-  /// Tracks which batches this class is linked to.
-  /// Each entry: { 'courseId': '...', 'batchId': '...' }
-  final List<Map<String, String>> linkedBatches;
+  /// Tracks which courses this class is linked to.
+  final List<String> linkedCourses;
   /// If this class is a linked copy, tracks where it is linked from.
-  /// Format: { 'courseId': '...', 'batchId': '...', 'originalId': '...', 'source': '...' }
+  /// Format: { 'courseId': '...', 'originalId': '...', 'source': '...' }
   final Map<String, String>? linkedFrom;
 
   AdminLiveClass({
@@ -717,7 +683,7 @@ class AdminLiveClass {
     this.subject = '',
     this.chapter = '',
     this.lectureNo,
-    this.linkedBatches = const [],
+    this.linkedCourses = const [],
     this.linkedFrom,
   });
 
@@ -737,10 +703,7 @@ class AdminLiveClass {
       subject: data['subject'] ?? '',
       chapter: data['chapter'] ?? '',
       lectureNo: data['lectureNo'] as int?,
-      linkedBatches: (data['linkedBatches'] as List<dynamic>?)
-              ?.map((e) => Map<String, String>.from(e as Map))
-              .toList() ??
-          [],
+      linkedCourses: List<String>.from(data['linkedCourses'] ?? (data['linkedBatches'] as List<dynamic>?)?.map((e) => e['courseId'] as String).toList() ?? []),
       linkedFrom: data['linkedFrom'] != null
           ? Map<String, String>.from(data['linkedFrom'] as Map)
           : null,
@@ -762,7 +725,7 @@ class AdminLiveClass {
       'subject': subject,
       'chapter': chapter,
       'lectureNo': lectureNo,
-      'linkedBatches': linkedBatches,
+      'linkedCourses': linkedCourses,
       'linkedFrom': linkedFrom,
     };
   }
@@ -775,7 +738,7 @@ class AdminCombinationPack {
   final String thumbnailUrl;
   final double realPrice;
   final double finalPrice;
-  final List<Map<String, String>> batches; // list of { 'courseId': '...', 'batchId': '...' }
+  final List<String> courses; // list of course IDs
   final List<String> testSeries; // list of test series IDs
   final bool isActive;
   final DateTime createdAt;
@@ -788,7 +751,7 @@ class AdminCombinationPack {
     required this.thumbnailUrl,
     required this.realPrice,
     required this.finalPrice,
-    required this.batches,
+    required this.courses,
     required this.testSeries,
     required this.isActive,
     required this.createdAt,
@@ -797,6 +760,18 @@ class AdminCombinationPack {
 
   factory AdminCombinationPack.fromMap(Map<String, dynamic> data, String id) {
     final createdAtVal = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    
+    // Support legacy conversion from batches array
+    List<String> parsedCourses = [];
+    if (data['courses'] != null) {
+      parsedCourses = List<String>.from(data['courses']);
+    } else if (data['batches'] != null) {
+      parsedCourses = (data['batches'] as List<dynamic>?)
+              ?.map((e) => e['courseId'] as String)
+              .where((id) => id.isNotEmpty)
+              .toList() ?? [];
+    }
+
     return AdminCombinationPack(
       id: id,
       title: data['title'] ?? '',
@@ -804,10 +779,7 @@ class AdminCombinationPack {
       thumbnailUrl: data['thumbnailUrl'] ?? '',
       realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
       finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? 0.0,
-      batches: (data['batches'] as List<dynamic>?)
-              ?.map((e) => Map<String, String>.from(e as Map))
-              .toList() ??
-          [],
+      courses: parsedCourses,
       testSeries: List<String>.from(data['testSeries'] ?? []),
       isActive: data['isActive'] ?? true,
       createdAt: createdAtVal,
@@ -822,7 +794,7 @@ class AdminCombinationPack {
       'thumbnailUrl': thumbnailUrl,
       'realPrice': realPrice,
       'finalPrice': finalPrice,
-      'batches': batches,
+      'courses': courses,
       'testSeries': testSeries,
       'isActive': isActive,
     };
@@ -834,7 +806,7 @@ class AdminCombinationPack {
     String? thumbnailUrl,
     double? realPrice,
     double? finalPrice,
-    List<Map<String, String>>? batches,
+    List<String>? courses,
     List<String>? testSeries,
     bool? isActive,
     DateTime? createdAt,
@@ -847,7 +819,7 @@ class AdminCombinationPack {
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       realPrice: realPrice ?? this.realPrice,
       finalPrice: finalPrice ?? this.finalPrice,
-      batches: batches ?? this.batches,
+      courses: courses ?? this.courses,
       testSeries: testSeries ?? this.testSeries,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,

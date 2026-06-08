@@ -20,6 +20,18 @@ class PromoBatchResult {
 class NewBatchPromotionService {
   static bool _isChecking = false;
 
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth? _auth;
+  final SharedPreferences? _prefs;
+
+  NewBatchPromotionService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+    SharedPreferences? prefs,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth,
+        _prefs = prefs;
+
   /// Pure query logic that runs business rules to find the newest eligible promo.
   /// Decoupled from BuildContext, making it fully unit-testable!
   Future<PromoBatchResult?> getEligiblePromotion() async {
@@ -27,59 +39,67 @@ class NewBatchPromotionService {
     _isChecking = true;
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _auth != null ? _auth.currentUser : FirebaseAuth.instance.currentUser;
       if (user == null) return null;
 
-      // 1. Get student's enrolled batch IDs directly from Firestore for accuracy
-      final enrolledCoursesSnap = await FirebaseFirestore.instance
+      // 1. Get student's enrolled course IDs directly from Firestore for accuracy
+      final enrolledCoursesSnap = await _firestore
           .collection('users')
           .doc(user.uid)
           .collection('enrolledCourses')
           .get();
 
-      final enrolledBatchIds = enrolledCoursesSnap.docs
-          .map((doc) => doc.data()['batchId'] as String?)
+      final enrolledCourseIds = enrolledCoursesSnap.docs
+          .map((doc) => doc.data()['courseId'] as String? ?? doc.id)
           .whereType<String>()
           .toSet();
 
-      // 2. Fetch active batches via collectionGroup with server-side sort.
-      // Requires the composite index in firestore.indexes.json:
-      //   collectionGroup: "batches", queryScope: COLLECTION_GROUP
-      //   fields: isActive ASC, startDate DESC
-      // Deploy with: firebase deploy --only firestore:indexes
-      final batchesSnap = await FirebaseFirestore.instance
-          .collectionGroup('batches')
+      // 2. Fetch active published courses (without orderBy to avoid requiring a composite index)
+      final coursesSnap = await _firestore
+          .collection('courses')
           .where('isActive', isEqualTo: true)
-          .orderBy('startDate', descending: true)
-          .limit(50)
+          .where('visibility', isEqualTo: 'published')
           .get();
 
-      final eligibleBatchDocs = batchesSnap.docs
-          .where((doc) => !enrolledBatchIds.contains(doc.id))
+      final eligibleCourseDocs = coursesSnap.docs
+          .where((doc) => !enrolledCourseIds.contains(doc.id))
           .toList();
 
-      if (eligibleBatchDocs.isEmpty) return null;
+      if (eligibleCourseDocs.isEmpty) return null;
 
-      // Results are already sorted by startDate DESC from Firestore.
+      // Sort by startDate descending in memory
+      eligibleCourseDocs.sort((a, b) {
+        final aData = a.data();
+        final bData = b.data();
+        
+        final aStart = aData['startDate'] != null
+            ? (aData['startDate'] is Timestamp
+                ? (aData['startDate'] as Timestamp).toDate()
+                : DateTime.tryParse(aData['startDate'].toString()))
+            : null;
+            
+        final bStart = bData['startDate'] != null
+            ? (bData['startDate'] is Timestamp
+                ? (bData['startDate'] as Timestamp).toDate()
+                : DateTime.tryParse(bData['startDate'].toString()))
+            : null;
 
-      // 4. Find the first eligible batch that has not been dismissed and belongs to a published course
-      final prefs = await SharedPreferences.getInstance();
+        if (aStart == null && bStart == null) return 0;
+        if (aStart == null) return 1;
+        if (bStart == null) return -1;
+        return bStart.compareTo(aStart); // descending order
+      });
 
-      for (final batchDoc in eligibleBatchDocs) {
-        final batchId = batchDoc.id;
-        final promoKey = 'shown_promo_batch_$batchId';
+      // 3. Find the first eligible course that has not been dismissed
+      final prefs = _prefs ?? await SharedPreferences.getInstance();
+
+      for (final courseDoc in eligibleCourseDocs.take(50)) {
+        final courseId = courseDoc.id;
+        final promoKey = 'shown_promo_batch_$courseId';
         final hasBeenShown = prefs.getBool(promoKey) ?? false;
         if (hasBeenShown) continue;
 
-        // Fetch parent course to verify visibility and get course details
-        final courseRef = batchDoc.reference.parent.parent;
-        if (courseRef == null) continue;
-
-        final courseSnap = await courseRef.get();
-        if (!courseSnap.exists) continue;
-
-        final courseData = courseSnap.data();
-        if (courseData == null || courseData['visibility'] != 'published') continue;
+        final courseData = courseDoc.data();
 
         // Parse Course
         List<Color> gradientColors;
@@ -92,7 +112,7 @@ class NewBatchPromotionService {
         }
 
         final course = Course(
-          id: courseSnap.id,
+          id: courseId,
           title: courseData['title'] ?? '',
           subtitle: courseData['subtitle'] ?? '',
           description: courseData['description'] ?? '',
@@ -100,30 +120,25 @@ class NewBatchPromotionService {
           gradientColors: gradientColors,
           thumbnailUrl: courseData['thumbnailUrl'] ?? '',
           priceDefault: (courseData['priceDefault'] as num?)?.toDouble() ?? 0.0,
-          batches: [], // Scoped promotion does not require sibling batches
+          realPrice: (courseData['realPrice'] as num?)?.toDouble() ?? 0.0,
+          finalPrice: (courseData['finalPrice'] as num?)?.toDouble() ?? 0.0,
+          startDate: courseData['startDate'] != null
+              ? (courseData['startDate'] is Timestamp
+                  ? (courseData['startDate'] as Timestamp).toDate()
+                  : DateTime.tryParse(courseData['startDate'].toString()))
+              : null,
+          endDate: courseData['endDate'] != null
+              ? (courseData['endDate'] is Timestamp
+                  ? (courseData['endDate'] as Timestamp).toDate()
+                  : DateTime.tryParse(courseData['endDate'].toString()))
+              : null,
+          seatsTotal: courseData['seatsTotal'] ?? 0,
+          seatsLeft: courseData['seatsLeft'] ?? 0,
+          duration: courseData['duration'] ?? '',
+          isActive: courseData['isActive'] ?? true,
         );
 
-        // Parse Batch
-        final b = batchDoc.data();
-        final batch = Batch(
-          id: batchId,
-          name: b['name'] ?? 'Default Batch',
-          startDate: (b['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-          realPrice: (b['realPrice'] as num?)?.toDouble() ??
-              (b['price'] as num?)?.toDouble() ??
-              course.priceDefault,
-          finalPrice: (b['finalPrice'] as num?)?.toDouble() ??
-              (b['price'] as num?)?.toDouble() ??
-              course.priceDefault,
-          seatsLeft: b['seatsLeft'] ?? 0,
-          duration: _calculateDuration(
-            (b['startDate'] as Timestamp?)?.toDate(),
-            (b['endDate'] as Timestamp?)?.toDate(),
-          ),
-          thumbnailUrl: b['thumbnailUrl'] ?? '',
-          isEnrolled: false,
-          isCourseBatch: b['isCourseBatch'] ?? false,
-        );
+        final batch = course.batches.first;
 
         return PromoBatchResult(course: course, batch: batch, promoKey: promoKey);
       }
@@ -137,14 +152,6 @@ class NewBatchPromotionService {
     }
   }
 
-  String _calculateDuration(DateTime? start, DateTime? end) {
-    if (start == null || end == null) return '3 months';
-    final days = end.difference(start).inDays;
-    if (days > 30) {
-      return '${(days / 30).round()} months';
-    }
-    return '$days days';
-  }
 
   /// Separated Presentation Helper to trigger the premium promotional dialog UI
   Future<void> showPromoDialog(

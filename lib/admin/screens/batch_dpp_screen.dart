@@ -21,7 +21,7 @@ class BatchDppScreen extends StatelessWidget {
         onPressed: () => _showDppDialog(context, service, null),
       ),
       body: StreamBuilder<List<AdminDpp>>(
-        stream: service.getBatchDpps(courseId, batchId),
+        stream: service.getCourseDpps(courseId),
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -116,7 +116,7 @@ class BatchDppScreen extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
-              service.deleteBatchDpp(courseId, batchId, dpp.id);
+              service.deleteCourseDpp(courseId, dpp.id);
               Navigator.pop(context);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
@@ -149,7 +149,7 @@ class BatchDppScreen extends StatelessWidget {
             final subjects = subjectsSnapshot.data ?? [];
 
             return StreamBuilder<List<AdminLecture>>(
-              stream: service.getLectures(courseId, batchId),
+              stream: service.getLectures(courseId),
               builder: (context, lecturesSnapshot) {
                 final lectures = lecturesSnapshot.data ?? [];
 
@@ -430,7 +430,7 @@ class BatchDppScreen extends StatelessWidget {
                                 ),
                               ] else
                                 MediaUploader(
-                                  path: 'courses/$courseId/batches/$batchId/dpps',
+                                  path: 'courses/$courseId/dpps',
                                   onUploadComplete: (url) => setState(() => dppPdfUrl = url),
                                 ),
 
@@ -455,7 +455,7 @@ class BatchDppScreen extends StatelessWidget {
                                 ),
                               ] else
                                 MediaUploader(
-                                  path: 'courses/$courseId/batches/$batchId/dpps/solutions',
+                                  path: 'courses/$courseId/dpps/solutions',
                                   onUploadComplete: (url) => setState(() => solutionPdfUrl = url),
                                 ),
                             ],
@@ -480,12 +480,11 @@ class BatchDppScreen extends StatelessWidget {
                               createdAt: dpp?.createdAt ?? DateTime.now(),
                             );
 
-                            await service.saveBatchDpp(
-                              courseId,
-                              batchId,
-                              updatedDpp,
-                              isNew: !isEditing,
-                            );
+                             await service.saveCourseDpp(
+                               courseId,
+                               updatedDpp,
+                               isNew: !isEditing,
+                             );
                             if (context.mounted) Navigator.pop(context);
                           },
                           child: Text(isEditing ? 'Save' : 'Add'),

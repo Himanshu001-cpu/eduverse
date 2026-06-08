@@ -39,13 +39,9 @@ service cloud.firestore {
         }
       }
 
-      // Batch Progress subcollection (for Study Module)
-      match /batchProgress/{batchProgressId} {
+      // User course bookmarks
+      match /courseBookmarks/{bookmarkId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
-        
-        match /lectures/{lectureId} {
-          allow read, write: if request.auth != null && request.auth.uid == uid;
-        }
       }
 
       // User transactions subcollection (payment history)
@@ -113,6 +109,12 @@ service cloud.firestore {
       }
     }
 
+    // App Config collection (app version, update links, etc.)
+    match /app_config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
     // Courses: Public read if published, Auth read for all, Admin write
     match /courses/{courseId} {
       // Allow anyone to read published courses (for landing page)
@@ -121,66 +123,61 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if isAdmin();
       
-      match /batches/{batchId} {
-        allow read: if request.auth != null; // Allow auth users to read (needed for enrollment fetch)
+      match /lessons/{lessonId} {
+        // Allow authenticated users to read lessons (purchase verified at app level)
+        allow read: if request.auth != null;
         allow write: if isAdmin();
-        
-        match /lessons/{lessonId} {
-          // Allow authenticated users to read lessons (purchase verified at app level)
-          allow read: if request.auth != null;
-          allow write: if isAdmin();
 
-          // Comments: Any authenticated user can read, create their own
-          match /comments/{commentId} {
+        // Comments: Any authenticated user can read, create their own
+        match /comments/{commentId} {
+          allow read: if request.auth != null;
+          allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+          allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+
+          // Replies subcollection
+          match /replies/{replyId} {
             allow read: if request.auth != null;
             allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
             allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
-
-            // Replies subcollection
-            match /replies/{replyId} {
-              allow read: if request.auth != null;
-              allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-              allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
-            }
           }
+        }
 
-          match /live_comments/{commentId} {
+        match /live_comments/{commentId} {
+          allow read: if request.auth != null;
+          allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+          allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+
+          match /replies/{replyId} {
             allow read: if request.auth != null;
             allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
             allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
-
-            match /replies/{replyId} {
-              allow read: if request.auth != null;
-              allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-              allow update, delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
-            }
           }
         }
+      }
 
-        match /notes/{noteId} {
-          allow read: if request.auth != null;
-          allow write: if isAdmin();
-        }
+      match /notes/{noteId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin();
+      }
 
-        match /planner/{plannerId} {
-          allow read: if request.auth != null;
-          allow write: if isAdmin();
-        }
+      match /planner/{plannerId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin();
+      }
 
-        match /quizzes/{quizId} {
-          allow read: if request.auth != null;
-          allow write: if isAdmin();
-        }
+      match /quizzes/{quizId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin();
+      }
 
-        match /live_classes/{classId} {
-          allow read: if request.auth != null;
-          allow write: if isAdmin();
-        }
+      match /live_classes/{classId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin();
+      }
 
-        match /dpps/{dppId} {
-          allow read: if request.auth != null;
-          allow write: if isAdmin();
-        }
+      match /dpps/{dppId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin();
       }
 
       // Lectures subcollection (for Study Module)
@@ -287,6 +284,13 @@ service cloud.firestore {
 
     // Combination Packs: Public/Auth read, Admin write
     match /combination_packs/{packId} {
+      allow read: if resource.data.isActive == true;
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // E-Books: Public/Auth read, Admin write
+    match /ebooks/{ebookId} {
       allow read: if resource.data.isActive == true;
       allow read: if request.auth != null;
       allow write: if isAdmin();

@@ -231,11 +231,11 @@ class _TestSeriesCard extends StatelessWidget {
               '${testSeries.totalTests} tests',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
-            if (testSeries.linkedBatches.isNotEmpty) ...[
+            if (testSeries.linkedCourses.isNotEmpty) ...[
               const SizedBox(width: 8),
               Icon(Icons.link, size: 14, color: Colors.blue.shade400),
               Text(
-                ' ${testSeries.linkedBatches.length}',
+                ' ${testSeries.linkedCourses.length}',
                 style: TextStyle(fontSize: 12, color: Colors.blue.shade400),
               ),
             ],

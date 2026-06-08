@@ -255,7 +255,7 @@ class _CourseCard extends StatelessWidget {
             ),
           ],
         ),
-        onTap: () => Navigator.pushNamed(context, '/course_editor', arguments: course),
+        onTap: () => Navigator.pushNamed(context, '/course_detail', arguments: course),
       ),
     );
   }

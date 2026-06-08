@@ -63,5 +63,20 @@
                 }
             }
         }
+    },
+    "emulators": {
+        "firestore": {
+            "port": 8091
+        },
+        "ui": {
+            "enabled": true,
+            "port": 4011
+        },
+        "hub": {
+            "port": 4411
+        },
+        "logging": {
+            "port": 4511
+        }
     }
 }
