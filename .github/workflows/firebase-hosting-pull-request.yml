@@ -20,8 +20,8 @@ jobs:
       - name: Recreate Firebase configuration files
         run: |
           mkdir -p lib/core/firebase
-          echo "${{ secrets.FIREBASE_OPTIONS_DART }}" > lib/core/firebase/firebase_options.dart
-          echo "${{ secrets.FIREBASE_ROOT_OPTIONS_DART }}" > lib/firebase_options.dart
+          echo "${{ secrets.FIREBASE_OPTIONS_DART }}" | base64 --decode > lib/core/firebase/firebase_options.dart
+          echo "${{ secrets.FIREBASE_ROOT_OPTIONS_DART }}" | base64 --decode > lib/firebase_options.dart
 
       - name: Install dependencies
         run: flutter pub get
