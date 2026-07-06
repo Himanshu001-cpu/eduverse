@@ -1,15 +1,10 @@
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart' as iframe;
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 /// A cross-platform YouTube player widget that works on both mobile and web.
 /// Uses youtube_player_iframe for Web compatibility.
-///
-/// When paused, YouTube's iframe shows a built-in thumbnail/related-videos
-/// overlay. To prevent this from obscuring the actual paused frame, this widget
-/// tracks the player state and covers the iframe with a play-button scrim
-/// whenever the video is paused.
 class CrossPlatformYoutubePlayer extends StatefulWidget {
   final String videoId;
   final bool autoPlay;
@@ -18,6 +13,8 @@ class CrossPlatformYoutubePlayer extends StatefulWidget {
   final VoidCallback? onEnded;
   final Widget? settingsButton;
   final double playbackSpeed;
+  final int startSeconds;
+  final Function(Duration position, Duration duration)? onProgress;
 
   const CrossPlatformYoutubePlayer({
     super.key,
@@ -28,6 +25,8 @@ class CrossPlatformYoutubePlayer extends StatefulWidget {
     this.onEnded,
     this.settingsButton,
     this.playbackSpeed = 1.0,
+    this.startSeconds = 0,
+    this.onProgress,
   });
 
   @override
@@ -39,6 +38,7 @@ class _CrossPlatformYoutubePlayerState
     extends State<CrossPlatformYoutubePlayer> {
   late iframe.YoutubePlayerController _controller;
   bool _isPaused = false;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
@@ -46,34 +46,67 @@ class _CrossPlatformYoutubePlayerState
     _initController();
   }
 
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      if (!mounted) return;
+      try {
+        final positionSecs = await _controller.currentTime;
+        final durationSecs = await _controller.duration;
+        widget.onProgress?.call(
+          Duration(milliseconds: (positionSecs * 1000).toInt()),
+          Duration(milliseconds: (durationSecs * 1000).toInt()),
+        );
+      } catch (e) {
+        debugPrint('Error polling youtube player: $e');
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
+
   void _initController() {
     _controller = iframe.YoutubePlayerController.fromVideoId(
       videoId: widget.videoId,
       autoPlay: widget.autoPlay,
+      startSeconds: widget.startSeconds.toDouble(),
       params: const iframe.YoutubePlayerParams(
         showControls: true,
         showFullscreenButton: true,
         mute: false,
         enableCaption: true,
         playsInline: true,
-        // Limit related videos to same channel only (cannot fully disable per YouTube policy)
         strictRelatedVideos: true,
       ),
     );
 
     _controller.listen((event) {
       if (event.playerState == iframe.PlayerState.ended) {
+        _stopPolling();
         widget.onEnded?.call();
       }
+
       // Apply playback speed when video starts playing
       if (event.playerState == iframe.PlayerState.playing) {
         _controller.setPlaybackRate(widget.playbackSpeed);
+        _startPolling();
+      } else {
+        _stopPolling();
       }
 
       // Track pause state to overlay YouTube's built-in pause thumbnail
       final paused = event.playerState == iframe.PlayerState.paused;
       if (paused != _isPaused && mounted) {
         setState(() => _isPaused = paused);
+      }
+    });
+
+    _controller.videoStateStream.listen((state) {
+      if (mounted) {
+        widget.onProgress?.call(state.position, _controller.metadata.duration);
       }
     });
   }
@@ -88,6 +121,7 @@ class _CrossPlatformYoutubePlayerState
 
   @override
   void dispose() {
+    _stopPolling();
     _controller.close();
     super.dispose();
   }

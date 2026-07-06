@@ -35,6 +35,7 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
   bool _isLoading = true;
   List<QuizQuestion> _questions = [];
   String? _error;
+  String? _categoryLabel;
 
   // Timer and instructions state
   Timer? _timer;
@@ -94,6 +95,8 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
         _remainingSeconds = _timeLimitMinutes! * 60;
       }
 
+      _categoryLabel = data['categoryLabel'] as String? ?? data['subject'] as String? ?? data['category'] as String? ?? '';
+
       _questions = questionsData.map((q) {
         final optionsData = (q['options'] as List<dynamic>?) ?? [];
         final options = optionsData
@@ -119,6 +122,18 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
           negativeMarks: (q['negativeMarks'] as num?)?.toDouble(),
         );
       }).toList();
+
+      if (_categoryLabel!.isEmpty) {
+        for (final q in _questions) {
+          if (q.subject != null && q.subject!.isNotEmpty) {
+            _categoryLabel = q.subject;
+            break;
+          }
+        }
+      }
+      if (_categoryLabel!.isEmpty) {
+        _categoryLabel = 'Batch Quiz';
+      }
 
       _userAnswers = List.filled(_questions.length, null);
 
@@ -244,6 +259,8 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
           themeColor: widget.themeColor,
           marksPerQuestion: _marksPerQuestion,
           negativeMarking: _negativeMarking,
+          categoryLabel: _categoryLabel ?? 'Batch Quiz',
+          quizId: widget.quizId,
         ),
       ),
     );

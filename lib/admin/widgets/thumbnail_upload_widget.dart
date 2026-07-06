@@ -121,6 +121,14 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
 
   Future<void> _deleteImageFromStorage(String url) async {
     try {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        debugPrint('Skipping deletion of local/non-network URL: $url');
+        return;
+      }
+      if (!url.contains('firebasestorage.googleapis.com') && !url.contains(':9199')) {
+        debugPrint('Skipping deletion of non-firebase-storage URL: $url');
+        return;
+      }
       // Extract reference from URL and delete
       final ref = FirebaseStorage.instance.refFromURL(url);
       await ref.delete();

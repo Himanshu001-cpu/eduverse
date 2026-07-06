@@ -8,6 +8,8 @@ class ArticleContent {
   final List<String> tags;
   final int estimatedReadTime; // in minutes
   final DateTime? publishedDate;
+  final String? bodyDelta;
+  final String? bodyHtml;
 
   const ArticleContent({
     required this.id,
@@ -16,6 +18,8 @@ class ArticleContent {
     this.tags = const [],
     this.estimatedReadTime = 5,
     this.publishedDate,
+    this.bodyDelta,
+    this.bodyHtml,
   });
 
   factory ArticleContent.fromJson(Map<String, dynamic> json) {
@@ -28,6 +32,8 @@ class ArticleContent {
       publishedDate: json['publishedDate'] != null
           ? DateTime.parse(json['publishedDate'] as String)
           : null,
+      bodyDelta: json['bodyDelta'] as String?,
+      bodyHtml: json['bodyHtml'] as String?,
     );
   }
 
@@ -38,6 +44,8 @@ class ArticleContent {
     'tags': tags,
     'estimatedReadTime': estimatedReadTime,
     'publishedDate': publishedDate?.toIso8601String(),
+    'bodyDelta': bodyDelta,
+    'bodyHtml': bodyHtml,
   };
 }
 
@@ -51,6 +59,12 @@ class CurrentAffairsContent {
   final String whyItMatters;
   final String examRelevance;
   final List<String> tags;
+  final String? whatHappenedDelta;
+  final String? whatHappenedHtml;
+  final String? whyItMattersDelta;
+  final String? whyItMattersHtml;
+  final String? examRelevanceDelta;
+  final String? examRelevanceHtml;
 
   const CurrentAffairsContent({
     required this.id,
@@ -61,6 +75,12 @@ class CurrentAffairsContent {
     required this.whyItMatters,
     required this.examRelevance,
     this.tags = const [],
+    this.whatHappenedDelta,
+    this.whatHappenedHtml,
+    this.whyItMattersDelta,
+    this.whyItMattersHtml,
+    this.examRelevanceDelta,
+    this.examRelevanceHtml,
   });
 
   factory CurrentAffairsContent.fromJson(Map<String, dynamic> json) {
@@ -76,6 +96,12 @@ class CurrentAffairsContent {
           json['upscRelevance'] as String? ??
           '',
       tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? [],
+      whatHappenedDelta: json['whatHappenedDelta'] as String?,
+      whatHappenedHtml: json['whatHappenedHtml'] as String?,
+      whyItMattersDelta: json['whyItMattersDelta'] as String?,
+      whyItMattersHtml: json['whyItMattersHtml'] as String?,
+      examRelevanceDelta: json['examRelevanceDelta'] as String?,
+      examRelevanceHtml: json['examRelevanceHtml'] as String?,
     );
   }
 
@@ -88,6 +114,12 @@ class CurrentAffairsContent {
     'whyItMatters': whyItMatters,
     'examRelevance': examRelevance,
     'tags': tags,
+    'whatHappenedDelta': whatHappenedDelta,
+    'whatHappenedHtml': whatHappenedHtml,
+    'whyItMattersDelta': whyItMattersDelta,
+    'whyItMattersHtml': whyItMattersHtml,
+    'examRelevanceDelta': examRelevanceDelta,
+    'examRelevanceHtml': examRelevanceHtml,
   };
 }
 
@@ -99,6 +131,10 @@ class AnswerWritingContent {
   final int timeLimitMinutes;
   final String? modelAnswer;
   final List<String> keyPoints;
+  final String? questionDelta;
+  final String? questionHtml;
+  final String? modelAnswerDelta;
+  final String? modelAnswerHtml;
 
   const AnswerWritingContent({
     required this.id,
@@ -107,6 +143,10 @@ class AnswerWritingContent {
     this.timeLimitMinutes = 7,
     this.modelAnswer,
     this.keyPoints = const [],
+    this.questionDelta,
+    this.questionHtml,
+    this.modelAnswerDelta,
+    this.modelAnswerHtml,
   });
 
   factory AnswerWritingContent.fromJson(Map<String, dynamic> json) {
@@ -117,6 +157,10 @@ class AnswerWritingContent {
       timeLimitMinutes: json['timeLimitMinutes'] as int? ?? 7,
       modelAnswer: json['modelAnswer'] as String?,
       keyPoints: (json['keyPoints'] as List<dynamic>?)?.cast<String>() ?? [],
+      questionDelta: json['questionDelta'] as String?,
+      questionHtml: json['questionHtml'] as String?,
+      modelAnswerDelta: json['modelAnswerDelta'] as String?,
+      modelAnswerHtml: json['modelAnswerHtml'] as String?,
     );
   }
 
@@ -127,6 +171,10 @@ class AnswerWritingContent {
     'timeLimitMinutes': timeLimitMinutes,
     'modelAnswer': modelAnswer,
     'keyPoints': keyPoints,
+    'questionDelta': questionDelta,
+    'questionHtml': questionHtml,
+    'modelAnswerDelta': modelAnswerDelta,
+    'modelAnswerHtml': modelAnswerHtml,
   };
 }
 

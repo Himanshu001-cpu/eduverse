@@ -181,7 +181,14 @@ class _MenuGridState extends State<MenuGrid> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(child: SizedBox()), // Spacer
+              Expanded(
+                child: card(
+                  Icons.bar_chart,
+                  Colors.blue,
+                  'Performance',
+                  () => Navigator.pushNamed(context, '/performance_dashboard'),
+                ),
+              ),
             ],
           ),
           

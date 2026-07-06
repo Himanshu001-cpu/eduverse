@@ -37,7 +37,7 @@ try {
     process.exit(1);
 }
 
-const validRoles = ['superadmin', 'admin', 'content_manager', 'support', 'user'];
+const validRoles = ['superadmin', 'admin', 'content_manager', 'support', 'teacher', 'user', 'student'];
 
 async function setAdminRole(uid, role) {
     if (!uid) {
@@ -57,21 +57,39 @@ async function setAdminRole(uid, role) {
         const userRecord = await admin.auth().getUser(uid);
         console.log(`\n📧 User found: ${userRecord.email || userRecord.phoneNumber || uid}`);
 
+        const currentClaims = userRecord.customClaims || {};
+        const currentRole = currentClaims.role || 'student';
+
+        let targetRole = role;
+        let targetIsTeacher = role === 'teacher';
+
+        if (role === 'teacher') {
+            if (currentRole === 'admin' || currentRole === 'superadmin') {
+                targetRole = currentRole;
+                targetIsTeacher = true;
+            }
+        } else if (role === 'student') {
+            targetIsTeacher = false;
+        } else if (role === 'admin' || role === 'superadmin') {
+            targetIsTeacher = currentClaims.isTeacher || false;
+        }
+
         // Set custom claims
-        await admin.auth().setCustomUserClaims(uid, { role });
-        console.log(`✅ Custom claim set: { role: "${role}" }`);
+        await admin.auth().setCustomUserClaims(uid, { role: targetRole, isTeacher: targetIsTeacher });
+        console.log(`✅ Custom claim set: { role: "${targetRole}", isTeacher: ${targetIsTeacher} }`);
 
         // Also update Firestore users collection
         await admin.firestore().collection('users').doc(uid).set(
             {
-                role,
+                role: targetRole,
+                isTeacher: targetIsTeacher,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             },
             { merge: true }
         );
-        console.log(`✅ Firestore users/${uid} updated with role: "${role}"`);
+        console.log(`✅ Firestore users/${uid} updated with role: "${targetRole}", isTeacher: ${targetIsTeacher}`);
 
-        console.log('\n🎉 Success! The user is now a', role);
+        console.log('\n🎉 Success! The user is now a', targetRole, targetIsTeacher ? '(Teacher)' : '');
         console.log('\n⚠️  IMPORTANT: The user must log out and log back in for changes to take effect.\n');
 
         process.exit(0);

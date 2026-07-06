@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eduverse/core/firebase/firestore_paths.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 class CartService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = EduverseFirebase.firestore;
 
   Future<void> addToCart(String uid, Map<String, dynamic> item) async {
     // item should contain courseId, batchId, title, price

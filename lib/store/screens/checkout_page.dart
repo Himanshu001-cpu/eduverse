@@ -3,7 +3,7 @@ import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/store/screens/payment_result_page.dart';
 import 'package:eduverse/common/persistence/purchase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:eduverse/core/firebase/purchase_service.dart';
 import 'package:eduverse/core/firebase/cart_service.dart';
 import 'package:eduverse/core/firebase/razorpay_service.dart';
@@ -59,14 +59,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Future<void> _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = EduverseFirebase.auth.currentUser;
     if (user == null) {
       setState(() => _isLoadingUser = false);
       return;
     }
 
     try {
-      final doc = await FirebaseFirestore.instance
+      final doc = await EduverseFirebase.firestore
           .collection('users')
           .doc(user.uid)
           .get();
@@ -176,7 +176,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void _handlePayment() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final user = FirebaseAuth.instance.currentUser;
+    final user = EduverseFirebase.auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(
         context,
@@ -187,10 +187,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
     setState(() => _isProcessing = true);
 
     try {
-      final razorpayService = RazorpayService();
       final tempOrderId = 'ORD${DateTime.now().millisecondsSinceEpoch}';
       final gstNumber = _gstController.text.trim().toUpperCase();
 
+      if (_finalAmount <= 0) {
+        final freeResult = PaymentResult(
+          success: true,
+          paymentId: 'FREE_$tempOrderId',
+          orderId: tempOrderId,
+        );
+        _onPaymentSuccess(freeResult, user, tempOrderId, gstNumber);
+        return;
+      }
+
+      final razorpayService = RazorpayService();
       await razorpayService.startPayment(
         amount: _finalAmount,
         orderId: tempOrderId,
@@ -246,7 +256,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         amount: _finalAmount,
         paymentId: result.paymentId ?? orderId,
         items: itemsMap,
-        method: 'razorpay',
+        method: _finalAmount <= 0 ? 'free' : 'razorpay',
         status: 'success',
         gstNumber: gstNumber,
         promoCode: _appliedPromoCode,
@@ -268,7 +278,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         productTitle: productTitle,
         amount: _finalAmount,
         status: 'success',
-        paymentMethod: 'razorpay',
+        paymentMethod: _finalAmount <= 0 ? 'free' : 'razorpay',
       );
 
       await cartService.clearCart(user.uid);
@@ -280,7 +290,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         timestamp: DateTime.now(),
         amount: _finalAmount,
         items: widget.items,
-        paymentMethod: 'razorpay',
+        paymentMethod: _finalAmount <= 0 ? 'free' : 'razorpay',
         status: 'success',
       );
 
@@ -655,7 +665,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               )
             : Text(
-                'Pay ₹${_finalAmount.toStringAsFixed(2)}',
+                _finalAmount <= 0
+                    ? 'Get for Free'
+                    : 'Pay ₹${_finalAmount.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

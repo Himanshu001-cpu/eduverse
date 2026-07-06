@@ -1,11 +1,11 @@
 // file: lib/store/screens/purchase_cart_page.dart
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/store/widgets/cart_item_tile.dart';
 import 'package:eduverse/store/screens/payment_result_page.dart';
 import 'package:eduverse/common/persistence/purchase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:eduverse/core/firebase/purchase_service.dart';
 import 'package:eduverse/core/firebase/cart_service.dart';
 import 'package:eduverse/core/firebase/razorpay_service.dart';
@@ -158,7 +158,7 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
   double get _total => _subtotal - _discount;
 
   Future<void> _handlePayment() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = EduverseFirebase.auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(
         context,
@@ -175,7 +175,7 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
       String userPhone = user.phoneNumber ?? '';
 
       try {
-        final doc = await FirebaseFirestore.instance
+        final doc = await EduverseFirebase.firestore
             .collection('users')
             .doc(user.uid)
             .get();
@@ -189,9 +189,19 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
         debugPrint('Error fetching user data: $e');
       }
 
-      final razorpayService = RazorpayService();
       final tempOrderId = 'ORD${DateTime.now().millisecondsSinceEpoch}';
 
+      if (_total <= 0) {
+        final freeResult = PaymentResult(
+          success: true,
+          paymentId: 'FREE_$tempOrderId',
+          orderId: tempOrderId,
+        );
+        _onPaymentSuccess(freeResult, user, tempOrderId);
+        return;
+      }
+
+      final razorpayService = RazorpayService();
       await razorpayService.startPayment(
         amount: _total,
         orderId: tempOrderId,
@@ -244,7 +254,7 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
         amount: _total,
         paymentId: result.paymentId ?? orderId,
         items: itemsMap,
-        method: 'razorpay',
+        method: _total <= 0 ? 'free' : 'razorpay',
         status: 'success',
         promoCode: _appliedCouponCode,
         discountAmount: _discount,
@@ -265,7 +275,7 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
         productTitle: productTitle,
         amount: _total,
         status: 'success',
-        paymentMethod: 'razorpay',
+        paymentMethod: _total <= 0 ? 'free' : 'razorpay',
       );
 
       await cartService.clearCart(user.uid);
@@ -277,7 +287,7 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
         timestamp: DateTime.now(),
         amount: _total,
         items: _cartItems,
-        paymentMethod: 'razorpay',
+        paymentMethod: _total <= 0 ? 'free' : 'razorpay',
         status: 'success',
       );
 
@@ -457,7 +467,9 @@ class _PurchaseCartPageState extends State<PurchaseCartPage> {
                       ),
                     )
                   : Text(
-                      'Pay ₹${_total.toStringAsFixed(2)}',
+                      _total <= 0
+                          ? 'Get for Free'
+                          : 'Pay ₹${_total.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

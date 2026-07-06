@@ -1,7 +1,6 @@
 // file: lib/feed/widgets/rich_text_block.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:eduverse/core/utils/markdown_utils.dart';
+import 'package:eduverse/common/widgets/rich_content_viewer.dart';
 
 /// A reusable widget for displaying styled text blocks with a title and body.
 /// Used across detail screens for consistent section styling.
@@ -9,6 +8,7 @@ import 'package:eduverse/core/utils/markdown_utils.dart';
 class RichTextBlock extends StatelessWidget {
   final String title;
   final String body;
+  final String? htmlBody;
   final IconData? icon;
   final Color? iconColor;
   final bool showDivider;
@@ -18,6 +18,7 @@ class RichTextBlock extends StatelessWidget {
     super.key,
     required this.title,
     required this.body,
+    this.htmlBody,
     this.icon,
     this.iconColor,
     this.showDivider = true,
@@ -52,29 +53,9 @@ class RichTextBlock extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          MarkdownBody(
-            data: MarkdownUtils.normalizeMarkdown(body),
-            selectable: true,
-            softLineBreak: true,
-            styleSheet: MarkdownStyleSheet(
-              p: theme.textTheme.bodyLarge?.copyWith(
-                fontSize: 18,
-                color: colorScheme.onSurfaceVariant,
-                height: 1.6,
-              ),
-              strong: theme.textTheme.bodyLarge?.copyWith(
-                fontSize: 18,
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                height: 1.6,
-              ),
-              em: theme.textTheme.bodyLarge?.copyWith(
-                fontSize: 18,
-                color: colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-                height: 1.6,
-              ),
-            ),
+          RichContentViewer(
+            htmlContent: htmlBody ?? (body.trim().startsWith('<') ? body : null),
+            legacyMarkdown: body,
           ),
           if (showDivider) ...[
             const SizedBox(height: 16),

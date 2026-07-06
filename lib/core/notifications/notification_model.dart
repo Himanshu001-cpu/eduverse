@@ -44,7 +44,7 @@ class NotificationModel {
   });
 
   /// Check if this is a global notification (for all users)
-  bool get isGlobal => batchId == null;
+  bool get isGlobal => (courseId == null || courseId!.isEmpty) && (batchId == null || batchId!.isEmpty);
 
   /// Create from Firestore document
   factory NotificationModel.fromJson(Map<String, dynamic> json) {

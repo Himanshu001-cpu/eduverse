@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eduverse/core/firebase/firestore_paths.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 class PurchaseService {
   final FirebaseFirestore? _customFirestore;
-  FirebaseFirestore get _firestore => _customFirestore ?? FirebaseFirestore.instance;
+  FirebaseFirestore get _firestore => _customFirestore ?? EduverseFirebase.firestore;
 
   PurchaseService({FirebaseFirestore? firestore}) : _customFirestore = firestore;
 
@@ -58,6 +59,8 @@ class PurchaseService {
         final List<String> enrollmentIds = [];
         final List<String> ebookIds = [];
 
+        final isSuccess = status == 'success' || status == 'completed';
+
         for (var item in items) {
           final courseId = item['courseId'] as String?;
           final batchId = item['batchId'] as String?;
@@ -67,43 +70,54 @@ class PurchaseService {
 
           finalItemsToWrite.add(item); // Write the original item
 
+          if (!isSuccess) {
+            continue;
+          }
+
           // A. Process Combination Pack
           if (combinationPackId != null && combinationPackId.isNotEmpty) {
             debugPrint('  -> Processing combination pack: $combinationPackId');
             final comboData = comboPacksData[combinationPackId];
             if (comboData != null) {
-              // Expand bundled course batches
-              final List<dynamic> bundledBatches = comboData['batches'] ?? [];
-              for (var b in bundledBatches) {
-                final bMap = Map<String, dynamic>.from(b as Map);
-                final cId = bMap['courseId'] as String?;
-                final bId = bMap['batchId'] as String?;
-                if (cId != null && bId != null) {
-                  final enrollmentId = '${cId}_$bId';
-                  final enrollmentDoc = userEnrollmentRef.doc(enrollmentId);
-
-                  debugPrint('     -> Bundle Course enrollment: $enrollmentId');
-
-                  transaction.set(enrollmentDoc, {
-                    'courseId': cId,
-                    'batchId': bId,
-                    'enrolledAt': FieldValue.serverTimestamp(),
-                    'purchaseId': purchaseId,
-                    'status': 'active',
-                    'combinationPackId': combinationPackId, // Trace link
-                  }, SetOptions(merge: true));
-
-                  enrollmentIds.add(enrollmentId);
-                  
-                  // Append expanded batch to finalItemsToWrite for trigger decrementing
-                  finalItemsToWrite.add({
-                    'courseId': cId,
-                    'batchId': bId,
-                    'title': bMap['batchName'] ?? 'Bundled Course Batch',
-                    'price': 0.0,
-                    'combinationPackId': combinationPackId,
-                  });
+              // Expand bundled course batches / courses
+              final List<String> bundledCourses = [];
+              if (comboData['courses'] != null) {
+                bundledCourses.addAll(List<String>.from(comboData['courses']));
+              } else if (comboData['batches'] != null) {
+                final List<dynamic> legacyBatches = comboData['batches'] ?? [];
+                for (var b in legacyBatches) {
+                  final bMap = Map<String, dynamic>.from(b as Map);
+                  final cId = bMap['courseId'] as String?;
+                  if (cId != null && cId.isNotEmpty) {
+                    bundledCourses.add(cId);
+                  }
                 }
+              }
+
+              for (final cId in bundledCourses) {
+                if (cId.isEmpty) continue;
+                final enrollmentId = cId;
+                final enrollmentDoc = userEnrollmentRef.doc(enrollmentId);
+
+                debugPrint('     -> Bundle Course enrollment: $enrollmentId');
+
+                transaction.set(enrollmentDoc, {
+                  'courseId': cId,
+                  'enrolledAt': FieldValue.serverTimestamp(),
+                  'purchaseId': purchaseId,
+                  'status': 'active',
+                  'combinationPackId': combinationPackId, // Trace link
+                }, SetOptions(merge: true));
+
+                enrollmentIds.add(enrollmentId);
+                
+                // Append expanded batch to finalItemsToWrite for trigger decrementing
+                finalItemsToWrite.add({
+                  'courseId': cId,
+                  'title': 'Bundled Course',
+                  'price': 0.0,
+                  'combinationPackId': combinationPackId,
+                });
               }
 
               // Expand bundled test series
@@ -152,16 +166,15 @@ class PurchaseService {
 
             ebookIds.add(ebookId);
           }
-          // E. Process Standard Course Batch Enrollment
-          else if (courseId != null && batchId != null && courseId != 'combination_pack') {
-            final enrollmentId = '${courseId}_$batchId';
+          // E. Process Standard Course Enrollment
+          else if (courseId != null && courseId.isNotEmpty && courseId != 'combination_pack') {
+            final enrollmentId = courseId;
             final enrollmentDoc = userEnrollmentRef.doc(enrollmentId);
 
             debugPrint('  -> Course enrollment: $enrollmentId');
 
             transaction.set(enrollmentDoc, {
               'courseId': courseId,
-              'batchId': batchId,
               'enrolledAt': FieldValue.serverTimestamp(),
               'purchaseId': purchaseId,
               'status': 'active',
@@ -311,17 +324,26 @@ class PurchaseService {
           if (combinationPackId != null && combinationPackId.isNotEmpty) {
             final comboData = combinationPacks[combinationPackId];
             if (comboData != null) {
-              // Process bundled course batches
-              final bundledBatches = comboData['batches'] as List<dynamic>? ?? [];
-              for (var b in bundledBatches) {
-                final bMap = Map<String, dynamic>.from(b as Map);
-                final cId = bMap['courseId'] as String?;
-                final bId = bMap['batchId'] as String?;
-                if (cId != null && bId != null) {
-                  final enrollmentId = '${cId}_$bId';
+              // Process bundled courses / batches
+              final List<String> bundledCourses = [];
+              if (comboData['courses'] != null) {
+                bundledCourses.addAll(List<String>.from(comboData['courses']));
+              } else if (comboData['batches'] != null) {
+                final List<dynamic> legacyBatches = comboData['batches'] ?? [];
+                for (var b in legacyBatches) {
+                  final bMap = Map<String, dynamic>.from(b as Map);
+                  final cId = bMap['courseId'] as String?;
+                  if (cId != null && cId.isNotEmpty) {
+                    bundledCourses.add(cId);
+                  }
+                }
+              }
+
+              for (final cId in bundledCourses) {
+                if (cId.isNotEmpty) {
                   userEnrollments
                       .putIfAbsent(userId, () => {})
-                      .add(enrollmentId);
+                      .add(cId);
                 }
               }
 
@@ -337,11 +359,10 @@ class PurchaseService {
             userTestSeries.putIfAbsent(userId, () => {}).add(testSeriesId);
           } else if (batchId == 'test_series' && courseId != null) {
             userTestSeries.putIfAbsent(userId, () => {}).add(courseId);
-          } else if (courseId != null && batchId != null) {
-            final enrollmentId = '${courseId}_$batchId';
+          } else if (courseId != null && courseId.isNotEmpty) {
             userEnrollments
                 .putIfAbsent(userId, () => {})
-                .add(enrollmentId);
+                .add(courseId);
           }
         }
       }
@@ -359,23 +380,18 @@ class PurchaseService {
 
         // Also ensure subcollection docs exist
         for (final enrollmentId in enrollmentIds) {
-          final parts = enrollmentId.split('_');
-          if (parts.length >= 2) {
-            final courseId = parts[0];
-            final batchId = parts.sublist(1).join('_');
-            await _firestore
-                .collection('users')
-                .doc(userId)
-                .collection('enrolledCourses')
-                .doc(enrollmentId)
-                .set({
-              'courseId': courseId,
-              'batchId': batchId,
-              'enrolledAt': FieldValue.serverTimestamp(),
-              'status': 'active',
-              'migratedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
-          }
+          final String courseId = enrollmentId.contains('_') ? enrollmentId.split('_')[0] : enrollmentId;
+          await _firestore
+              .collection('users')
+              .doc(userId)
+              .collection('enrolledCourses')
+              .doc(courseId)
+              .set({
+            'courseId': courseId,
+            'enrolledAt': FieldValue.serverTimestamp(),
+            'status': 'active',
+            'migratedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
         }
 
         usersUpdated++;

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:eduverse/study/domain/models/test_series_entities.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/screens/quiz_page.dart';
 
 /// Category display config: label and emoji.
-const Map<String, (String, IconData)> _categoryConfig = {
+const Map<String, (String, IconData)> categoryConfig = {
   'General': ('📋 General Tests', Icons.list_alt),
   'Prelims': ('📝 Prelims Tests', Icons.edit_note),
   'Mains': ('🎯 Mains Tests', Icons.gps_fixed),
@@ -24,174 +24,268 @@ class TestSeriesDetailScreen extends StatelessWidget {
 
   const TestSeriesDetailScreen({super.key, required this.testSeries});
 
-  @override
-  Widget build(BuildContext context) {
-    final ts = testSeries;
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+  static List<Widget> buildCategorySlivers(
+      List<QueryDocumentSnapshot> tests, String testSeriesId, String uid) {
+    // Group tests by category
+    final Map<String, List<(QueryDocumentSnapshot, int)>> grouped = {};
+    for (var i = 0; i < tests.length; i++) {
+      final data = tests[i].data() as Map<String, dynamic>;
+      final cat = (data['category'] as String?)?.isNotEmpty == true
+          ? data['category'] as String
+          : 'General';
+      grouped.putIfAbsent(cat, () => []).add((tests[i], i));
+    }
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 200,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(ts.title, style: const TextStyle(fontSize: 16)),
-              background: ts.thumbnailUrl.isNotEmpty
-                  ? Image.network(
-                      ts.thumbnailUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: ts.gradientColors.isNotEmpty
-                                ? ts.gradientColors
-                                : [Colors.blue, Colors.blueAccent],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(ts.emoji, style: const TextStyle(fontSize: 64)),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: ts.gradientColors.isNotEmpty
-                              ? ts.gradientColors
-                              : [Colors.blue, Colors.blueAccent],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(ts.emoji, style: const TextStyle(fontSize: 64)),
-                      ),
-                    ),
+    // Order: Full Length, Topic Wise, Sectional, then others
+    final orderedKeys = <String>[
+      if (grouped.containsKey('Full Length')) 'Full Length',
+      if (grouped.containsKey('Topic Wise')) 'Topic Wise',
+      if (grouped.containsKey('Sectional')) 'Sectional',
+      ...grouped.keys.where(
+        (k) =>
+            k != 'Full Length' &&
+            k != 'Topic Wise' &&
+            k != 'Sectional',
+      ),
+    ];
+
+    // Build slivers for each category
+    final List<Widget> slivers = [];
+    for (final category in orderedKeys) {
+      final items = grouped[category]!;
+      final config = categoryConfig[category];
+      final label = config?.$1 ?? '📋 $category';
+
+      // Section header
+      slivers.add(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Subtitle / description
-                  if (ts.description.isNotEmpty)
-                    Text(
-                      ts.description,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                  if (ts.description.isNotEmpty) const SizedBox(height: 8),
-
-                  // Info chips
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      Chip(
-                        label: Text('${ts.totalTests} Tests'),
-                        avatar: const Icon(Icons.quiz, size: 16),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Progress — live from test_attempts
-                  StreamBuilder<QuerySnapshot>(
-                    stream: uid.isNotEmpty
-                        ? FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(uid)
-                              .collection('test_attempts')
-                              .snapshots()
-                        : const Stream.empty(),
-                    builder: (context, attemptsSnap) {
-                      // Count attempts that belong to this test series
-                      int completedCount = 0;
-                      if (attemptsSnap.hasData) {
-                        final prefix = '${ts.id}_';
-                        completedCount = attemptsSnap.data!.docs
-                            .where((d) => d.id.startsWith(prefix))
-                            .length;
-                      }
-                      final total = ts.totalTests > 0 ? ts.totalTests : 1;
-                      final progressVal =
-                          (completedCount / total).clamp(0.0, 1.0);
-
-                      return Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Your Progress',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '$completedCount/${ts.totalTests} completed',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: progressVal,
-                              backgroundColor: Colors.grey.shade200,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Theme.of(context).primaryColor,
-                              ),
-                              minHeight: 6,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  const Text(
-                    'Available Tests',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
+        ),
+      );
 
-          // Test list — grouped by category
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('test_series')
-                .doc(ts.id)
-                .collection('tests')
-                .orderBy('order')
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
+      // Test cards for this category
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (ctx, index) {
+                final (doc, originalIndex) = items[index];
+                final data = doc.data() as Map<String, dynamic>;
+                return TestCard(
+                  testId: doc.id,
+                  testSeriesId: testSeriesId,
+                  testData: data,
+                  index: originalIndex,
+                  uid: uid,
                 );
-              }
+              },
+              childCount: items.length,
+            ),
+          ),
+        ),
+      );
+    }
 
-              final tests = snapshot.data!.docs;
-              if (tests.isEmpty) {
-                return SliverToBoxAdapter(
+    return slivers;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ts = testSeries;
+    final uid = EduverseFirebase.auth.currentUser?.uid ?? '';
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: EduverseFirebase.firestore
+          .collection('test_series')
+          .doc(ts.id)
+          .collection('tests')
+          .orderBy('order')
+          .snapshots(),
+      builder: (context, testsSnap) {
+        if (testsSnap.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: Text(ts.title)),
+            body: Center(child: Text('Error: ${testsSnap.error}')),
+          );
+        }
+        if (!testsSnap.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final testDocs = testsSnap.data!.docs;
+        final testIds = testDocs.map((d) => d.id).toSet();
+        final actualTotalTests = testDocs.length;
+
+        return Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 200,
+                pinned: true,
+                flexibleSpace: FlexibleSpaceBar(
+                  title: Text(ts.title, style: const TextStyle(fontSize: 16)),
+                  background: ts.thumbnailUrl.isNotEmpty
+                      ? Image.network(
+                          ts.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: ts.gradientColors.isNotEmpty
+                                    ? ts.gradientColors
+                                    : [Colors.blue, Colors.blueAccent],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(ts.emoji, style: const TextStyle(fontSize: 64)),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: ts.gradientColors.isNotEmpty
+                                  ? ts.gradientColors
+                                  : [Colors.blue, Colors.blueAccent],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(ts.emoji, style: const TextStyle(fontSize: 64)),
+                          ),
+                        ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Subtitle / description
+                      if (ts.description.isNotEmpty)
+                        Text(
+                          ts.description,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      if (ts.description.isNotEmpty) const SizedBox(height: 8),
+
+                      // Info chips
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Chip(
+                            label: Text('$actualTotalTests Tests'),
+                            avatar: const Icon(Icons.quiz, size: 16),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Progress — live from test_attempts
+                      StreamBuilder<QuerySnapshot>(
+                        stream: uid.isNotEmpty
+                            ? EduverseFirebase.firestore
+                                  .collection('users')
+                                  .doc(uid)
+                                  .collection('test_attempts')
+                                  .where(FieldPath.documentId, isGreaterThanOrEqualTo: '${ts.id}_')
+                                  .where(FieldPath.documentId, isLessThan: '${ts.id}_\uf8ff')
+                                  .snapshots()
+                            : const Stream.empty(),
+                        builder: (context, attemptsSnap) {
+                          // Count attempts that belong to this test series
+                          int completedCount = 0;
+                          if (attemptsSnap.hasData) {
+                            completedCount = attemptsSnap.data!.docs.where((d) {
+                              final docId = d.id;
+                              final prefix = '${ts.id}_';
+                              if (docId.startsWith(prefix)) {
+                                final testId = docId.substring(prefix.length);
+                                return testIds.contains(testId);
+                              }
+                              return false;
+                            }).length;
+                          }
+                          final total = actualTotalTests > 0 ? actualTotalTests : 1;
+                          final progressVal =
+                              (completedCount / total).clamp(0.0, 1.0);
+
+                          return Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Your Progress',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '$completedCount/$actualTotalTests completed',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: progressVal,
+                                  backgroundColor: Colors.grey.shade200,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Theme.of(context).primaryColor,
+                                  ),
+                                  minHeight: 6,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      const Text(
+                        'Available Tests',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Test list — grouped by category
+              if (testDocs.isEmpty)
+                SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
@@ -201,92 +295,17 @@ class TestSeriesDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                );
-              }
-
-              // Group tests by category
-              final Map<String, List<(QueryDocumentSnapshot, int)>> grouped =
-                  {};
-              for (var i = 0; i < tests.length; i++) {
-                final data = tests[i].data() as Map<String, dynamic>;
-                final cat =
-                    (data['category'] as String?)?.isNotEmpty == true
-                        ? data['category'] as String
-                        : 'General';
-                grouped.putIfAbsent(cat, () => []).add((tests[i], i));
-              }
-
-              // Order: Full Length, Topic Wise, Sectional, then others
-              final orderedKeys = <String>[
-                if (grouped.containsKey('Full Length')) 'Full Length',
-                if (grouped.containsKey('Topic Wise')) 'Topic Wise',
-                if (grouped.containsKey('Sectional')) 'Sectional',
-                ...grouped.keys.where(
-                  (k) =>
-                      k != 'Full Length' &&
-                      k != 'Topic Wise' &&
-                      k != 'Sectional',
+                )
+              else
+                MultiSliver(
+                  children: buildCategorySlivers(testDocs, ts.id, uid),
                 ),
-              ];
 
-              // Build slivers for each category
-              final List<Widget> slivers = [];
-              for (final category in orderedKeys) {
-                final items = grouped[category]!;
-                final config = _categoryConfig[category];
-                final label = config?.$1 ?? '📋 $category';
-
-                // Section header
-                slivers.add(
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-
-                // Test cards for this category
-                slivers.add(
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (ctx, index) {
-                          final (doc, originalIndex) = items[index];
-                          final data =
-                              doc.data() as Map<String, dynamic>;
-                          return _TestCard(
-                            testId: doc.id,
-                            testSeriesId: ts.id,
-                            testData: data,
-                            index: originalIndex,
-                            uid: uid,
-                          );
-                        },
-                        childCount: items.length,
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              return MultiSliver(children: slivers);
-            },
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            ],
           ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -307,14 +326,14 @@ class MultiSliver extends StatelessWidget {
 
 /// Test card matching the style of batch cards in CourseDetailPage.
 /// Now shows a Subject badge next to the questions count.
-class _TestCard extends StatelessWidget {
+class TestCard extends StatelessWidget {
   final String testId;
   final String testSeriesId;
   final Map<String, dynamic> testData;
   final int index;
   final String uid;
 
-  const _TestCard({
+  const TestCard({
     required this.testId,
     required this.testSeriesId,
     required this.testData,
@@ -335,7 +354,7 @@ class _TestCard extends StatelessWidget {
 
     return StreamBuilder<DocumentSnapshot>(
       stream: uid.isNotEmpty
-          ? FirebaseFirestore.instance
+          ? EduverseFirebase.firestore
                 .collection('users')
                 .doc(uid)
                 .collection('test_attempts')

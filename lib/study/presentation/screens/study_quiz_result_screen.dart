@@ -13,6 +13,7 @@ class StudyQuizResultScreen extends StatefulWidget {
   final String source; // 'batch' or 'feed'
   final double? marksPerQuestion;
   final double? negativeMarking;
+  final String? categoryLabel;
 
   const StudyQuizResultScreen({
     super.key,
@@ -25,6 +26,7 @@ class StudyQuizResultScreen extends StatefulWidget {
     this.source = 'batch',
     this.marksPerQuestion,
     this.negativeMarking,
+    this.categoryLabel,
   });
 
   @override
@@ -126,6 +128,10 @@ class _StudyQuizResultScreenState extends State<StudyQuizResultScreen> {
       correctAnswers: widget.correctCount,
       completed: true, // They reached the result screen, so completed
       source: widget.source,
+      wrongAnswers: _wrongCount,
+      unattemptedCount: _unattemptedCount,
+      percentage: _percentage,
+      categoryLabel: widget.categoryLabel ?? 'Batch Quiz',
     );
   }
 

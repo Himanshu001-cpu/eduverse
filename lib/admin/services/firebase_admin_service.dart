@@ -7,9 +7,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../models/admin_models.dart';
+import 'community_service.dart';
 import 'package:eduverse/core/notifications/notification_repository.dart';
 import 'package:eduverse/core/notifications/notification_model.dart';
 import 'package:eduverse/store/models/store_models.dart';
+import 'package:eduverse/admin/models/scheduler_models.dart';
 
 class FirebaseAdminService {
   final FirebaseAuth? _customAuth;
@@ -35,6 +37,28 @@ class FirebaseAdminService {
         _customStorage = storage,
         _customFunctions = functions,
         _customNotificationRepo = notificationRepo;
+
+  // Folder Clipboard State
+  Map<String, dynamic>? _folderClipboard;
+  Map<String, dynamic>? get folderClipboard => _folderClipboard;
+
+  void copyFolderToClipboard({
+    required String courseId,
+    required String subject,
+    required String folderPath,
+    required String folderName,
+  }) {
+    _folderClipboard = {
+      'courseId': courseId,
+      'subject': subject,
+      'folderPath': folderPath,
+      'folderName': folderName,
+    };
+  }
+
+  void clearFolderClipboard() {
+    _folderClipboard = null;
+  }
 
   // Auth
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -198,14 +222,16 @@ class FirebaseAdminService {
           .doc();
       await docRef.set(data);
 
-      // Send notification to enrolled users
-      await _notificationRepo.createCourseNotification(
-        title: '📚 New Lecture Added',
-        body: lecture.title,
-        targetType: NotificationTargetType.lecture,
-        targetId: docRef.id,
-        courseId: courseId,
-      );
+      // Send notification to enrolled users only if it's not a folder placeholder
+      if (lecture.type != 'folder') {
+        await _notificationRepo.createCourseNotification(
+          title: '📚 New Lecture Added',
+          body: lecture.title,
+          targetType: NotificationTargetType.lecture,
+          targetId: docRef.id,
+          courseId: courseId,
+        );
+      }
       return docRef.id;
     } else {
       await _db
@@ -603,6 +629,171 @@ class FirebaseAdminService {
     await callable.call({
       'uid': userId,
       'role': newRole,
+    });
+  }
+
+  // Get all teachers
+  Stream<List<AdminUser>> getTeachers() {
+    return _db.collection('users').snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
+          .where((user) => user.role == 'teacher' || user.isTeacher == true)
+          .toList();
+    });
+  }
+
+  // Set isTeacher flag for admins who also teach
+  Future<void> setTeacherFlag(String userId, bool isTeacher) async {
+    final callable = _functions.httpsCallable('setAdminRole');
+    await callable.call({
+      'uid': userId,
+      'isTeacher': isTeacher,
+    });
+  }
+
+  // Update teacher subjects list
+  Future<void> updateTeacherSubjects(String userId, List<TeacherSubject> subjects) async {
+    await _db.collection('users').doc(userId).update({
+      'teacherSubjects': subjects.map((s) => s.toMap()).toList(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await _logAudit('update_teacher_subjects', 'user', userId, {
+      'subjectsCount': subjects.length,
+    });
+  }
+
+  // Assign teacher to course-subject pair
+  Future<void> assignTeacherToCourse(
+    String courseId,
+    String teacherUid,
+    String teacherName,
+    String subjectName,
+  ) async {
+    final teacherInfo = CourseTeacher(
+      uid: teacherUid,
+      name: teacherName,
+      subject: subjectName,
+    );
+    await _db.collection('courses').doc(courseId).update({
+      'teachers': FieldValue.arrayUnion([teacherInfo.toMap()]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    final userDoc = await _db.collection('users').doc(teacherUid).get();
+    if (userDoc.exists) {
+      final user = AdminUser.fromMap(userDoc.data()!, userDoc.id);
+      final List<TeacherSubject> currentSubjects = List.from(user.teacherSubjects);
+      
+      int index = currentSubjects.indexWhere((s) => s.subjectName == subjectName);
+      if (index >= 0) {
+        final updatedCourseIds = <String>{...currentSubjects[index].courseIds, courseId}.toList();
+        currentSubjects[index] = TeacherSubject(
+          subjectName: subjectName,
+          courseIds: updatedCourseIds,
+        );
+      } else {
+        currentSubjects.add(TeacherSubject(
+          subjectName: subjectName,
+          courseIds: [courseId],
+        ));
+      }
+      
+      await _db.collection('users').doc(teacherUid).update({
+        'teacherSubjects': currentSubjects.map((s) => s.toMap()).toList(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await CommunityService().getOrCreateCommunity(
+      teacherId: teacherUid,
+      teacherName: teacherName,
+      subjectName: subjectName,
+      courseIds: [courseId],
+    );
+
+    await _logAudit('assign_teacher_to_course', 'course', courseId, {
+      'teacherUid': teacherUid,
+      'subjectName': subjectName,
+    });
+  }
+
+  // Remove teacher from course-subject pair
+  Future<void> removeTeacherFromCourse(
+    String courseId,
+    String teacherUid,
+    String subjectName,
+  ) async {
+    final courseDoc = await _db.collection('courses').doc(courseId).get();
+    if (courseDoc.exists) {
+      final courseData = courseDoc.data()!;
+      final teachersList = List.from(courseData['teachers'] ?? []);
+      final targetMap = teachersList.firstWhere(
+        (t) => t['uid'] == teacherUid && t['subject'] == subjectName,
+        orElse: () => null,
+      );
+      if (targetMap != null) {
+        await _db.collection('courses').doc(courseId).update({
+          'teachers': FieldValue.arrayRemove([targetMap]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    final userDoc = await _db.collection('users').doc(teacherUid).get();
+    if (userDoc.exists) {
+      final user = AdminUser.fromMap(userDoc.data()!, userDoc.id);
+      final List<TeacherSubject> currentSubjects = List.from(user.teacherSubjects);
+      
+      int index = currentSubjects.indexWhere((s) => s.subjectName == subjectName);
+      if (index >= 0) {
+        final updatedCourseIds = List<String>.from(currentSubjects[index].courseIds)
+            ..remove(courseId);
+            
+        if (updatedCourseIds.isEmpty) {
+          currentSubjects.removeAt(index);
+        } else {
+          currentSubjects[index] = TeacherSubject(
+            subjectName: subjectName,
+            courseIds: updatedCourseIds,
+          );
+        }
+        
+        await _db.collection('users').doc(teacherUid).update({
+          'teacherSubjects': currentSubjects.map((s) => s.toMap()).toList(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    final communityQuery = await _db
+        .collection('communities')
+        .where('teacherId', isEqualTo: teacherUid)
+        .where('subjectName', isEqualTo: subjectName)
+        .limit(1)
+        .get();
+        
+    if (communityQuery.docs.isNotEmpty) {
+      final commDoc = communityQuery.docs.first;
+      final existingCourseIds = List<String>.from(commDoc.data()['courseIds'] ?? []);
+      existingCourseIds.remove(courseId);
+      
+      if (existingCourseIds.isEmpty) {
+        await commDoc.reference.update({
+          'courseIds': existingCourseIds,
+          'isActive': false,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await commDoc.reference.update({
+          'courseIds': existingCourseIds,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    await _logAudit('remove_teacher_from_course', 'course', courseId, {
+      'teacherUid': teacherUid,
+      'subjectName': subjectName,
     });
   }
 
@@ -1628,6 +1819,53 @@ class FirebaseAdminService {
     await _logAudit('delete_quiz_subject', 'quiz_subjects', name, {});
   }
 
+  Future<void> deleteSubjectRecursive({
+    required String courseId,
+    required String subject,
+  }) async {
+    final List<void Function(WriteBatch)> operations = [];
+
+    // 1. Delete all lessons of this subject in this course
+    final lessonsSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('lessons')
+        .where('subject', isEqualTo: subject)
+        .get();
+    for (final doc in lessonsSnap.docs) {
+      operations.add((batch) => batch.delete(doc.reference));
+    }
+
+    // 2. Delete all notes of this subject in this course
+    final notesSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('notes')
+        .where('subject', isEqualTo: subject)
+        .get();
+    for (final doc in notesSnap.docs) {
+      operations.add((batch) => batch.delete(doc.reference));
+    }
+
+    // 3. Delete all DPPs of this subject in this course
+    final dppsSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('dpps')
+        .where('subject', isEqualTo: subject)
+        .get();
+    for (final doc in dppsSnap.docs) {
+      operations.add((batch) => batch.delete(doc.reference));
+    }
+
+    await commitInChunks(operations);
+
+    await _logAudit('delete_subject_recursive', 'subject', subject, {
+      'courseId': courseId,
+      'subject': subject,
+    });
+  }
+
   // ============ QUIZ POOL (Global Library) ============
 
   /// Saves or updates a quiz in the top-level [quizzes_pool] collection.
@@ -1772,6 +2010,316 @@ class FirebaseAdminService {
     }
   }
 
+  // ============ RECURSIVE FOLDER PASTE ============
+  Future<void> pasteFolder({
+    required String sourceCourseId,
+    required String sourceSubject,
+    required String sourceFolderPath,
+    required String sourceFolderName,
+    required String targetCourseId,
+    required String targetSubject,
+    required String targetFolderPath,
+    required String targetFolderName,
+  }) async {
+    final String sourcePrefix = sourceFolderPath.isEmpty ? sourceFolderName : '$sourceFolderPath/$sourceFolderName';
+    final String targetPrefix = targetFolderPath.isEmpty ? targetFolderName : '$targetFolderPath/$targetFolderName';
+
+    final lessonsSnap = await _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('lessons')
+        .where('subject', isEqualTo: sourceSubject)
+        .get();
+
+    final notesSnap = await _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('notes')
+        .where('subject', isEqualTo: sourceSubject)
+        .get();
+
+    final dppsSnap = await _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('dpps')
+        .where('subject', isEqualTo: sourceSubject)
+        .get();
+
+    final List<DocumentSnapshot<Map<String, dynamic>>> sourceLessons = [];
+    final List<DocumentSnapshot<Map<String, dynamic>>> sourceNotes = [];
+    final List<DocumentSnapshot<Map<String, dynamic>>> sourceDpps = [];
+
+    for (final doc in lessonsSnap.docs) {
+      final ch = doc.data()['chapter'] as String? ?? '';
+      final title = doc.data()['title'] as String? ?? '';
+      final type = doc.data()['type'] as String? ?? '';
+
+      if (ch == sourceFolderPath && title == sourceFolderName && type == 'folder') {
+        sourceLessons.add(doc);
+      } else if (ch == sourcePrefix || ch.startsWith('$sourcePrefix/')) {
+        sourceLessons.add(doc);
+      }
+    }
+
+    for (final doc in notesSnap.docs) {
+      final ch = doc.data()['chapter'] as String? ?? '';
+      if (ch == sourcePrefix || ch.startsWith('$sourcePrefix/')) {
+        sourceNotes.add(doc);
+      }
+    }
+
+    for (final doc in dppsSnap.docs) {
+      final ch = doc.data()['chapter'] as String? ?? '';
+      if (ch == sourcePrefix || ch.startsWith('$sourcePrefix/')) {
+        sourceDpps.add(doc);
+      }
+    }
+
+    final Map<String, String> oldToNewIdMap = {};
+    final List<Map<String, dynamic>> newLessons = [];
+    final List<Map<String, dynamic>> newNotes = [];
+    final List<Map<String, dynamic>> newDpps = [];
+
+    for (final doc in sourceLessons) {
+      final newId = _db.collection('courses').doc(targetCourseId).collection('lessons').doc().id;
+      oldToNewIdMap[doc.id] = newId;
+    }
+
+    for (final doc in sourceNotes) {
+      final newId = _db.collection('courses').doc(targetCourseId).collection('notes').doc().id;
+      oldToNewIdMap[doc.id] = newId;
+    }
+
+    for (final doc in sourceDpps) {
+      final newId = _db.collection('courses').doc(targetCourseId).collection('dpps').doc().id;
+      oldToNewIdMap[doc.id] = newId;
+    }
+
+    String mapChapter(String oldChapter) {
+      if (oldChapter == sourcePrefix) {
+        return targetPrefix;
+      } else if (oldChapter.startsWith('$sourcePrefix/')) {
+        final remainder = oldChapter.substring(sourcePrefix.length + 1);
+        return '$targetPrefix/$remainder';
+      }
+      return oldChapter;
+    }
+
+    for (final doc in sourceLessons) {
+      final data = Map<String, dynamic>.from(doc.data()!);
+      final type = data['type'] as String? ?? '';
+      final title = data['title'] as String? ?? '';
+      final chapter = data['chapter'] as String? ?? '';
+
+      data['subject'] = targetSubject;
+      if (chapter == sourceFolderPath && title == sourceFolderName && type == 'folder') {
+        data['chapter'] = targetFolderPath;
+        data['title'] = targetFolderName;
+      } else {
+        data['chapter'] = mapChapter(chapter);
+      }
+
+      if (data['linkedNoteIds'] != null) {
+        final List<dynamic> oldNotes = data['linkedNoteIds'];
+        final List<String> mappedNotes = [];
+        for (final oldNoteId in oldNotes) {
+          if (oldToNewIdMap.containsKey(oldNoteId)) {
+            mappedNotes.add(oldToNewIdMap[oldNoteId]!);
+          } else {
+            mappedNotes.add(oldNoteId);
+          }
+        }
+        data['linkedNoteIds'] = mappedNotes;
+      }
+
+      data['linkedCourses'] = <String>[];
+      data.remove('linkedFrom');
+
+      newLessons.add({'id': oldToNewIdMap[doc.id]!, 'data': data});
+    }
+
+    for (final doc in sourceNotes) {
+      final data = Map<String, dynamic>.from(doc.data()!);
+      final chapter = data['chapter'] as String? ?? '';
+
+      data['subject'] = targetSubject;
+      data['chapter'] = mapChapter(chapter);
+
+      final oldLecId = data['lectureId'] as String?;
+      if (oldLecId != null) {
+        data['lectureId'] = oldToNewIdMap[oldLecId] ?? oldLecId;
+      }
+
+      newNotes.add({'id': oldToNewIdMap[doc.id]!, 'data': data});
+    }
+
+    for (final doc in sourceDpps) {
+      final data = Map<String, dynamic>.from(doc.data()!);
+      final chapter = data['chapter'] as String? ?? '';
+
+      data['subject'] = targetSubject;
+      data['chapter'] = mapChapter(chapter);
+
+      final oldLecId = data['lectureId'] as String?;
+      if (oldLecId != null) {
+        data['lectureId'] = oldToNewIdMap[oldLecId] ?? oldLecId;
+      }
+
+      newDpps.add({'id': oldToNewIdMap[doc.id]!, 'data': data});
+    }
+
+    final List<void Function(WriteBatch)> operations = [];
+
+    for (final item in newLessons) {
+      final ref = _db.collection('courses').doc(targetCourseId).collection('lessons').doc(item['id']);
+      operations.add((batch) => batch.set(ref, item['data']));
+    }
+
+    for (final item in newNotes) {
+      final ref = _db.collection('courses').doc(targetCourseId).collection('notes').doc(item['id']);
+      operations.add((batch) => batch.set(ref, item['data']));
+    }
+
+    for (final item in newDpps) {
+      final ref = _db.collection('courses').doc(targetCourseId).collection('dpps').doc(item['id']);
+      operations.add((batch) => batch.set(ref, item['data']));
+    }
+
+    await commitInChunks(operations);
+
+    await _logAudit('paste_folder_recursive', 'folder', targetPrefix, {
+      'sourceCourseId': sourceCourseId,
+      'sourceSubject': sourceSubject,
+      'sourceFolderPath': sourceFolderPath,
+      'sourceFolderName': sourceFolderName,
+      'targetCourseId': targetCourseId,
+      'targetSubject': targetSubject,
+      'targetFolderPath': targetFolderPath,
+      'targetFolderName': targetFolderName,
+    });
+  }
+
+  // ============ RECURSIVE SUBJECT PASTE ============
+  Future<void> pasteSubject({
+    required String sourceCourseId,
+    required String sourceSubject,
+    required String targetCourseId,
+    required String targetSubject,
+  }) async {
+    // 1. Fetch all lessons, notes, and DPPs belonging to sourceSubject in sourceCourseId
+    final lessonsSnap = await _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('lessons')
+        .where('subject', isEqualTo: sourceSubject)
+        .get();
+
+    final notesSnap = await _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('notes')
+        .where('subject', isEqualTo: sourceSubject)
+        .get();
+
+    final dppsSnap = await _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('dpps')
+        .where('subject', isEqualTo: sourceSubject)
+        .get();
+
+    final Map<String, String> oldToNewIdMap = {};
+    final List<Map<String, dynamic>> newLessons = [];
+    final List<Map<String, dynamic>> newNotes = [];
+    final List<Map<String, dynamic>> newDpps = [];
+
+    // Map IDs
+    for (final doc in lessonsSnap.docs) {
+      final newId = _db.collection('courses').doc(targetCourseId).collection('lessons').doc().id;
+      oldToNewIdMap[doc.id] = newId;
+    }
+    for (final doc in notesSnap.docs) {
+      final newId = _db.collection('courses').doc(targetCourseId).collection('notes').doc().id;
+      oldToNewIdMap[doc.id] = newId;
+    }
+    for (final doc in dppsSnap.docs) {
+      final newId = _db.collection('courses').doc(targetCourseId).collection('dpps').doc().id;
+      oldToNewIdMap[doc.id] = newId;
+    }
+
+    // Process lessons
+    for (final doc in lessonsSnap.docs) {
+      final data = Map<String, dynamic>.from(doc.data());
+      data['subject'] = targetSubject;
+
+      if (data['linkedNoteIds'] != null) {
+        final List<dynamic> oldNotes = data['linkedNoteIds'];
+        final List<String> mappedNotes = [];
+        for (final oldNoteId in oldNotes) {
+          if (oldToNewIdMap.containsKey(oldNoteId)) {
+            mappedNotes.add(oldToNewIdMap[oldNoteId]!);
+          } else {
+            mappedNotes.add(oldNoteId);
+          }
+        }
+        data['linkedNoteIds'] = mappedNotes;
+      }
+
+      data['linkedCourses'] = <String>[];
+      data.remove('linkedFrom');
+
+      newLessons.add({'id': oldToNewIdMap[doc.id]!, 'data': data});
+    }
+
+    // Process notes
+    for (final doc in notesSnap.docs) {
+      final data = Map<String, dynamic>.from(doc.data());
+      data['subject'] = targetSubject;
+      final oldLecId = data['lectureId'] as String?;
+      if (oldLecId != null) {
+        data['lectureId'] = oldToNewIdMap[oldLecId] ?? oldLecId;
+      }
+      newNotes.add({'id': oldToNewIdMap[doc.id]!, 'data': data});
+    }
+
+    // Process DPPs
+    for (final doc in dppsSnap.docs) {
+      final data = Map<String, dynamic>.from(doc.data());
+      data['subject'] = targetSubject;
+      final oldLecId = data['lectureId'] as String?;
+      if (oldLecId != null) {
+        data['lectureId'] = oldToNewIdMap[oldLecId] ?? oldLecId;
+      }
+      newDpps.add({'id': oldToNewIdMap[doc.id]!, 'data': data});
+    }
+
+    final List<void Function(WriteBatch)> operations = [];
+    for (final item in newLessons) {
+      final ref = _db.collection('courses').doc(targetCourseId).collection('lessons').doc(item['id']);
+      operations.add((batch) => batch.set(ref, item['data']));
+    }
+    for (final item in newNotes) {
+      final ref = _db.collection('courses').doc(targetCourseId).collection('notes').doc(item['id']);
+      operations.add((batch) => batch.set(ref, item['data']));
+    }
+    for (final item in newDpps) {
+      final ref = _db.collection('courses').doc(targetCourseId).collection('dpps').doc(item['id']);
+      operations.add((batch) => batch.set(ref, item['data']));
+    }
+
+    // Ensure the new subject is added globally
+    await addSubject(targetSubject);
+
+    await commitInChunks(operations);
+
+    await _logAudit('paste_subject_recursive', 'subject', targetSubject, {
+      'sourceCourseId': sourceCourseId,
+      'sourceSubject': sourceSubject,
+      'targetCourseId': targetCourseId,
+      'targetSubject': targetSubject,
+    });
+  }
+
   // ============ RECURSIVE FOLDER PREFIX RENAME ============
   Future<void> recursivelyRenameFolder({
     required String courseId,
@@ -1857,6 +2405,11 @@ class FirebaseAdminService {
     final String prefix = folderPath.endsWith('/') ? folderPath : '$folderPath/';
     final List<void Function(WriteBatch)> operations = [];
 
+    // Also get folderParent and folderName to delete the folder placeholder itself
+    final int lastSlash = folderPath.lastIndexOf('/');
+    final String folderParent = lastSlash == -1 ? '' : folderPath.substring(0, lastSlash);
+    final String folderName = lastSlash == -1 ? folderPath : folderPath.substring(lastSlash + 1);
+
     // 1. Delete folder placeholders and lessons
     final lessonsSnap = await _db
         .collection('courses')
@@ -1867,7 +2420,11 @@ class FirebaseAdminService {
 
     for (final doc in lessonsSnap.docs) {
       final ch = doc.data()['chapter'] as String? ?? '';
-      if (ch == folderPath || ch.startsWith(prefix)) {
+      final title = doc.data()['title'] as String? ?? '';
+      final type = doc.data()['type'] as String? ?? '';
+      if (ch == folderPath ||
+          ch.startsWith(prefix) ||
+          (ch == folderParent && title == folderName && type == 'folder')) {
         operations.add((batch) => batch.delete(doc.reference));
       }
     }
@@ -1910,4 +2467,252 @@ class FirebaseAdminService {
       'folderPath': folderPath,
     });
   }
+
+  // ============ RECURRING RULES & GENERATION ============
+
+  Future<void> saveRecurringRule(String courseId, RecurringClassRule rule) async {
+    final data = rule.toMap();
+    await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('scheduler_rules')
+        .doc(rule.id)
+        .set(data);
+    await _logAudit('save_scheduler_rule', 'scheduler_rules', rule.id, data);
+  }
+
+  Future<void> deleteRecurringRule(String courseId, String ruleId) async {
+    await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('scheduler_rules')
+        .doc(ruleId)
+        .delete();
+    await _logAudit('delete_scheduler_rule', 'scheduler_rules', ruleId, {});
+  }
+
+  Future<List<RecurringClassRule>> getRecurringRules(String courseId) async {
+    final snapshot = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('scheduler_rules')
+        .get();
+    return snapshot.docs
+        .map((doc) => RecurringClassRule.fromMap(doc.data(), doc.id))
+        .toList();
+  }
+
+  Future<void> generateLiveClasses(String courseId, String ruleId, DateTime start, DateTime end) async {
+    final ruleDoc = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('scheduler_rules')
+        .doc(ruleId)
+        .get();
+    
+    if (!ruleDoc.exists) {
+      throw Exception('Recurring class rule not found');
+    }
+    
+    final rule = RecurringClassRule.fromMap(ruleDoc.data()!, ruleDoc.id);
+
+    final existingSnap = await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('live_classes')
+        .where('parentRuleId', isEqualTo: ruleId)
+        .get();
+
+    final existingDates = existingSnap.docs
+        .map((doc) => doc.data()['generatedDateString'] as String?)
+        .whereType<String>()
+        .toSet();
+
+    final DateTime ruleStartNorm = DateTime(rule.startDate.year, rule.startDate.month, rule.startDate.day);
+    final DateTime ruleEndNorm = DateTime(rule.endDate.year, rule.endDate.month, rule.endDate.day);
+
+    final timeParts = rule.startTime.split(':');
+    if (timeParts.length != 2) {
+      throw Exception('Invalid rule start time format. Expected HH:MM');
+    }
+    final hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+
+    DateTime current = DateTime(start.year, start.month, start.day);
+    DateTime last = DateTime(end.year, end.month, end.day);
+    
+    final List<String> generatedClassIds = [];
+    final uuid = const Uuid();
+    final List<void Function(WriteBatch)> operations = [];
+
+    while (!current.isAfter(last)) {
+      if (!current.isBefore(ruleStartNorm) && !current.isAfter(ruleEndNorm)) {
+        if (rule.weekdays.contains(current.weekday)) {
+          final generatedDateString = "${current.year}-${current.month.toString().padLeft(2, '0')}-${current.day.toString().padLeft(2, '0')}";
+          
+          if (!existingDates.contains(generatedDateString)) {
+            existingDates.add(generatedDateString);
+            final classId = uuid.v4();
+            final classStartTime = DateTime(current.year, current.month, current.day, hour, minute);
+
+            final newClass = AdminLiveClass(
+              id: classId,
+              title: rule.title,
+              description: rule.description,
+              instructorName: rule.instructorName,
+              startTime: classStartTime,
+              durationMinutes: rule.durationMinutes,
+              youtubeUrl: '',
+              thumbnailUrl: '',
+              status: 'scheduled',
+              createdAt: DateTime.now(),
+              parentRuleId: ruleId,
+              generatedDateString: generatedDateString,
+              linkedCourses: [courseId],
+            );
+
+            final classData = newClass.toMap();
+            final docRef = _db
+                .collection('courses')
+                .doc(courseId)
+                .collection('live_classes')
+                .doc(classId);
+            operations.add((batch) => batch.set(docRef, classData));
+
+            if (currentUser != null) {
+              final auditDocRef = _db.collection('audits').doc();
+              operations.add((batch) => batch.set(auditDocRef, {
+                'action': 'generate_live_class',
+                'adminId': currentUser!.uid,
+                'entityType': 'live_classes',
+                'entityId': classId,
+                'timestamp': FieldValue.serverTimestamp(),
+                'diff': classData,
+              }));
+            }
+            generatedClassIds.add(classId);
+          }
+        }
+      }
+      current = DateTime(current.year, current.month, current.day + 1);
+    }
+
+    if (operations.isNotEmpty) {
+      await commitInChunks(operations);
+    }
+
+    if (generatedClassIds.isNotEmpty) {
+      final courseSnap = await _db.collection('courses').doc(courseId).get();
+      final courseTitle = courseSnap.data()?['title'] ?? 'Course';
+      
+      await _notificationRepo.createCourseNotification(
+        title: '📺 New Classes Scheduled',
+        body: 'New classes have been scheduled for $courseTitle.',
+        targetType: NotificationTargetType.liveClass,
+        targetId: generatedClassIds.first,
+        courseId: courseId,
+      );
+    }
+  }
+
+  Future<void> updateLiveClassInstance(
+    String courseId,
+    String classId, {
+    DateTime? newStartTime,
+    String? status,
+    String? youtubeUrl,
+    String? subject,
+    String? chapter,
+  }) async {
+    if (status == 'completed') {
+      final docRef = _db
+          .collection('courses')
+          .doc(courseId)
+          .collection('live_classes')
+          .doc(classId);
+      final docSnap = await docRef.get();
+      if (!docSnap.exists) {
+        throw Exception('Live class instance not found');
+      }
+      final data = Map<String, dynamic>.from(docSnap.data()!);
+      data['status'] = 'completed';
+      if (newStartTime != null) {
+        data['startTime'] = Timestamp.fromDate(newStartTime);
+      }
+      if (youtubeUrl != null) {
+        data['youtubeUrl'] = youtubeUrl;
+      }
+      if (subject != null) {
+        data['subject'] = subject;
+      }
+      if (chapter != null) {
+        data['chapter'] = chapter;
+      }
+      final liveClass = AdminLiveClass.fromMap(data, classId);
+      await saveCourseLiveClass(courseId, liveClass, isNew: false);
+      return;
+    }
+
+    final Map<String, dynamic> updates = {};
+    if (newStartTime != null) {
+      updates['startTime'] = Timestamp.fromDate(newStartTime);
+    }
+    if (status != null) {
+      updates['status'] = status;
+    }
+    if (youtubeUrl != null) {
+      updates['youtubeUrl'] = youtubeUrl;
+    }
+    if (subject != null) {
+      updates['subject'] = subject;
+    }
+    if (chapter != null) {
+      updates['chapter'] = chapter;
+    }
+    if (updates.isNotEmpty) {
+      updates['updatedAt'] = FieldValue.serverTimestamp();
+      await _db
+          .collection('courses')
+          .doc(courseId)
+          .collection('live_classes')
+          .doc(classId)
+          .update(updates);
+      await _logAudit('update_live_class', 'live_classes', classId, updates);
+    }
+  }
+}
+
+class FolderClipboard {
+  static String? sourceCourseId;
+  static String? sourceSubject;
+  static String? sourceFolderPath;
+  static String? sourceFolderName;
+  static bool isSubjectOnly = false;
+
+  static void copy({
+    required String courseId,
+    required String subject,
+    required String folderPath,
+    required String folderName,
+    bool isSubject = false,
+  }) {
+    sourceCourseId = courseId;
+    sourceSubject = subject;
+    sourceFolderPath = folderPath;
+    sourceFolderName = folderName;
+    isSubjectOnly = isSubject;
+  }
+
+  static void clear() {
+    sourceCourseId = null;
+    sourceSubject = null;
+    sourceFolderPath = null;
+    sourceFolderName = null;
+    isSubjectOnly = false;
+  }
+
+  static bool get hasData =>
+      sourceCourseId != null &&
+      sourceSubject != null &&
+      (isSubjectOnly || (sourceFolderPath != null && sourceFolderName != null));
 }

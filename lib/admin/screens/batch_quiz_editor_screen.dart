@@ -322,7 +322,6 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
   void _reorderQuestions(int oldIndex, int newIndex) {
     setState(() {
       _hasUnsavedChanges = true;
-      if (oldIndex < newIndex) newIndex -= 1;
       final item = _questions.removeAt(oldIndex);
       _questions.insert(newIndex, item);
     });
@@ -666,7 +665,7 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                 ReorderableListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  onReorder: _reorderQuestions,
+                  onReorderItem: _reorderQuestions,
                   itemCount: _questions.length,
                   itemBuilder: (context, index) {
                     return Card(

@@ -154,6 +154,7 @@ class _CurrentAffairsDetailPageState extends State<CurrentAffairsDetailPage> {
                     RichTextBlock(
                       title: '📰 What Happened?',
                       body: content?.whatHappened ?? item.description,
+                      htmlBody: content?.whatHappenedHtml,
                       icon: Icons.info_outline,
                     ),
                     // Section: Why It Matters?
@@ -162,6 +163,7 @@ class _CurrentAffairsDetailPageState extends State<CurrentAffairsDetailPage> {
                       body:
                           content?.whyItMatters ??
                           _generatePlaceholder('importance'),
+                      htmlBody: content?.whyItMattersHtml,
                       icon: Icons.lightbulb_outline,
                       iconColor: Colors.amber,
                     ),
@@ -171,6 +173,7 @@ class _CurrentAffairsDetailPageState extends State<CurrentAffairsDetailPage> {
                       body:
                           content?.examRelevance ??
                           _generatePlaceholder('exam'),
+                      htmlBody: content?.examRelevanceHtml,
                       icon: Icons.school,
                       iconColor: Colors.indigo,
                       showDivider: false,

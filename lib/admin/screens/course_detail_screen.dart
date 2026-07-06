@@ -112,7 +112,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: startColor.withOpacity(0.3),
+                    color: startColor.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -124,7 +124,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
@@ -151,7 +151,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                         Text(
                           widget.course.subtitle,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 14,
                           ),
                         ),
@@ -227,7 +227,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   color: Colors.red,
                   onTap: () => Navigator.pushNamed(
                     context,
-                    '/live_classes',
+                    '/course_schedule_dashboard',
                     arguments: {
                       'courseId': widget.course.id,
                       'batchId': '',
@@ -254,12 +254,96 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             const Divider(),
             const SizedBox(height: 16),
 
+             // Assigned Teachers Section
+            _buildAssignedTeachersSection(),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+
             // Enrolled Students Section
             _buildEnrolledStudentsSection(),
             const SizedBox(height: 32),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAssignedTeachersSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.school, color: Colors.teal, size: 28),
+            SizedBox(width: 8),
+            Text(
+              'Assigned Teachers',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (widget.course.teachers.isEmpty)
+          Card(
+            color: Colors.grey.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.school_outlined, size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No teachers assigned to this course yet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: widget.course.teachers.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final teacher = widget.course.teachers[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.teal.withValues(alpha: 0.1),
+                    child: Text(
+                      teacher.name.isNotEmpty ? teacher.name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: Colors.teal,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    teacher.name.isNotEmpty ? teacher.name : 'Unknown',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    'Subject: ${teacher.subject}',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pushNamed(context, '/user_detail', arguments: teacher.uid);
+                  },
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 
@@ -281,9 +365,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.1),
+                  color: Colors.teal.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.teal.withOpacity(0.4)),
+                  border: Border.all(color: Colors.teal.withValues(alpha: 0.4)),
                 ),
                 child: Text(
                   '${_enrolledUsers.length}',
@@ -381,7 +465,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 final user = _filteredUsers[index];
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Colors.teal.withOpacity(0.1),
+                    backgroundColor: Colors.teal.withValues(alpha: 0.1),
                     child: Text(
                       user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                       style: const TextStyle(
@@ -438,9 +522,9 @@ class _ResourceCard extends StatelessWidget {
         width: 150,
         height: 120,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.5)),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -22,6 +22,7 @@ class LecturePlayerScreen extends StatefulWidget {
   final StudyLecture lecture;
   final bool isFreeClass;
   final bool isLiveStream;
+  final int? startPositionSeconds;
 
   const LecturePlayerScreen({
     super.key,
@@ -30,6 +31,7 @@ class LecturePlayerScreen extends StatefulWidget {
     required this.lecture,
     this.isFreeClass = false,
     this.isLiveStream = false,
+    this.startPositionSeconds,
   });
 
   @override
@@ -87,6 +89,49 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
     }
   }
 
+  int _lastSavedPosition = 0;
+  int _currentWebPosition = 0;
+  int _currentWebDuration = 0;
+
+  void _videoListener() {
+    if (_videoPlayerController == null || !_videoPlayerController!.value.isInitialized) return;
+    final position = _videoPlayerController!.value.position.inSeconds;
+    final duration = _videoPlayerController!.value.duration.inSeconds;
+    _saveProgress(position, duration);
+  }
+
+  void _youtubeListener() {
+    if (_youtubeController == null) return;
+    final position = _youtubeController!.value.position.inSeconds;
+    final duration = _youtubeController!.metadata.duration.inSeconds;
+    _saveProgress(position, duration);
+  }
+
+  void _saveProgress(int position, int duration) {
+    if (position <= 0 || duration <= 0) return;
+    if ((position - _lastSavedPosition).abs() < 5) return;
+    _lastSavedPosition = position;
+
+    final controller = Provider.of<StudyController>(context, listen: false);
+    controller.updateLectureProgress(
+      widget.lecture.id,
+      progressSeconds: position,
+      totalDurationSeconds: duration,
+      lastOpened: DateTime.now().toIso8601String(),
+    );
+  }
+
+  void _saveProgressDirect(int position, int duration) {
+    if (position <= 0 || duration <= 0) return;
+    final controller = Provider.of<StudyController>(context, listen: false);
+    controller.updateLectureProgress(
+      widget.lecture.id,
+      progressSeconds: position,
+      totalDurationSeconds: duration,
+      lastOpened: DateTime.now().toIso8601String(),
+    );
+  }
+
   Future<void> _initializePlayer() async {
     try {
       final url = widget.lecture.videoUrl;
@@ -121,8 +166,9 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
               enableCaption: true,
               isLive: widget.isLiveStream,
               hideThumbnail: true,
+              startAt: widget.startPositionSeconds ?? 0,
             ),
-          );
+          )..addListener(_youtubeListener);
         }
         // On Web, we use CrossPlatformYoutubePlayer which creates its own controller
       } else {
@@ -131,6 +177,10 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
           Uri.parse(url),
         );
         await _videoPlayerController!.initialize();
+        if (widget.startPositionSeconds != null && widget.startPositionSeconds! > 0) {
+          await _videoPlayerController!.seekTo(Duration(seconds: widget.startPositionSeconds!));
+        }
+        _videoPlayerController!.addListener(_videoListener);
 
         _chewieController = ChewieController(
           videoPlayerController: _videoPlayerController!,
@@ -536,6 +586,23 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
     // Save watch time before disposing
     _saveWatchTime();
 
+    // Save progress before disposing
+    if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+      _videoPlayerController!.removeListener(_videoListener);
+      final position = _videoPlayerController!.value.position.inSeconds;
+      final duration = _videoPlayerController!.value.duration.inSeconds;
+      _saveProgressDirect(position, duration);
+    }
+    if (_youtubeController != null) {
+      _youtubeController!.removeListener(_youtubeListener);
+      final position = _youtubeController!.value.position.inSeconds;
+      final duration = _youtubeController!.metadata.duration.inSeconds;
+      _saveProgressDirect(position, duration);
+    }
+    if (kIsWeb) {
+      _saveProgressDirect(_currentWebPosition, _currentWebDuration);
+    }
+
     // Leave live viewer tracking
     if (_hasJoinedLive &&
         widget.courseId != null &&
@@ -562,14 +629,15 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
     // Skip if not a enrolled batch class
     if (widget.batchId == null) return;
 
-    final watchedMinutes =
-        DateTime.now().difference(_watchStartTime!).inSeconds / 60.0;
-    if (watchedMinutes < 0.1) return; // Don't save if less than 6 seconds
+    final watchedSeconds = DateTime.now().difference(_watchStartTime!).inSeconds;
+    if (watchedSeconds < 6) return; // Don't save if less than 6 seconds
 
     WatchStatsService().recordWatchTime(
       lectureId: widget.lecture.id,
       lectureTitle: widget.lecture.title,
-      watchedMinutes: watchedMinutes,
+      watchedMinutes: watchedSeconds / 60.0,
+      seconds: watchedSeconds,
+      subjectName: widget.lecture.subject.isNotEmpty ? widget.lecture.subject : 'General',
       batchId: widget.batchId!,
     );
   }
@@ -601,6 +669,12 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
               autoPlay: true,
               isLive: widget.isLiveStream,
               playbackSpeed: _playbackSpeed,
+              startSeconds: widget.startPositionSeconds ?? 0,
+              onProgress: (position, duration) {
+                _currentWebPosition = position.inSeconds;
+                _currentWebDuration = duration.inSeconds;
+                _saveProgress(position.inSeconds, duration.inSeconds);
+              },
               settingsButton: IconButton(
                 icon: const Icon(Icons.settings, color: Colors.white, size: 28),
                 onPressed: _showQualitySheet,

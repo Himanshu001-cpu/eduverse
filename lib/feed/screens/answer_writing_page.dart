@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:eduverse/core/utils/markdown_utils.dart';
 import 'package:eduverse/feed/repository/feed_repository.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
+import 'package:eduverse/common/widgets/rich_content_viewer.dart';
 
 /// Answer Writing practice page for Mains-style answers.
 /// Features: question display, text editor, word counter, timer.
@@ -290,11 +289,9 @@ class _AnswerWritingPageState extends State<AnswerWritingPage>
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    question,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(height: 1.5),
+                  RichContentViewer(
+                    htmlContent: item.answerWritingContent?.questionHtml,
+                    legacyMarkdown: question,
                   ),
                 ],
               ),
@@ -518,14 +515,9 @@ class _AnswerWritingPageState extends State<AnswerWritingPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      MarkdownBody(
-                        data: MarkdownUtils.normalizeMarkdown(modelAnswer),
-                        selectable: true,
-                        styleSheet: MarkdownStyleSheet(
-                          p: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(height: 1.6),
-                        ),
+                      RichContentViewer(
+                        htmlContent: item.answerWritingContent?.modelAnswerHtml,
+                        legacyMarkdown: modelAnswer,
                       ),
                       if (item.answerWritingContent?.keyPoints.isNotEmpty ==
                           true) ...[

@@ -244,9 +244,6 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
 
   void _reorderQuestions(int oldIndex, int newIndex) {
     setState(() {
-      if (oldIndex < newIndex) {
-        newIndex -= 1;
-      }
       final item = _questions.removeAt(oldIndex);
       _questions.insert(newIndex, item);
     });
@@ -588,7 +585,7 @@ class _QuizEditorScreenState extends State<QuizEditorScreen> {
                     ReorderableListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      onReorder: _reorderQuestions,
+                      onReorderItem: _reorderQuestions,
                       itemCount: _questions.length,
                       proxyDecorator: (child, index, animation) {
                         return Material(

@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import '../models/store_models.dart';
 
 /// Service for managing user's shopping cart in Firestore.
 /// Uses per-user subcollection: /users/{uid}/cart/{itemId}
 class CartService {
   final FirebaseFirestore? _customDb;
-  FirebaseFirestore get _db => _customDb ?? FirebaseFirestore.instance;
+  FirebaseFirestore get _db => _customDb ?? EduverseFirebase.firestore;
 
   CartService({FirebaseFirestore? firestore}) : _customDb = firestore;
 

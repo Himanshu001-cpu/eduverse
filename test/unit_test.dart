@@ -1,5 +1,11 @@
 // ignore_for_file: subtype_of_sealed_class
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
+import 'package:eduverse/study/presentation/widgets/study_ebooks_content.dart';
+import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/admin/models/admin_models.dart';
@@ -37,7 +43,7 @@ class MockWriteBatch extends Fake implements WriteBatch {
   }
 
   @override
-  void update(DocumentReference documentReference, Map<String, dynamic> data) {
+  void update(DocumentReference documentReference, Map<Object, Object?> data) {
     operationsCount++;
   }
 
@@ -160,6 +166,9 @@ class MockAuth extends Fake implements FirebaseAuth {
 
   @override
   User? get currentUser => mockUser;
+
+  @override
+  Stream<User?> authStateChanges() => Stream.value(mockUser);
 }
 
 class MockUser extends Fake implements User {
@@ -819,17 +828,15 @@ void main() {
       expect(userXYZDoc.setWrites['purchasedTestSeries'], isNotNull);
 
       // Verify subcollection docs were set
-      final subRef1 = userXYZDoc.subcollections['enrolledCourses']?.docs['courseA_batchA'];
+      final subRef1 = userXYZDoc.subcollections['enrolledCourses']?.docs['courseA'];
       expect(subRef1, isNotNull);
       expect(subRef1!.setWrites['status'], 'active');
       expect(subRef1.setWrites['courseId'], 'courseA');
-      expect(subRef1.setWrites['batchId'], 'batchA');
 
-      final subRef2 = userXYZDoc.subcollections['enrolledCourses']?.docs['courseB_batchB'];
+      final subRef2 = userXYZDoc.subcollections['enrolledCourses']?.docs['courseB'];
       expect(subRef2, isNotNull);
       expect(subRef2!.setWrites['status'], 'active');
       expect(subRef2.setWrites['courseId'], 'courseB');
-      expect(subRef2.setWrites['batchId'], 'batchB');
     });
   });
 
@@ -955,4 +962,358 @@ void main() {
       notifier.dispose();
     });
   });
+
+  group('Test Series Progress Calculation Unit Tests', () {
+    test('filters attempts to only count those matching currently existing test IDs in the subcollection and uses the correct count as denominator', () {
+      final testSeriesId = 'series_1';
+      final existingTestIds = {'test_a', 'test_b', 'test_c'};
+      final actualTotalTests = existingTestIds.length;
+
+      // Simulated Firestore docs for attempts
+      final attemptDocs = [
+        {'id': 'series_1_test_a', 'score': 10}, // matches test_a
+        {'id': 'series_1_test_b', 'score': 20}, // matches test_b
+        {'id': 'series_1_test_deleted', 'score': 30}, // not in existingTestIds
+        {'id': 'series_2_test_a', 'score': 40}, // different series ID
+      ];
+
+      int completedCount = 0;
+      final prefix = '${testSeriesId}_';
+      for (final doc in attemptDocs) {
+        final docId = doc['id'] as String;
+        if (docId.startsWith(prefix)) {
+          final testId = docId.substring(prefix.length);
+          if (existingTestIds.contains(testId)) {
+            completedCount++;
+          }
+        }
+      }
+
+      final total = actualTotalTests > 0 ? actualTotalTests : 1;
+      final progressVal = (completedCount / total).clamp(0.0, 1.0);
+
+      expect(completedCount, 2);
+      expect(total, 3);
+      expect(progressVal, closeTo(2 / 3, 0.001));
+    });
+
+    test('handles empty tests list boundary conditions without dividing by zero', () {
+      final testSeriesId = 'series_empty';
+      final existingTestIds = <String>{};
+      final actualTotalTests = existingTestIds.length;
+
+      final attemptDocs = [
+        {'id': 'series_empty_test_a'},
+      ];
+
+      int completedCount = 0;
+      final prefix = '${testSeriesId}_';
+      for (final doc in attemptDocs) {
+        final docId = doc['id'] as String;
+        if (docId.startsWith(prefix)) {
+          final testId = docId.substring(prefix.length);
+          if (existingTestIds.contains(testId)) {
+            completedCount++;
+          }
+        }
+      }
+
+      final total = actualTotalTests > 0 ? actualTotalTests : 1;
+      final progressVal = (completedCount / total).clamp(0.0, 1.0);
+
+      expect(completedCount, 0);
+      expect(total, 1);
+      expect(progressVal, 0.0);
+    });
+  });
+
+  group('Ebook Model and Cart Integration Tests', () {
+    test('Ebook.fromMap parses standard map data correctly', () {
+      final map = {
+        'title': 'Test E-book',
+        'subtitle': 'John Doe',
+        'description': 'A book about test development.',
+        'thumbnailUrl': 'https://example.com/thumb.png',
+        'pdfUrl': 'https://example.com/book.pdf',
+        'realPrice': 500.0,
+        'finalPrice': 299.0,
+        'isActive': true,
+      };
+
+      final ebook = Ebook.fromMap(map, 'eb_123', isOwned: true);
+
+      expect(ebook.id, 'eb_123');
+      expect(ebook.title, 'Test E-book');
+      expect(ebook.subtitle, 'John Doe');
+      expect(ebook.description, 'A book about test development.');
+      expect(ebook.thumbnailUrl, 'https://example.com/thumb.png');
+      expect(ebook.pdfUrl, 'https://example.com/book.pdf');
+      expect(ebook.realPrice, 500.0);
+      expect(ebook.finalPrice, 299.0);
+      expect(ebook.isActive, true);
+      expect(ebook.isOwned, true);
+    });
+
+    test('Ebook.toMap serializes correctly', () {
+      final ebook = Ebook(
+        id: 'eb_456',
+        title: 'Serialized Ebook',
+        subtitle: 'Jane Smith',
+        description: 'Description here',
+        thumbnailUrl: 'https://example.com/image.png',
+        pdfUrl: 'https://example.com/doc.pdf',
+        realPrice: 400.0,
+        finalPrice: 199.0,
+        isActive: false,
+      );
+
+      final map = ebook.toMap();
+
+      expect(map['title'], 'Serialized Ebook');
+      expect(map['subtitle'], 'Jane Smith');
+      expect(map['description'], 'Description here');
+      expect(map['thumbnailUrl'], 'https://example.com/image.png');
+      expect(map['pdfUrl'], 'https://example.com/doc.pdf');
+      expect(map['realPrice'], 400.0);
+      expect(map['finalPrice'], 199.0);
+      expect(map['isActive'], false);
+    });
+
+    test('CartItem serialization supports ebookId correctly', () {
+      final cartItem = CartItem(
+        courseId: '',
+        batchId: '',
+        ebookId: 'eb_789',
+        title: 'Cart Ebook',
+        price: 299.0,
+        quantity: 1,
+      );
+
+      final json = cartItem.toJson();
+      expect(json['ebookId'], 'eb_789');
+
+      final parsed = CartItem.fromJson(json);
+      expect(parsed.ebookId, 'eb_789');
+      expect(parsed.courseId, '');
+      expect(parsed.batchId, '');
+      expect(parsed.title, 'Cart Ebook');
+      expect(parsed.price, 299.0);
+      expect(parsed.quantity, 1);
+    });
+  });
+
+  group('StudyEbooksContent Widget Tests', () {
+    final MockEbooksFirestore mockFirestore = MockEbooksFirestore();
+    late MockAuth mockAuth;
+
+    setUpAll(() {
+      EduverseFirebase.mockFirestore = mockFirestore;
+    });
+
+    setUp(() {
+      mockFirestore.clear();
+      mockAuth = MockAuth(MockUser('user123'));
+      EduverseFirebase.mockAuth = mockAuth;
+      PdfNavigationManager.reset();
+    });
+
+    testWidgets('displays empty state when there are no e-books', (WidgetTester tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: StudyEbooksContent(),
+        ),
+      ));
+
+      // Wait for stream to emit
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.menu_book_outlined), findsOneWidget);
+      expect(find.text('No e-books yet'), findsOneWidget);
+      expect(find.text('Purchase e-books from the Store to read them here!'), findsOneWidget);
+    });
+
+    testWidgets('displays empty state when ebooks exist but none are owned', (WidgetTester tester) async {
+      mockFirestore.ebooksCollection.docs.add(
+        MockQueryDocumentSnapshot('eb1', {
+          'title': 'Intro to Coding',
+          'subtitle': 'Compiler Creator',
+          'description': 'A nice programming book',
+          'thumbnailUrl': 'https://image.url',
+          'pdfUrl': 'https://pdf.url',
+          'realPrice': 50.0,
+          'finalPrice': 25.0,
+          'isActive': true,
+        }),
+      );
+
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: StudyEbooksContent(),
+        ),
+      ));
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Intro to Coding'), findsNothing);
+      expect(find.text('No e-books yet'), findsOneWidget);
+    });
+
+    testWidgets('displays e-book cards and responds to tap/button to open PDF', (WidgetTester tester) async {
+      final mockLauncher = MockUrlLauncher();
+      UrlLauncherPlatform.instance = mockLauncher;
+
+      mockFirestore.ebooksCollection.docs.add(
+        MockQueryDocumentSnapshot('eb1', {
+          'title': 'Intro to Coding',
+          'subtitle': 'Compiler Creator',
+          'description': 'A nice programming book',
+          'thumbnailUrl': 'https://image.url',
+          'pdfUrl': 'https://pdf.url',
+          'realPrice': 50.0,
+          'finalPrice': 25.0,
+          'isActive': true,
+        }),
+      );
+
+      // Add to user's purchased ebooks
+      final userDoc = mockFirestore.usersCollection.doc('user123') as MockEbooksUserDocRef;
+      userDoc.purchasedCollection.docs.add(
+        MockQueryDocumentSnapshot('eb1', {}),
+      );
+
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: StudyEbooksContent(),
+        ),
+      ));
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Intro to Coding'), findsOneWidget);
+      expect(find.text('Compiler Creator'), findsOneWidget);
+      expect(find.text('No e-books yet'), findsNothing);
+
+      // Tap the "Read E-book" button
+      await tester.tap(find.text('Read E-book'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.byType(SecurePdfViewerScreen), findsOneWidget);
+    });
+  });
+
+  group('FolderClipboard Unit Tests', () {
+    test('copy, clear, and hasData work correctly', () {
+      FolderClipboard.clear();
+      expect(FolderClipboard.hasData, isFalse);
+
+      FolderClipboard.copy(
+        courseId: 'c1',
+        subject: 's1',
+        folderPath: 'p1',
+        folderName: 'n1',
+      );
+
+      expect(FolderClipboard.hasData, isTrue);
+      expect(FolderClipboard.sourceCourseId, 'c1');
+      expect(FolderClipboard.sourceSubject, 's1');
+      expect(FolderClipboard.sourceFolderPath, 'p1');
+      expect(FolderClipboard.sourceFolderName, 'n1');
+
+      FolderClipboard.clear();
+
+      expect(FolderClipboard.hasData, isFalse);
+      expect(FolderClipboard.sourceCourseId, isNull);
+    });
+  });
+}
+
+class MockUrlLauncher extends Fake with MockPlatformInterfaceMixin implements UrlLauncherPlatform {
+  String? launchedUrl;
+
+  @override
+  Future<bool> canLaunch(String url) async => true;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launchedUrl = url;
+    return true;
+  }
+}
+
+class MockEbooksFirestore extends Fake implements FirebaseFirestore {
+  final MockEbooksCollection ebooksCollection = MockEbooksCollection();
+  final MockEbooksUsersCollection usersCollection = MockEbooksUsersCollection();
+
+  void clear() {
+    ebooksCollection.docs.clear();
+    usersCollection.userDocs.clear();
+  }
+
+  @override
+  CollectionReference<Map<String, dynamic>> collection(String path) {
+    if (path == 'ebooks') return ebooksCollection;
+    if (path == 'users') return usersCollection;
+    throw UnimplementedError('Collection path $path not mocked');
+  }
+}
+
+class MockEbooksCollection extends Fake implements CollectionReference<Map<String, dynamic>> {
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs = [];
+
+  @override
+  Query<Map<String, dynamic>> where(Object field, {
+    Object? isEqualTo,
+    Object? isNotEqualTo,
+    Object? isLessThan,
+    Object? isLessThanOrEqualTo,
+    Object? isGreaterThan,
+    Object? isGreaterThanOrEqualTo,
+    Object? arrayContains,
+    Iterable<Object?>? arrayContainsAny,
+    Iterable<Object?>? whereIn,
+    Iterable<Object?>? whereNotIn,
+    bool? isNull,
+  }) {
+    return this;
+  }
+
+  @override
+  Stream<QuerySnapshot<Map<String, dynamic>>> snapshots({
+    bool includeMetadataChanges = false,
+    ListenSource source = ListenSource.defaultSource,
+  }) {
+    return Stream.value(MockQuerySnapshot(docs));
+  }
+}
+
+class MockEbooksUsersCollection extends Fake implements CollectionReference<Map<String, dynamic>> {
+  final Map<String, MockEbooksUserDocRef> userDocs = {};
+
+  @override
+  DocumentReference<Map<String, dynamic>> doc([String? path]) {
+    return userDocs.putIfAbsent(path!, () => MockEbooksUserDocRef(path));
+  }
+}
+
+class MockEbooksUserDocRef extends Fake implements DocumentReference<Map<String, dynamic>> {
+  final String userId;
+  final MockEbooksPurchasedCollection purchasedCollection = MockEbooksPurchasedCollection();
+
+  MockEbooksUserDocRef(this.userId);
+
+  @override
+  CollectionReference<Map<String, dynamic>> collection(String path) {
+    if (path == 'purchasedEbooks') return purchasedCollection;
+    throw UnimplementedError('Subcollection path $path not mocked');
+  }
+}
+
+class MockEbooksPurchasedCollection extends Fake implements CollectionReference<Map<String, dynamic>> {
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs = [];
+
+  @override
+  Future<QuerySnapshot<Map<String, dynamic>>> get([GetOptions? options]) async {
+    return MockQuerySnapshot(docs);
+  }
 }

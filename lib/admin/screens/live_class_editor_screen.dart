@@ -315,7 +315,6 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                         prefixIcon: Icon(Icons.video_library),
                       ),
                       onChanged: (val) => _loadYoutubePreview(val),
-                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
                     ),
                     const SizedBox(height: 8),
                     

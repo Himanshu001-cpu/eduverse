@@ -1,15 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/domain/repositories/i_study_repository.dart';
 import 'package:eduverse/study/models/study_models.dart';
+import 'package:eduverse/study/data/repositories/study_local_storage.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 class StudyRepositoryImpl implements IStudyRepository {
   final FirebaseFirestore _firestore;
 
   StudyRepositoryImpl({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? EduverseFirebase.firestore;
 
   @override
   Stream<List<StudyBatch>> getEnrolledBatches(String userId) {
@@ -17,28 +18,62 @@ class StudyRepositoryImpl implements IStudyRepository {
 
     return Stream.fromFuture(_checkIsAdmin(userId)).asyncExpand((isAdmin) {
       if (isAdmin) {
-        // Admin: Listen to ALL courses
-        return _firestore.collection('courses').snapshots().asyncMap((
-          coursesSnap,
-        ) async {
-          List<StudyBatch> allBatches = [];
-          for (var courseDoc in coursesSnap.docs) {
-            final courseData = courseDoc.data();
-            final progressData = await _fetchCourseProgress(
-              userId,
-              courseDoc.id,
-            );
-            allBatches.add(
-              _mapToStudyBatch(
-                courseDoc.id,
-                courseDoc.id,
-                courseData,
-                progressData.progress,
-                progressData.completed,
-              ),
-            );
-          }
-          return allBatches;
+        // Admin: Listen to ALL courses and ALL combo packs
+        return _firestore.collection('courses').snapshots().asyncExpand((coursesSnap) {
+          return _firestore.collection('combination_packs').snapshots().asyncMap((combosSnap) async {
+            List<StudyBatch> allBatches = [];
+
+            // Add all combo packs
+            for (var comboDoc in combosSnap.docs) {
+              final comboData = comboDoc.data();
+              final List<String> coursesList = [];
+              if (comboData['courses'] != null) {
+                coursesList.addAll(List<String>.from(comboData['courses']));
+              } else if (comboData['batches'] != null) {
+                final List<dynamic> legacyBatches = comboData['batches'] ?? [];
+                for (var b in legacyBatches) {
+                  if (b is Map && b['courseId'] != null) {
+                    coursesList.add(b['courseId'].toString());
+                  }
+                }
+              }
+              allBatches.add(
+                StudyBatch(
+                  id: comboDoc.id,
+                  courseId: comboDoc.id,
+                  name: comboData['title'] ?? 'Combo Pack',
+                  courseName: comboData['title'] ?? 'Combo Pack',
+                  emoji: '📦',
+                  gradientColors: [const Color(0xFF8E2DE2), const Color(0xFF4A00E0)],
+                  thumbnailUrl: comboData['thumbnailUrl'] ?? '',
+                  startDate: DateTime.now(),
+                  totalLectures: 0,
+                  completedLectures: 0,
+                  progress: 0.0,
+                  isCourseBatch: false,
+                  isCombo: true,
+                  courseIds: coursesList,
+                ),
+              );
+            }
+
+            // Add all individual courses
+            for (var courseDoc in coursesSnap.docs) {
+              final courseData = courseDoc.data();
+              final progressData = await _fetchCourseProgress(userId, courseDoc.id);
+              allBatches.add(
+                _mapToStudyBatch(
+                  courseDoc.id,
+                  courseDoc.id,
+                  courseData,
+                  progressData.progress,
+                  progressData.completed,
+                ).copyWith(isCombo: false, courseIds: [courseDoc.id]),
+              );
+            }
+
+            return allBatches;
+          });
         });
       } else {
         // Standard User: Listen to 'enrolledCourses' subcollection for direct access
@@ -50,19 +85,105 @@ class StudyRepositoryImpl implements IStudyRepository {
             .asyncMap((snapshot) async {
           if (snapshot.docs.isEmpty) return [];
 
-          final List<String> courseIds = [];
+          final Set<String> comboPackIds = {};
+          final List<Map<String, dynamic>> individualCourseEnrollments = [];
+
           for (var doc in snapshot.docs) {
             final data = doc.data();
-            final courseId = data['courseId'] as String? ?? doc.id.split('_')[0];
-            if (courseId.isNotEmpty && !courseIds.contains(courseId)) {
-              courseIds.add(courseId);
+            final comboId = data['combinationPackId'] as String?;
+            if (comboId != null && comboId.isNotEmpty) {
+              comboPackIds.add(comboId);
+            } else {
+              individualCourseEnrollments.add(data);
             }
           }
 
-          if (courseIds.isEmpty) return [];
-
           List<StudyBatch> studyBatches = [];
-          for (var courseId in courseIds) {
+          final Set<String> addedBatchIds = {};
+
+          // 1. Fetch and map Combo Packs
+          for (final comboId in comboPackIds) {
+            try {
+              final comboDoc = await _firestore
+                  .collection('combination_packs')
+                  .doc(comboId)
+                  .get();
+              if (!comboDoc.exists) continue;
+              final comboData = comboDoc.data()!;
+
+              final List<String> coursesList = [];
+              if (comboData['courses'] != null) {
+                coursesList.addAll(List<String>.from(comboData['courses']));
+              } else if (comboData['batches'] != null) {
+                final List<dynamic> legacyBatches = comboData['batches'] ?? [];
+                for (var b in legacyBatches) {
+                  if (b is Map && b['courseId'] != null) {
+                    coursesList.add(b['courseId'].toString());
+                  }
+                }
+              }
+
+              double totalProgress = 0.0;
+              int completedCount = 0;
+              int lecturesCount = 0;
+
+              for (final courseId in coursesList) {
+                final progressData = await _fetchCourseProgress(userId, courseId);
+                totalProgress += progressData.progress;
+                completedCount += progressData.completed;
+
+                final courseDoc = await _firestore.collection('courses').doc(courseId).get();
+                if (courseDoc.exists) {
+                  final courseData = courseDoc.data()!;
+                  lecturesCount += (courseData['totalLectures'] as num?)?.toInt() ?? 0;
+
+                  // Implicitly add the individual course as a StudyBatch for standard user
+                  if (!addedBatchIds.contains(courseId)) {
+                    studyBatches.add(
+                      _mapToStudyBatch(
+                        courseId,
+                        courseId,
+                        courseData,
+                        progressData.progress,
+                        progressData.completed,
+                      ).copyWith(isCombo: false, courseIds: [courseId]),
+                    );
+                    addedBatchIds.add(courseId);
+                  }
+                }
+              }
+
+              final double avgProgress = coursesList.isNotEmpty ? (totalProgress / coursesList.length) : 0.0;
+
+              studyBatches.add(
+                StudyBatch(
+                  id: comboId,
+                  courseId: comboId,
+                  name: comboData['title'] ?? 'Combo Pack',
+                  courseName: comboData['title'] ?? 'Combo Pack',
+                  emoji: '📦',
+                  gradientColors: [const Color(0xFF8E2DE2), const Color(0xFF4A00E0)],
+                  thumbnailUrl: comboData['thumbnailUrl'] ?? '',
+                  startDate: DateTime.now(),
+                  totalLectures: lecturesCount,
+                  completedLectures: completedCount,
+                  progress: avgProgress,
+                  isCourseBatch: false,
+                  isCombo: true,
+                  courseIds: coursesList,
+                ),
+              );
+              addedBatchIds.add(comboId);
+            } catch (e) {
+              debugPrint('Error loading combo pack $comboId: $e');
+            }
+          }
+
+          // 2. Fetch and map Individual Courses
+          for (var enrollment in individualCourseEnrollments) {
+            final courseId = enrollment['courseId'] as String? ?? enrollment['id'];
+            if (courseId == null || courseId.isEmpty) continue;
+            if (addedBatchIds.contains(courseId)) continue;
             try {
               final courseDoc = await _firestore
                   .collection('courses')
@@ -71,10 +192,7 @@ class StudyRepositoryImpl implements IStudyRepository {
               if (!courseDoc.exists) continue;
               final courseData = courseDoc.data()!;
 
-              final progressData = await _fetchCourseProgress(
-                userId,
-                courseId,
-              );
+              final progressData = await _fetchCourseProgress(userId, courseId);
 
               studyBatches.add(
                 _mapToStudyBatch(
@@ -83,12 +201,13 @@ class StudyRepositoryImpl implements IStudyRepository {
                   courseData,
                   progressData.progress,
                   progressData.completed,
-                ),
+                ).copyWith(isCombo: false, courseIds: [courseId]),
               );
             } catch (e) {
-              debugPrint('Error loading course progress $courseId: $e');
+              debugPrint('Error loading individual course $courseId: $e');
             }
           }
+
           return studyBatches;
         });
       }
@@ -180,6 +299,7 @@ class StudyRepositoryImpl implements IStudyRepository {
       totalLectures: courseData['totalLectures'] ?? 0,
       completedLectures: completed,
       progress: progress,
+      isCourseBatch: courseData['isCourseBatch'] as bool? ?? false,
     );
   }
 
@@ -255,19 +375,8 @@ class StudyRepositoryImpl implements IStudyRepository {
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
       lectures.add(
-        StudyLecture(
-          id: doc.id,
-          title: data['title'] ?? 'Untitled Lecture',
-          videoUrl: data['videoUrl'] ?? data['storagePath'] ?? '',
-          contentUrl: data['contentUrl'] ?? '',
-          description: data['description'] ?? '',
-          order: data['order'] ?? data['orderIndex'] ?? 0,
+        StudyLecture.fromMap(data, doc.id).copyWith(
           isWatched: watchedStatus[doc.id] ?? false,
-          duration: null,
-          subject: data['subject'] ?? '',
-          chapter: data['chapter'] ?? '',
-          lectureNo: data['lectureNo'] as int?,
-          linkedNoteIds: List<String>.from(data['linkedNoteIds'] ?? []),
         ),
       );
     }
@@ -487,6 +596,8 @@ class StudyRepositoryImpl implements IStudyRepository {
           status: data['status'] ?? 'upcoming',
           youtubeUrl: data['youtubeUrl'] as String?,
           thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
+          parentRuleId: data['parentRuleId'] as String?,
+          generatedDateString: data['generatedDateString'] as String?,
         );
       }).toList();
     } catch (e) {
@@ -512,6 +623,8 @@ class StudyRepositoryImpl implements IStudyRepository {
           status: data['status'] ?? 'upcoming',
           youtubeUrl: data['youtubeUrl'] as String?,
           thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
+          parentRuleId: data['parentRuleId'] as String?,
+          generatedDateString: data['generatedDateString'] as String?,
         );
       }).toList();
     } catch (e) {
@@ -546,7 +659,7 @@ class StudyRepositoryImpl implements IStudyRepository {
       if (!courseDoc.exists) return null;
       final courseData = courseDoc.data()!;
 
-      final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final userId = EduverseFirebase.auth.currentUser?.uid ?? '';
       final progressData = userId.isNotEmpty
           ? await _fetchCourseProgress(userId, courseId)
           : (progress: 0.0, completed: 0);
@@ -577,7 +690,7 @@ class StudyRepositoryImpl implements IStudyRepository {
   }
 
   Stream<List<StudyCourseModel>> getEnrolledCourses() {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = EduverseFirebase.auth.currentUser?.uid;
     if (userId == null) return Stream.value([]);
 
     return _firestore
@@ -585,15 +698,63 @@ class StudyRepositoryImpl implements IStudyRepository {
         .doc(userId)
         .collection('enrolledCourses')
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => StudyCourseModel.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+        .asyncMap((snapshot) async {
+      if (snapshot.docs.isEmpty) return [];
+
+      final List<String> courseIds = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final courseId = data['courseId'] as String? ?? doc.id.split('_')[0];
+        if (courseId.isNotEmpty && !courseIds.contains(courseId)) {
+          courseIds.add(courseId);
+        }
+      }
+
+      if (courseIds.isEmpty) return [];
+
+      List<StudyCourseModel> studyCourses = [];
+      for (var courseId in courseIds) {
+        try {
+          final courseDoc = await _firestore
+              .collection('courses')
+              .doc(courseId)
+              .get();
+          if (!courseDoc.exists) continue;
+          final courseData = courseDoc.data()!;
+
+          final progressData = await _fetchCourseProgress(
+            userId,
+            courseId,
+          );
+
+          List<Color> gradientColors = [Colors.blue, Colors.lightBlueAccent];
+          if (courseData['gradientColors'] != null) {
+            gradientColors = (courseData['gradientColors'] as List)
+                .map((c) => Color(c as int))
+                .toList();
+          }
+
+          studyCourses.add(
+            StudyCourseModel(
+              id: courseId,
+              title: courseData['title'] ?? '',
+              subtitle: courseData['subtitle'] ?? '',
+              emoji: courseData['emoji'] ?? '📚',
+              gradientColors: gradientColors,
+              lessonCount: courseData['totalLectures'] ?? 0,
+              progress: progressData.progress,
+            ),
+          );
+        } catch (e) {
+          debugPrint('Error loading course progress $courseId: $e');
+        }
+      }
+      return studyCourses;
+    });
   }
 
   Stream<List<WorkbookModel>> getWorkbooks() {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = EduverseFirebase.auth.currentUser?.uid;
     if (userId == null) return Stream.value([]);
 
     return _firestore
@@ -615,9 +776,12 @@ class StudyRepositoryImpl implements IStudyRepository {
         .collection('users')
         .doc(userId)
         .collection('courseBookmarks')
-        .doc(batchId)
         .snapshots()
-        .map((snapshot) => snapshot.exists);
+        .asyncMap((snapshot) async {
+          final favoriteIds = snapshot.docs.map((doc) => doc.id).toList();
+          await StudyLocalStorage().cacheFavoriteBatchIds(favoriteIds);
+          return favoriteIds.contains(batchId);
+        });
   }
 
   @override
@@ -629,14 +793,23 @@ class StudyRepositoryImpl implements IStudyRepository {
         .collection('courseBookmarks')
         .doc(batchId);
 
+    final localStorage = StudyLocalStorage();
+    final cached = await localStorage.getCachedFavoriteBatchIds();
+    final updated = List<String>.from(cached);
+
     final doc = await bookmarkRef.get();
     if (doc.exists) {
       await bookmarkRef.delete();
+      updated.remove(batchId);
     } else {
       await bookmarkRef.set({
         'createdAt': FieldValue.serverTimestamp(),
         'courseId': batchId,
       });
+      if (!updated.contains(batchId)) {
+        updated.add(batchId);
+      }
     }
+    await localStorage.cacheFavoriteBatchIds(updated);
   }
 }

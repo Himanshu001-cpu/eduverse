@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:eduverse/study/models/study_models.dart';
+import 'package:eduverse/study/models/community_models.dart';
+import 'package:eduverse/study/data/repositories/community_repository.dart';
+import 'package:eduverse/study/screens/student_community_screen.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
 import '../widgets/batch_header.dart';
 import 'lecture_player_page.dart';
 import 'subject_detail_screen.dart';
+import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 
 class CourseSectionPage extends StatefulWidget {
   final StudyCourseModel course;
@@ -36,7 +39,7 @@ class _CourseSectionPageState extends State<CourseSectionPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -143,6 +146,7 @@ class _CourseSectionPageState extends State<CourseSectionPage>
                     Tab(text: 'DPP'),
                     Tab(text: 'Planner'),
                     Tab(text: 'Quizzes'),
+                    Tab(text: 'Community'),
                   ],
                 ),
               ),
@@ -156,6 +160,7 @@ class _CourseSectionPageState extends State<CourseSectionPage>
               _buildDppTab(),
               _buildPlannerTab(),
               _buildQuizzesTab(),
+              _buildCommunityTab(),
             ],
           ),
         ),
@@ -308,21 +313,14 @@ class _CourseSectionPageState extends State<CourseSectionPage>
                     icon: const Icon(Icons.download_rounded),
                     onPressed: () async {
                       if (note.fileUrl != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Opening ${note.title}...')),
+                        await PdfNavigationManager.navigateToViewer(
+                          context,
+                          SecurePdfViewerArgs(
+                            pdfUrl: note.fileUrl!,
+                            title: note.title,
+                            isProtected: false,
+                          ),
                         );
-                        final url = Uri.parse(note.fileUrl!);
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url);
-                        } else {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Could not open PDF link'),
-                              ),
-                            );
-                          }
-                        }
                       }
                     },
                   ),
@@ -402,10 +400,14 @@ class _CourseSectionPageState extends State<CourseSectionPage>
                         icon: const Icon(Icons.picture_as_pdf, color: Colors.orange),
                         tooltip: 'Open DPP',
                         onPressed: () async {
-                          final url = Uri.parse(dpp.dppPdfUrl);
-                          if (await canLaunchUrl(url)) {
-                            await launchUrl(url);
-                          }
+                          await PdfNavigationManager.navigateToViewer(
+                            context,
+                            SecurePdfViewerArgs(
+                              pdfUrl: dpp.dppPdfUrl,
+                              title: '${dpp.title} (DPP)',
+                              isProtected: false,
+                            ),
+                          );
                         },
                       ),
                       // Solution PDF button
@@ -414,10 +416,14 @@ class _CourseSectionPageState extends State<CourseSectionPage>
                           icon: const Icon(Icons.check_circle, color: Colors.green),
                           tooltip: 'Open Solution',
                           onPressed: () async {
-                            final url = Uri.parse(dpp.solutionPdfUrl);
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url);
-                            }
+                            await PdfNavigationManager.navigateToViewer(
+                              context,
+                              SecurePdfViewerArgs(
+                                pdfUrl: dpp.solutionPdfUrl,
+                                title: '${dpp.title} (Solution)',
+                                isProtected: false,
+                              ),
+                            );
                           },
                         ),
                     ],
@@ -509,27 +515,14 @@ class _CourseSectionPageState extends State<CourseSectionPage>
                         ? IconButton(
                             icon: const Icon(Icons.attachment),
                             onPressed: () async {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Opening attachment for ${item.title}...',
-                                  ),
+                              await PdfNavigationManager.navigateToViewer(
+                                context,
+                                SecurePdfViewerArgs(
+                                  pdfUrl: item.fileUrl!,
+                                  title: item.title,
+                                  isProtected: false,
                                 ),
                               );
-                              final url = Uri.parse(item.fileUrl!);
-                              if (await canLaunchUrl(url)) {
-                                await launchUrl(url);
-                              } else {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Could not open attachment link',
-                                      ),
-                                    ),
-                                  );
-                                }
-                              }
                             },
                           )
                         : null,
@@ -622,6 +615,94 @@ class _CourseSectionPageState extends State<CourseSectionPage>
                   ),
                 );
               },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCommunityTab() {
+    final repo = CommunityRepository();
+    
+    return StreamBuilder<List<StudentCommunity>>(
+      stream: repo.getCommunitiesForCourse(widget.course.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        final list = snapshot.data ?? [];
+        if (list.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.forum_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No communities configured for this course yet.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: list.length,
+          itemBuilder: (context, index) {
+            final comm = list[index];
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.teal.shade100),
+              ),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.teal.shade50,
+                  child: const Icon(Icons.forum, color: Colors.teal),
+                ),
+                title: Text(
+                  comm.subjectName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Teacher: ${comm.teacherName}'),
+                    const SizedBox(height: 4),
+                    Text(
+                      comm.description,
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade500,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${comm.postCount} Posts',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StudentCommunityScreen(community: comm),
+                    ),
+                  );
+                },
+              ),
             );
           },
         );

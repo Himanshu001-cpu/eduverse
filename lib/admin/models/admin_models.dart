@@ -1,6 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eduverse/feed/models/feed_models.dart';
 
+class CourseTeacher {
+  final String uid;
+  final String name;
+  final String subject;
+
+  CourseTeacher({
+    required this.uid,
+    required this.name,
+    required this.subject,
+  });
+
+  factory CourseTeacher.fromMap(Map<String, dynamic> map) {
+    return CourseTeacher(
+      uid: map['uid'] ?? '',
+      name: map['name'] ?? '',
+      subject: map['subject'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': uid,
+      'name': name,
+      'subject': subject,
+    };
+  }
+}
+
 class AdminCourse {
   final String id;
   final String title;
@@ -23,7 +51,9 @@ class AdminCourse {
   final bool isActive;
   final String? duration;
   final String visibility; // draft, published, archived
+  final List<CourseTeacher> teachers; // NEW: Assigned teachers
   final DateTime createdAt;
+  final bool isCourseBatch;
 
   AdminCourse({
     required this.id,
@@ -47,7 +77,9 @@ class AdminCourse {
     this.isActive = true,
     this.duration,
     required this.visibility,
+    this.teachers = const [],
     required this.createdAt,
+    this.isCourseBatch = false,
   });
 
   factory AdminCourse.fromMap(Map<String, dynamic> data, String id) {
@@ -93,7 +125,12 @@ class AdminCourse {
       isActive: data['isActive'] ?? true,
       duration: data['duration'] as String?,
       visibility: data['visibility'] ?? 'draft',
+      teachers: (data['teachers'] as List<dynamic>?)
+              ?.map((x) => CourseTeacher.fromMap(Map<String, dynamic>.from(x)))
+              .toList() ??
+          [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      isCourseBatch: data['isCourseBatch'] as bool? ?? false,
     );
   }
 
@@ -119,10 +156,13 @@ class AdminCourse {
       'isActive': isActive,
       if (duration != null) 'duration': duration,
       'visibility': visibility,
+      'teachers': teachers.map((x) => x.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
+      'isCourseBatch': isCourseBatch,
     };
   }
+
 }
 
 
@@ -229,16 +269,39 @@ class AdminLecture {
   }
 }
 
+class TeacherSubject {
+  final String subjectName;
+  final List<String> courseIds;
+
+  TeacherSubject({required this.subjectName, required this.courseIds});
+
+  factory TeacherSubject.fromMap(Map<String, dynamic> map) {
+    return TeacherSubject(
+      subjectName: map['subjectName'] ?? '',
+      courseIds: List<String>.from(map['courseIds'] ?? []),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'subjectName': subjectName,
+      'courseIds': courseIds,
+    };
+  }
+}
+
 class AdminUser {
   final String uid;
   final String name;
   final String email;
   final String? phone;
-  final String role; // student, admin
+  final String role; // student, admin, teacher
   final bool disabled;
   final List<String> enrolledCourses;
   final List<String> purchasedTestSeries;
   final List<String> cart;
+  final bool isTeacher; // NEW: For admins who also teach
+  final List<TeacherSubject> teacherSubjects; // NEW: Subject assignments
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -252,6 +315,8 @@ class AdminUser {
     this.enrolledCourses = const [],
     this.purchasedTestSeries = const [],
     this.cart = const [],
+    this.isTeacher = false,
+    this.teacherSubjects = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -267,6 +332,11 @@ class AdminUser {
       enrolledCourses: List<String>.from(data['enrolledCourses'] ?? []),
       purchasedTestSeries: List<String>.from(data['purchasedTestSeries'] ?? []),
       cart: List<String>.from(data['cart'] ?? []),
+      isTeacher: data['isTeacher'] ?? false,
+      teacherSubjects: (data['teacherSubjects'] as List<dynamic>?)
+              ?.map((e) => TeacherSubject.fromMap(Map<String, dynamic>.from(e)))
+              .toList() ??
+          [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -283,6 +353,8 @@ class AdminUser {
       'enrolledCourses': enrolledCourses,
       'purchasedTestSeries': purchasedTestSeries,
       'cart': cart,
+      'isTeacher': isTeacher,
+      'teacherSubjects': teacherSubjects.map((e) => e.toMap()).toList(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
@@ -296,6 +368,8 @@ class AdminUser {
     List<String>? enrolledCourses,
     List<String>? purchasedTestSeries,
     List<String>? cart,
+    bool? isTeacher,
+    List<TeacherSubject>? teacherSubjects,
   }) {
     return AdminUser(
       uid: uid,
@@ -307,6 +381,8 @@ class AdminUser {
       enrolledCourses: enrolledCourses ?? this.enrolledCourses,
       purchasedTestSeries: purchasedTestSeries ?? this.purchasedTestSeries,
       cart: cart ?? this.cart,
+      isTeacher: isTeacher ?? this.isTeacher,
+      teacherSubjects: teacherSubjects ?? this.teacherSubjects,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -668,6 +744,8 @@ class AdminLiveClass {
   /// If this class is a linked copy, tracks where it is linked from.
   /// Format: { 'courseId': '...', 'originalId': '...', 'source': '...' }
   final Map<String, String>? linkedFrom;
+  final String? parentRuleId;
+  final String? generatedDateString;
 
   AdminLiveClass({
     required this.id,
@@ -685,6 +763,8 @@ class AdminLiveClass {
     this.lectureNo,
     this.linkedCourses = const [],
     this.linkedFrom,
+    this.parentRuleId,
+    this.generatedDateString,
   });
 
   factory AdminLiveClass.fromMap(Map<String, dynamic> data, String id) {
@@ -707,6 +787,8 @@ class AdminLiveClass {
       linkedFrom: data['linkedFrom'] != null
           ? Map<String, String>.from(data['linkedFrom'] as Map)
           : null,
+      parentRuleId: data['parentRuleId'] as String?,
+      generatedDateString: data['generatedDateString'] as String?,
     );
   }
 
@@ -727,7 +809,48 @@ class AdminLiveClass {
       'lectureNo': lectureNo,
       'linkedCourses': linkedCourses,
       'linkedFrom': linkedFrom,
+      'parentRuleId': parentRuleId,
+      'generatedDateString': generatedDateString,
     };
+  }
+
+  AdminLiveClass copyWith({
+    String? title,
+    String? description,
+    String? instructorName,
+    DateTime? startTime,
+    int? durationMinutes,
+    String? youtubeUrl,
+    String? thumbnailUrl,
+    String? status,
+    DateTime? createdAt,
+    String? subject,
+    String? chapter,
+    int? lectureNo,
+    List<String>? linkedCourses,
+    Map<String, String>? linkedFrom,
+    String? parentRuleId,
+    String? generatedDateString,
+  }) {
+    return AdminLiveClass(
+      id: id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      instructorName: instructorName ?? this.instructorName,
+      startTime: startTime ?? this.startTime,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      youtubeUrl: youtubeUrl ?? this.youtubeUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      subject: subject ?? this.subject,
+      chapter: chapter ?? this.chapter,
+      lectureNo: lectureNo ?? this.lectureNo,
+      linkedCourses: linkedCourses ?? this.linkedCourses,
+      linkedFrom: linkedFrom ?? this.linkedFrom,
+      parentRuleId: parentRuleId ?? this.parentRuleId,
+      generatedDateString: generatedDateString ?? this.generatedDateString,
+    );
   }
 }
 

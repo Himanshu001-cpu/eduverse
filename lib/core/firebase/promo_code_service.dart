@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 /// Model for a promo code stored in Firestore
 class PromoCode {
@@ -187,7 +188,7 @@ class PromoCartItem {
 
 /// Service to validate and apply promo codes from Firestore
 class PromoCodeService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  FirebaseFirestore get _firestore => EduverseFirebase.firestore;
 
   CollectionReference<Map<String, dynamic>> get _codesRef =>
       _firestore.collection('config').doc('promo_codes').collection('codes');

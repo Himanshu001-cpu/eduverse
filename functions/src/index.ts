@@ -67,8 +67,13 @@ export const onPurchaseCreate = functions.firestore
                     return;
                 }
 
+                // Deduplicate resolved courses to prevent double enrollment/seat-decrement
+                const uniqueCoursesToEnroll = coursesToEnroll.filter((c, index, self) =>
+                    self.findIndex(t => t.courseId === c.courseId) === index
+                );
+
                 // 2. Process each course enrollment and seat decrement
-                for (const target of coursesToEnroll) {
+                for (const target of uniqueCoursesToEnroll) {
                     const courseRef = db.collection("courses").doc(target.courseId);
                     const courseDoc = await t.get(courseRef);
 
@@ -164,7 +169,7 @@ export const setAdminRole = functions.https.onCall(async (data, context) => {
         );
     }
 
-    const { uid, role } = data;
+    const { uid, role, isTeacher } = data;
 
     if (!uid || typeof uid !== 'string') {
         throw new functions.https.HttpsError(
@@ -173,21 +178,61 @@ export const setAdminRole = functions.https.onCall(async (data, context) => {
         );
     }
 
-    const validRoles = ['superadmin', 'admin', 'content_manager', 'support', 'user', 'student'];
-    if (!role || !validRoles.includes(role)) {
-        throw new functions.https.HttpsError(
-            'invalid-argument',
-            `Role must be one of: ${validRoles.join(', ')}`
-        );
+    let currentClaims: any = {};
+    try {
+        const userRecord = await admin.auth().getUser(uid);
+        currentClaims = userRecord.customClaims || {};
+    } catch (e) {
+        console.error('Error fetching user record:', e);
+    }
+
+    const currentRole = currentClaims.role || 'student';
+    const currentIsTeacher = currentClaims.isTeacher || (currentRole === 'teacher');
+
+    let targetRole = (role !== undefined && role !== null) ? role : currentRole;
+    let targetIsTeacher = (isTeacher !== undefined && isTeacher !== null) ? isTeacher : currentIsTeacher;
+
+    if (role !== undefined && role !== null) {
+        const validRoles = ['superadmin', 'admin', 'content_manager', 'support', 'teacher', 'user', 'student'];
+        if (!validRoles.includes(role)) {
+            throw new functions.https.HttpsError(
+                'invalid-argument',
+                `Role must be one of: ${validRoles.join(', ')}`
+            );
+        }
+    }
+
+    // Role-specific logic
+    if (role === 'teacher') {
+        if (currentRole === 'admin' || currentRole === 'superadmin') {
+            targetRole = currentRole;
+            targetIsTeacher = true;
+        } else {
+            targetRole = 'teacher';
+            targetIsTeacher = true;
+        }
+    } else if (role === 'student') {
+        targetRole = 'student';
+        targetIsTeacher = false;
+    }
+
+    if (targetIsTeacher === true && targetRole === 'student') {
+        targetRole = 'teacher';
+    }
+    if (targetIsTeacher === false && targetRole === 'teacher') {
+        targetRole = 'student';
+    }
+    if (targetRole === 'teacher') {
+        targetIsTeacher = true;
     }
 
     try {
         // Set custom claims on the user
-        await admin.auth().setCustomUserClaims(uid, { role });
+        await admin.auth().setCustomUserClaims(uid, { role: targetRole, isTeacher: targetIsTeacher });
 
         // Also update the users collection for app-level checks
         await db.collection('users').doc(uid).set(
-            { role, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+            { role: targetRole, isTeacher: targetIsTeacher, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
             { merge: true }
         );
 
@@ -198,13 +243,13 @@ export const setAdminRole = functions.https.onCall(async (data, context) => {
             entityId: uid,
             performedBy: context.auth?.uid || 'system',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            details: { newRole: role }
+            details: { newRole: targetRole, isTeacher: targetIsTeacher }
         });
 
-        console.log(`Successfully set role '${role}' for user ${uid}`);
+        console.log(`Successfully set role '${targetRole}' and isTeacher '${targetIsTeacher}' for user ${uid}`);
         return {
             success: true,
-            message: `Role '${role}' assigned to user ${uid}. User must re-login for changes to take effect.`
+            message: `Role '${targetRole}' (isTeacher: ${targetIsTeacher}) assigned to user ${uid}. User must re-login for changes to take effect.`
         };
     } catch (error) {
         console.error('Error setting admin role:', error);
@@ -311,7 +356,7 @@ export const onNotificationCreate = functions.firestore
     .document("notifications/{notificationId}")
     .onCreate(async (snap, context) => {
         const notification = snap.data();
-        const { title, body, batchId, courseId, targetType, targetId, imageUrl } = notification;
+        const { title, body, courseId, targetType, targetId, imageUrl } = notification;
 
         const messaging = admin.messaging();
 

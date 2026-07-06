@@ -1,7 +1,7 @@
 // file: lib/feed/screens/quiz_result_page.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/screens/quiz_page.dart';
 import 'package:eduverse/core/firebase/quiz_stats_service.dart';
@@ -120,6 +120,10 @@ class _QuizResultPageState extends State<QuizResultPage> {
       correctAnswers: widget.correctCount,
       completed: true,
       source: 'feed',
+      wrongAnswers: _wrongCount,
+      unattemptedCount: _unattemptedCount,
+      percentage: _percentage,
+      categoryLabel: widget.item.categoryLabel.isNotEmpty ? widget.item.categoryLabel : 'Feed',
     );
 
     // If this is a test series quiz, also save to test_attempts subcollection
@@ -130,11 +134,11 @@ class _QuizResultPageState extends State<QuizResultPage> {
   }
 
   Future<void> _saveTestSeriesAttempt() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = EduverseFirebase.auth.currentUser?.uid;
     if (uid == null) return;
 
     try {
-      await FirebaseFirestore.instance
+      await EduverseFirebase.firestore
           .collection('users')
           .doc(uid)
           .collection('test_attempts')

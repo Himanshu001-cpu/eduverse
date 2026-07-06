@@ -7,6 +7,9 @@ import 'package:eduverse/core/services/deep_link_screens.dart';
 import 'auth/auth_wrapper.dart';
 import 'package:eduverse/settings/delete_account_page.dart';
 import 'package:eduverse/web/landing/landing_page.dart';
+import 'package:eduverse/profile/screens/performance_dashboard_page.dart';
+
+import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
   // Use path URLs (no /#/) for web deep linking
@@ -15,6 +18,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await FirebaseInitializer.init();
+
+    // Initialize Hive for Flutter
+    await Hive.initFlutter();
+    await Hive.openBox<Map>('lecture_progress');
 
     // Initialize push notifications (non-blocking)
     NotificationService().initialize().catchError((e) {
@@ -157,6 +164,7 @@ class _LearningAppState extends State<LearningApp> {
       routes: {
         '/delete-account': (context) => const DeleteAccountPage(),
         '/landing': (context) => const LandingPage(),
+        '/performance_dashboard': (context) => const PerformanceDashboardPage(),
       },
       home: const AuthWrapper(),
     );

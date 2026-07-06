@@ -7,13 +7,6 @@
         { "fieldPath": "isActive", "order": "ASCENDING" },
         { "fieldPath": "startDate", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "live_classes",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "startTime", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []

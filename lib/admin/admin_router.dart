@@ -16,6 +16,11 @@ import 'screens/settings_screen.dart';
 import 'screens/user_detail_screen.dart';
 import 'models/admin_models.dart';
 import 'package:eduverse/feed/models.dart';
+import 'screens/exam_management_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:eduverse/study/presentation/providers/study_controller.dart';
+import 'package:eduverse/study/data/repositories/study_repository_impl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'screens/batch_notes_screen.dart';
 import 'screens/batch_planner_screen.dart';
@@ -31,6 +36,9 @@ import 'screens/test_series_test_editor_screen.dart';
 import 'models/test_series_models.dart';
 import 'screens/notification_list_screen.dart';
 import 'screens/notification_editor_screen.dart';
+import 'screens/communities_list_screen.dart';
+import 'screens/course_schedule_dashboard.dart';
+import 'screens/course_schedule_rules_screen.dart';
 
 class AdminRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -172,7 +180,9 @@ class AdminRouter {
           ),
         );
       case '/live_class_editor':
-        final args = settings.arguments as Map<String, dynamic>?;
+        final args = settings.arguments is Map
+            ? Map<String, dynamic>.from(settings.arguments as Map)
+            : null;
         // Handle both old (direct object) and new (map) argument formats for backward compatibility if needed,
         // though we are switching to map.
         if (args != null && args.containsKey('item')) {
@@ -237,6 +247,37 @@ class AdminRouter {
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => const NotificationEditorScreen(),
+        );
+      case '/communities':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const CommunitiesListScreen(),
+        );
+      case '/exams':
+        final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => ChangeNotifierProvider<StudyController>(
+            create: (_) => StudyController(
+              repository: StudyRepositoryImpl(),
+              userId: userId,
+            ),
+            child: const ExamManagementScreen(),
+          ),
+        );
+      case '/course_schedule_dashboard':
+        final args = settings.arguments;
+        final String courseId = args is Map ? args['courseId'] : args as String;
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => CourseScheduleDashboard(courseId: courseId),
+        );
+      case '/course_schedule_rules':
+        final args = settings.arguments;
+        final String courseId = args is Map ? args['courseId'] : args as String;
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => CourseScheduleRulesScreen(courseId: courseId),
         );
       default:
         return MaterialPageRoute(

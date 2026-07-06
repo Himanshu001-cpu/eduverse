@@ -63,6 +63,8 @@ class StudyBatch {
   final int completedLectures;
   final double progress; // 0.0 to 1.0
   final bool isCourseBatch;
+  final bool isCombo;
+  final List<String>? courseIds;
 
   const StudyBatch({
     required this.id,
@@ -77,6 +79,8 @@ class StudyBatch {
     this.completedLectures = 0,
     this.progress = 0.0,
     this.isCourseBatch = false,
+    this.isCombo = false,
+    this.courseIds,
   });
 
   StudyBatch copyWith({
@@ -92,6 +96,8 @@ class StudyBatch {
     int? completedLectures,
     double? progress,
     bool? isCourseBatch,
+    bool? isCombo,
+    List<String>? courseIds,
   }) {
     return StudyBatch(
       id: id ?? this.id,
@@ -106,6 +112,8 @@ class StudyBatch {
       completedLectures: completedLectures ?? this.completedLectures,
       progress: progress ?? this.progress,
       isCourseBatch: isCourseBatch ?? this.isCourseBatch,
+      isCombo: isCombo ?? this.isCombo,
+      courseIds: courseIds ?? this.courseIds,
     );
   }
 }
@@ -284,6 +292,10 @@ class StudyLiveClass {
   final String thumbnailUrl;
   final String subject;
   final String chapter;
+  final String? courseId;
+  final String? batchId;
+  final String? parentRuleId;
+  final String? generatedDateString;
 
   const StudyLiveClass({
     required this.id,
@@ -297,7 +309,47 @@ class StudyLiveClass {
     this.thumbnailUrl = '',
     this.subject = '',
     this.chapter = '',
+    this.courseId,
+    this.batchId,
+    this.parentRuleId,
+    this.generatedDateString,
   });
+
+  StudyLiveClass copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? instructorName,
+    DateTime? startTime,
+    int? durationMinutes,
+    String? status,
+    String? youtubeUrl,
+    String? thumbnailUrl,
+    String? subject,
+    String? chapter,
+    String? courseId,
+    String? batchId,
+    String? parentRuleId,
+    String? generatedDateString,
+  }) {
+    return StudyLiveClass(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      instructorName: instructorName ?? this.instructorName,
+      startTime: startTime ?? this.startTime,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      status: status ?? this.status,
+      youtubeUrl: youtubeUrl ?? this.youtubeUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      subject: subject ?? this.subject,
+      chapter: chapter ?? this.chapter,
+      courseId: courseId ?? this.courseId,
+      batchId: batchId ?? this.batchId,
+      parentRuleId: parentRuleId ?? this.parentRuleId,
+      generatedDateString: generatedDateString ?? this.generatedDateString,
+    );
+  }
 
   bool get isUpcoming => status == 'upcoming' && startTime.isAfter(DateTime.now());
   bool get isLive => status == 'live';

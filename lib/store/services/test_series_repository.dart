@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:eduverse/study/domain/models/test_series_entities.dart';
 
 /// Student-side repository for fetching test series data.
 class TestSeriesRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = EduverseFirebase.firestore;
 
   CollectionReference get _collection => _firestore.collection('test_series');
 

@@ -153,14 +153,33 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                   'Subjects',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddSubjectDialog(context, service),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Subject'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (FolderClipboard.hasData && FolderClipboard.isSubjectOnly) ...[
+                      ElevatedButton.icon(
+                        onPressed: () => _handlePasteSubject(context, service, lectures, notes, dpps),
+                        icon: const Icon(Icons.content_paste, size: 16),
+                        label: const Text('Paste Subject', style: TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    ElevatedButton.icon(
+                      onPressed: () => _showAddSubjectDialog(context, service),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Subject'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -211,23 +230,74 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  CircleAvatar(
-                                    backgroundColor: Colors.indigo.shade100,
-                                    child: Icon(Icons.folder, color: Colors.indigo.shade800),
-                                  ),
-                                  const SizedBox(width: 12),
                                   Expanded(
-                                    child: Text(
-                                      subject,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.indigo.shade900,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundColor: Colors.indigo.shade100,
+                                          child: Icon(Icons.folder, color: Colors.indigo.shade800),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            subject,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.indigo.shade900,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                  ),
+                                  PopupMenuButton<String>(
+                                    icon: Icon(Icons.more_vert, size: 16, color: Colors.grey.shade600),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onSelected: (val) {
+                                      if (val == 'copy') {
+                                        FolderClipboard.copy(
+                                          courseId: widget.courseId,
+                                          subject: subject,
+                                          folderPath: '',
+                                          folderName: '',
+                                          isSubject: true,
+                                        );
+                                        setState(() {});
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Subject "$subject" copied to clipboard.')),
+                                        );
+                                      } else if (val == 'delete') {
+                                        _showDeleteSubjectDialog(context, service, subject, lectures, notes, dpps);
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      const PopupMenuItem(
+                                        value: 'copy',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.copy, size: 14),
+                                            SizedBox(width: 8),
+                                            Text('Copy Subject', style: TextStyle(fontSize: 13)),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'delete',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.delete, color: Colors.red, size: 14),
+                                            SizedBox(width: 8),
+                                            Text('Delete Subject', style: TextStyle(color: Colors.red, fontSize: 13)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -437,9 +507,23 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                   ),
                 );
 
-                 final actionsWidget = Row(
+                  final actionsWidget = Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (FolderClipboard.hasData) ...[
+                      ElevatedButton.icon(
+                        onPressed: () => _handlePaste(context, service, lectures, notes, dpps),
+                        icon: const Icon(Icons.content_paste, size: 16),
+                        label: const Text('Paste Folder', style: TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     ElevatedButton.icon(
                       onPressed: () => _showAddFolderDialog(context, service),
                       icon: const Icon(Icons.create_new_folder, size: 16),
@@ -593,10 +677,38 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                                           if (val == 'rename') {
                                             _showRenameFolderDialog(context, service, folderName);
                                           } else if (val == 'delete') {
-                                            _showDeleteFolderDialog(context, service, folderName);
+                                            _showDeleteFolderDialog(
+                                              context,
+                                              service,
+                                              folderName,
+                                              lectures: lectures,
+                                              notes: notes,
+                                              dpps: dpps,
+                                            );
+                                          } else if (val == 'copy') {
+                                            FolderClipboard.copy(
+                                              courseId: widget.courseId,
+                                              subject: _selectedSubject!,
+                                              folderPath: currentFullPath,
+                                              folderName: folderName,
+                                            );
+                                            setState(() {});
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Folder "$folderName" copied to clipboard.')),
+                                            );
                                           }
                                         },
                                         itemBuilder: (context) => [
+                                          const PopupMenuItem(
+                                            value: 'copy',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.copy, size: 14),
+                                                SizedBox(width: 8),
+                                                Text('Copy', style: TextStyle(fontSize: 13)),
+                                              ],
+                                            ),
+                                          ),
                                           const PopupMenuItem(
                                             value: 'rename',
                                             child: Row(
@@ -1066,13 +1178,33 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     );
   }
 
-  void _showDeleteFolderDialog(BuildContext context, FirebaseAdminService service, String folderName) {
+  void _showDeleteFolderDialog(
+    BuildContext context,
+    FirebaseAdminService service,
+    String folderName, {
+    required List<AdminLecture> lectures,
+    required List<AdminNote> notes,
+    required List<AdminDpp> dpps,
+  }) {
+    final currentFullPath = _currentPath.join('/');
+    final targetPath = currentFullPath.isEmpty ? folderName : '$currentFullPath/$folderName';
+
+    // Count contents under targetPath recursively
+    final rLecCount = lectures.where((l) => l.subject == _selectedSubject && l.type != 'folder' && (l.chapter == targetPath || l.chapter.startsWith('$targetPath/'))).length;
+    final rNoteCount = notes.where((n) => n.subject == _selectedSubject && (n.chapter == targetPath || n.chapter.startsWith('$targetPath/'))).length;
+    final rDppCount = dpps.where((d) => d.subject == _selectedSubject && (d.chapter == targetPath || d.chapter.startsWith('$targetPath/'))).length;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Folder Recursively?'),
         content: Text(
-          'Are you sure you want to delete "$folderName" and ALL its nested contents (Lectures, Notes, and DPPs)?\n\nThis action is permanent and cannot be undone.',
+          'Are you sure you want to delete "$folderName" and ALL its nested contents?\n\n'
+          'This includes:\n'
+          '• $rLecCount Lecture(s)\n'
+          '• $rNoteCount Note(s)\n'
+          '• $rDppCount DPP(s)\n\n'
+          'This action is permanent and cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -1082,9 +1214,6 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              final currentFullPath = _currentPath.join('/');
-              final targetPath = currentFullPath.isEmpty ? folderName : '$currentFullPath/$folderName';
-
               await service.recursivelyDeleteFolder(
                 courseId: widget.courseId,
                 subject: _selectedSubject!,
@@ -1097,6 +1226,288 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
         ],
       ),
     );
+  }
+
+  void _showDeleteSubjectDialog(
+    BuildContext context,
+    FirebaseAdminService service,
+    String subject,
+    List<AdminLecture> lectures,
+    List<AdminNote> notes,
+    List<AdminDpp> dpps,
+  ) {
+    // Count contents under this subject
+    final rLecCount = lectures.where((l) => l.subject == subject && l.type != 'folder').length;
+    final rNoteCount = notes.where((n) => n.subject == subject).length;
+    final rDppCount = dpps.where((d) => d.subject == subject).length;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Subject?'),
+        content: Text(
+          'Are you sure you want to delete "$subject" and ALL its nested contents?\n\n'
+          'This includes:\n'
+          '• $rLecCount Lecture(s)\n'
+          '• $rNoteCount Note(s)\n'
+          '• $rDppCount DPP(s)\n\n'
+          'This action is permanent and cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await service.deleteSubjectRecursive(
+                courseId: widget.courseId,
+                subject: subject,
+              );
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Delete All', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handlePaste(
+    BuildContext context,
+    FirebaseAdminService service,
+    List<AdminLecture> lectures,
+    List<AdminNote> notes,
+    List<AdminDpp> dpps,
+  ) async {
+    if (!FolderClipboard.hasData) return;
+
+    final String sourceCourseId = FolderClipboard.sourceCourseId!;
+    final String sourceSubject = FolderClipboard.sourceSubject!;
+    final String sourceFolderPath = FolderClipboard.sourceFolderPath!;
+    final String sourceFolderName = FolderClipboard.sourceFolderName!;
+
+    final currentFullPath = _currentPath.join('/');
+
+    // Check collision against direct subfolders
+    final Set<String> directSubfolders = {};
+    void checkPath(String ch) {
+      if (ch.isEmpty) return;
+      if (currentFullPath.isEmpty) {
+        final parts = ch.split('/');
+        if (parts.isNotEmpty) directSubfolders.add(parts[0]);
+      } else {
+        final prefix = '$currentFullPath/';
+        if (ch.startsWith(prefix)) {
+          final remainder = ch.substring(prefix.length);
+          final parts = remainder.split('/');
+          if (parts.isNotEmpty) directSubfolders.add(parts[0]);
+        }
+      }
+    }
+
+    for (final l in lectures) {
+      if (l.subject == _selectedSubject && l.type == 'folder') {
+        checkPath(l.chapter.isEmpty ? l.title : '${l.chapter}/${l.title}');
+      }
+    }
+    for (final l in lectures) {
+      if (l.subject == _selectedSubject && l.type != 'folder') checkPath(l.chapter);
+    }
+    for (final n in notes) {
+      if (n.subject == _selectedSubject) checkPath(n.chapter);
+    }
+    for (final d in dpps) {
+      if (d.subject == _selectedSubject) checkPath(d.chapter);
+    }
+
+    String targetName = sourceFolderName;
+    bool hasCollision = directSubfolders.contains(sourceFolderName);
+
+    if (hasCollision) {
+      // Show confirmation/warning dialog
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Folder Conflict'),
+          content: Text(
+            'A folder named "$sourceFolderName" already exists in this location. '
+            'Would you like to paste it and auto-rename it?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Rename & Paste'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+
+      // Auto rename
+      int count = 1;
+      targetName = '$sourceFolderName (Copy)';
+      while (directSubfolders.contains(targetName)) {
+        count++;
+        targetName = '$sourceFolderName (Copy) $count';
+      }
+    }
+
+    // Perform paste
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pasting folder, please wait...')),
+    );
+
+    try {
+      await service.pasteFolder(
+        sourceCourseId: sourceCourseId,
+        sourceSubject: sourceSubject,
+        sourceFolderPath: sourceFolderPath,
+        sourceFolderName: sourceFolderName,
+        targetCourseId: widget.courseId,
+        targetSubject: _selectedSubject!,
+        targetFolderPath: currentFullPath,
+        targetFolderName: targetName,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Successfully pasted folder to "$targetName"')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to paste folder: $e')),
+        );
+      }
+    }
+  }
+
+  void _handlePasteSubject(
+    BuildContext context,
+    FirebaseAdminService service,
+    List<AdminLecture> lectures,
+    List<AdminNote> notes,
+    List<AdminDpp> dpps,
+  ) async {
+    if (!FolderClipboard.hasData || !FolderClipboard.isSubjectOnly) return;
+
+    final String sourceCourseId = FolderClipboard.sourceCourseId!;
+    final String sourceSubject = FolderClipboard.sourceSubject!;
+
+    // Prompt for new subject name
+    final controller = TextEditingController(text: '$sourceSubject Copy');
+    final targetSubjectName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Paste Subject'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Enter the name for the pasted subject:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Subject Name',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                Navigator.pop(context, name);
+              }
+            },
+            child: const Text('Paste'),
+          ),
+        ],
+      ),
+    );
+
+    if (targetSubjectName == null || targetSubjectName.isEmpty) return;
+
+    // Check conflict (if a subject with this name already exists in current list)
+    final Set<String> currentSubjects = {};
+    for (final l in lectures) {
+      if (l.subject.isNotEmpty && l.type != 'folder') currentSubjects.add(l.subject);
+    }
+    for (final n in notes) {
+      if (n.subject.isNotEmpty) currentSubjects.add(n.subject);
+    }
+    for (final d in dpps) {
+      if (d.subject.isNotEmpty) currentSubjects.add(d.subject);
+    }
+
+    if (currentSubjects.contains(targetSubjectName)) {
+      final merge = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Subject Conflict'),
+          content: Text(
+            'A subject named "$targetSubjectName" already exists. '
+            'Pasting will merge the contents into the existing subject. Proceed?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Merge'),
+            ),
+          ],
+        ),
+      );
+      if (merge != true) return;
+    }
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pasting subject, please wait...')),
+    );
+
+    try {
+      await service.pasteSubject(
+        sourceCourseId: sourceCourseId,
+        sourceSubject: sourceSubject,
+        targetCourseId: widget.courseId,
+        targetSubject: targetSubjectName,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Successfully pasted subject to "$targetSubjectName"')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to paste subject: $e')),
+        );
+      }
+    }
   }
 
   // ================= GENERAL RESOURCE CREATION / EDIT DIALOG =================

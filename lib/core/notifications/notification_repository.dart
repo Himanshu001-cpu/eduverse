@@ -35,7 +35,7 @@ class NotificationRepository {
       
       final enrolledCourses = List<String>.from(
         userDoc.data()?['enrolledCourses'] ?? [],
-      );
+      ).map((e) => e.contains('_') ? e.split('_')[0] : e).toSet();
       
       // Get user's read notifications
       final readNotifications = List<String>.from(
@@ -50,21 +50,22 @@ class NotificationRepository {
 
         // Include if:
         // 1. Global notification
-        // 2. Course-specific and user is enrolled
+        // 2. Course-specific/batch-specific and user is enrolled
         if (notification.isGlobal) {
           notifications.add(UserNotification(
             notification: notification,
             isRead: readNotifications.contains(notification.id),
           ));
-        } else if (notification.courseId != null) {
-          // Check if user is enrolled in this course
-          final isEnrolled = enrolledCourses.contains(notification.courseId!);
-          
-          if (isEnrolled) {
-            notifications.add(UserNotification(
-              notification: notification,
-              isRead: readNotifications.contains(notification.id),
-            ));
+        } else {
+          final targetId = notification.courseId ?? (notification.batchId != null && notification.batchId!.contains('_') ? notification.batchId!.split('_')[0] : notification.batchId);
+          if (targetId != null && targetId.isNotEmpty) {
+            final isEnrolled = enrolledCourses.contains(targetId);
+            if (isEnrolled) {
+              notifications.add(UserNotification(
+                notification: notification,
+                isRead: readNotifications.contains(notification.id),
+              ));
+            }
           }
         }
       }

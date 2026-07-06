@@ -5,10 +5,10 @@ import 'package:chewie/chewie.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:eduverse/core/utils/youtube_utils.dart';
 import 'package:eduverse/common/widgets/cross_platform_youtube_player.dart';
 import 'package:eduverse/common/widgets/video_skip_overlay.dart';
+import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 
 class LecturePlayerPage extends StatefulWidget {
   final String videoUrl;
@@ -469,16 +469,14 @@ class _LecturePlayerPageState extends State<LecturePlayerPage> {
                   onPressed: () async {
                     final url = note['pdfUrl'] as String?;
                     if (url != null && url.isNotEmpty) {
-                      final uri = Uri.parse(url);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri);
-                      } else {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Could not open PDF')),
-                          );
-                        }
-                      }
+                      await PdfNavigationManager.navigateToViewer(
+                        context,
+                        SecurePdfViewerArgs(
+                          pdfUrl: url,
+                          title: note['title'] ?? 'Untitled Note',
+                          isProtected: false,
+                        ),
+                      );
                     }
                   },
                 ),

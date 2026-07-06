@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:eduverse/store/models/store_models.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 class StoreRepository {
   // Singleton pattern
@@ -9,7 +9,7 @@ class StoreRepository {
   factory StoreRepository() => _instance;
   StoreRepository._internal();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  FirebaseFirestore get _firestore => EduverseFirebase.firestore;
 
   Stream<List<CombinationPack>>? _comboPacksStream;
 
@@ -26,7 +26,7 @@ class StoreRepository {
     return _coursesRef.where('visibility', isEqualTo: 'published').snapshots().asyncMap((
       snapshot,
     ) async {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = EduverseFirebase.auth.currentUser;
       final List<String> enrolledCourseIds = [];
       if (user != null) {
         try {
@@ -134,7 +134,7 @@ class StoreRepository {
         .where('isActive', isEqualTo: true)
         .snapshots()
         .asyncMap((snapshot) async {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = EduverseFirebase.auth.currentUser;
       final List<String> purchasedEbookIds = [];
       if (user != null) {
         try {

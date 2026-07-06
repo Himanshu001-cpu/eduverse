@@ -2,11 +2,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/admin_scaffold.dart';
 import '../services/firebase_admin_service.dart';
 import '../models/admin_models.dart';
 import '../services/test_series_service.dart';
 import '../models/test_series_models.dart';
+import '../widgets/student_performance_tab.dart';
+
 
 class UserDetailScreen extends StatefulWidget {
   final String userId;
@@ -32,13 +36,24 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   String? _selectedTestSeriesId;
   bool _isEnrollingTS = false;
 
+  // Current logged in admin info (for teacher scoping check)
+  String? _currentAdminRole;
+  List<TeacherSubject> _currentAdminTeacherSubjects = [];
+  bool _isLoadingAdminInfo = true;
+
   // Stream subscriptions
   StreamSubscription? _coursesSub;
   StreamSubscription? _testSeriesSub;
 
+  // For teacher subjects assignment
+  final TextEditingController _subjectController = TextEditingController();
+  String? _assignCourseId;
+  bool _isAssigning = false;
+
   @override
   void initState() {
     super.initState();
+    _loadAdminInfo();
     _loadUser();
     _loadCourses();
     _loadTestSeries();
@@ -48,6 +63,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   void dispose() {
     _coursesSub?.cancel();
     _testSeriesSub?.cancel();
+    _subjectController.dispose();
     super.dispose();
   }
 
@@ -66,6 +82,33 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         setState(() {
           _error = e.toString();
           _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadAdminInfo() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && mounted) {
+          final data = doc.data()!;
+          setState(() {
+            _currentAdminRole = data['role'] ?? 'student';
+            final subjectsRaw = data['teacherSubjects'] as List<dynamic>?;
+            _currentAdminTeacherSubjects = subjectsRaw
+                ?.map((e) => TeacherSubject.fromMap(Map<String, dynamic>.from(e)))
+                .toList() ?? [];
+            _isLoadingAdminInfo = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading admin info: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingAdminInfo = false;
         });
       }
     }
@@ -97,14 +140,38 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = _currentAdminRole == 'admin' || _currentAdminRole == 'superadmin';
+    final isTeacher = _currentAdminRole == 'teacher';
+
+    bool showPerformanceTab = false;
+    if (_user != null) {
+      if (isAdmin) {
+        showPerformanceTab = true;
+      } else if (isTeacher) {
+        final teacherCourseIds = _currentAdminTeacherSubjects.expand((ts) => ts.courseIds).toSet();
+        final studentCourseIds = _user!.enrolledCourses.toSet();
+        showPerformanceTab = teacherCourseIds.intersection(studentCourseIds).isNotEmpty;
+      }
+    }
+
+    if (showPerformanceTab) {
+      return DefaultTabController(
+        length: 2,
+        child: AdminScaffold(
+          title: 'User Details',
+          body: _buildBody(showPerformance: true),
+        ),
+      );
+    }
+
     return AdminScaffold(
       title: 'User Details',
-      body: _buildBody(),
+      body: _buildBody(showPerformance: false),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
+  Widget _buildBody({required bool showPerformance}) {
+    if (_isLoading || _isLoadingAdminInfo) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -116,70 +183,110 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       return const Center(child: Text('User not found'));
     }
 
-    // Responsive layout
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 900;
-        
-        if (isWide) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left column - User profile
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    children: [
-                      _buildProfileCard(),
-                      const SizedBox(height: 24),
-                      _buildEnrolledCoursesCard(),
-                      const SizedBox(height: 24),
-                      _buildEnrolledTestSeriesCard(),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 24),
-                // Right column - Actions and enrollment
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    children: [
-                      _buildActionsCard(),
-                      const SizedBox(height: 24),
-                      _buildManualEnrollmentCard(),
-                      const SizedBox(height: 24),
-                      _buildManualTSEnrollmentCard(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          // Mobile/Tablet layout - Single Column
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildProfileCard(),
-                const SizedBox(height: 16),
-                _buildActionsCard(),
-                const SizedBox(height: 16),
-                _buildEnrolledCoursesCard(),
-                const SizedBox(height: 16),
-                _buildManualEnrollmentCard(),
-                const SizedBox(height: 16),
-                _buildEnrolledTestSeriesCard(),
-                const SizedBox(height: 16),
-                _buildManualTSEnrollmentCard(),
-              ],
-            ),
-          );
+        if (!showPerformance) {
+          return _buildProfileContent(constraints);
         }
+
+        return Column(
+          children: [
+            TabBar(
+              labelColor: Theme.of(context).primaryColor,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: Theme.of(context).primaryColor,
+              tabs: const [
+                Tab(icon: Icon(Icons.person), text: 'Profile'),
+                Tab(icon: Icon(Icons.analytics), text: 'Performance'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildProfileContent(constraints),
+                  StudentPerformanceTab(
+                    userId: widget.userId,
+                    purchasedTestSeriesIds: _user!.purchasedTestSeries,
+                    allTestSeries: _allTestSeries,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
       },
     );
+  }
+
+  Widget _buildProfileContent(BoxConstraints constraints) {
+    final isWide = constraints.maxWidth > 900;
+    final isTeacherUser = _user!.role == 'teacher' || _user!.isTeacher;
+
+    if (isWide) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left column - User profile
+            Expanded(
+              flex: 2,
+              child: Column(
+                children: [
+                  _buildProfileCard(),
+                  if (isTeacherUser || _user!.role == 'admin' || _user!.role == 'superadmin') ...[
+                    const SizedBox(height: 24),
+                    _buildTeacherProfileCard(),
+                  ],
+                  const SizedBox(height: 24),
+                  _buildEnrolledCoursesCard(),
+                  const SizedBox(height: 24),
+                  _buildEnrolledTestSeriesCard(),
+                ],
+              ),
+            ),
+            const SizedBox(width: 24),
+            // Right column - Actions and enrollment
+            Expanded(
+              flex: 1,
+              child: Column(
+                children: [
+                  _buildActionsCard(),
+                  const SizedBox(height: 24),
+                  _buildManualEnrollmentCard(),
+                  const SizedBox(height: 24),
+                  _buildManualTSEnrollmentCard(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Mobile/Tablet layout - Single Column
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildProfileCard(),
+            const SizedBox(height: 16),
+            _buildActionsCard(),
+            if (isTeacherUser || _user!.role == 'admin' || _user!.role == 'superadmin') ...[
+              const SizedBox(height: 16),
+              _buildTeacherProfileCard(),
+            ],
+            const SizedBox(height: 16),
+            _buildEnrolledCoursesCard(),
+            const SizedBox(height: 16),
+            _buildManualEnrollmentCard(),
+            const SizedBox(height: 16),
+            _buildEnrolledTestSeriesCard(),
+            const SizedBox(height: 16),
+            _buildManualTSEnrollmentCard(),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildErrorState() {
@@ -245,6 +352,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                         runSpacing: 4,
                         children: [
                           _buildRoleChip(_user!.role),
+                          if (_user!.isTeacher && _user!.role != 'teacher')
+                            _buildRoleChip('teacher'),
                           _buildStatusChip(_user!.disabled),
                         ],
                       ),
@@ -406,14 +515,16 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const Text('Role', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _user!.role,
+              initialValue: (_user!.role == 'superadmin') ? 'admin' : _user!.role,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
-              items: const [
-                DropdownMenuItem(value: 'student', child: Text('Student')),
-                DropdownMenuItem(value: 'admin', child: Text('Admin')),
+              items: [
+                const DropdownMenuItem(value: 'student', child: Text('Student')),
+                const DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                if (_user!.role != 'admin' && _user!.role != 'superadmin')
+                  const DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
               ],
               onChanged: (value) async {
                 if (value != null && value != _user!.role) {
@@ -467,7 +578,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const Text('Select Course', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedCourseId,
+              initialValue: _selectedCourseId,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: 'Choose a course...',
@@ -602,7 +713,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const Text('Select Test Series', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedTestSeriesId,
+              initialValue: _selectedTestSeriesId,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: 'Choose a test series...',
@@ -649,7 +760,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Color _getRoleColor(String role) {
     switch (role) {
       case 'admin':
+      case 'superadmin':
         return Colors.purple;
+      case 'teacher':
+        return Colors.teal;
       case 'student':
         return Colors.blue;
       default:
@@ -899,7 +1013,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('User unenrolled from test series successfully'),
+            content: Text('User unenrolled from test series successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -911,5 +1025,267 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         );
       }
     }
+  }
+
+  Widget _buildTeacherProfileCard() {
+    final isTeacherUser = _user!.role == 'teacher' || _user!.isTeacher;
+    final adminService = context.read<FirebaseAdminService>();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.school, size: 24, color: Colors.teal),
+                SizedBox(width: 8),
+                Text(
+                  'Teacher Profile',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            
+            if (_user!.role == 'admin' || _user!.role == 'superadmin') ...[
+              SwitchListTile(
+                title: const Text('Mark as Teacher'),
+                subtitle: const Text('Allow this admin to teach and manage communities'),
+                value: _user!.isTeacher,
+                activeThumbColor: Colors.teal,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (val) async {
+                  try {
+                    await adminService.setTeacherFlag(_user!.uid, val);
+                    await _loadUser();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(val ? 'Marked as teacher' : 'Removed teacher flag')),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                      );
+                    }
+                  }
+                },
+              ),
+              const Divider(height: 24),
+            ],
+
+            if (isTeacherUser) ...[
+              const Text(
+                'Assigned Subjects & Courses',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              const SizedBox(height: 12),
+              if (_user!.teacherSubjects.isEmpty)
+                Text(
+                  'Not assigned to any courses or subjects yet.',
+                  style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _user!.teacherSubjects.length,
+                  separatorBuilder: (context, index) => const Divider(height: 16),
+                  itemBuilder: (context, index) {
+                    final ts = _user!.teacherSubjects[index];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                ts.subjectName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.teal,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: ts.courseIds.map((courseId) {
+                            final courseTitle = _courses.firstWhere(
+                              (c) => c.id == courseId,
+                              orElse: () => AdminCourse(
+                                id: courseId,
+                                title: courseId,
+                                slug: '',
+                                subtitle: '',
+                                description: '',
+                                tags: [],
+                                language: 'en',
+                                level: 'beginner',
+                                thumbnailUrl: '',
+                                gradientColors: [],
+                                visibility: 'draft',
+                                createdAt: DateTime.now(),
+                              ),
+                            ).title;
+                            return Chip(
+                              label: Text(courseTitle),
+                              onDeleted: () async {
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Remove Assignment'),
+                                    content: Text('Are you sure you want to remove this teacher from "$courseTitle" for subject "${ts.subjectName}"?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                        child: const Text('Remove'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirmed == true) {
+                                  try {
+                                    await adminService.removeTeacherFromCourse(
+                                      courseId,
+                                      _user!.uid,
+                                      ts.subjectName,
+                                    );
+                                    await _loadUser();
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Assignment removed successfully')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              const Divider(height: 24),
+              _buildAddAssignmentForm(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddAssignmentForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Assign new Course & Subject',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          initialValue: _assignCourseId,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Select Course',
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          ),
+          items: _courses.map((course) {
+            return DropdownMenuItem(
+              value: course.id,
+              child: Text(course.title),
+            );
+          }).toList(),
+          onChanged: (val) {
+            setState(() => _assignCourseId = val);
+          },
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _subjectController,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Subject Name (e.g. Mathematics)',
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _assignCourseId != null && !_isAssigning
+                ? () async {
+                    final subjectName = _subjectController.text.trim();
+                    if (subjectName.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a subject name'), backgroundColor: Colors.red),
+                      );
+                      return;
+                    }
+                    setState(() => _isAssigning = true);
+                    try {
+                      final adminService = context.read<FirebaseAdminService>();
+                      await adminService.assignTeacherToCourse(
+                        _assignCourseId!,
+                        _user!.uid,
+                        _user!.name,
+                        subjectName,
+                      );
+                      _subjectController.clear();
+                      setState(() {
+                        _assignCourseId = null;
+                        _isAssigning = false;
+                      });
+                      await _loadUser();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Teacher assigned successfully'), backgroundColor: Colors.green),
+                        );
+                      }
+                    } catch (e) {
+                      setState(() => _isAssigning = false);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                    }
+                  }
+                : null,
+            icon: const Icon(Icons.add),
+            label: const Text('Assign Teacher'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

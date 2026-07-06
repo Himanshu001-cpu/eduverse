@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:eduverse/study/domain/models/test_series_entities.dart';
 import 'package:eduverse/store/services/test_series_repository.dart';
 import 'package:eduverse/study/presentation/screens/test_series_detail_screen.dart';
@@ -11,7 +11,7 @@ class StudyTestSeriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final userId = EduverseFirebase.auth.currentUser?.uid ?? '';
     final repo = TestSeriesRepository();
 
     return StreamBuilder<List<TestSeriesItem>>(
@@ -167,47 +167,97 @@ class _StudyTestSeriesCard extends StatelessWidget {
 
                   // Live progress bar from test_attempts
                   StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(FirebaseAuth.instance.currentUser?.uid ?? '_')
-                        .collection('test_attempts')
+                    stream: EduverseFirebase.firestore
+                        .collection('test_series')
+                        .doc(item.id)
+                        .collection('tests')
                         .snapshots(),
-                    builder: (context, attemptsSnap) {
-                      int completedCount = 0;
-                      if (attemptsSnap.hasData) {
-                        final prefix = '${item.id}_';
-                        completedCount = attemptsSnap.data!.docs
-                            .where((d) => d.id.startsWith(prefix))
-                            .length;
+                    builder: (context, testsSnap) {
+                      if (testsSnap.hasError) {
+                        return const SizedBox.shrink();
                       }
-                      final total =
-                          item.totalTests > 0 ? item.totalTests : 1;
-                      final progressVal =
-                          (completedCount / total).clamp(0.0, 1.0);
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: progressVal,
-                              backgroundColor: Colors.grey.shade200,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                item.gradientColors.first,
+                      if (!testsSnap.hasData) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: null,
+                                backgroundColor: Colors.grey.shade200,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  item.gradientColors.first,
+                                ),
+                                minHeight: 6,
                               ),
-                              minHeight: 6,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$completedCount/${item.totalTests} completed',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade500,
+                            const SizedBox(height: 4),
+                            Text(
+                              'Loading...',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        );
+                      }
+
+                      final testDocs = testsSnap.data!.docs;
+                      final testIds = testDocs.map((d) => d.id).toSet();
+                      final actualTotalTests = testDocs.length;
+
+                      final uid = EduverseFirebase.auth.currentUser?.uid ?? '';
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: EduverseFirebase.firestore
+                            .collection('users')
+                            .doc(uid.isEmpty ? '_' : uid)
+                            .collection('test_attempts')
+                            .where(FieldPath.documentId, isGreaterThanOrEqualTo: '${item.id}_')
+                            .where(FieldPath.documentId, isLessThan: '${item.id}_\uf8ff')
+                            .snapshots(),
+                        builder: (context, attemptsSnap) {
+                          int completedCount = 0;
+                          if (attemptsSnap.hasData) {
+                            completedCount = attemptsSnap.data!.docs.where((d) {
+                              final docId = d.id;
+                              final prefix = '${item.id}_';
+                              if (docId.startsWith(prefix)) {
+                                final testId = docId.substring(prefix.length);
+                                return testIds.contains(testId);
+                              }
+                              return false;
+                            }).length;
+                          }
+                          final total = actualTotalTests > 0 ? actualTotalTests : 1;
+                          final progressVal =
+                              (completedCount / total).clamp(0.0, 1.0);
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: progressVal,
+                                  backgroundColor: Colors.grey.shade200,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    item.gradientColors.first,
+                                  ),
+                                  minHeight: 6,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$completedCount/$actualTotalTests completed',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       );
                     },
                   ),

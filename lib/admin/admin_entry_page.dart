@@ -38,7 +38,7 @@ class _AdminEntryPageState extends State<AdminEntryPage> {
          return;
       }
 
-      final isAdmin = await _authService.isAdmin();
+      final isAdmin = await _authService.hasAdminOrTeacherAccess();
 
       if (mounted) {
         setState(() {

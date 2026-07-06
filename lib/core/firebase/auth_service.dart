@@ -2,9 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eduverse/core/firebase/user_service.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth = EduverseFirebase.auth;
   final UserService _userService = UserService();
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -38,6 +39,31 @@ class AuthService {
       return role == 'admin' || role == 'superadmin';
     } catch (e) {
       debugPrint('Error checking admin status: $e');
+      return false;
+    }
+  }
+
+  Future<bool> hasAdminOrTeacherAccess() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    try {
+      final userData = await _userService.getCurrentUserData(user.uid);
+      final role = userData?['role'];
+      final isTeacher = userData?['isTeacher'] ?? false;
+      debugPrint('Checking admin/teacher status for ${user.email}: role=$role, isTeacher=$isTeacher');
+      
+      if (role != null) {
+        final idTokenResult = await user.getIdTokenResult(false);
+        final claimRole = idTokenResult.claims?['role'];
+        if (claimRole != role) {
+          await user.getIdToken(true);
+        }
+      }
+
+      return role == 'admin' || role == 'superadmin' || role == 'teacher' || isTeacher == true;
+    } catch (e) {
+      debugPrint('Error checking admin/teacher access: $e');
       return false;
     }
   }

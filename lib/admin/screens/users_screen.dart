@@ -37,8 +37,14 @@ class _UsersScreenState extends State<UsersScreen> {
       }
 
       // Role filter
-      if (_roleFilter != 'all' && user.role != _roleFilter) {
-        return false;
+      if (_roleFilter != 'all') {
+        if (_roleFilter == 'teacher') {
+          if (user.role != 'teacher' && !user.isTeacher) {
+            return false;
+          }
+        } else if (user.role != _roleFilter) {
+          return false;
+        }
       }
 
       // Disabled filter
@@ -108,6 +114,7 @@ class _UsersScreenState extends State<UsersScreen> {
                     DropdownMenuItem(value: 'all', child: Text('All Roles')),
                     DropdownMenuItem(value: 'student', child: Text('Students')),
                     DropdownMenuItem(value: 'admin', child: Text('Admins')),
+                    DropdownMenuItem(value: 'teacher', child: Text('Teachers')),
                   ],
                   onChanged: (value) {
                     setState(() => _roleFilter = value!);
@@ -215,7 +222,16 @@ class _UsersScreenState extends State<UsersScreen> {
                               ),
                             ),
                             DataCell(Text(user.email)),
-                            DataCell(_buildRoleChip(user.role)),
+                            DataCell(
+                              Wrap(
+                                spacing: 4,
+                                children: [
+                                  _buildRoleChip(user.role),
+                                  if (user.isTeacher && user.role != 'teacher')
+                                    _buildRoleChip('teacher'),
+                                ],
+                              ),
+                            ),
                             DataCell(_buildStatusChip(user.disabled)),
                             DataCell(Text('${user.enrolledCourses.length}')),
                             DataCell(Text(
@@ -236,19 +252,50 @@ class _UsersScreenState extends State<UsersScreen> {
                                     icon: const Icon(Icons.more_vert),
                                     onSelected: (action) => _handleAction(action, user),
                                     itemBuilder: (context) => [
-                                      PopupMenuItem(
-                                        value: (user.role == 'admin' || user.role == 'superadmin') ? 'make_student' : 'make_admin',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              (user.role == 'admin' || user.role == 'superadmin') ? Icons.person : Icons.admin_panel_settings,
-                                              size: 20,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text((user.role == 'admin' || user.role == 'superadmin') ? 'Make Student' : 'Make Admin'),
-                                          ],
+                                      if (user.role != 'student')
+                                        const PopupMenuItem(
+                                          value: 'make_student',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.person, size: 20),
+                                              SizedBox(width: 8),
+                                              Text('Make Student'),
+                                            ],
+                                          ),
                                         ),
-                                      ),
+                                      if (user.role != 'admin' && user.role != 'superadmin')
+                                        const PopupMenuItem(
+                                          value: 'make_admin',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.admin_panel_settings, size: 20),
+                                              SizedBox(width: 8),
+                                              Text('Make Admin'),
+                                            ],
+                                          ),
+                                        ),
+                                       if (!user.isTeacher)
+                                         const PopupMenuItem(
+                                           value: 'make_teacher',
+                                           child: Row(
+                                             children: [
+                                               Icon(Icons.school, size: 20),
+                                               SizedBox(width: 8),
+                                               Text('Make Teacher'),
+                                             ],
+                                           ),
+                                         ),
+                                       if (user.isTeacher)
+                                         const PopupMenuItem(
+                                           value: 'remove_teacher',
+                                           child: Row(
+                                             children: [
+                                               Icon(Icons.school_outlined, size: 20),
+                                               SizedBox(width: 8),
+                                               Text('Remove Teacher'),
+                                             ],
+                                           ),
+                                         ),
                                       PopupMenuItem(
                                         value: user.disabled ? 'enable' : 'disable',
                                         child: Row(
@@ -287,6 +334,8 @@ class _UsersScreenState extends State<UsersScreen> {
       case 'admin':
       case 'superadmin':
         return Colors.purple;
+      case 'teacher':
+        return Colors.teal;
       case 'student':
         return Colors.blue;
       default:
@@ -354,6 +403,22 @@ class _UsersScreenState extends State<UsersScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('${user.name} is now an admin')),
+            );
+          }
+          break;
+        case 'make_teacher':
+          await adminService.setTeacherFlag(user.uid, true);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${user.name} is now a teacher')),
+            );
+          }
+          break;
+        case 'remove_teacher':
+          await adminService.setTeacherFlag(user.uid, false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${user.name} is no longer a teacher')),
             );
           }
           break;

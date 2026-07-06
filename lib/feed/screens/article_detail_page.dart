@@ -8,8 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:eduverse/feed/repository/feed_repository.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
 import 'package:eduverse/feed/models/comment_model.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:eduverse/core/utils/markdown_utils.dart';
+import 'package:eduverse/common/widgets/rich_content_viewer.dart';
 import 'package:uuid/uuid.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -172,32 +171,10 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                     ],
                     Divider(color: colorScheme.outlineVariant),
                     const SizedBox(height: 16),
-                    // Article body with markdown support
-                    MarkdownBody(
-                      data: MarkdownUtils.normalizeMarkdown(
-                        item.articleContent?.body ?? item.description,
-                      ),
-                      selectable: true,
-                      softLineBreak: true,
-                      styleSheet: MarkdownStyleSheet(
-                        p: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontSize: 18,
-                          height: 1.7,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        strong: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontSize: 18,
-                          height: 1.7,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                        em: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontSize: 18,
-                          height: 1.7,
-                          fontStyle: FontStyle.italic,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                    // Article body with rich content / markdown support
+                    RichContentViewer(
+                      htmlContent: item.articleContent?.bodyHtml,
+                      legacyMarkdown: item.articleContent?.body ?? item.description,
                     ),
                     const SizedBox(height: 32),
                     // Social Bar

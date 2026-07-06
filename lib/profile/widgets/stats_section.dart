@@ -48,6 +48,13 @@ class StatsSection extends StatelessWidget {
                       const SizedBox(width:16),
                       Expanded(child: StatCard(title: 'QUIZZES COMPLETED', value: quizzesCompleted, icon: Icons.check_circle, iconColor: Colors.amber[700]!, iconBackground: Colors.amber[50]!)),
                     ]),
+                    const SizedBox(height:16),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/performance_dashboard');
+                      },
+                      child: const Text('View Dashboard →'),
+                    ),
                   ]),
                 ),
               ]),

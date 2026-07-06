@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'lecture_player_page.dart';
+import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 
 class SubjectDetailScreen extends StatefulWidget {
   final String courseId;
@@ -448,10 +448,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
         icon: const Icon(Icons.download_for_offline_outlined, color: Colors.orange),
         onPressed: () async {
           if (item.fileUrl != null) {
-            final url = Uri.parse(item.fileUrl!);
-            if (await canLaunchUrl(url)) {
-              await launchUrl(url);
-            }
+            await PdfNavigationManager.navigateToViewer(
+              context,
+              SecurePdfViewerArgs(pdfUrl: item.fileUrl!, title: item.title, isProtected: false),
+            );
           }
         },
       );
@@ -469,10 +469,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
             icon: const Icon(Icons.assignment, color: Colors.purple),
             tooltip: 'View Question',
             onPressed: () async {
-              final url = Uri.parse(item.dppPdfUrl);
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url);
-              }
+              await PdfNavigationManager.navigateToViewer(
+                context,
+                SecurePdfViewerArgs(pdfUrl: item.dppPdfUrl, title: '${item.title} (DPP)', isProtected: false),
+              );
             },
           ),
           if (item.solutionPdfUrl.isNotEmpty)
@@ -480,10 +480,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
               icon: const Icon(Icons.done_all_rounded, color: Colors.green),
               tooltip: 'View Solution',
               onPressed: () async {
-                final url = Uri.parse(item.solutionPdfUrl);
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url);
-                }
+                await PdfNavigationManager.navigateToViewer(
+                  context,
+                  SecurePdfViewerArgs(pdfUrl: item.solutionPdfUrl, title: '${item.title} (Solution)', isProtected: false),
+                );
               },
             ),
         ],
@@ -552,16 +552,16 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
             } catch (_) {}
           } else if (item is StudyNote) {
             if (item.fileUrl != null) {
-              final url = Uri.parse(item.fileUrl!);
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url);
-              }
+              await PdfNavigationManager.navigateToViewer(
+                context,
+                SecurePdfViewerArgs(pdfUrl: item.fileUrl!, title: item.title, isProtected: false),
+              );
             }
           } else if (item is StudyDpp) {
-            final url = Uri.parse(item.dppPdfUrl);
-            if (await canLaunchUrl(url)) {
-              await launchUrl(url);
-            }
+            await PdfNavigationManager.navigateToViewer(
+              context,
+              SecurePdfViewerArgs(pdfUrl: item.dppPdfUrl, title: '${item.title} (DPP)', isProtected: false),
+            );
           }
         },
       ),

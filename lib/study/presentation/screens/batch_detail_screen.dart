@@ -1,16 +1,12 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
 import 'package:eduverse/study/screens/subject_detail_screen.dart';
+import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 import 'package:eduverse/common/services/download_service.dart';
 import 'package:eduverse/core/firebase/bookmark_service.dart';
 import 'package:eduverse/core/firebase/live_viewer_service.dart';
@@ -583,6 +579,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   }
 
   Widget _buildGradientBackground({bool showLoader = false}) {
+    final hasThumbnail = widget.batch.thumbnailUrl.isNotEmpty && widget.batch.thumbnailUrl.startsWith('http');
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -592,13 +589,21 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        image: hasThumbnail
+            ? DecorationImage(
+                image: NetworkImage(widget.batch.thumbnailUrl),
+                fit: BoxFit.cover,
+              )
+            : null,
       ),
       child: Center(
         child: showLoader
             ? const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
               )
-            : Text(widget.batch.emoji, style: const TextStyle(fontSize: 64)),
+            : (hasThumbnail
+                ? const SizedBox.shrink()
+                : Text(widget.batch.emoji, style: const TextStyle(fontSize: 64))),
       ),
     );
   }
@@ -1296,7 +1301,6 @@ class _NoteCard extends StatefulWidget {
 class _NoteCardState extends State<_NoteCard> {
   final _downloadService = DownloadService();
   final _isDownloading = ValueNotifier<bool>(false);
-  final _isViewing = ValueNotifier<bool>(false);
   final _progress = ValueNotifier<double>(0.0);
   String? _localPath;
 
@@ -1336,8 +1340,15 @@ class _NoteCardState extends State<_NoteCard> {
   }
 
   Future<void> _open() async {
-    if (_localPath != null) {
-      await _downloadService.openFile(_localPath!);
+    if (widget.note.fileUrl != null) {
+      await PdfNavigationManager.navigateToViewer(
+        context,
+        SecurePdfViewerArgs(
+          pdfUrl: widget.note.fileUrl!,
+          title: widget.note.title,
+          isProtected: false,
+        ),
+      );
     }
   }
 
@@ -1401,43 +1412,19 @@ class _NoteCardState extends State<_NoteCard> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (widget.note.fileUrl != null)
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _isViewing,
-                    builder: (context, isViewing, _) => TextButton.icon(
-                      onPressed: isViewing ? null : () async {
-                        if (kIsWeb) {
-                          final uri = Uri.parse(widget.note.fileUrl!);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
-                          }
-                          return;
-                        }
-                        // On mobile: download to temp cache and open in PDF app
-                        _isViewing.value = true;
-                        try {
-                          final dir = await getTemporaryDirectory();
-                          final fileName = '${widget.note.id}_${widget.note.title.replaceAll(' ', '_')}.pdf';
-                          final filePath = '${dir.path}/$fileName';
-                          // Download to temp
-                          await Dio().download(widget.note.fileUrl!, filePath);
-                          // Open with PDF app
-                          await OpenFilex.open(filePath);
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Could not open PDF: $e')),
-                            );
-                          }
-                        } finally {
-                          _isViewing.value = false;
-                        }
-                      },
-                      icon: isViewing
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.visibility, size: 18),
-                      label: Text(isViewing ? 'Opening...' : 'View'),
-                      style: TextButton.styleFrom(foregroundColor: Colors.blue),
-                    ),
+                  TextButton.icon(
+                    onPressed: () async {
+                      await PdfNavigationManager.navigateToViewer(
+                        context,
+                        SecurePdfViewerArgs(
+                          pdfUrl: widget.note.fileUrl!,
+                          title: widget.note.title,
+                          isProtected: false,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.remove_red_eye, size: 18),
+                    label: const Text('Read'),
                   ),
                 if (_localPath == null && widget.note.fileUrl != null)
                   ValueListenableBuilder<bool>(
@@ -1515,8 +1502,15 @@ class _PlannerCardState extends State<_PlannerCard> {
   }
 
   Future<void> _open() async {
-    if (_localPath != null) {
-      await _downloadService.openFile(_localPath!);
+    if (widget.item.fileUrl != null) {
+      await PdfNavigationManager.navigateToViewer(
+        context,
+        SecurePdfViewerArgs(
+          pdfUrl: widget.item.fileUrl!,
+          title: widget.item.title,
+          isProtected: false,
+        ),
+      );
     }
   }
 

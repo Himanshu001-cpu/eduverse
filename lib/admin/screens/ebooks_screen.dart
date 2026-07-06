@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../services/firebase_admin_service.dart';
 import 'package:eduverse/store/models/store_models.dart';
 import '../widgets/admin_scaffold.dart';
+import '../widgets/thumbnail_upload_widget.dart';
+import '../widgets/pdf_upload_widget.dart';
 
 class EbooksScreen extends StatefulWidget {
   const EbooksScreen({super.key});
@@ -251,8 +253,8 @@ class _EbooksScreenState extends State<EbooksScreen> {
     final titleController = TextEditingController(text: existing?.title ?? '');
     final subtitleController = TextEditingController(text: existing?.subtitle ?? '');
     final descController = TextEditingController(text: existing?.description ?? '');
-    final thumbController = TextEditingController(text: existing?.thumbnailUrl ?? '');
-    final pdfUrlController = TextEditingController(text: existing?.pdfUrl ?? '');
+    String thumbnailUrl = existing?.thumbnailUrl ?? '';
+    String pdfUrl = existing?.pdfUrl ?? '';
     final realPriceController = TextEditingController(text: existing?.realPrice.toString() ?? '0.00');
     final finalPriceController = TextEditingController(text: existing?.finalPrice.toString() ?? '0.00');
     bool isActive = existing?.isActive ?? true;
@@ -290,15 +292,46 @@ class _EbooksScreenState extends State<EbooksScreen> {
                       decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: thumbController,
-                      decoration: const InputDecoration(labelText: 'Thumbnail Image URL', border: OutlineInputBorder()),
+                    FormField<String>(
+                      initialValue: thumbnailUrl,
+                      builder: (field) {
+                        return ThumbnailUploadWidget(
+                          currentUrl: field.value,
+                          storagePath: 'ebooks/thumbnails',
+                          onUploaded: (url) {
+                            field.didChange(url);
+                            thumbnailUrl = url;
+                          },
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: pdfUrlController,
-                      decoration: const InputDecoration(labelText: 'PDF URL *', border: OutlineInputBorder()),
-                      validator: (value) => value == null || value.trim().isEmpty ? 'PDF URL is required' : null,
+                    FormField<String>(
+                      initialValue: pdfUrl,
+                      validator: (value) => value == null || value.isEmpty ? 'PDF Document is required' : null,
+                      builder: (field) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            PdfUploadWidget(
+                              currentUrl: field.value,
+                              storagePath: 'ebooks/pdfs',
+                              onUploaded: (url) {
+                                field.didChange(url);
+                                pdfUrl = url;
+                              },
+                            ),
+                            if (field.hasError)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+                                child: Text(
+                                  field.errorText ?? '',
+                                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -356,8 +389,8 @@ class _EbooksScreenState extends State<EbooksScreen> {
                     title: titleController.text.trim(),
                     subtitle: subtitleController.text.trim(),
                     description: descController.text.trim(),
-                    thumbnailUrl: thumbController.text.trim(),
-                    pdfUrl: pdfUrlController.text.trim(),
+                    thumbnailUrl: thumbnailUrl,
+                    pdfUrl: pdfUrl,
                     realPrice: double.parse(realPriceController.text.trim()),
                     finalPrice: double.parse(finalPriceController.text.trim()),
                     isActive: isActive,

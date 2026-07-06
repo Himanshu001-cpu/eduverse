@@ -1,29 +1,51 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Course thumbnails and resources
-    match /courses/{allPaths=**} {
-      // Admins can write
-      allow write: if request.auth != null;
-      // Public read
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && (
+        (request.auth.token != null && 'role' in request.auth.token && request.auth.token.role in ['admin', 'superadmin']) ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'])
+      );
+    }
+
+    // Helper function to check if user is enrolled in a course
+    function isEnrolled(courseId) {
+      return request.auth != null && (
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)/enrolledCourses/$(courseId)) ||
+        isAdmin()
+      );
+    }
+
+    // Course thumbnails (public read, admin write)
+    match /courses/thumbnails/{allPaths=**} {
+      allow write: if isAdmin();
       allow read: if true; 
     }
 
-    // Batch thumbnails
+    // Course resources (enrolled/admin read, admin write)
+    match /courses/{courseId}/{allPaths=**} {
+      allow write: if isAdmin();
+      allow read: if isEnrolled(courseId);
+    }
+
+    // Batch thumbnails (legacy)
     match /batches/{allPaths=**} {
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
       allow read: if true;
     }
 
     // Feed thumbnails
     match /feed/{allPaths=**} {
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
       allow read: if true;
     }
 
     // Test Series thumbnails
     match /test_series/{allPaths=**} {
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
       allow read: if true;
     }
 
@@ -33,9 +55,42 @@ service firebase.storage {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Community uploads (post/reply images)
+    match /communities/{communityId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (
+        isAdmin() ||
+        (request.auth.token != null && 'role' in request.auth.token && request.auth.token.role == 'teacher') ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'teacher' ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isTeacher == true ||
+        (
+          firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+          'enrolledCourses' in firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data &&
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.enrolledCourses.hasAny(
+            firestore.get(/databases/(default)/documents/communities/$(communityId)).data.courseIds
+          )
+        )
+      );
+    }
+
     // Notification images
     match /notifications/{allPaths=**} {
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
+      allow read: if true;
+    }
+
+    // Exams/Icons uploads (public read, admin write)
+    match /exams/{allPaths=**} {
+      allow write: if isAdmin();
+      allow read: if true;
+    }
+
+    // Ebooks / Combination Packs uploads (public read, admin write)
+    match /ebooks/{allPaths=**} {
+      allow write: if isAdmin();
+      allow read: if true;
+    }
+    match /combination_packs/{allPaths=**} {
+      allow write: if isAdmin();
       allow read: if true;
     }
   }

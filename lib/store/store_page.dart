@@ -1,6 +1,7 @@
 // file: lib/store/store_page.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:eduverse/store/widgets/banner_slider.dart';
 import 'package:eduverse/store/widgets/course_card.dart';
 import 'package:eduverse/store/see_all_courses_page.dart';
@@ -9,6 +10,8 @@ import 'package:eduverse/store/services/store_repository.dart';
 import 'package:eduverse/store/models/store_models.dart';
 import 'package:eduverse/store/widgets/store_test_series_content.dart';
 import 'package:eduverse/store/screens/purchase_cart_page.dart';
+import 'package:eduverse/store/see_all_combo_packs_page.dart';
+import 'package:eduverse/store/widgets/store_ebooks_content.dart';
 import '../../common/search/global_search_delegate.dart';
 
 class StorePage extends StatefulWidget {
@@ -94,7 +97,7 @@ class _StorePageState extends State<StorePage>
               tabs: const [
                 Tab(text: 'Courses'),
                 Tab(text: 'Test Series'),
-                Tab(text: 'Combo Packs'),
+                Tab(text: 'E-books'),
               ],
             ),
           ),
@@ -107,8 +110,8 @@ class _StorePageState extends State<StorePage>
           _CoursesContent(tabController: _tabController),
           // Tab 2: Test Series
           const StoreTestSeriesContent(),
-          // Tab 3: Combo Packs
-          const _ComboPacksContent(),
+          // Tab 3: E-books
+          const StoreEbooksContent(),
         ],
       ),
     );
@@ -155,7 +158,12 @@ class _CoursesContent extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () {
-                            tabController.animateTo(2);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SeeAllComboPacksPage(),
+                              ),
+                            );
                           },
                           child: const Text('See All'),
                         ),
@@ -310,183 +318,6 @@ class _CoursesContent extends StatelessWidget {
           TextButton(onPressed: onSeeAll, child: const Text('See All')),
         ],
       ),
-    );
-  }
-}
-
-/// The tab content widget displaying all active combo packs in a premium grid.
-class _ComboPacksContent extends StatelessWidget {
-  const _ComboPacksContent();
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<List<CombinationPack>>(
-      stream: StoreRepository().getCombinationPacks(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final packs = snapshot.data!;
-        if (packs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('🎁', style: TextStyle(fontSize: 64)),
-                const SizedBox(height: 16),
-                Text(
-                  'No Combo Packs Available',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Check back later for curated bundle offers!',
-                  style: TextStyle(color: Colors.grey.shade500),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.8,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount: packs.length,
-          itemBuilder: (context, index) {
-            final pack = packs[index];
-            final discount = pack.realPrice > 0 && pack.realPrice > pack.finalPrice
-                ? '${((pack.realPrice - pack.finalPrice) / pack.realPrice * 100).toStringAsFixed(0)}% OFF'
-                : null;
-
-            return Card(
-              elevation: 4,
-              shadowColor: Colors.black12,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: InkWell(
-                onTap: () => _showComboPackDetails(context, pack),
-                borderRadius: BorderRadius.circular(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                          gradient: LinearGradient(
-                            colors: [Colors.indigo.shade400, Colors.purple.shade400],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            if (pack.thumbnailUrl.isNotEmpty)
-                              ClipRRect(
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                                child: Image.network(pack.thumbnailUrl, fit: BoxFit.cover),
-                              ),
-                            if (discount != null)
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    discount,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            const Center(
-                              child: Text('🎁', style: TextStyle(fontSize: 40)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            pack.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            pack.description,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '₹${pack.finalPrice.toStringAsFixed(0)}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      color: Colors.deepPurple,
-                                    ),
-                                  ),
-                                  if (pack.realPrice > pack.finalPrice)
-                                    Text(
-                                      '₹${pack.realPrice.toStringAsFixed(0)}',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        decoration: TextDecoration.lineThrough,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              Icon(
-                                Icons.shopping_bag_outlined,
-                                size: 16,
-                                color: Colors.grey.shade600,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }
@@ -679,7 +510,6 @@ void _showComboPackDetails(BuildContext context, CombinationPack pack) {
       .toList();
   
   final tsIds = pack.testSeries
-
       .where((id) => id.isNotEmpty)
       .toSet()
       .toList();
@@ -694,7 +524,7 @@ void _showComboPackDetails(BuildContext context, CombinationPack pack) {
       const chunkSize = 10;
       for (var i = 0; i < courseIds.length; i += chunkSize) {
         final chunk = courseIds.sublist(i, (i + chunkSize).clamp(0, courseIds.length));
-        futures.add(FirebaseFirestore.instance
+        futures.add(EduverseFirebase.firestore
             .collection('courses')
             .where(FieldPath.documentId, whereIn: chunk)
             .get()
@@ -710,7 +540,7 @@ void _showComboPackDetails(BuildContext context, CombinationPack pack) {
       const chunkSize = 10;
       for (var i = 0; i < tsIds.length; i += chunkSize) {
         final chunk = tsIds.sublist(i, (i + chunkSize).clamp(0, tsIds.length));
-        futures.add(FirebaseFirestore.instance
+        futures.add(EduverseFirebase.firestore
             .collection('test_series')
             .where(FieldPath.documentId, whereIn: chunk)
             .get()

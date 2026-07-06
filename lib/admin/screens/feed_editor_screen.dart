@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:eduverse/admin/services/firebase_admin_service.dart';
@@ -6,7 +7,7 @@ import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/repository/feed_repository.dart';
 import 'package:eduverse/admin/widgets/thumbnail_upload_widget.dart';
 import 'package:eduverse/admin/widgets/admin_scaffold.dart';
-import 'package:eduverse/admin/widgets/formatted_text_field.dart';
+import 'package:eduverse/admin/widgets/rich_document_editor.dart';
 import 'package:uuid/uuid.dart';
 
 class FeedEditorScreen extends StatefulWidget {
@@ -100,6 +101,22 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
   late TextEditingController _timeLimitController;
   late TextEditingController _modelAnswerController;
   late TextEditingController _answerKeyPointsController;
+
+  // Rich Text Fields State Variables
+  String? _bodyDelta;
+  String? _bodyHtml;
+
+  String? _whatHappenedDelta;
+  String? _whatHappenedHtml;
+  String? _whyItMattersDelta;
+  String? _whyItMattersHtml;
+  String? _examRelevanceDelta;
+  String? _examRelevanceHtml;
+
+  String? _questionDelta;
+  String? _questionHtml;
+  String? _modelAnswerDelta;
+  String? _modelAnswerHtml;
 
   ContentType _selectedType = ContentType.articles;
   String _emoji = '📝';
@@ -216,6 +233,8 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
     // Load specific content
     if (item.articleContent != null) {
       _bodyController.text = item.articleContent!.body;
+      _bodyDelta = item.articleContent!.bodyDelta;
+      _bodyHtml = item.articleContent!.bodyHtml;
     }
     if (item.videoContent != null) {
       _videoUrlController.text = item.videoContent!.videoUrl;
@@ -246,6 +265,12 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
       _whatController.text = item.currentAffairsContent!.whatHappened;
       _whyController.text = item.currentAffairsContent!.whyItMatters;
       _relevanceController.text = item.currentAffairsContent!.examRelevance;
+      _whatHappenedDelta = item.currentAffairsContent!.whatHappenedDelta;
+      _whatHappenedHtml = item.currentAffairsContent!.whatHappenedHtml;
+      _whyItMattersDelta = item.currentAffairsContent!.whyItMattersDelta;
+      _whyItMattersHtml = item.currentAffairsContent!.whyItMattersHtml;
+      _examRelevanceDelta = item.currentAffairsContent!.examRelevanceDelta;
+      _examRelevanceHtml = item.currentAffairsContent!.examRelevanceHtml;
     }
     if (item.answerWritingContent != null) {
       _questionController.text = item.answerWritingContent!.question;
@@ -257,6 +282,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           item.answerWritingContent!.modelAnswer ?? '';
       _answerKeyPointsController.text = item.answerWritingContent!.keyPoints
           .join('\n');
+      _questionDelta = item.answerWritingContent!.questionDelta;
+      _questionHtml = item.answerWritingContent!.questionHtml;
+      _modelAnswerDelta = item.answerWritingContent!.modelAnswerDelta;
+      _modelAnswerHtml = item.answerWritingContent!.modelAnswerHtml;
     }
     // Load quiz questions
     if (item.quizQuestions != null) {
@@ -324,6 +353,27 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
     super.dispose();
   }
 
+  void _updateRichField({
+    required String deltaJson,
+    required String html,
+    required TextEditingController controller,
+    required void Function(String delta, String html) updateState,
+  }) {
+    updateState(deltaJson, html);
+    try {
+      final decoded = json.decode(deltaJson);
+      if (decoded is Map && decoded.containsKey('ops')) {
+        final ops = decoded['ops'] as List;
+        final text = ops.map((op) => op['insert']?.toString() ?? '').join();
+        if (controller.text != text) {
+          controller.text = text;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error parsing delta JSON in _updateRichField: $e');
+    }
+  }
+
   Future<void> _autoSave() async {
     if (!_hasUnsavedChanges || _isAutoSaving || !mounted) return;
     if (!_formKey.currentState!.validate()) return;
@@ -353,6 +403,8 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           title: _titleController.text,
           body: _bodyController.text,
           publishedDate: DateTime.now(),
+          bodyDelta: _bodyDelta,
+          bodyHtml: _bodyHtml,
         );
       } else if (_selectedType == ContentType.videos) {
         // Parse key points from newline-separated text
@@ -414,6 +466,12 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           whatHappened: _whatController.text,
           whyItMatters: _whyController.text,
           examRelevance: _relevanceController.text,
+          whatHappenedDelta: _whatHappenedDelta,
+          whatHappenedHtml: _whatHappenedHtml,
+          whyItMattersDelta: _whyItMattersDelta,
+          whyItMattersHtml: _whyItMattersHtml,
+          examRelevanceDelta: _examRelevanceDelta,
+          examRelevanceHtml: _examRelevanceHtml,
         );
       } else if (_selectedType == ContentType.answerWriting) {
         final keyPointsList = _answerKeyPointsController.text
@@ -431,6 +489,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
               ? null
               : _modelAnswerController.text,
           keyPoints: keyPointsList,
+          questionDelta: _questionDelta,
+          questionHtml: _questionHtml,
+          modelAnswerDelta: _modelAnswerDelta,
+          modelAnswerHtml: _modelAnswerHtml,
         );
       }
 
@@ -525,6 +587,8 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           title: _titleController.text,
           body: _bodyController.text,
           publishedDate: DateTime.now(),
+          bodyDelta: _bodyDelta,
+          bodyHtml: _bodyHtml,
         );
       } else if (_selectedType == ContentType.videos) {
         // Parse key points from newline-separated text
@@ -586,6 +650,12 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           whatHappened: _whatController.text,
           whyItMatters: _whyController.text,
           examRelevance: _relevanceController.text,
+          whatHappenedDelta: _whatHappenedDelta,
+          whatHappenedHtml: _whatHappenedHtml,
+          whyItMattersDelta: _whyItMattersDelta,
+          whyItMattersHtml: _whyItMattersHtml,
+          examRelevanceDelta: _examRelevanceDelta,
+          examRelevanceHtml: _examRelevanceHtml,
         );
       } else if (_selectedType == ContentType.answerWriting) {
         final keyPointsList = _answerKeyPointsController.text
@@ -603,6 +673,10 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
               ? null
               : _modelAnswerController.text,
           keyPoints: keyPointsList,
+          questionDelta: _questionDelta,
+          questionHtml: _questionHtml,
+          modelAnswerDelta: _modelAnswerDelta,
+          modelAnswerHtml: _modelAnswerHtml,
         );
       }
 
@@ -914,12 +988,46 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
   Widget _buildTypeSpecificFields() {
     switch (_selectedType) {
       case ContentType.articles:
-        return FormattedTextField(
-          controller: _bodyController,
-          labelText: 'Article Body (Markdown supported)',
-          hintText: 'Use **bold** and *italic* for emphasis',
-          maxLines: 10,
-          validator: (v) => v?.isEmpty == true ? 'Required for Articles' : null,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 450,
+              child: RichDocumentEditor(
+                initialDeltaJson: _bodyDelta,
+                initialHtml: _bodyHtml,
+                labelText: 'Article Body',
+                autoSaveDebounceDuration: const Duration(milliseconds: 300),
+                onSave: (delta, html) {
+                  _updateRichField(
+                    deltaJson: delta,
+                    html: html,
+                    controller: _bodyController,
+                    updateState: (d, h) {
+                      _bodyDelta = d;
+                      _bodyHtml = h;
+                    },
+                  );
+                },
+              ),
+            ),
+            FormField<String>(
+              validator: (_) =>
+                  _bodyController.text.isEmpty ? 'Required for Articles' : null,
+              builder: (state) {
+                if (state.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 12, top: 4),
+                    child: Text(
+                      state.errorText!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         );
 
       case ContentType.videos:
@@ -1011,27 +1119,98 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           ),
           validator: (v) => v?.isEmpty == true ? 'Required' : null,
         ),
-        const SizedBox(height: 16),
-        FormattedTextField(
-          controller: _whatController,
-          labelText: 'What Happened?',
-          hintText: 'Use **bold** and *italic* for emphasis',
-          maxLines: 4,
-          validator: (v) => v?.isEmpty == true ? 'Required' : null,
+        const SizedBox(height: 24),
+        const Text(
+          'What Happened?',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        FormattedTextField(
-          controller: _whyController,
-          labelText: 'Why It Matters?',
-          hintText: 'Use **bold** and *italic* for emphasis',
-          maxLines: 4,
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 350,
+          child: RichDocumentEditor(
+            initialDeltaJson: _whatHappenedDelta,
+            initialHtml: _whatHappenedHtml,
+            labelText: 'What Happened?',
+            autoSaveDebounceDuration: const Duration(milliseconds: 300),
+            onSave: (delta, html) {
+              _updateRichField(
+                deltaJson: delta,
+                html: html,
+                controller: _whatController,
+                updateState: (d, h) {
+                  _whatHappenedDelta = d;
+                  _whatHappenedHtml = h;
+                },
+              );
+            },
+          ),
         ),
-        const SizedBox(height: 16),
-        FormattedTextField(
-          controller: _relevanceController,
-          labelText: 'Exam Relevance',
-          hintText: 'Use **bold** and *italic* for emphasis',
-          maxLines: 3,
+        FormField<String>(
+          validator: (_) => _whatController.text.isEmpty ? 'Required' : null,
+          builder: (state) {
+            if (state.hasError) {
+              return Padding(
+                padding: const EdgeInsets.only(left: 12, top: 4),
+                child: Text(
+                  state.errorText!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Why It Matters?',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 350,
+          child: RichDocumentEditor(
+            initialDeltaJson: _whyItMattersDelta,
+            initialHtml: _whyItMattersHtml,
+            labelText: 'Why It Matters?',
+            autoSaveDebounceDuration: const Duration(milliseconds: 300),
+            onSave: (delta, html) {
+              _updateRichField(
+                deltaJson: delta,
+                html: html,
+                controller: _whyController,
+                updateState: (d, h) {
+                  _whyItMattersDelta = d;
+                  _whyItMattersHtml = h;
+                },
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Exam Relevance',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 300,
+          child: RichDocumentEditor(
+            initialDeltaJson: _examRelevanceDelta,
+            initialHtml: _examRelevanceHtml,
+            labelText: 'Exam Relevance',
+            autoSaveDebounceDuration: const Duration(milliseconds: 300),
+            onSave: (delta, html) {
+              _updateRichField(
+                deltaJson: delta,
+                html: html,
+                controller: _relevanceController,
+                updateState: (d, h) {
+                  _examRelevanceDelta = d;
+                  _examRelevanceHtml = h;
+                },
+              );
+            },
+          ),
         ),
       ],
     );
@@ -1041,15 +1220,45 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextFormField(
-          controller: _questionController,
-          decoration: const InputDecoration(
+        const Text(
+          'Question',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 350,
+          child: RichDocumentEditor(
+            initialDeltaJson: _questionDelta,
+            initialHtml: _questionHtml,
             labelText: 'Question',
-            border: OutlineInputBorder(),
-            alignLabelWithHint: true,
+            autoSaveDebounceDuration: const Duration(milliseconds: 300),
+            onSave: (delta, html) {
+              _updateRichField(
+                deltaJson: delta,
+                html: html,
+                controller: _questionController,
+                updateState: (d, h) {
+                  _questionDelta = d;
+                  _questionHtml = h;
+                },
+              );
+            },
           ),
-          maxLines: 3,
-          validator: (v) => v?.isEmpty == true ? 'Required' : null,
+        ),
+        FormField<String>(
+          validator: (_) => _questionController.text.isEmpty ? 'Required' : null,
+          builder: (state) {
+            if (state.hasError) {
+              return Padding(
+                padding: const EdgeInsets.only(left: 12, top: 4),
+                child: Text(
+                  state.errorText!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
         ),
         const SizedBox(height: 16),
         Row(
@@ -1077,15 +1286,31 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _modelAnswerController,
-          decoration: const InputDecoration(
-            labelText: 'Model Answer (Markdown supported)',
-            border: OutlineInputBorder(),
-            alignLabelWithHint: true,
+        const SizedBox(height: 24),
+        const Text(
+          'Model Answer',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 400,
+          child: RichDocumentEditor(
+            initialDeltaJson: _modelAnswerDelta,
+            initialHtml: _modelAnswerHtml,
+            labelText: 'Model Answer',
+            autoSaveDebounceDuration: const Duration(milliseconds: 300),
+            onSave: (delta, html) {
+              _updateRichField(
+                deltaJson: delta,
+                html: html,
+                controller: _modelAnswerController,
+                updateState: (d, h) {
+                  _modelAnswerDelta = d;
+                  _modelAnswerHtml = h;
+                },
+              );
+            },
           ),
-          maxLines: 8,
         ),
         const SizedBox(height: 16),
         TextFormField(

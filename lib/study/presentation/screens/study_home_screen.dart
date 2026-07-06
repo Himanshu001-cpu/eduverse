@@ -1,267 +1,115 @@
-import 'package:eduverse/study/domain/models/study_entities.dart';
-import 'package:eduverse/study/presentation/providers/study_controller.dart';
-import 'package:eduverse/study/presentation/screens/batch_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:eduverse/study/domain/models/study_entities.dart';
+import 'package:eduverse/study/presentation/providers/study_controller.dart';
+import '../widgets/favourite_batches_section.dart';
+import '../widgets/continue_learning_section.dart';
+import '../widgets/browse_by_exam_section.dart';
+import '../widgets/explore_batch_button.dart';
+import '../widgets/live_classes_section.dart';
+import '../widgets/timetable_timeline_widget.dart';
+import '../widgets/combo_batches_section.dart';
 
 class StudyHomeScreen extends StatelessWidget {
   const StudyHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: Consumer<StudyController>(
-        builder: (context, controller, child) {
-          if (controller.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    final controller = Provider.of<StudyController>(context);
 
-          if (controller.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                   const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-                   const SizedBox(height: 16),
-                   Text('Error: ${controller.error}', style: const TextStyle(color: Colors.red)),
-                   const SizedBox(height: 16),
-                   ElevatedButton(
-                    onPressed: () { 
-                       // Trigger refresh logic if implemented
-                    },
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    ),
-                    child: const Text('Retry'),
-                  )
-                ],
-              ),
-            );
-          }
+    if (controller.isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
-          final batches = controller.enrolledBatches;
-
-          if (batches.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.school_rounded, size: 64, color: Colors.blue[700]),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'No enrolled batches yet',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Visit the Store to enroll in your first batch!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(20),
-            itemCount: batches.length,
-            separatorBuilder: (c, i) => const SizedBox(height: 20),
-            itemBuilder: (context, index) {
-              final batch = batches[index];
-              return _BatchCard(context: context, batch: batch);
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _BatchCard extends StatelessWidget {
-  final BuildContext context;
-  final StudyBatch batch;
-
-  const _BatchCard({
-    required this.context,
-    required this.batch,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChangeNotifierProvider.value(
-                  value: Provider.of<StudyController>(context, listen: false),
-                  child: BatchDetailScreen(batch: batch),
-                ),
-              ),
-            );
-          },
+    if (controller.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 16:9 Thumbnail
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: batch.thumbnailUrl.isNotEmpty
-                    ? Image.network(
-                        batch.thumbnailUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildFallbackThumbnail(batch),
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return _buildFallbackThumbnail(batch, showLoader: true);
-                        },
-                      )
-                    : _buildFallbackThumbnail(batch),
-              ),
+              const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+              const SizedBox(height: 16),
+              Text('Error: ${controller.error}', style: const TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+      );
+    }
 
-              // Content below thumbnail
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      batch.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      batch.courseName,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        height: 1.4,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 16),
-                    // Custom Progress Bar
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Progress',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey),
-                        ),
-                        Text(
-                          '${(batch.progress * 100).toInt()}%',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Stack(
-                      children: [
-                        Container(
-                          height: 8,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            return Container(
-                              height: 8,
-                              width: constraints.maxWidth * batch.progress,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [Colors.blue[400]!, Colors.blue[700]!],
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.blue.withValues(alpha: 0.3),
-                                    blurRadius: 5,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
+    if (controller.enrolledBatches.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
+                child: Icon(Icons.school_rounded, size: 64, color: Colors.blue[700]),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'No enrolled batches yet',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Visit the Store to enroll in your first batch!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildFallbackThumbnail(StudyBatch batch, {bool showLoader = false}) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: batch.gradientColors.isNotEmpty 
-              ? batch.gradientColors 
-              : [Colors.blue, Colors.blueAccent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Center(
-        child: showLoader
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                ),
-              )
-            : Text(
-                batch.emoji,
-                style: const TextStyle(fontSize: 48),
-              ),
-      ),
-    );
+    // Dynamic Homepage layout: Combo Pack vs Individual Batch
+    StudyBatch? selectedBatch;
+    try {
+      selectedBatch = controller.enrolledBatches.firstWhere((b) => b.id == controller.selectedBatchId);
+    } catch (_) {}
+
+    if (selectedBatch == null || selectedBatch.isCombo) {
+      return Column(
+        key: const Key('combo_pack_layout'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const LiveClassesSection(),
+          const FavouriteBatchesSection(),
+          const SizedBox(height: 16),
+          const ContinueLearningSection(),
+          const SizedBox(height: 16),
+          const BrowseByExamSection(),
+          const SizedBox(height: 16),
+          const ComboBatchesSection(),
+          const SizedBox(height: 16),
+          const TimetableTimelineWidget(),
+        ],
+      );
+    } else {
+      return Column(
+        key: const Key('individual_batch_layout'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const LiveClassesSection(),
+          const ContinueLearningSection(),
+          const SizedBox(height: 16),
+          const ExploreBatchButton(),
+          const SizedBox(height: 16),
+          TimetableTimelineWidget(courseId: selectedBatch.courseId),
+        ],
+      );
+    }
   }
 }

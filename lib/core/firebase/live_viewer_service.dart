@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 /// Service to track live viewer counts using Firestore + RTDB presence.
 ///
@@ -9,8 +10,8 @@ import 'package:flutter/foundation.dart';
 /// disconnects (app kills, network loss). A Cloud Function triggers on
 /// RTDB node removal to decrement the Firestore `viewerCount`.
 class LiveViewerService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseDatabase _rtdb = FirebaseDatabase.instance;
+  final FirebaseFirestore _firestore = EduverseFirebase.firestore;
+  FirebaseDatabase get _rtdb => FirebaseDatabase.instance;
 
   /// Returns the Firestore document reference for the live class.
   DocumentReference _liveClassDoc(

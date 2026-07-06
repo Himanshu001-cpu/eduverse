@@ -6,6 +6,7 @@ import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/common/services/download_service.dart';
 import 'lecture_player_page.dart';
+import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 
 class ChapterDetailScreen extends StatefulWidget {
   final String courseId;
@@ -527,8 +528,10 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
               icon: Icon(Icons.open_in_new, size: 18, color: Colors.grey.shade600),
               tooltip: 'Open',
               onPressed: () async {
-                final uri = Uri.parse(url);
-                if (await canLaunchUrl(uri)) await launchUrl(uri);
+                await PdfNavigationManager.navigateToViewer(
+                  context,
+                  SecurePdfViewerArgs(pdfUrl: url, title: title, isProtected: false),
+                );
               },
             )
           else
@@ -576,8 +579,10 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
                 tooltip: 'Open',
                 onPressed: () async {
                   if (note.fileUrl != null) {
-                    final uri = Uri.parse(note.fileUrl!);
-                    if (await canLaunchUrl(uri)) await launchUrl(uri);
+                    await PdfNavigationManager.navigateToViewer(
+                      context,
+                      SecurePdfViewerArgs(pdfUrl: note.fileUrl!, title: note.title, isProtected: false),
+                    );
                   }
                 },
               ),
@@ -624,8 +629,10 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
                 icon: const Icon(Icons.open_in_new, color: Colors.orange, size: 20),
                 tooltip: 'Open DPP',
                 onPressed: () async {
-                  final uri = Uri.parse(dpp.dppPdfUrl);
-                  if (await canLaunchUrl(uri)) await launchUrl(uri);
+                  await PdfNavigationManager.navigateToViewer(
+                    context,
+                    SecurePdfViewerArgs(pdfUrl: dpp.dppPdfUrl, title: '${dpp.title} (DPP)', isProtected: false),
+                  );
                 },
               ),
               if (dpp.solutionPdfUrl.isNotEmpty) ...[
@@ -640,8 +647,10 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
                   icon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
                   tooltip: 'Open Solution',
                   onPressed: () async {
-                    final uri = Uri.parse(dpp.solutionPdfUrl);
-                    if (await canLaunchUrl(uri)) await launchUrl(uri);
+                    await PdfNavigationManager.navigateToViewer(
+                      context,
+                      SecurePdfViewerArgs(pdfUrl: dpp.solutionPdfUrl, title: '${dpp.title} (Solution)', isProtected: false),
+                    );
                   },
                 ),
               ],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 import '../widgets/admin_scaffold.dart';
@@ -37,8 +39,18 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
   Color _gradientStart = Colors.blue;
   Color _gradientEnd = Colors.blueAccent;
   String _thumbnailUrl = '';
+  bool _isCourseBatch = false;
 
   bool _isLoading = false;
+
+  // For teacher assignment
+  List<CourseTeacher> _assignedTeachers = [];
+  List<AdminUser> _teachersList = [];
+  StreamSubscription? _teachersSub;
+  StreamSubscription? _courseDocSub;
+  final TextEditingController _subjectEditorController = TextEditingController();
+  String? _selectedTeacherUid;
+  bool _isSavingTeacher = false;
 
   final List<String> _visibilityOptions = ['draft', 'published', 'archived'];
   final List<String> _levelOptions = ['beginner', 'intermediate', 'advanced'];
@@ -95,6 +107,10 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
     }
 
     _thumbnailUrl = course?.thumbnailUrl ?? '';
+    _isCourseBatch = course?.isCourseBatch ?? false;
+    _assignedTeachers = course?.teachers != null ? List.from(course!.teachers) : [];
+    _loadTeachers();
+    _listenToCourseDoc();
   }
 
   @override
@@ -108,6 +124,9 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
     _finalPriceController.dispose();
     _seatsTotalController.dispose();
     _seatsLeftController.dispose();
+    _subjectEditorController.dispose();
+    _teachersSub?.cancel();
+    _courseDocSub?.cancel();
     super.dispose();
   }
 
@@ -141,7 +160,9 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
         startDate: _startDate,
         endDate: _endDate,
         visibility: _visibility,
+        teachers: _assignedTeachers,
         createdAt: widget.course?.createdAt ?? DateTime.now(),
+        isCourseBatch: _isCourseBatch,
       );
 
       await context.read<FirebaseAdminService>().saveCourse(
@@ -527,9 +548,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-
-                    Row(
+                           Row(
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
@@ -578,6 +597,27 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
+
+                    SwitchListTile(
+                      title: const Text(
+                        'Online Course / Batch',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      subtitle: const Text('Turn on to list as Online. Turn off to list as Offline.'),
+                      value: _isCourseBatch,
+                      activeThumbColor: Colors.blue.shade700,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (val) {
+                        setState(() {
+                          _isCourseBatch = val;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Teachers & Subjects Section
+                    _buildTeachersSection(),
                     const SizedBox(height: 32),
 
                     // Save Button
@@ -770,6 +810,236 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  void _loadTeachers() {
+    final service = context.read<FirebaseAdminService>();
+    _teachersSub = service.getTeachers().listen((list) {
+      if (mounted) {
+        setState(() => _teachersList = list);
+      }
+    });
+  }
+
+  void _listenToCourseDoc() {
+    if (widget.course != null) {
+      _courseDocSub = FirebaseFirestore.instance
+          .collection('courses')
+          .doc(widget.course!.id)
+          .snapshots()
+          .listen((doc) {
+        if (doc.exists && doc.data() != null) {
+          final course = AdminCourse.fromMap(doc.data()!, doc.id);
+          if (mounted) {
+            setState(() {
+              _assignedTeachers = course.teachers;
+            });
+          }
+        }
+      });
+    }
+  }
+
+  Widget _buildTeachersSection() {
+    if (widget.course == null) {
+      return const SizedBox.shrink(); // Don't show for new courses
+    }
+
+    final service = context.read<FirebaseAdminService>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Teachers & Subjects'),
+        const SizedBox(height: 12),
+        Card(
+          child: _assignedTeachers.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'No teachers assigned to this course yet.',
+                    style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                  ),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _assignedTeachers.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final teacher = _assignedTeachers[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.teal.withValues(alpha: 0.1),
+                        child: const Icon(Icons.person, color: Colors.teal),
+                      ),
+                      title: Text(teacher.name),
+                      subtitle: Text('Subject: ${teacher.subject}'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Remove Teacher'),
+                              content: Text(
+                                'Are you sure you want to remove ${teacher.name} from teaching ${teacher.subject}?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                  child: const Text('Remove'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed == true) {
+                            try {
+                              await service.removeTeacherFromCourse(
+                                widget.course!.id,
+                                teacher.uid,
+                                teacher.subject,
+                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Teacher removed successfully')),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error removing teacher: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        },
+                      ),
+                    );
+                  },
+                ),
+        ),
+        const SizedBox(height: 16),
+        // Add Teacher Form
+        Card(
+          color: Colors.teal.withValues(alpha: 0.02),
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: Colors.teal.withValues(alpha: 0.15)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Assign a Teacher',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedTeacherUid,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Select Teacher',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: _teachersList.map((t) {
+                    return DropdownMenuItem(
+                      value: t.uid,
+                      child: Text('${t.name} (${t.email})'),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    setState(() => _selectedTeacherUid = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _subjectEditorController,
+                  decoration: const InputDecoration(
+                    labelText: 'Subject (e.g. Mathematics)',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _selectedTeacherUid != null && !_isSavingTeacher
+                        ? () async {
+                            final subject = _subjectEditorController.text.trim();
+                            if (subject.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please enter a subject name'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            setState(() => _isSavingTeacher = true);
+                            try {
+                              final teacherUser = _teachersList.firstWhere(
+                                (t) => t.uid == _selectedTeacherUid,
+                              );
+                              await service.assignTeacherToCourse(
+                                widget.course!.id,
+                                teacherUser.uid,
+                                teacherUser.name,
+                                subject,
+                              );
+                              _subjectEditorController.clear();
+                              setState(() {
+                                _selectedTeacherUid = null;
+                                _isSavingTeacher = false;
+                              });
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Teacher assigned successfully!'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              setState(() => _isSavingTeacher = false);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error assigning teacher: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        : null,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Assign Teacher'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

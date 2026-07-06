@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eduverse/core/firebase/firestore_paths.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 class UserService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = EduverseFirebase.firestore;
 
   Future<void> createUserProfile(String uid, String email, String name, {String? phone}) async {
     final userDoc = _firestore.collection(FirestorePaths.users).doc(uid);

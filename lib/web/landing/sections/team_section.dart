@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../widgets/gradient_text.dart';
 
 class TeamSection extends StatelessWidget {
@@ -204,9 +204,9 @@ class _TeamCardState extends State<_TeamCard> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _socialIcon(LucideIcons.twitter),
+                      _socialIcon(FontAwesomeIcons.twitter),
                       const SizedBox(width: 12),
-                      _socialIcon(LucideIcons.linkedin),
+                      _socialIcon(FontAwesomeIcons.linkedinIn),
                     ],
                   ),
                 ],
@@ -219,7 +219,7 @@ class _TeamCardState extends State<_TeamCard> {
         .slideY(begin: 0.15, end: 0);
   }
 
-  Widget _socialIcon(IconData icon) {
+  Widget _socialIcon(dynamic icon) {
     return Container(
       width: 36,
       height: 36,
@@ -227,7 +227,11 @@ class _TeamCardState extends State<_TeamCard> {
         color: const Color(0xFFf1f5f9),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icon, size: 16, color: const Color(0xFF64748b)),
+      child: Center(
+        child: icon is IconData
+            ? Icon(icon, size: 16, color: const Color(0xFF64748b))
+            : FaIcon(icon as FaIconData, size: 16, color: const Color(0xFF64748b)),
+      ),
     );
   }
 }

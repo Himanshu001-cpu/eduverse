@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/domain/repositories/i_study_repository.dart';
 import 'package:eduverse/study/models/study_models.dart';
+import 'package:eduverse/study/data/repositories/study_local_storage.dart';
 
 class StudyRepository implements IStudyRepository {
   final FirebaseFirestore _firestore;
@@ -255,19 +256,8 @@ class StudyRepository implements IStudyRepository {
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
       lectures.add(
-        StudyLecture(
-          id: doc.id,
-          title: data['title'] ?? 'Untitled Lecture',
-          videoUrl: data['videoUrl'] ?? data['storagePath'] ?? '',
-          contentUrl: data['contentUrl'] ?? '',
-          description: data['description'] ?? '',
-          order: data['order'] ?? data['orderIndex'] ?? 0,
+        StudyLecture.fromMap(data, doc.id).copyWith(
           isWatched: watchedStatus[doc.id] ?? false,
-          duration: null,
-          subject: data['subject'] ?? '',
-          chapter: data['chapter'] ?? '',
-          lectureNo: data['lectureNo'] as int?,
-          linkedNoteIds: List<String>.from(data['linkedNoteIds'] ?? []),
         ),
       );
     }
@@ -585,11 +575,59 @@ class StudyRepository implements IStudyRepository {
         .doc(userId)
         .collection('enrolledCourses')
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => StudyCourseModel.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+        .asyncMap((snapshot) async {
+      if (snapshot.docs.isEmpty) return [];
+
+      final List<String> courseIds = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final courseId = data['courseId'] as String? ?? doc.id.split('_')[0];
+        if (courseId.isNotEmpty && !courseIds.contains(courseId)) {
+          courseIds.add(courseId);
+        }
+      }
+
+      if (courseIds.isEmpty) return [];
+
+      List<StudyCourseModel> studyCourses = [];
+      for (var courseId in courseIds) {
+        try {
+          final courseDoc = await _firestore
+              .collection('courses')
+              .doc(courseId)
+              .get();
+          if (!courseDoc.exists) continue;
+          final courseData = courseDoc.data()!;
+
+          final progressData = await _fetchCourseProgress(
+            userId,
+            courseId,
+          );
+
+          List<Color> gradientColors = [Colors.blue, Colors.lightBlueAccent];
+          if (courseData['gradientColors'] != null) {
+            gradientColors = (courseData['gradientColors'] as List)
+                .map((c) => Color(c as int))
+                .toList();
+          }
+
+          studyCourses.add(
+            StudyCourseModel(
+              id: courseId,
+              title: courseData['title'] ?? '',
+              subtitle: courseData['subtitle'] ?? '',
+              emoji: courseData['emoji'] ?? '📚',
+              gradientColors: gradientColors,
+              lessonCount: courseData['totalLectures'] ?? 0,
+              progress: progressData.progress,
+            ),
+          );
+        } catch (e) {
+          debugPrint('Error loading course progress $courseId: $e');
+        }
+      }
+      return studyCourses;
+    });
   }
 
   Stream<List<WorkbookModel>> getWorkbooks() {
@@ -615,9 +653,12 @@ class StudyRepository implements IStudyRepository {
         .collection('users')
         .doc(userId)
         .collection('courseBookmarks')
-        .doc(batchId)
         .snapshots()
-        .map((snapshot) => snapshot.exists);
+        .asyncMap((snapshot) async {
+          final favoriteIds = snapshot.docs.map((doc) => doc.id).toList();
+          await StudyLocalStorage().cacheFavoriteBatchIds(favoriteIds);
+          return favoriteIds.contains(batchId);
+        });
   }
 
   @override
@@ -629,14 +670,23 @@ class StudyRepository implements IStudyRepository {
         .collection('courseBookmarks')
         .doc(batchId);
 
+    final localStorage = StudyLocalStorage();
+    final cached = await localStorage.getCachedFavoriteBatchIds();
+    final updated = List<String>.from(cached);
+
     final doc = await bookmarkRef.get();
     if (doc.exists) {
       await bookmarkRef.delete();
+      updated.remove(batchId);
     } else {
       await bookmarkRef.set({
         'createdAt': FieldValue.serverTimestamp(),
         'courseId': batchId,
       });
+      if (!updated.contains(batchId)) {
+        updated.add(batchId);
+      }
     }
+    await localStorage.cacheFavoriteBatchIds(updated);
   }
 }

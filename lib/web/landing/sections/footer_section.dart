@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class FooterSection extends StatelessWidget {
   const FooterSection({super.key});
@@ -333,27 +334,27 @@ class FooterSection extends StatelessWidget {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       _SocialIcon(
-                                        icon: Icons.facebook,
+                                        icon: FontAwesomeIcons.facebook,
                                         hoverColor: const Color(0xFF2563eb),
                                       ),
                                       const SizedBox(width: 12),
                                       _SocialIcon(
-                                        icon: LucideIcons.twitter,
+                                        icon: FontAwesomeIcons.twitter,
                                         hoverColor: const Color(0xFF0ea5e9),
                                       ),
                                       const SizedBox(width: 12),
                                       _SocialIcon(
-                                        icon: LucideIcons.instagram,
+                                        icon: FontAwesomeIcons.instagram,
                                         hoverColor: const Color(0xFFdb2777),
                                       ),
                                       const SizedBox(width: 12),
                                       _SocialIcon(
-                                        icon: LucideIcons.linkedin,
+                                        icon: FontAwesomeIcons.linkedinIn,
                                         hoverColor: const Color(0xFF1d4ed8),
                                       ),
                                       const SizedBox(width: 12),
                                       _SocialIcon(
-                                        icon: LucideIcons.youtube,
+                                        icon: FontAwesomeIcons.youtube,
                                         hoverColor: const Color(0xFFdc2626),
                                       ),
                                     ],
@@ -472,7 +473,7 @@ class FooterSection extends StatelessWidget {
 }
 
 class _SocialIcon extends StatefulWidget {
-  final IconData icon;
+  final dynamic icon;
   final Color hoverColor;
 
   const _SocialIcon({required this.icon, required this.hoverColor});
@@ -501,11 +502,17 @@ class _SocialIconState extends State<_SocialIcon> {
           ),
         ),
         child: Center(
-          child: Icon(
-            widget.icon,
-            size: 16,
-            color: _isHovered ? Colors.white : const Color(0xFF94a3b8),
-          ),
+          child: widget.icon is IconData
+              ? Icon(
+                  widget.icon as IconData,
+                  size: 16,
+                  color: _isHovered ? Colors.white : const Color(0xFF94a3b8),
+                )
+              : FaIcon(
+                  widget.icon as FaIconData,
+                  size: 16,
+                  color: _isHovered ? Colors.white : const Color(0xFF94a3b8),
+                ),
         ),
       ),
     );
