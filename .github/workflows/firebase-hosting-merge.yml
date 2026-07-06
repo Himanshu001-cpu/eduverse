@@ -1,0 +1,44 @@
+name: Deploy to Firebase Hosting on Merge
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Recreate Firebase configuration files
+        run: |
+          mkdir -p lib/core/firebase
+          echo "${{ secrets.FIREBASE_OPTIONS_DART }}" > lib/core/firebase/firebase_options.dart
+          echo "${{ secrets.FIREBASE_ROOT_OPTIONS_DART }}" > lib/firebase_options.dart
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Lint check
+        run: flutter analyze
+
+      - name: Run unit tests
+        run: flutter test
+
+      - name: Build Web
+        run: flutter build web --release --web-renderer auto --dart-define=APP_ENV=prod
+
+      - name: Deploy to Firebase Hosting (Production Channel)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_EDUVERSE_DAD5E }}'
+          projectId: eduverse-dad5e
+          channelId: live

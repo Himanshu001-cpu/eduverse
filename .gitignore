@@ -1,16 +1,17 @@
-# # Miscellaneous
-# *.class
-# *.log
-# *.pyc
-# *.swp
-# .DS_Store
-# .atom/
-# .build/
-# .buildlog/
-# .history
-# .svn/
-# .swiftpm/
-# migrate_working_dir/
+# Miscellaneous
+*.log
+*.log.*
+*.cache
+*.sqlite
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # IntelliJ related
 *.iml
@@ -18,28 +19,25 @@
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code related
+.vscode/
+
+# Node.js (for Cloud Functions and root tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Flutter/Dart/Pub related
-# **/doc/api/
-# **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
+/web/assets/
 
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
+# Android Studio build artifacts
 /android/app/debug
 /android/app/profile
 /android/app/release
@@ -49,10 +47,12 @@ android/key.properties
 *.jks
 *.keystore
 
-# # Firebase sensitive files - NEVER commit these!
-# android/app/google-services.json
-# ios/Runner/GoogleService-Info.plist
-# #lib/firebase_options.dart
+# Firebase sensitive files - NEVER commit these!
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+lib/core/firebase/firebase_options.dart
+functions/service-account-key.json
 
 # Environment files
 .env
@@ -60,4 +60,13 @@ android/key.properties
 
 # Python scripts
 *.py
+*.pyc
+
+# Local agents and test runs
+.agents/
+test_output.log
+test_results.log
+test_run.log
+pdf_run.log
+
 
