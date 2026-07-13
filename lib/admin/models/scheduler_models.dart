@@ -12,6 +12,8 @@ class RecurringClassRule {
   final int durationMinutes;
   final DateTime startDate;
   final DateTime endDate;
+  final String subject;
+  final String chapter;
 
   RecurringClassRule({
     required this.id,
@@ -25,6 +27,8 @@ class RecurringClassRule {
     required this.durationMinutes,
     required this.startDate,
     required this.endDate,
+    this.subject = '',
+    this.chapter = '',
   });
 
   RecurringClassRule copyWith({
@@ -39,6 +43,8 @@ class RecurringClassRule {
     int? durationMinutes,
     DateTime? startDate,
     DateTime? endDate,
+    String? subject,
+    String? chapter,
   }) {
     return RecurringClassRule(
       id: id ?? this.id,
@@ -52,6 +58,8 @@ class RecurringClassRule {
       durationMinutes: durationMinutes ?? this.durationMinutes,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
+      subject: subject ?? this.subject,
+      chapter: chapter ?? this.chapter,
     );
   }
 
@@ -72,6 +80,8 @@ class RecurringClassRule {
       endDate: (map['endDate'] is Timestamp)
           ? (map['endDate'] as Timestamp).toDate()
           : (map['endDate'] != null ? DateTime.parse(map['endDate'].toString()) : DateTime.now()),
+      subject: map['subject'] ?? '',
+      chapter: map['chapter'] ?? '',
     );
   }
 
@@ -87,6 +97,8 @@ class RecurringClassRule {
       'durationMinutes': durationMinutes,
       'startDate': Timestamp.fromDate(startDate),
       'endDate': Timestamp.fromDate(endDate),
+      'subject': subject,
+      'chapter': chapter,
     };
   }
 
@@ -104,6 +116,8 @@ class RecurringClassRule {
       'durationMinutes': durationMinutes,
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
+      'subject': subject,
+      'chapter': chapter,
     };
   }
 
@@ -120,6 +134,8 @@ class RecurringClassRule {
       durationMinutes: json['durationMinutes'] ?? 0,
       startDate: json['startDate'] != null ? DateTime.parse(json['startDate']) : DateTime.now(),
       endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : DateTime.now(),
+      subject: json['subject'] ?? '',
+      chapter: json['chapter'] ?? '',
     );
   }
 }

@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:eduverse/core/utils/markdown_utils.dart';
 import 'package:eduverse/feed/models.dart';
 import 'package:eduverse/feed/screens/quiz_result_page.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:eduverse/common/widgets/rich_content_viewer.dart';
 
 /// Quiz page for practicing multiple choice questions.
 /// Shows one question at a time with option tiles and navigation.
@@ -538,17 +537,9 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                     const SizedBox(height: 16),
                     // Question text
-                    MarkdownBody(
-                      data: MarkdownUtils.normalizeMarkdown(
-                        _currentQuestion.question,
-                      ),
-                      selectable: true,
-                      styleSheet: MarkdownStyleSheet(
-                        p: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          height: 1.4,
-                        ),
-                      ),
+                    RichContentViewer(
+                      htmlContent: _currentQuestion.questionHtml,
+                      legacyMarkdown: _currentQuestion.questionText,
                     ),
                     const SizedBox(height: 24),
                     // Options
@@ -602,11 +593,9 @@ class _QuizPageState extends State<QuizPage> {
                                 const SizedBox(width: 12),
                                 // Option text
                                 Expanded(
-                                  child: Text(
-                                    _currentQuestion.options[index].text,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
+                                  child: RichContentViewer(
+                                    htmlContent: _currentQuestion.options[index].textHtml,
+                                    legacyMarkdown: _currentQuestion.options[index].text,
                                   ),
                                 ),
                               ],

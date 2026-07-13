@@ -8,7 +8,7 @@ import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_screen.dart';
 import '../widgets/batch_header.dart';
-import 'lecture_player_page.dart';
+import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
 import 'subject_detail_screen.dart';
 import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 
@@ -883,15 +883,39 @@ class _LessonDetailSheet extends StatelessWidget {
                     onPressed: () {
                       if (lesson['type'] == 'video' &&
                           lesson['videoUrl'] != null) {
+                        final controller = Provider.of<StudyController>(context, listen: false);
+                        final lectureId = lesson['id'] ?? '';
+                        final progressBox = controller.lectureProgressBox;
+                        final progressData = progressBox.get(lectureId);
+                        int startSeconds = 0;
+                        if (progressData != null) {
+                          try {
+                            final map = Map<String, dynamic>.from(progressData);
+                            startSeconds = (map['progressSeconds'] as num).toInt();
+                          } catch (_) {}
+                        }
+
+                        final studyLecture = StudyLecture(
+                          id: lectureId,
+                          title: lesson['title'] ?? '',
+                          videoUrl: lesson['videoUrl'] ?? '',
+                          description: lesson['description'] ?? 'This is a detailed description of the lesson...',
+                          subject: lesson['subject'] ?? '',
+                          chapter: lesson['chapter'] ?? '',
+                        );
+
                         Navigator.pop(context); // Close sheet
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => LecturePlayerPage(
-                              videoUrl: lesson['videoUrl'],
-                              title: lesson['title'],
-                              description:
-                                  'This is a detailed description of the lesson...',
+                            builder: (context) => ChangeNotifierProvider.value(
+                              value: controller,
+                              child: LecturePlayerScreen(
+                                courseId: controller.selectedBatchId,
+                                batchId: controller.selectedBatchId,
+                                lecture: studyLecture,
+                                startPositionSeconds: startSeconds,
+                              ),
                             ),
                           ),
                         );

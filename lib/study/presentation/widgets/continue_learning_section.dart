@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
@@ -11,6 +12,14 @@ class ContinueLearningSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Provider.of<StudyController>(context);
     final box = controller.lectureProgressBox;
+
+    return ValueListenableBuilder<Box<Map>>(
+      valueListenable: box.listenable(),
+      builder: (context, _, __) => _buildContent(context, controller, box),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, StudyController controller, Box<Map> box) {
     final inProgressLectures = <Map<String, dynamic>>[];
 
     // Selected batch details
@@ -19,7 +28,25 @@ class ContinueLearningSection extends StatelessWidget {
       selectedBatch = controller.enrolledBatches.firstWhere((b) => b.id == controller.selectedBatchId);
     } catch (_) {}
 
-    for (final lecture in controller.lectures) {
+    final allPlayableLectures = <StudyLecture>[];
+    allPlayableLectures.addAll(controller.lectures);
+
+    for (final liveClass in controller.allLiveClasses) {
+      if (liveClass.youtubeUrl != null && liveClass.youtubeUrl!.isNotEmpty) {
+        allPlayableLectures.add(StudyLecture(
+          id: liveClass.id,
+          title: liveClass.title,
+          videoUrl: liveClass.youtubeUrl!,
+          description: liveClass.description,
+          order: 0,
+          duration: Duration(minutes: liveClass.durationMinutes),
+          subject: liveClass.subject,
+          chapter: liveClass.chapter,
+        ));
+      }
+    }
+
+    for (final lecture in allPlayableLectures) {
       final progressData = box.get(lecture.id);
       if (progressData != null) {
         try {
@@ -31,8 +58,8 @@ class ContinueLearningSection extends StatelessWidget {
             if (ratio < 0.95 && !isCompleted) {
               inProgressLectures.add({
                 'lecture': lecture,
-                'progressSeconds': map['progressSeconds'] as int,
-                'totalDurationSeconds': map['totalDurationSeconds'] as int,
+                'progressSeconds': (map['progressSeconds'] as num).toInt(),
+                'totalDurationSeconds': (map['totalDurationSeconds'] as num).toInt(),
                 'lastOpened': map['lastOpened'] as String?,
               });
             }
@@ -40,6 +67,12 @@ class ContinueLearningSection extends StatelessWidget {
         } catch (_) {}
       }
     }
+    // Sort so most recently viewed is first
+    inProgressLectures.sort((a, b) {
+      final aDate = DateTime.tryParse(a['lastOpened'] ?? '') ?? DateTime(0);
+      final bDate = DateTime.tryParse(b['lastOpened'] ?? '') ?? DateTime(0);
+      return bDate.compareTo(aDate);
+    });
 
     // Always render the section — show header + empty state or header + list
     return Column(
@@ -270,3 +303,4 @@ class ContinueLearningSection extends StatelessWidget {
     );
   }
 }
+

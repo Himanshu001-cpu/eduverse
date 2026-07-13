@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../admin/models/admin_models.dart';
 import '../../admin/services/firebase_admin_service.dart';
 import '../../admin/widgets/quiz_library_dialog.dart';
+import 'package:eduverse/admin/widgets/rich_document_editor.dart';
+import 'package:eduverse/core/services/rich_text_service.dart';
 
 class BatchQuizEditorScreen extends StatefulWidget {
   final String courseId;
@@ -829,19 +831,21 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                             const SizedBox(height: 16),
 
                             // Question Text
-                            TextFormField(
-                              initialValue: _questions[index].questionText,
-                              decoration: const InputDecoration(
-                                labelText: 'Question Text',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.help_outline),
-                              ),
-                              maxLines: 2,
-                              minLines: 1,
-                              onChanged: (v) => _updateQuestion(
-                                index,
-                                _questions[index].copyWith(questionText: v),
-                              ),
+                            RichDocumentEditor(
+                              initialDeltaJson: _questions[index].questionDelta,
+                              initialHtml: _questions[index].questionHtml,
+                              labelText: 'Question Text',
+                              autoSaveDebounceDuration: const Duration(milliseconds: 300),
+                              onSave: (delta, html) {
+                                _updateQuestion(
+                                  index,
+                                  _questions[index].copyWith(
+                                    questionText: RichTextService.extractPlainText(delta),
+                                    questionDelta: delta,
+                                    questionHtml: html,
+                                  ),
+                                );
+                              },
                             ),
                             const SizedBox(height: 16),
 
@@ -928,27 +932,18 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                                         },
                                       ),
                                       Expanded(
-                                        child: TextFormField(
-                                          initialValue: option.text,
-                                          decoration: InputDecoration(
-                                            labelText:
-                                                'Option ${String.fromCharCode(65 + optIndex)}',
-                                            border: const OutlineInputBorder(),
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 12,
-                                                ),
-                                          ),
-                                          onChanged: (v) {
-                                            final newOptions =
-                                                List<AnswerOption>.from(
-                                                  options,
-                                                );
-                                            newOptions[optIndex] =
-                                                newOptions[optIndex].copyWith(
-                                                  text: v,
-                                                );
+                                        child: RichDocumentEditor(
+                                          initialDeltaJson: option.textDelta,
+                                          initialHtml: option.textHtml,
+                                          labelText: 'Option ${String.fromCharCode(65 + optIndex)}',
+                                          autoSaveDebounceDuration: const Duration(milliseconds: 300),
+                                          onSave: (delta, html) {
+                                            final newOptions = List<AnswerOption>.from(options);
+                                            newOptions[optIndex] = newOptions[optIndex].copyWith(
+                                              text: RichTextService.extractPlainText(delta),
+                                              textDelta: delta,
+                                              textHtml: html,
+                                            );
                                             _updateQuestion(
                                               index,
                                               _questions[index].copyWith(
@@ -967,21 +962,21 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                             const SizedBox(height: 16),
 
                             // Explanation Field
-                            TextFormField(
-                              initialValue: _questions[index].explanation,
-                              decoration: const InputDecoration(
-                                labelText: 'Explanation (Optional)',
-                                hintText:
-                                    'Explain why the answer is correct...',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.lightbulb_outline),
-                              ),
-                              maxLines: 3,
-                              minLines: 1,
-                              onChanged: (v) => _updateQuestion(
-                                index,
-                                _questions[index].copyWith(explanation: v),
-                              ),
+                            RichDocumentEditor(
+                              initialDeltaJson: _questions[index].explanationDelta,
+                              initialHtml: _questions[index].explanationHtml,
+                              labelText: 'Explanation (Optional)',
+                              autoSaveDebounceDuration: const Duration(milliseconds: 300),
+                              onSave: (delta, html) {
+                                _updateQuestion(
+                                  index,
+                                  _questions[index].copyWith(
+                                    explanation: RichTextService.extractPlainText(delta),
+                                    explanationDelta: delta,
+                                    explanationHtml: html,
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),

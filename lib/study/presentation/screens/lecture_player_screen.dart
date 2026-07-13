@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
+import 'package:eduverse/study/data/repositories/lecture_progress_repository.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -104,32 +105,84 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
     if (_youtubeController == null) return;
     final position = _youtubeController!.value.position.inSeconds;
     final duration = _youtubeController!.metadata.duration.inSeconds;
+    debugPrint('YT_LISTENER: pos=$position dur=$duration playerState=${_youtubeController!.value.playerState}');
     _saveProgress(position, duration);
   }
 
   void _saveProgress(int position, int duration) {
-    if (position <= 0 || duration <= 0) return;
+    debugPrint('SaveProgress CALLED: pos=$position dur=$duration lastSaved=$_lastSavedPosition lectureId=${widget.lecture.id}');
+    if (position <= 0 || duration <= 0) {
+      debugPrint('SaveProgress SKIPPED: pos=$position dur=$duration (<=0)');
+      return;
+    }
     if ((position - _lastSavedPosition).abs() < 5) return;
     _lastSavedPosition = position;
 
-    final controller = Provider.of<StudyController>(context, listen: false);
-    controller.updateLectureProgress(
-      widget.lecture.id,
-      progressSeconds: position,
-      totalDurationSeconds: duration,
-      lastOpened: DateTime.now().toIso8601String(),
-    );
+    try {
+      final controller = Provider.of<StudyController>(context, listen: false);
+      debugPrint('SaveProgress: Using StudyController path');
+      controller.updateLectureProgress(
+        widget.lecture.id,
+        progressSeconds: position,
+        totalDurationSeconds: duration,
+        lastOpened: DateTime.now().toIso8601String(),
+      );
+    } catch (e1) {
+      debugPrint('SaveProgress: StudyController not found ($e1), using fallback');
+      try {
+        final progressRepository = LectureProgressRepository();
+        progressRepository.saveProgress(
+          lectureId: widget.lecture.id,
+          progressSeconds: position,
+          totalDurationSeconds: duration,
+          lastOpened: DateTime.now().toIso8601String(),
+        );
+        debugPrint('SaveProgress: Fallback repository save succeeded');
+      } catch (e) {
+        debugPrint('Error saving progress directly to repository: $e');
+      }
+    }
   }
 
   void _saveProgressDirect(int position, int duration) {
     if (position <= 0 || duration <= 0) return;
-    final controller = Provider.of<StudyController>(context, listen: false);
-    controller.updateLectureProgress(
-      widget.lecture.id,
-      progressSeconds: position,
-      totalDurationSeconds: duration,
-      lastOpened: DateTime.now().toIso8601String(),
-    );
+    try {
+      final controller = Provider.of<StudyController>(context, listen: false);
+      controller.updateLectureProgress(
+        widget.lecture.id,
+        progressSeconds: position,
+        totalDurationSeconds: duration,
+        lastOpened: DateTime.now().toIso8601String(),
+      );
+    } catch (_) {
+      try {
+        final progressRepository = LectureProgressRepository();
+        progressRepository.saveProgress(
+          lectureId: widget.lecture.id,
+          progressSeconds: position,
+          totalDurationSeconds: duration,
+          lastOpened: DateTime.now().toIso8601String(),
+        );
+      } catch (e) {
+        debugPrint('Error saving progress directly to repository: $e');
+      }
+    }
+  }
+
+  void _saveProgressOnPop() {
+    if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+      final position = _videoPlayerController!.value.position.inSeconds;
+      final duration = _videoPlayerController!.value.duration.inSeconds;
+      _saveProgressDirect(position, duration);
+    }
+    if (_youtubeController != null) {
+      final position = _youtubeController!.value.position.inSeconds;
+      final duration = _youtubeController!.metadata.duration.inSeconds;
+      _saveProgressDirect(position, duration);
+    }
+    if (kIsWeb) {
+      _saveProgressDirect(_currentWebPosition, _currentWebDuration);
+    }
   }
 
   Future<void> _initializePlayer() async {
@@ -169,6 +222,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
               startAt: widget.startPositionSeconds ?? 0,
             ),
           )..addListener(_youtubeListener);
+          debugPrint('YT_INIT: YoutubePlayerController created and _youtubeListener attached for videoId=$videoId');
         }
         // On Web, we use CrossPlatformYoutubePlayer which creates its own controller
       } else {
@@ -736,9 +790,16 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
         final screenHeight = MediaQuery.of(context).size.height;
         final topPadding = MediaQuery.of(context).padding.top;
 
-        return Scaffold(
-          backgroundColor: isLandscape ? Colors.black : Colors.grey[100],
-          resizeToAvoidBottomInset: !isLandscape,
+        return PopScope(
+          canPop: true,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) {
+              _saveProgressOnPop();
+            }
+          },
+          child: Scaffold(
+            backgroundColor: isLandscape ? Colors.black : Colors.grey[100],
+            resizeToAvoidBottomInset: !isLandscape,
           appBar: isLandscape
               ? null
               : AppBar(
@@ -897,7 +958,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
               ],
             ),
           ),
-        );
+        ),);
       },
     );
   }

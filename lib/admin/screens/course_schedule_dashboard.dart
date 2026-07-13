@@ -393,7 +393,9 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                   const Text('Select Folder/Subject *', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   StreamBuilder<List<String>>(
-                    stream: service.getSubjects(),
+                    stream: widget.courseId.isNotEmpty
+                        ? service.getSubjectsForCourse(widget.courseId)
+                        : service.getSubjects(),
                     builder: (context, snapshot) {
                       final subjects = snapshot.data ?? [];
                       return DropdownButtonFormField<String>(

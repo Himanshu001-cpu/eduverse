@@ -1,4 +1,21 @@
+import 'dart:convert';
+
 class RichTextService {
+  /// Extracts plain text from a delta JSON string.
+  static String extractPlainText(String deltaJson) {
+    if (deltaJson.isEmpty) return '';
+    try {
+      final decoded = json.decode(deltaJson);
+      if (decoded is Map && decoded.containsKey('ops')) {
+        final ops = decoded['ops'] as List;
+        return ops.map((op) => op['insert']?.toString() ?? '').join();
+      }
+    } catch (e) {
+      // Not JSON
+    }
+    return deltaJson;
+  }
+
   /// Serializes the rich text editor contents for Firestore storage.
   static Map<String, dynamic> serializeForFirestore({
     required String deltaJson,

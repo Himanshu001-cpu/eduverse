@@ -129,6 +129,7 @@ class AdminScaffold extends StatelessWidget {
                   _navItem(context, 'E-books Manager', '/ebooks_manager', Icons.book),
                   _navItem(context, 'Feed Management', '/feed_list', Icons.feed),
                   _navItem(context, 'Notification Center', '/notifications', Icons.notification_important),
+                  _navItem(context, 'Poster Manager', '/posters', Icons.photo_library),
                   _navItem(context, 'Free Live Classes', '/live_classes', Icons.live_tv),
                   _navItem(context, 'Payment Settings', '/payment_settings', Icons.payment),
                   _navItem(context, 'Settings', '/settings', Icons.settings),

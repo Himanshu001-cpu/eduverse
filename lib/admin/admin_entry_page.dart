@@ -144,23 +144,6 @@ class _AdminAppWithBackHandling extends StatefulWidget {
 
 class _AdminAppWithBackHandlingState extends State<_AdminAppWithBackHandling> {
   final GlobalKey<NavigatorState> _adminNavigatorKey = GlobalKey<NavigatorState>();
-  late final _AdminRouteObserver _routeObserver;
-  
-  @override
-  void initState() {
-    super.initState();
-    _routeObserver = _AdminRouteObserver(onRouteChanged: _onRouteChanged);
-  }
-  
-  void _onRouteChanged(String routeName) {
-    // This is called from the observer, which may be triggered during build
-    // We use a post-frame callback to avoid setState during build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
-  }
 
   Future<void> _showExitConfirmation() async {
     // Use the admin navigator's context for showing dialog so it appears correctly
@@ -202,29 +185,17 @@ class _AdminAppWithBackHandlingState extends State<_AdminAppWithBackHandling> {
         onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
           
-          // Check if we're on dashboard using the observer's tracked route
-          final currentRoute = _routeObserver.currentRoute;
-          
-          // If on dashboard (only one route in stack), show exit confirmation
-          if (currentRoute == '/' || currentRoute == '/dashboard') {
-            _showExitConfirmation();
+          // Check if we can pop within the admin navigator
+          final canPop = _adminNavigatorKey.currentState?.canPop() ?? false;
+          if (canPop) {
+            _adminNavigatorKey.currentState?.pop();
           } else {
-            // Not on dashboard, navigate back within admin panel
-            final canPop = _adminNavigatorKey.currentState?.canPop() ?? false;
-            if (canPop) {
-              _adminNavigatorKey.currentState?.pop();
-            } else {
-              // If we cannot pop (shouldn't happen but safety check), show exit
-              _showExitConfirmation();
-            }
+            // We are on the root route (dashboard), show the exit dialog
+            _showExitConfirmation();
           }
         },
-        child: MaterialApp(
-          navigatorKey: _adminNavigatorKey,
-          navigatorObservers: [_routeObserver],
-          debugShowCheckedModeBanner: false,
-          title: 'The Eduverse Admin',
-          theme: ThemeData(
+        child: Theme(
+          data: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
             appBarTheme: const AppBarTheme(
@@ -232,66 +203,15 @@ class _AdminAppWithBackHandlingState extends State<_AdminAppWithBackHandling> {
               foregroundColor: Colors.white,
             ),
           ),
-          initialRoute: '/',
-          onGenerateRoute: AdminRouter.generateRoute,
+          child: Navigator(
+            key: _adminNavigatorKey,
+            initialRoute: '/',
+            onGenerateRoute: AdminRouter.generateRoute,
+          ),
         ),
       ),
     );
   }
 }
 
-/// Navigator observer that tracks the current route in the admin panel
-class _AdminRouteObserver extends NavigatorObserver {
-  final List<String> _routeStack = ['/'];
-  final Function(String) onRouteChanged;
-  
-  _AdminRouteObserver({required this.onRouteChanged});
-  
-  String get currentRoute => _routeStack.isNotEmpty ? _routeStack.last : '/';
-  
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didPush(route, previousRoute);
-    final routeName = route.settings.name ?? '/';
-    _routeStack.add(routeName);
-    onRouteChanged(routeName);
-  }
-  
-  @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didPop(route, previousRoute);
-    if (_routeStack.isNotEmpty) {
-      _routeStack.removeLast();
-    }
-    // Ensure we always have at least root in the stack
-    if (_routeStack.isEmpty) {
-      _routeStack.add('/');
-    }
-    onRouteChanged(currentRoute);
-  }
-  
-  @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
-    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
-    if (_routeStack.isNotEmpty) {
-      _routeStack.removeLast();
-    }
-    final routeName = newRoute?.settings.name ?? '/';
-    _routeStack.add(routeName);
-    onRouteChanged(routeName);
-  }
-  
-  @override
-  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didRemove(route, previousRoute);
-    final routeName = route.settings.name;
-    if (routeName != null) {
-      _routeStack.remove(routeName);
-    }
-    if (_routeStack.isEmpty) {
-      _routeStack.add('/');
-    }
-    onRouteChanged(currentRoute);
-  }
-}
 

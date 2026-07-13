@@ -5,6 +5,7 @@ import 'rich_editor_toolbar.dart';
 import 'find_replace_panel.dart';
 import 'equation_builder.dart';
 import 'tldraw_webview.dart';
+import 'editable_table_widget.dart';
 import '../../core/services/rich_text_service.dart';
 
 class RichDocumentEditor extends StatefulWidget {
@@ -233,9 +234,10 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         RichEditorToolbar(
           onBoldPressed: () => _applyFormatting('**', '**'),
           onItalicPressed: () => _applyFormatting('*', '*'),
@@ -422,24 +424,26 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
             ),
           ),
 
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.all(8.0),
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade400),
-              borderRadius: BorderRadius.circular(4.0),
-            ),
-            child: TextField(
-              key: const Key('editor_text_field'),
-              controller: _textController,
-              maxLines: null,
-              decoration: InputDecoration.collapsed(
-                hintText: widget.hintText ?? 'Start typing here...',
-              ),
+        Container(
+          height: 120,
+          margin: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400),
+            borderRadius: BorderRadius.circular(4.0),
+          ),
+          child: TextField(
+            key: const Key('editor_text_field'),
+            controller: _textController,
+            maxLines: null,
+            decoration: InputDecoration.collapsed(
+              hintText: widget.hintText ?? 'Start typing here...',
             ),
           ),
         ),
+        
+        // Render any visual tables detected in the text
+        ..._buildVisualTableEditors(),
         
         // Debug output widget for testing auto-save triggering
         Container(
@@ -448,6 +452,98 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
           key: Key('autosave_count_$_autoSaveCount'),
         ),
       ],
-    );
+    ),
+  );
+}
+
+  List<_ParsedTable> _parseTablesFromText(String text) {
+    final List<_ParsedTable> list = [];
+    final regex = RegExp(r'\[table rows=(\d+) cols=(\d+)\](.*?)\[/table\]', dotAll: true);
+    final matches = regex.allMatches(text).toList();
+    
+    for (int i = 0; i < matches.length; i++) {
+      final match = matches[i];
+      final rows = int.tryParse(match.group(1) ?? '1') ?? 1;
+      final cols = int.tryParse(match.group(2) ?? '1') ?? 1;
+      final content = match.group(3) ?? '';
+      
+      final cellStrings = content.split('|');
+      final cells = List.generate(
+        rows,
+        (r) => List.generate(
+          cols,
+          (c) {
+            final cellIndex = (r * cols) + c;
+            return cellIndex < cellStrings.length ? cellStrings[cellIndex].trim() : '';
+          },
+        ),
+      );
+      
+      list.add(_ParsedTable(
+        index: i,
+        rows: rows,
+        cols: cols,
+        cells: cells,
+        rawText: match.group(0)!,
+      ));
+    }
+    return list;
+  }
+
+  void _updateTableInText(int tableIndex, List<List<String>> newCells, int newRows, int newCols) {
+    final text = _textController.text;
+    final parsed = _parseTablesFromText(text);
+    if (tableIndex >= parsed.length) return;
+    
+    final target = parsed[tableIndex];
+    final cellCount = newRows * newCols;
+    final cellStrings = List.generate(cellCount, (i) {
+      final r = i ~/ newCols;
+      final c = i % newCols;
+      return (r < newCells.length && c < newCells[r].length) ? newCells[r][c] : '';
+    });
+    
+    final newTableMarkdown = '[table rows=$newRows cols=$newCols]${cellStrings.join(' | ')}[/table]';
+    final newText = text.replaceFirst(target.rawText, newTableMarkdown);
+    
+    final selection = _textController.selection;
+    _textController.text = newText;
+    if (selection.isValid && selection.end <= newText.length) {
+      _textController.selection = selection;
+    }
+    _onTextChanged();
+  }
+
+  List<Widget> _buildVisualTableEditors() {
+    final parsed = _parseTablesFromText(_textController.text);
+    return List.generate(parsed.length, (index) {
+      final pt = parsed[index];
+      return EditableTableWidget(
+        key: Key('editable_table_$index'),
+        initialRows: pt.rows,
+        initialCols: pt.cols,
+        initialData: pt.cells,
+        onTableChanged: (cells, rows, cols) {
+          _updateTableInText(index, cells, rows, cols);
+        },
+      );
+    });
   }
 }
+
+class _ParsedTable {
+  final int index;
+  final int rows;
+  final int cols;
+  final List<List<String>> cells;
+  final String rawText;
+
+  _ParsedTable({
+    required this.index,
+    required this.rows,
+    required this.cols,
+    required this.cells,
+    required this.rawText,
+  });
+}
+

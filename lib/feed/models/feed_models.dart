@@ -186,11 +186,15 @@ class AnswerOption {
   final String id;
   final String text;
   final bool isCorrect;
+  final String? textDelta;
+  final String? textHtml;
 
   const AnswerOption({
     required this.id,
     required this.text,
     this.isCorrect = false,
+    this.textDelta,
+    this.textHtml,
   });
 
   factory AnswerOption.fromJson(Map<String, dynamic> json) {
@@ -198,6 +202,8 @@ class AnswerOption {
       id: json['id'] as String,
       text: json['text'] as String,
       isCorrect: json['isCorrect'] as bool? ?? false,
+      textDelta: json['textDelta'] as String?,
+      textHtml: json['textHtml'] as String?,
     );
   }
 
@@ -205,13 +211,23 @@ class AnswerOption {
     'id': id,
     'text': text,
     'isCorrect': isCorrect,
+    'textDelta': textDelta,
+    'textHtml': textHtml,
   };
 
-  AnswerOption copyWith({String? id, String? text, bool? isCorrect}) {
+  AnswerOption copyWith({
+    String? id,
+    String? text,
+    bool? isCorrect,
+    String? textDelta,
+    String? textHtml,
+  }) {
     return AnswerOption(
       id: id ?? this.id,
       text: text ?? this.text,
       isCorrect: isCorrect ?? this.isCorrect,
+      textDelta: textDelta ?? this.textDelta,
+      textHtml: textHtml ?? this.textHtml,
     );
   }
 }
@@ -228,6 +244,10 @@ class QuizQuestion {
   final String? explanation;
   final String? subject;
   final double? negativeMarks;
+  final String? questionDelta;
+  final String? questionHtml;
+  final String? explanationDelta;
+  final String? explanationHtml;
 
   const QuizQuestion({
     required this.id,
@@ -240,6 +260,10 @@ class QuizQuestion {
     this.explanation,
     this.subject,
     this.negativeMarks,
+    this.questionDelta,
+    this.questionHtml,
+    this.explanationDelta,
+    this.explanationHtml,
   });
 
   // Legacy compatibility: get question text
@@ -306,6 +330,10 @@ class QuizQuestion {
       explanation: json['explanation'] as String?,
       subject: json['subject'] as String?,
       negativeMarks: (json['negativeMarks'] as num?)?.toDouble(),
+      questionDelta: json['questionDelta'] as String?,
+      questionHtml: json['questionHtml'] as String?,
+      explanationDelta: json['explanationDelta'] as String?,
+      explanationHtml: json['explanationHtml'] as String?,
     );
   }
 
@@ -320,6 +348,10 @@ class QuizQuestion {
     'explanation': explanation,
     'subject': subject,
     'negativeMarks': negativeMarks,
+    'questionDelta': questionDelta,
+    'questionHtml': questionHtml,
+    'explanationDelta': explanationDelta,
+    'explanationHtml': explanationHtml,
   };
 
   QuizQuestion copyWith({
@@ -333,6 +365,10 @@ class QuizQuestion {
     String? explanation,
     String? subject,
     double? negativeMarks,
+    String? questionDelta,
+    String? questionHtml,
+    String? explanationDelta,
+    String? explanationHtml,
   }) {
     return QuizQuestion(
       id: id ?? this.id,
@@ -345,6 +381,10 @@ class QuizQuestion {
       explanation: explanation ?? this.explanation,
       subject: subject ?? this.subject,
       negativeMarks: negativeMarks ?? this.negativeMarks,
+      questionDelta: questionDelta ?? this.questionDelta,
+      questionHtml: questionHtml ?? this.questionHtml,
+      explanationDelta: explanationDelta ?? this.explanationDelta,
+      explanationHtml: explanationHtml ?? this.explanationHtml,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/core/utils/youtube_utils.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
+import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/core/services/live_class_notifier_service.dart';
 
 class LiveClassPopup extends StatefulWidget {
@@ -274,20 +275,34 @@ class _LiveClassPopupState extends State<LiveClassPopup> with SingleTickerProvid
         duration: Duration(minutes: liveClass.durationMinutes),
       );
 
+      StudyController? controller;
+      try {
+        controller = Provider.of<StudyController>(context, listen: false);
+      } catch (_) {}
+
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => LecturePlayerScreen(
-            courseId: active.courseId,
-            batchId: active.batchId,
-            lecture: lecture,
-            isLiveStream: YouTubeUtils.shouldTreatAsLive(
-              url: liveClass.youtubeUrl ?? '',
-              status: liveClass.status,
-              startTime: liveClass.startTime,
-              durationMinutes: liveClass.durationMinutes,
-            ),
-          ),
+          builder: (ctx) {
+            final playerScreen = LecturePlayerScreen(
+              courseId: active.courseId,
+              batchId: active.batchId,
+              lecture: lecture,
+              isLiveStream: YouTubeUtils.shouldTreatAsLive(
+                url: liveClass.youtubeUrl ?? '',
+                status: liveClass.status,
+                startTime: liveClass.startTime,
+                durationMinutes: liveClass.durationMinutes,
+              ),
+            );
+            if (controller != null) {
+              return ChangeNotifierProvider.value(
+                value: controller,
+                child: playerScreen,
+              );
+            }
+            return playerScreen;
+          },
         ),
       );
     } else {

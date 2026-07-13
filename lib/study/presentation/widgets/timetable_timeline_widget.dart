@@ -270,21 +270,35 @@ class _TimetableTimelineWidgetState extends State<TimetableTimelineWidget> {
                                       icon: const Icon(Icons.play_arrow),
                                       label: const Text('JOIN NOW'),
                                       onPressed: () {
+                                        StudyController? controller;
+                                        try {
+                                          controller = Provider.of<StudyController>(context, listen: false);
+                                        } catch (_) {}
+
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (ctx) => LecturePlayerScreen(
-                                              courseId: item.courseId,
-                                              batchId: item.batchId,
-                                              lecture: StudyLecture(
-                                                id: item.id,
-                                                title: item.title,
-                                                videoUrl: item.youtubeUrl ?? '',
-                                                subject: item.subject,
-                                                chapter: item.chapter,
-                                              ),
-                                              isLiveStream: true,
-                                            ),
+                                            builder: (ctx) {
+                                              final playerScreen = LecturePlayerScreen(
+                                                courseId: item.courseId,
+                                                batchId: item.batchId,
+                                                lecture: StudyLecture(
+                                                  id: item.id,
+                                                  title: item.title,
+                                                  videoUrl: item.youtubeUrl ?? '',
+                                                  subject: item.subject,
+                                                  chapter: item.chapter,
+                                                ),
+                                                isLiveStream: true,
+                                              );
+                                              if (controller != null) {
+                                                return ChangeNotifierProvider.value(
+                                                  value: controller,
+                                                  child: playerScreen,
+                                                );
+                                              }
+                                              return playerScreen;
+                                            },
                                           ),
                                         );
                                       },

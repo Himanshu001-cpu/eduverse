@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
-import 'lecture_player_page.dart';
+import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
 import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 
 class SubjectDetailScreen extends StatefulWidget {
@@ -534,20 +534,33 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
         trailing: trailingWidget,
         onTap: () async {
           if (item is StudyLecture) {
-            // Open lecture player
+            final controller = context.read<StudyController>();
+            final progressBox = controller.lectureProgressBox;
+            final progressData = progressBox.get(item.id);
+            int startSeconds = 0;
+            if (progressData != null) {
+              try {
+                final map = Map<String, dynamic>.from(progressData);
+                startSeconds = (map['progressSeconds'] as num).toInt();
+              } catch (_) {}
+            }
+
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => LecturePlayerPage(
-                  videoUrl: item.videoUrl,
-                  title: item.title,
-                  description: item.description,
+                builder: (context) => ChangeNotifierProvider.value(
+                  value: controller,
+                  child: LecturePlayerScreen(
+                    courseId: widget.courseId,
+                    batchId: widget.batchId,
+                    lecture: item,
+                    startPositionSeconds: startSeconds,
+                  ),
                 ),
               ),
             );
             // Mark watched
             try {
-              final controller = context.read<StudyController>();
               await controller.markLectureWatched(widget.courseId, widget.batchId, item.id, true);
             } catch (_) {}
           } else if (item is StudyNote) {

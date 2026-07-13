@@ -21,7 +21,8 @@ void main() async {
 
     // Initialize Hive for Flutter
     await Hive.initFlutter();
-    await Hive.openBox<Map>('lecture_progress');
+    final box = await Hive.openBox<Map>('lecture_progress');
+    debugPrint('HIVE_DIAGNOSTIC: Opened lecture_progress box. Keys: ${box.keys.toList()}, Values: ${box.values.toList()}');
 
     // Initialize push notifications (non-blocking)
     NotificationService().initialize().catchError((e) {

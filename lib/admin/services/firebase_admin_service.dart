@@ -1776,6 +1776,24 @@ class FirebaseAdminService {
     });
   }
 
+  Stream<List<String>> getSubjectsForCourse(String courseId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('lessons')
+        .snapshots()
+        .map((snapshot) {
+          final subjects = snapshot.docs
+              .map((doc) => doc.data()['subject'] as String? ?? '')
+              .where((s) => s.isNotEmpty)
+              .toSet()
+              .toList();
+          subjects.sort();
+          return subjects;
+        });
+  }
+
+
   Future<void> addSubject(String name) async {
     final docId = name.trim();
     if (docId.isEmpty) return;
@@ -2569,6 +2587,8 @@ class FirebaseAdminService {
               parentRuleId: ruleId,
               generatedDateString: generatedDateString,
               linkedCourses: [courseId],
+              subject: rule.subject,
+              chapter: rule.chapter,
             );
 
             final classData = newClass.toMap();

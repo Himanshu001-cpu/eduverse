@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import 'package:provider/provider.dart';
 import 'package:eduverse/admin/services/firebase_admin_service.dart';
 import 'package:eduverse/feed/screens/quiz_page.dart';
+import 'package:eduverse/admin/widgets/rich_document_editor.dart';
+import 'package:eduverse/core/services/rich_text_service.dart';
 
 /// Admin screen for creating and editing Quiz content
 class QuizEditorScreen extends StatefulWidget {
@@ -956,19 +958,6 @@ class _QuestionCardState extends State<_QuestionCard> {
     widget.onUpdate(widget.question.copyWith(answerType: type));
   }
 
-  void _updateQuestionText(String text) {
-    widget.onUpdate(widget.question.copyWith(questionText: text));
-  }
-
-  void _updateOption(int index, String text) {
-    final options = List<AnswerOption>.from(widget.question.options);
-    while (options.length <= index) {
-      options.add(AnswerOption(id: const Uuid().v4(), text: ''));
-    }
-    options[index] = options[index].copyWith(text: text);
-    widget.onUpdate(widget.question.copyWith(options: options));
-  }
-
   void _setCorrectOption(int index) {
     final options = widget.question.options.asMap().entries.map((e) {
       return e.value.copyWith(isCorrect: e.key == index);
@@ -1142,15 +1131,20 @@ class _QuestionCardState extends State<_QuestionCard> {
             const SizedBox(height: 16),
 
             // Question Text Field
-            TextFormField(
-              controller: _questionController,
-              decoration: const InputDecoration(
-                labelText: 'Question',
-                hintText: 'Enter your question...',
-                border: OutlineInputBorder(),
-              ),
-              style: const TextStyle(fontWeight: FontWeight.w500),
-              onChanged: _updateQuestionText,
+            RichDocumentEditor(
+              initialDeltaJson: widget.question.questionDelta,
+              initialHtml: widget.question.questionHtml,
+              labelText: 'Question',
+              autoSaveDebounceDuration: const Duration(milliseconds: 300),
+              onSave: (delta, html) {
+                final text = RichTextService.extractPlainText(delta);
+                _questionController.text = text;
+                widget.onUpdate(widget.question.copyWith(
+                  questionText: text,
+                  questionDelta: delta,
+                  questionHtml: html,
+                ));
+              },
             ),
             const SizedBox(height: 16),
 
@@ -1229,17 +1223,26 @@ class _QuestionCardState extends State<_QuestionCard> {
                   activeColor: Colors.green,
                 ),
                 Expanded(
-                  child: TextFormField(
-                    controller: _optionControllers[index],
-                    decoration: InputDecoration(
-                      hintText: 'Option ${String.fromCharCode(65 + index)}',
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                      fillColor: isCorrect ? Colors.green.shade50 : null,
-                      filled: isCorrect,
+                    child: RichDocumentEditor(
+                      initialDeltaJson: index < widget.question.options.length ? widget.question.options[index].textDelta : null,
+                      initialHtml: index < widget.question.options.length ? widget.question.options[index].textHtml : null,
+                      labelText: 'Option ${String.fromCharCode(65 + index)}',
+                      autoSaveDebounceDuration: const Duration(milliseconds: 300),
+                      onSave: (delta, html) {
+                        final text = RichTextService.extractPlainText(delta);
+                        _optionControllers[index].text = text;
+                        final options = List<AnswerOption>.from(widget.question.options);
+                        while (options.length <= index) {
+                          options.add(AnswerOption(id: const Uuid().v4(), text: ''));
+                        }
+                        options[index] = options[index].copyWith(
+                          text: text,
+                          textDelta: delta,
+                          textHtml: html,
+                        );
+                        widget.onUpdate(widget.question.copyWith(options: options));
+                      },
                     ),
-                    onChanged: (v) => _updateOption(index, v),
-                  ),
                 ),
               ],
             ),

@@ -81,7 +81,7 @@ class StoreEbooksContent extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 290,
+          height: 230,
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
@@ -116,77 +116,41 @@ class _EbookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayPrice = ebook.finalPrice > 0 ? '₹${ebook.finalPrice.toStringAsFixed(0)}' : 'FREE';
-
     return Container(
       width: 140,
       margin: const EdgeInsets.only(right: 16),
       child: GestureDetector(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: 2 / 3,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+        child: AspectRatio(
+          aspectRatio: 2 / 3,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: ebook.thumbnailUrl.isNotEmpty
-                      ? Image.network(
-                          ebook.thumbnailUrl,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (context, error, stackTrace) => _buildFallback(),
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return _buildFallback(showLoader: true);
-                          },
-                        )
-                      : _buildFallback(),
-                ),
-              ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              ebook.title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: ebook.thumbnailUrl.isNotEmpty
+                  ? Image.network(
+                      ebook.thumbnailUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      errorBuilder: (context, error, stackTrace) => _buildFallback(),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return _buildFallback(showLoader: true);
+                      },
+                    )
+                  : _buildFallback(),
             ),
-            const SizedBox(height: 2),
-            Text(
-              ebook.subtitle.isNotEmpty ? ebook.subtitle : 'Unknown Author',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              displayPrice,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.green.shade700,
-                fontSize: 13,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

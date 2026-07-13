@@ -97,6 +97,7 @@ class _CourseScheduleRulesScreenState extends State<CourseScheduleRulesScreen> {
   }
 
   void _showRuleEditorDialog(RecurringClassRule? existingRule) {
+    final service = context.read<FirebaseAdminService>();
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController(text: existingRule?.title ?? '');
     final descriptionController = TextEditingController(text: existingRule?.description ?? '');
@@ -114,6 +115,9 @@ class _CourseScheduleRulesScreenState extends State<CourseScheduleRulesScreen> {
     if (selectedTeacher == null && teachers.isNotEmpty) {
       selectedTeacher = teachers.first;
     }
+
+    String selectedSubject = existingRule?.subject ?? '';
+    String selectedChapter = existingRule?.chapter ?? '';
 
     // Weekdays
     final List<int> selectedWeekdays = List<int>.from(existingRule?.weekdays ?? [1]); // default Monday
@@ -190,7 +194,74 @@ class _CourseScheduleRulesScreenState extends State<CourseScheduleRulesScreen> {
                         );
                       }).toList(),
                       onChanged: (val) {
-                        setStateSheet(() => selectedTeacher = val);
+                        setStateSheet(() {
+                          selectedTeacher = val;
+                        });
+                      },
+                    ),
+                  const SizedBox(height: 12),
+                  // ---- Classification Section ----
+                  const Text('Classification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  const SizedBox(height: 8),
+                  StreamBuilder<List<String>>(
+                    stream: widget.courseId.isNotEmpty
+                        ? service.getSubjectsForCourse(widget.courseId)
+                        : service.getSubjects(),
+                    builder: (context, subjectsSnap) {
+                      final subjects = subjectsSnap.data ?? [];
+                      return DropdownButtonFormField<String>(
+                        initialValue: selectedSubject.isNotEmpty && subjects.contains(selectedSubject)
+                            ? selectedSubject
+                            : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Subject',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.subject),
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: '',
+                            child: Text('None', style: TextStyle(color: Colors.grey)),
+                          ),
+                          ...subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))),
+                        ],
+                        onChanged: (val) {
+                          setStateSheet(() {
+                            selectedSubject = val ?? '';
+                            selectedChapter = '';
+                          });
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  if (selectedSubject.isNotEmpty)
+                    StreamBuilder<List<String>>(
+                      stream: service.getChaptersForSubject(selectedSubject),
+                      builder: (context, chaptersSnap) {
+                        final chapters = chaptersSnap.data ?? [];
+                        return DropdownButtonFormField<String>(
+                          initialValue: selectedChapter.isNotEmpty && chapters.contains(selectedChapter)
+                              ? selectedChapter
+                              : null,
+                          decoration: const InputDecoration(
+                            labelText: 'Chapter/Folder',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.folder),
+                          ),
+                          items: [
+                            const DropdownMenuItem(
+                              value: '',
+                              child: Text('None', style: TextStyle(color: Colors.grey)),
+                            ),
+                            ...chapters.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                          ],
+                          onChanged: (val) {
+                            setStateSheet(() {
+                              selectedChapter = val ?? '';
+                            });
+                          },
+                        );
                       },
                     ),
                   const SizedBox(height: 12),
@@ -356,9 +427,9 @@ class _CourseScheduleRulesScreenState extends State<CourseScheduleRulesScreen> {
                             durationMinutes: int.parse(durationController.text.trim()),
                             startDate: startDate,
                             endDate: endDate,
+                            subject: selectedSubject,
+                            chapter: selectedChapter,
                           );
-
-                          final service = context.read<FirebaseAdminService>();
                           try {
                             await service.saveRecurringRule(widget.courseId, rule);
                             if (mounted) {
@@ -471,7 +542,15 @@ class _CourseScheduleRulesScreenState extends State<CourseScheduleRulesScreen> {
                                       const SizedBox(height: 4),
                                       Text('Time: ${rule.startTime} (${rule.durationMinutes} min)'),
                                       const SizedBox(height: 4),
-                                      Text('Active Period: ${DateFormat('yyyy-MM-dd').format(rule.startDate)} to ${DateFormat('yyyy-MM-dd').format(rule.endDate)}'),
+                                      Text('Active Period: ${DateFormat("yyyy-MM-dd").format(rule.startDate)} to ${DateFormat("yyyy-MM-dd").format(rule.endDate)}'),
+                                      if (rule.subject.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text('Subject: ${rule.subject}'),
+                                      ],
+                                      if (rule.chapter.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text('Folder/Chapter: ${rule.chapter}'),
+                                      ],
                                       if (rule.description.isNotEmpty) ...[
                                         const SizedBox(height: 8),
                                         Text(rule.description, style: TextStyle(color: Colors.grey.shade600)),

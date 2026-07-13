@@ -29,6 +29,7 @@ class StudyController extends ChangeNotifier {
   }
 
   // State
+  bool _disposed = false;
   List<StudyBatch> _enrolledBatches = [];
   bool _isLoading = true;
   String? _error;
@@ -84,41 +85,49 @@ class StudyController extends ChangeNotifier {
     if (_userId.isEmpty) {
       _isLoading = false;
       _error = 'User not logged in';
-      notifyListeners();
+      if (!_disposed) notifyListeners();
       return;
     }
 
     _isLoading = true;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
 
     // Load initial selection from Local Storage
     final prefs = await SharedPreferences.getInstance();
+    if (_disposed) return;
     _selectedRoomId = prefs.getString('selected_room_id');
     _selectedRoomType = prefs.getString('selected_room_type') ?? 'course';
     if (_selectedRoomId == null) {
       _selectedRoomId = await _localStorage.getSelectedBatchId();
+      if (_disposed) return;
       _selectedRoomType = 'course';
     }
     _selectedBatchId = _selectedRoomType == 'course' ? _selectedRoomId : null;
 
     _favoriteBatchIds = await _localStorage.getCachedFavoriteBatchIds();
+    if (_disposed) return;
 
     // Listen to enrolled batches
     _batchesSubscription = _repository
         .getEnrolledBatches(_userId)
         .listen(
           (batches) async {
+            if (_disposed) return;
             _enrolledBatches = batches;
             await _syncAndVerifySelection(batches);
+            if (_disposed) return;
 
             await loadLecturesForSelectedBatch();
+            if (_disposed) return;
             await loadAllLiveClasses();
+            if (_disposed) return;
 
             _isLoading = false;
             _error = null;
             notifyListeners();
           },
           onError: (e) {
+            if (_disposed) return;
             _isLoading = false;
             _error = e.toString();
             notifyListeners();
@@ -159,6 +168,7 @@ class StudyController extends ChangeNotifier {
         .doc(_userId)
         .snapshots()
         .listen((snap) async {
+      if (_disposed) return;
       if (snap.exists && snap.data() != null) {
         final data = snap.data()!;
         if (data.containsKey('selectedRoomId') && data.containsKey('selectedRoomType')) {
@@ -170,13 +180,15 @@ class StudyController extends ChangeNotifier {
             _selectedBatchId = dbRoomType == 'course' ? dbRoomId : null;
             
             final prefs = await SharedPreferences.getInstance();
+            if (_disposed) return;
             await prefs.setString('selected_room_id', dbRoomId);
             await prefs.setString('selected_room_type', dbRoomType);
             if (dbRoomType == 'course') {
               await _localStorage.setSelectedBatchId(dbRoomId);
+              if (_disposed) return;
               await loadLecturesForSelectedBatch();
             }
-            notifyListeners();
+            if (!_disposed) notifyListeners();
           }
         } else if (data.containsKey('selectedBatchId')) {
           final dbSelectedId = data['selectedBatchId'] as String?;
@@ -185,8 +197,9 @@ class StudyController extends ChangeNotifier {
             _selectedRoomType = 'course';
             _selectedBatchId = dbSelectedId;
             await _localStorage.setSelectedBatchId(dbSelectedId);
+            if (_disposed) return;
             await loadLecturesForSelectedBatch();
-            notifyListeners();
+            if (!_disposed) notifyListeners();
           }
         }
       }
@@ -199,9 +212,10 @@ class StudyController extends ChangeNotifier {
         .collection('courseBookmarks')
         .snapshots()
         .listen((snapshot) async {
+      if (_disposed) return;
       _favoriteBatchIds = snapshot.docs.map((doc) => doc.id).toList();
       await _localStorage.cacheFavoriteBatchIds(_favoriteBatchIds);
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     });
 
     // Listen to exams
@@ -209,6 +223,7 @@ class StudyController extends ChangeNotifier {
         .collection('exams')
         .snapshots()
         .listen((snapshot) {
+      if (_disposed) return;
       _exams = snapshot.docs.map((doc) {
         final data = doc.data();
         return {
@@ -294,7 +309,7 @@ class StudyController extends ChangeNotifier {
       }
     }
     _lectures = loadedLectures;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   Future<void> loadAllLiveClasses() async {
@@ -348,7 +363,7 @@ class StudyController extends ChangeNotifier {
     });
 
     _allLiveClasses = loadedLiveClasses;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   void setTab(String tab) {
@@ -459,29 +474,38 @@ class StudyController extends ChangeNotifier {
     required int totalDurationSeconds,
     required String lastOpened,
   }) async {
-    await _progressRepository.saveProgress(
-      lectureId: lectureId,
-      progressSeconds: progressSeconds,
-      totalDurationSeconds: totalDurationSeconds,
-      lastOpened: lastOpened,
-    );
-    notifyListeners();
+    try {
+      await _progressRepository.saveProgress(
+        lectureId: lectureId,
+        progressSeconds: progressSeconds,
+        totalDurationSeconds: totalDurationSeconds,
+        lastOpened: lastOpened,
+      );
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating lecture progress in StudyController: $e');
+    }
   }
 
   void refreshBatches() {
+    if (_disposed) return;
     _batchesSubscription?.cancel();
     _batchesSubscription = _repository
         .getEnrolledBatches(_userId)
         .listen(
           (batches) async {
+            if (_disposed) return;
             _enrolledBatches = batches;
             await loadLecturesForSelectedBatch();
+            if (_disposed) return;
             await loadAllLiveClasses();
+            if (_disposed) return;
             _isLoading = false;
             _error = null;
             notifyListeners();
           },
           onError: (e) {
+            if (_disposed) return;
             _isLoading = false;
             _error = e.toString();
             notifyListeners();
@@ -581,7 +605,26 @@ class StudyController extends ChangeNotifier {
   }
 
   @override
+  void addListener(VoidCallback listener) {
+    if (_disposed) return;
+    super.addListener(listener);
+  }
+
+  @override
+  void removeListener(VoidCallback listener) {
+    if (_disposed) return;
+    super.removeListener(listener);
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _disposed = true;
     _batchesSubscription?.cancel();
     _bookmarksSubscription?.cancel();
     _examsSubscription?.cancel();

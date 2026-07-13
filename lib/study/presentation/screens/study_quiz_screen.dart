@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:eduverse/core/utils/markdown_utils.dart';
 import 'package:eduverse/feed/models/feed_models.dart';
 import 'package:eduverse/study/presentation/screens/study_quiz_result_screen.dart';
+import 'package:eduverse/common/widgets/rich_content_viewer.dart';
 
 /// Quiz taking screen for Study section batches.
 class StudyQuizScreen extends StatefulWidget {
@@ -105,6 +104,8 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
                 id: o['id'] ?? '',
                 text: o['text'] ?? '',
                 isCorrect: o['isCorrect'] ?? false,
+                textDelta: o['textDelta'] as String?,
+                textHtml: o['textHtml'] as String?,
               ),
             )
             .toList();
@@ -120,6 +121,10 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
           score: q['score'] ?? 1,
           subject: q['subject'],
           negativeMarks: (q['negativeMarks'] as num?)?.toDouble(),
+          questionDelta: q['questionDelta'] as String?,
+          questionHtml: q['questionHtml'] as String?,
+          explanationDelta: q['explanationDelta'] as String?,
+          explanationHtml: q['explanationHtml'] as String?,
         );
       }).toList();
 
@@ -604,17 +609,9 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    MarkdownBody(
-                      data: MarkdownUtils.normalizeMarkdown(
-                        _currentQuestion.question,
-                      ),
-                      selectable: true,
-                      styleSheet: MarkdownStyleSheet(
-                        p: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          height: 1.4,
-                        ),
-                      ),
+                    RichContentViewer(
+                      htmlContent: _currentQuestion.questionHtml,
+                      legacyMarkdown: _currentQuestion.questionText,
                     ),
                     const SizedBox(height: 24),
                     ...List.generate(
@@ -663,11 +660,9 @@ class _StudyQuizScreenState extends State<StudyQuizScreen> {
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Text(
-                                    _currentQuestion.options[index].text,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
+                                  child: RichContentViewer(
+                                    htmlContent: _currentQuestion.options[index].textHtml,
+                                    legacyMarkdown: _currentQuestion.options[index].text,
                                   ),
                                 ),
                               ],

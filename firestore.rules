@@ -32,24 +32,18 @@ service cloud.firestore {
     }
 
     // Helper: Check if user is the community owner (teacher)
-    function isCommunityOwner(communityId) {
-      return request.auth != null &&
-        exists(/databases/$(database)/documents/communities/$(communityId)) &&
-        get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId == request.auth.uid;
+    function isCommunityOwner(teacherId) {
+      return request.auth != null && teacherId == request.auth.uid;
     }
 
     // Helper: Check if user is a community member (admin, teacher, or enrolled student)
-    function isCommunityMember(communityId) {
+    function isCommunityMember(courseIds) {
       return request.auth != null && (
         isAdmin() ||
-        isTeacher() ||
         (
           exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          exists(/databases/$(database)/documents/communities/$(communityId)) &&
           'enrolledCourses' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.enrolledCourses.hasAny(
-            get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds
-          )
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.enrolledCourses.hasAny(courseIds)
         )
       );
     }
@@ -528,35 +522,62 @@ service cloud.firestore {
       }
     }
     match /communities/{communityId} {
-      allow read: if isCommunityMember(communityId);
+      allow read: if isCommunityMember(resource.data.courseIds) || isCommunityOwner(resource.data.teacherId);
       allow create: if isAdmin() || isTeacher();
-      allow update: if isAdmin() || isCommunityOwner(communityId) || (
-        isCommunityMember(communityId) &&
+      allow update: if isAdmin() || isCommunityOwner(resource.data.teacherId) || (
+        (isCommunityMember(resource.data.courseIds) || isCommunityOwner(resource.data.teacherId)) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['postCount', 'updatedAt'])
       );
       allow delete: if isAdmin();
 
       match /posts/{postId} {
-        allow read: if isCommunityMember(communityId);
-        allow create: if isCommunityMember(communityId) && request.resource.data.authorId == request.auth.uid;
-        allow update: if isAdmin() || isCommunityOwner(communityId) ||
-                         (isCommunityMember(communityId) && resource.data.authorId == request.auth.uid) ||
-                         (isCommunityMember(communityId) &&
+        allow read: if isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                     isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId);
+        allow create: if (isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                          isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId)) && 
+                         request.resource.data.authorId == request.auth.uid;
+        allow update: if isAdmin() || 
+                         isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId) ||
+                         ((isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                           isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId)) && 
+                          resource.data.authorId == request.auth.uid) ||
+                         ((isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                           isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId)) &&
                           request.resource.data.diff(resource.data).affectedKeys()
                             .hasOnly(['replyCount', 'isAnswered', 'updatedAt']));
-        allow delete: if isAdmin() || isCommunityOwner(communityId) ||
-                         (isCommunityMember(communityId) && resource.data.authorId == request.auth.uid);
+        allow delete: if isAdmin() || 
+                         isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId) ||
+                         ((isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                           isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId)) && 
+                          resource.data.authorId == request.auth.uid);
 
         match /replies/{replyId} {
-          allow read: if isCommunityMember(communityId);
-          allow create: if isCommunityMember(communityId) && request.resource.data.authorId == request.auth.uid;
-          allow update: if isAdmin() || isCommunityOwner(communityId) ||
-                           (isCommunityMember(communityId) && resource.data.authorId == request.auth.uid);
-          allow delete: if isAdmin() || isCommunityOwner(communityId) ||
-                           (isCommunityMember(communityId) && resource.data.authorId == request.auth.uid) ||
-                           (isCommunityMember(communityId) && get(/databases/$(database)/documents/communities/$(communityId)/posts/$(postId)).data.authorId == request.auth.uid);
+          allow read: if isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                       isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId);
+          allow create: if (isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                            isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId)) && 
+                           request.resource.data.authorId == request.auth.uid;
+          allow update: if isAdmin() || 
+                           isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId) ||
+                           ((isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                             isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId)) && 
+                            resource.data.authorId == request.auth.uid);
+          allow delete: if isAdmin() || 
+                           isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId) ||
+                           ((isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                             isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId)) && 
+                            resource.data.authorId == request.auth.uid) ||
+                           ((isCommunityMember(get(/databases/$(database)/documents/communities/$(communityId)).data.courseIds) || 
+                             isCommunityOwner(get(/databases/$(database)/documents/communities/$(communityId)).data.teacherId)) && 
+                            get(/databases/$(database)/documents/communities/$(communityId)/posts/$(postId)).data.authorId == request.auth.uid);
         }
       }
+    }
+
+    // Posters collection: Read for anyone, write only for Admin
+    match /posters/{posterId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

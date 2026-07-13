@@ -39,6 +39,9 @@ import 'screens/notification_editor_screen.dart';
 import 'screens/communities_list_screen.dart';
 import 'screens/course_schedule_dashboard.dart';
 import 'screens/course_schedule_rules_screen.dart';
+import 'screens/poster_list_screen.dart';
+import 'screens/poster_editor_screen.dart';
+import 'package:eduverse/store/models/poster_model.dart';
 
 class AdminRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -247,6 +250,17 @@ class AdminRouter {
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => const NotificationEditorScreen(),
+        );
+      case '/posters':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const PosterListScreen(),
+        );
+      case '/poster_editor':
+        final poster = settings.arguments as Poster?;
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => PosterEditorScreen(poster: poster),
         );
       case '/communities':
         return MaterialPageRoute(

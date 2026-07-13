@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/common/services/download_service.dart';
-import 'lecture_player_page.dart';
+import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
 import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 
 class ChapterDetailScreen extends StatefulWidget {
@@ -315,19 +315,28 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
               onTap: () {
+                final controller = context.read<StudyController>();
+                final progressBox = controller.lectureProgressBox;
+                final progressData = progressBox.get(lecture.id);
+                int startSeconds = 0;
+                if (progressData != null) {
+                  try {
+                    final map = Map<String, dynamic>.from(progressData);
+                    startSeconds = (map['progressSeconds'] as num).toInt();
+                  } catch (_) {}
+                }
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => LecturePlayerPage(
-                      videoUrl: lecture.videoUrl,
-                      title: lecture.title,
-                      description: lecture.description,
-                      subject: lecture.subject,
-                      chapter: lecture.chapter,
-                      lectureNo: lecture.lectureNo,
-                      linkedNoteIds: lecture.linkedNoteIds,
-                      courseId: widget.courseId,
-                      batchId: widget.batchId,
+                    builder: (_) => ChangeNotifierProvider.value(
+                      value: controller,
+                      child: LecturePlayerScreen(
+                        courseId: widget.courseId,
+                        batchId: widget.batchId,
+                        lecture: lecture,
+                        startPositionSeconds: startSeconds,
+                      ),
                     ),
                   ),
                 );

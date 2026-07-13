@@ -189,6 +189,25 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
     }
   }
 
+  String? get _effectiveCourseId {
+    if (widget.courseId != null && widget.courseId!.isNotEmpty) {
+      return widget.courseId;
+    }
+    if (widget.liveClass != null && widget.liveClass!.linkedCourses.isNotEmpty) {
+      return widget.liveClass!.linkedCourses.first;
+    }
+    return null;
+  }
+
+  Stream<List<String>> _getSubjectsStream() {
+    final service = context.read<FirebaseAdminService>();
+    final courseId = _effectiveCourseId;
+    if (courseId == null || courseId.isEmpty) {
+      return service.getSubjects();
+    }
+    return service.getSubjectsForCourse(courseId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -342,7 +361,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                     const Text('Classification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                     const SizedBox(height: 8),
                     StreamBuilder<List<String>>(
-                      stream: context.read<FirebaseAdminService>().getSubjects(),
+                      stream: _getSubjectsStream(),
                       builder: (context, subjectsSnap) {
                         final subjects = subjectsSnap.data ?? [];
                         final subjectItems = <DropdownMenuItem<String>>[

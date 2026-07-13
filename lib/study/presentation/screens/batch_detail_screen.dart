@@ -12,6 +12,9 @@ import 'package:eduverse/core/firebase/bookmark_service.dart';
 import 'package:eduverse/core/firebase/live_viewer_service.dart';
 import 'package:eduverse/core/utils/youtube_utils.dart';
 import 'package:eduverse/profile/models/bookmark_model.dart';
+import 'package:eduverse/study/models/community_models.dart';
+import 'package:eduverse/study/screens/student_community_screen.dart';
+import 'package:eduverse/study/data/repositories/community_repository.dart';
 
 class BatchDetailScreen extends StatefulWidget {
   final StudyBatch batch;
@@ -39,6 +42,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
   int _quizCount = 0;
   double _avgQuizScore = 0.0;
   bool _isLoadingStats = true;
+  int _selectedDayIndex = 0;
 
   @override
   void initState() {
@@ -46,7 +50,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     _checkBookmarkStatus();
     _loadLiveClasses();
     _loadStats();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   Future<void> _loadLiveClasses() async {
@@ -146,7 +150,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                 tabs: const [
                   Tab(text: 'Subjects'),
                   Tab(text: 'Quizzes'),
-                  Tab(text: 'Planner'),
+                  Tab(text: 'Schedule'),
+                  Tab(text: 'Community'),
                 ],
               ),
             ),
@@ -157,7 +162,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           children: [
             _buildSubjectsTab(),
             _buildQuizzesTab(),
-            _buildPlannerTab(),
+            _buildScheduleTab(),
+            _buildCommunityTab(),
           ],
         ),
       ),
@@ -442,14 +448,10 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     );
 
     try {
-      // Fetch notes and planner items
-      statusNotifier.value = 'Loading notes and planner items...';
+      // Fetch notes
+      statusNotifier.value = 'Loading notes...';
 
       final notes = await controller.getBatchNotes(
-        widget.batch.courseId,
-        widget.batch.id,
-      );
-      final plannerItems = await controller.getBatchPlanner(
         widget.batch.courseId,
         widget.batch.id,
       );
@@ -458,11 +460,8 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
       final downloadableNotes = notes
           .where((n) => n.fileUrl != null && n.fileUrl!.isNotEmpty)
           .toList();
-      final downloadablePlanner = plannerItems
-          .where((p) => p.fileUrl != null && p.fileUrl!.isNotEmpty)
-          .toList();
 
-      final totalItems = downloadableNotes.length + downloadablePlanner.length;
+      final totalItems = downloadableNotes.length;
 
       if (totalItems == 0) {
         if (mounted) {
@@ -501,38 +500,6 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           type: 'pdf',
           onProgress: (p) {
             // Sub-progress within current item
-            progressNotifier.value = (downloadedCount + p) / totalItems;
-          },
-        );
-
-        if (result != null) {
-          downloadedCount++;
-        } else {
-          failedCount++;
-        }
-        progressNotifier.value = downloadedCount / totalItems;
-      }
-
-      // Download planner items
-      for (final item in downloadablePlanner) {
-        statusNotifier.value = 'Downloading: ${item.title}';
-
-        // Check if already downloaded
-        final existingPath = await downloadService.getLocalPath(item.fileUrl!);
-        if (existingPath != null) {
-          downloadedCount++;
-          progressNotifier.value = downloadedCount / totalItems;
-          continue;
-        }
-
-        final fileName =
-            '${item.id}_${item.title.replaceAll(' ', '_').replaceAll(RegExp(r'[^\w\-]'), '')}.pdf';
-        final result = await downloadService.downloadFile(
-          url: item.fileUrl!,
-          fileName: fileName,
-          title: item.title,
-          type: 'pdf',
-          onProgress: (p) {
             progressNotifier.value = (downloadedCount + p) / totalItems;
           },
         );
@@ -792,15 +759,18 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => LecturePlayerScreen(
-                            courseId: widget.batch.courseId,
-                            batchId: widget.batch.id,
-                            lecture: lecture,
-                            isLiveStream: YouTubeUtils.shouldTreatAsLive(
-                              url: nextClass.youtubeUrl ?? '',
-                              status: nextClass.status,
-                              startTime: nextClass.startTime,
-                              durationMinutes: nextClass.durationMinutes,
+                          builder: (ctx) => ChangeNotifierProvider.value(
+                            value: Provider.of<StudyController>(context, listen: false),
+                            child: LecturePlayerScreen(
+                              courseId: widget.batch.courseId,
+                              batchId: widget.batch.id,
+                              lecture: lecture,
+                              isLiveStream: YouTubeUtils.shouldTreatAsLive(
+                                url: nextClass.youtubeUrl ?? '',
+                                status: nextClass.status,
+                                startTime: nextClass.startTime,
+                                durationMinutes: nextClass.durationMinutes,
+                              ),
                             ),
                           ),
                         ),
@@ -1201,66 +1171,478 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     );
   }
 
-  Widget _buildPlannerTab() {
-    return Consumer<StudyController>(
-      builder: (context, controller, child) {
-        return FutureBuilder<List<StudyPlannerItem>>(
-          future: controller.getBatchPlanner(
-            widget.batch.courseId,
-            widget.batch.id,
+  Widget _buildScheduleTab() {
+    if (_isLoadingLiveClasses) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final today = DateTime.now();
+    final weekDays = List.generate(7, (index) => DateTime(today.year, today.month, today.day).add(Duration(days: index)));
+    final selectedDate = weekDays[_selectedDayIndex];
+
+    final classesForSelectedDate = _liveClasses.where((lc) {
+      final start = lc.startTime;
+      return start.year == selectedDate.year &&
+             start.month == selectedDate.month &&
+             start.day == selectedDate.day;
+    }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    return Column(
+      children: [
+        // Weekday Horizontal Selector
+        Container(
+          height: 90,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
           ),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  'Error: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.red),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: weekDays.length,
+            itemBuilder: (context, index) {
+              final date = weekDays[index];
+              final isSelected = index == _selectedDayIndex;
+              final dayName = _getWeekdayName(date);
+              final dayNum = date.day.toString();
+
+              // Check if there is any class on this day
+              final hasClass = _liveClasses.any((lc) {
+                final start = lc.startTime;
+                return start.year == date.year &&
+                       start.month == date.month &&
+                       start.day == date.day;
+              });
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedDayIndex = index;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 60,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            dayName,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected ? Colors.white70 : Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            dayNum,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (hasClass)
+                        Positioned(
+                          bottom: 6,
+                          child: Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.white : Theme.of(context).primaryColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               );
-            }
+            },
+          ),
+        ),
 
-            final items = snapshot.data ?? [];
-            if (items.isEmpty) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+        // Live Classes List
+        Expanded(
+          child: classesForSelectedDate.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 64,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No classes scheduled for ${_formatDate(selectedDate)}',
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: classesForSelectedDate.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final lc = classesForSelectedDate[index];
+                    final startTimeStr = '${lc.startTime.hour.toString().padLeft(2, '0')}:${lc.startTime.minute.toString().padLeft(2, '0')}';
+                    final isLive = YouTubeUtils.shouldTreatAsLive(
+                      url: lc.youtubeUrl ?? '',
+                      status: lc.status,
+                      startTime: lc.startTime,
+                      durationMinutes: lc.durationMinutes,
+                    );
+                    final isCompleted = lc.status == 'completed' || lc.startTime.add(Duration(minutes: lc.durationMinutes)).isBefore(DateTime.now());
+
+                    Color statusColor = Colors.blue;
+                    String statusText = 'UPCOMING';
+                    if (isLive) {
+                      statusColor = Colors.red;
+                      statusText = 'LIVE';
+                    } else if (isCompleted) {
+                      statusColor = Colors.green;
+                      statusText = 'COMPLETED';
+                    }
+
+                    return Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: isLive ? Colors.red.shade300 : Colors.grey.shade200,
+                          width: isLive ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Time
+                                Row(
+                                  children: [
+                                    Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '$startTimeStr (${lc.durationMinutes} mins)',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade800,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                // Status badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    statusText,
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 24),
+                            // Subject & Chapter info
+                            if (lc.subject.isNotEmpty) ...[
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      lc.subject,
+                                      style: TextStyle(
+                                        color: Theme.of(context).primaryColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                  if (lc.chapter.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '📁 ${lc.chapter}',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            // Title
+                            Text(
+                              lc.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            if (lc.description.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                lc.description,
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            // Instructor Info & Action Button
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                                      child: Text(
+                                        lc.instructorName.isNotEmpty ? lc.instructorName[0].toUpperCase() : 'T',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context).primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      lc.instructorName.isNotEmpty ? lc.instructorName : 'Teacher',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                // Action Button
+                                if (lc.youtubeUrl != null && lc.youtubeUrl!.isNotEmpty)
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isLive
+                                          ? Colors.red
+                                          : (isCompleted ? Colors.green : Theme.of(context).primaryColor),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    ),
+                                    onPressed: () => _playLiveClass(lc),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isLive
+                                              ? Icons.play_circle_fill
+                                              : (isCompleted ? Icons.replay_outlined : Icons.play_arrow),
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          isLive
+                                              ? 'Join Live'
+                                              : (isCompleted ? 'Recording' : 'Start'),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  String _getWeekdayName(DateTime date) {
+    final now = DateTime.now();
+    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+      return 'Today';
+    }
+    final tomorrow = now.add(const Duration(days: 1));
+    if (date.year == tomorrow.year && date.month == tomorrow.month && date.day == tomorrow.day) {
+      return 'Tomorrow';
+    }
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[date.weekday % 7];
+  }
+
+  void _playLiveClass(StudyLiveClass liveClass) {
+    if (liveClass.youtubeUrl != null && liveClass.youtubeUrl!.isNotEmpty) {
+      final lecture = StudyLecture(
+        id: liveClass.id,
+        title: liveClass.title,
+        videoUrl: liveClass.youtubeUrl!,
+        description: liveClass.description,
+        order: 0,
+        duration: Duration(minutes: liveClass.durationMinutes),
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => ChangeNotifierProvider.value(
+            value: Provider.of<StudyController>(context, listen: false),
+            child: LecturePlayerScreen(
+              courseId: widget.batch.courseId,
+              batchId: widget.batch.id,
+              lecture: lecture,
+              isLiveStream: YouTubeUtils.shouldTreatAsLive(
+                url: liveClass.youtubeUrl ?? '',
+                status: liveClass.status,
+                startTime: liveClass.startTime,
+                durationMinutes: liveClass.durationMinutes,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget _buildCommunityTab() {
+    final repo = CommunityRepository();
+    
+    return StreamBuilder<List<StudentCommunity>>(
+      stream: repo.getCommunitiesForCourse(widget.batch.courseId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        final list = snapshot.data ?? [];
+        if (list.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.forum_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No communities configured for this course yet.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: list.length,
+          itemBuilder: (context, index) {
+            final comm = list[index];
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.teal.shade100),
+              ),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.teal.shade50,
+                  child: const Icon(Icons.forum, color: Colors.teal),
+                ),
+                title: Text(
+                  comm.subjectName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 64,
-                      color: Colors.grey,
-                    ),
-                    SizedBox(height: 16),
+                    Text('Teacher: ${comm.teacherName}'),
+                    const SizedBox(height: 4),
                     Text(
-                      'No planner items available.',
-                      style: TextStyle(color: Colors.grey),
+                      comm.description,
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-              );
-            }
-
-            return ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return _PlannerCard(item: item);
-              },
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade500,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${comm.postCount} Posts',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StudentCommunityScreen(community: comm),
+                    ),
+                  );
+                },
+              ),
             );
           },
         );
       },
     );
-  }
-
-  // ignore: unused_element
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }
 
@@ -1451,165 +1833,7 @@ class _NoteCardState extends State<_NoteCard> {
   }
 }
 
-/// Card widget for displaying planner items with download/open functionality
-class _PlannerCard extends StatefulWidget {
-  final StudyPlannerItem item;
-  const _PlannerCard({required this.item});
 
-  @override
-  State<_PlannerCard> createState() => _PlannerCardState();
-}
-
-class _PlannerCardState extends State<_PlannerCard> {
-  final _downloadService = DownloadService();
-  final _isDownloading = ValueNotifier<bool>(false);
-  final _progress = ValueNotifier<double>(0.0);
-  String? _localPath;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkIfDownloaded();
-  }
-
-  Future<void> _checkIfDownloaded() async {
-    if (widget.item.fileUrl != null) {
-      _localPath = await _downloadService.getLocalPath(widget.item.fileUrl!);
-      if (mounted) setState(() {});
-    }
-  }
-
-  Future<void> _download() async {
-    if (widget.item.fileUrl == null) return;
-    _isDownloading.value = true;
-    _progress.value = 0.0;
-
-    final fileName =
-        '${widget.item.id}_${widget.item.title.replaceAll(' ', '_')}.pdf';
-    final path = await _downloadService.downloadFile(
-      url: widget.item.fileUrl!,
-      fileName: fileName,
-      title: widget.item.title,
-      type: 'pdf',
-      onProgress: (p) => _progress.value = p,
-    );
-
-    _isDownloading.value = false;
-    if (path != null) {
-      _localPath = path;
-      if (mounted) setState(() {});
-    }
-  }
-
-  Future<void> _open() async {
-    if (widget.item.fileUrl != null) {
-      await PdfNavigationManager.navigateToViewer(
-        context,
-        SecurePdfViewerArgs(
-          pdfUrl: widget.item.fileUrl!,
-          title: widget.item.title,
-          isProtected: false,
-        ),
-      );
-    }
-  }
-
-  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.blue.shade100,
-                  child: const Icon(Icons.event, color: Colors.blue),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.item.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      if (widget.item.description != null &&
-                          widget.item.description!.isNotEmpty)
-                        Text(
-                          widget.item.description!,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
-                          ),
-                        ),
-                      if (widget.item.dueDate != null)
-                        Text(
-                          'Date: ${_formatDate(widget.item.dueDate!)}',
-                          style: TextStyle(
-                            color: Colors.orange[700],
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ValueListenableBuilder<bool>(
-              valueListenable: _isDownloading,
-              builder: (context, isDownloading, _) {
-                if (!isDownloading) return const SizedBox.shrink();
-                return ValueListenableBuilder<double>(
-                  valueListenable: _progress,
-                  builder: (context, progress, _) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 4,
-                    ),
-                  ),
-                );
-              },
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (_localPath == null && widget.item.fileUrl != null)
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _isDownloading,
-                    builder: (context, isDownloading, _) => TextButton.icon(
-                      onPressed: isDownloading ? null : _download,
-                      icon: const Icon(Icons.download, size: 18),
-                      label: const Text('Download'),
-                    ),
-                  ),
-                if (_localPath != null)
-                  TextButton.icon(
-                    onPressed: _open,
-                    icon: const Icon(Icons.open_in_new, size: 18),
-                    label: const Text('Open'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.green),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// Quick Action Button widget for Bookmark, Download All, Share actions
 class _QuickActionButton extends StatelessWidget {
