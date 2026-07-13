@@ -26,6 +26,12 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
          classA.linkedCourses.first != classB.linkedCourses.first)) {
       return false;
     }
+    
+    // Check if the classes are on the same calendar day
+    final dateA = DateTime(classA.startTime.year, classA.startTime.month, classA.startTime.day);
+    final dateB = DateTime(classB.startTime.year, classB.startTime.month, classB.startTime.day);
+    if (dateA != dateB) return false;
+
     final startA = classA.startTime;
     final endA = classA.startTime.add(Duration(minutes: classA.durationMinutes));
     final startB = classB.startTime;

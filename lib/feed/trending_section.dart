@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:carousel_slider/carousel_slider.dart' as carousel;
-import 'package:eduverse/feed/models.dart';
-import 'package:eduverse/feed/screens/generic_feed_detail_router.dart'; // For FeedDetailRouter
-import 'package:eduverse/core/firebase/firestore_paths.dart';
+import 'package:eduverse/store/models/poster_model.dart';
+import 'package:eduverse/core/services/deep_link_screens.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 class TrendingSection extends StatefulWidget {
   const TrendingSection({super.key});
@@ -14,69 +14,80 @@ class TrendingSection extends StatefulWidget {
 }
 
 class _TrendingSectionState extends State<TrendingSection> {
-  // carousel_slider handles its own controller
-  Timer? _timer;
-  List<FeedItem> _feedItems = [];
+  List<Poster> _posters = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadRecentFeedItems();
+    _loadPosters();
   }
 
-  Future<void> _loadRecentFeedItems() async {
+  Future<void> _loadPosters() async {
     try {
-      // Fetch most recent public feed items from Firestore
-      // Try simple query first (without orderBy to avoid index requirement)
-      QuerySnapshot snapshot;
-      try {
-        snapshot = await FirebaseFirestore.instance
-            .collection(FirestorePaths.feed)
-            .where('isPublic', isEqualTo: true)
-            .limit(5)
-            .get();
-      } catch (e) {
-        // Fallback: fetch without filter if index doesn't exist
-        debugPrint('Falling back to unfiltered query: $e');
-        snapshot = await FirebaseFirestore.instance
-            .collection(FirestorePaths.feed)
-            .limit(5)
-            .get();
-      }
-
-      debugPrint('Feed trending: Found ${snapshot.docs.length} items');
+      final snapshot = await EduverseFirebase.firestore
+          .collection('posters')
+          .where('isActive', isEqualTo: true)
+          .orderBy('order')
+          .get();
 
       final items = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        return FeedItem.fromJson(data);
+        return Poster.fromMap(doc.data(), doc.id);
       }).toList();
 
       if (mounted) {
         setState(() {
-          _feedItems = items;
+          _posters = items;
           _isLoading = false;
         });
-        if (_feedItems.isNotEmpty) {
-          _startAutoScroll();
-        }
       }
     } catch (e) {
-      debugPrint('Error loading recent feed items: $e');
+      debugPrint('Error loading posters for trending: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
 
-  void _startAutoScroll() {
-    // Auto-scroll is handled by CarouselSlider's autoPlay option
-  }
+  Future<void> _handleNavigation(
+    BuildContext context,
+    String? externalUrl,
+    String? inAppTargetType,
+    String? inAppTargetId,
+  ) async {
+    if (externalUrl != null && externalUrl.isNotEmpty) {
+      final uri = Uri.tryParse(externalUrl);
+      if (uri != null && await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+    if (inAppTargetType != null && inAppTargetId != null && inAppTargetId.isNotEmpty) {
+      Widget? targetScreen;
+      switch (inAppTargetType) {
+        case 'course':
+          targetScreen = DeepLinkCourseScreen(courseId: inAppTargetId);
+          break;
+        case 'feedItem':
+        case 'quiz':
+          targetScreen = DeepLinkFeedScreen(feedId: inAppTargetId);
+          break;
+        case 'batch':
+          targetScreen = DeepLinkBatchScreen(courseId: inAppTargetId, batchId: '');
+          break;
+        case 'lecture':
+          targetScreen = DeepLinkBatchScreen(courseId: '', batchId: inAppTargetId);
+          break;
+      }
+
+      if (targetScreen != null && context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => targetScreen!),
+        );
+      }
+    }
   }
 
   @override
@@ -93,55 +104,8 @@ class _TrendingSectionState extends State<TrendingSection> {
       );
     }
 
-    if (_feedItems.isEmpty) {
-      // Show placeholder instead of hiding completely
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'Trending Posts',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-            ),
-          ),
-          Container(
-            height: bannerHeight,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade400, Colors.blue.shade600],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.article_outlined, size: 48, color: Colors.white70),
-                  SizedBox(height: 12),
-                  Text(
-                    'No posts yet',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Check back soon for new content!',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-      );
+    if (_posters.isEmpty) {
+      return const SizedBox.shrink();
     }
 
     return Column(
@@ -162,10 +126,10 @@ class _TrendingSectionState extends State<TrendingSection> {
             enlargeCenterPage: true,
             viewportFraction: viewportFraction,
           ),
-          items: _feedItems.map((item) {
+          items: _posters.map((poster) {
             return Builder(
               builder: (BuildContext context) {
-                return _buildFeedCard(context, item, screenWidth);
+                return _buildPosterCard(context, poster, screenWidth);
               },
             );
           }).toList(),
@@ -175,15 +139,19 @@ class _TrendingSectionState extends State<TrendingSection> {
     );
   }
 
-  Widget _buildFeedCard(
+  Widget _buildPosterCard(
     BuildContext context,
-    FeedItem item,
+    Poster item,
     double screenWidth,
   ) {
     return GestureDetector(
       onTap: () {
-        // Navigate to feed detail using router
-        FeedDetailRouter.open(context, item);
+        _handleNavigation(
+          context,
+          item.externalUrl,
+          item.inAppTargetType,
+          item.inAppTargetId,
+        );
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -191,7 +159,7 @@ class _TrendingSectionState extends State<TrendingSection> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: item.color.withValues(alpha: 0.3),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -208,48 +176,13 @@ class _TrendingSectionState extends State<TrendingSection> {
                       item.thumbnailUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
-                          _buildGradientBackground(item, screenWidth),
+                          _buildFallback(item),
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
-                        return _buildGradientBackground(
-                          item,
-                          screenWidth,
-                          showLoader: true,
-                        );
+                        return _buildFallback(item, showLoader: true);
                       },
                     )
-                  : _buildGradientBackground(item, screenWidth),
-
-              // Content
-              Padding(
-                padding: EdgeInsets.all(screenWidth > 600 ? 24.0 : 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    // Category badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        item.categoryLabel.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: screenWidth > 600 ? 11 : 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  : _buildFallback(item),
             ],
           ),
         ),
@@ -257,41 +190,30 @@ class _TrendingSectionState extends State<TrendingSection> {
     );
   }
 
-  Widget _buildGradientBackground(
-    FeedItem item,
-    double screenWidth, {
-    bool showLoader = false,
-  }) {
+  Widget _buildFallback(Poster item, {bool showLoader = false}) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [item.color, item.color.withValues(alpha: 0.7)],
+          colors: [Colors.blue.shade700, Colors.indigo.shade900],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
       ),
-      child: Stack(
-        children: [
-          // Background emoji
-          Positioned(
-            right: -20,
-            bottom: -20,
-            child: Text(
-              item.emoji,
-              style: TextStyle(
-                fontSize: screenWidth > 600 ? 120 : 100,
-                color: Colors.white.withValues(alpha: 0.2),
-              ),
-            ),
-          ),
-          if (showLoader)
-            const Center(
+      alignment: Alignment.center,
+      child: showLoader
+          ? const SizedBox(
+              width: 24,
+              height: 24,
               child: CircularProgressIndicator(
+                strokeWidth: 2,
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
               ),
+            )
+          : const Icon(
+              Icons.photo_library,
+              size: 48,
+              color: Colors.white24,
             ),
-        ],
-      ),
     );
   }
 }

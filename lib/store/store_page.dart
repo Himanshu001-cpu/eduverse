@@ -59,6 +59,15 @@ class _StorePageState extends State<StorePage>
               showSearch(context: context, delegate: GlobalSearchDelegate());
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PurchaseCartPage()),
+              );
+            },
+          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(52),
@@ -202,7 +211,7 @@ class _CoursesContent extends StatelessWidget {
             );
           }),
           SizedBox(
-            height: 116,
+            height: 210,
             child: StreamBuilder<List<Course>>(
               stream: StoreRepository().getCourses(),
               builder: (context, snapshot) {
@@ -255,7 +264,7 @@ class _CoursesContent extends StatelessWidget {
             );
           }),
           SizedBox(
-            height: 116,
+            height: 210,
             child: StreamBuilder<List<Course>>(
               stream: StoreRepository().getCourses(),
               builder: (context, snapshot) {
@@ -622,7 +631,7 @@ void _showComboPackDetails(BuildContext context, CombinationPack pack) {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
-                      'Included Course Batches:',
+                      'Included Courses:',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -649,10 +658,7 @@ void _showComboPackDetails(BuildContext context, CombinationPack pack) {
                             fontSize: 14,
                           ),
                         ),
-                        subtitle: Text(
-                          'Batch: ${b['batchId']}',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                        ),
+                        
                       ),
                     );
                   }),

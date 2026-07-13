@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:eduverse/store/models/poster_model.dart';
 import 'package:eduverse/core/services/deep_link_screens.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
 class BannerSlider extends StatelessWidget {
   const BannerSlider({super.key});
@@ -55,7 +56,7 @@ class BannerSlider extends StatelessWidget {
     final double bannerHeight = cardWidth * 9 / 16;
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance
+      stream: EduverseFirebase.firestore
           .collection('posters')
           .where('isActive', isEqualTo: true)
           .orderBy('order')

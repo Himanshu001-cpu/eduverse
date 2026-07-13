@@ -79,7 +79,9 @@ class CartItemTile extends StatelessWidget {
                         ? 'E-book'
                         : item.combinationPackId != null && item.combinationPackId!.isNotEmpty
                             ? 'Combo Pack'
-                            : 'Batch ID: ${item.batchId}',
+                            : item.batchId.isEmpty
+                                ? 'Course'
+                                : 'Batch ID: ${item.batchId}',
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
