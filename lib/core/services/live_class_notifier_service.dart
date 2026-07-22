@@ -106,7 +106,7 @@ class LiveClassNotifierService extends ChangeNotifier {
 
       for (final doc in classSnap.docs) {
         final data = doc.data();
-        final liveClass = _mapToStudyLiveClass(doc.id, data);
+        final liveClass = _mapToStudyLiveClass(doc.id, data, courseId: courseId);
         updatedClasses.add(ActiveLiveClass(
           liveClass: liveClass,
           courseId: courseId,
@@ -121,7 +121,7 @@ class LiveClassNotifierService extends ChangeNotifier {
     });
   }
 
-  StudyLiveClass _mapToStudyLiveClass(String id, Map<String, dynamic> data) {
+  StudyLiveClass _mapToStudyLiveClass(String id, Map<String, dynamic> data, {String? courseId}) {
     return StudyLiveClass(
       id: id,
       title: data['title'] ?? '',
@@ -134,6 +134,7 @@ class LiveClassNotifierService extends ChangeNotifier {
       thumbnailUrl: data['thumbnailUrl'] ?? '',
       subject: data['subject'] ?? '',
       chapter: data['chapter'] ?? '',
+      courseId: courseId,
     );
   }
 

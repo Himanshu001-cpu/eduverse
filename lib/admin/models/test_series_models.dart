@@ -37,6 +37,7 @@ class AdminTestSeries {
   final List<int> gradientColors;
   final String emoji;
   final double price;
+  final double realPrice;
   final String visibility; // draft, published, archived
   final int totalTests;
   final int durationMinutes;
@@ -53,6 +54,7 @@ class AdminTestSeries {
     required this.gradientColors,
     this.emoji = '📝',
     this.price = 0.0,
+    this.realPrice = 0.0,
     required this.visibility,
     this.totalTests = 0,
     this.durationMinutes = 0,
@@ -79,6 +81,7 @@ class AdminTestSeries {
       gradientColors: colors,
       emoji: data['emoji'] ?? '📝',
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
+      realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
       visibility: data['visibility'] ?? 'draft',
       totalTests: data['totalTests'] ?? 0,
       durationMinutes: data['durationMinutes'] ?? 0,
@@ -104,6 +107,7 @@ class AdminTestSeries {
       'gradientColors': gradientColors,
       'emoji': emoji,
       'price': price,
+      'realPrice': realPrice,
       'visibility': visibility,
       'totalTests': totalTests,
       'durationMinutes': durationMinutes,

@@ -104,6 +104,7 @@ class TestSeriesRepository {
       gradientColors: colors,
       emoji: data['emoji'] ?? '📝',
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
+      realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
       totalTests: data['totalTests'] ?? 0,
       isPurchased: isPurchased,
     );

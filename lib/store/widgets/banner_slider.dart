@@ -62,6 +62,11 @@ class BannerSlider extends StatelessWidget {
           .orderBy('order')
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          debugPrint('Error in BannerSlider posters stream: ${snapshot.error}');
+          return const SizedBox.shrink();
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return SizedBox(
             height: bannerHeight,
@@ -88,19 +93,30 @@ class BannerSlider extends StatelessWidget {
           items: posters.map((poster) {
             return Builder(
               builder: (BuildContext context) {
-                return GestureDetector(
-                  onTap: () {
-                    // Only navigate on tap if there are no buttons
-                    if (poster.buttons.isEmpty) {
-                      _handleNavigation(
-                        context,
-                        poster.externalUrl,
-                        poster.inAppTargetType,
-                        poster.inAppTargetId,
-                      );
-                    }
-                  },
-                  child: Container(
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      if ((poster.externalUrl != null && poster.externalUrl!.isNotEmpty) ||
+                          (poster.inAppTargetId != null && poster.inAppTargetId!.isNotEmpty)) {
+                        _handleNavigation(
+                          context,
+                          poster.externalUrl,
+                          poster.inAppTargetType,
+                          poster.inAppTargetId,
+                        );
+                      } else if (poster.buttons.isNotEmpty) {
+                        final btn = poster.buttons.first;
+                        _handleNavigation(
+                          context,
+                          btn.externalUrl,
+                          btn.inAppTargetType,
+                          btn.inAppTargetId,
+                        );
+                      }
+                    },
+                    child: Container(
                     width: MediaQuery.of(context).size.width,
                     margin: const EdgeInsets.symmetric(horizontal: 5.0),
                     decoration: BoxDecoration(
@@ -222,13 +238,14 @@ class BannerSlider extends StatelessWidget {
                       ],
                     ),
                   ),
-                );
-              },
-            );
-          }).toList(),
-        );
-      },
-    );
+                ),
+              );
+            },
+          );
+        }).toList(),
+      );
+    },
+  );
   }
 
   Widget _buildFallback(Poster poster) {

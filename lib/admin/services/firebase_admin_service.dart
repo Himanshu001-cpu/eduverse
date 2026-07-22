@@ -1777,20 +1777,70 @@ class FirebaseAdminService {
   }
 
   Stream<List<String>> getSubjectsForCourse(String courseId) {
-    return _db
-        .collection('courses')
-        .doc(courseId)
-        .collection('lessons')
-        .snapshots()
-        .map((snapshot) {
-          final subjects = snapshot.docs
-              .map((doc) => doc.data()['subject'] as String? ?? '')
-              .where((s) => s.isNotEmpty)
-              .toSet()
-              .toList();
-          subjects.sort();
-          return subjects;
-        });
+    final controller = StreamController<List<String>>();
+    final courseRef = _db.collection('courses').doc(courseId);
+
+    final Set<String> lessonSubjects = {};
+    final Set<String> noteSubjects = {};
+    final Set<String> dppSubjects = {};
+    final Set<String> liveClassSubjects = {};
+
+    void emitMerged() {
+      if (!controller.isClosed) {
+        final merged = <String>{
+          ...lessonSubjects,
+          ...noteSubjects,
+          ...dppSubjects,
+          ...liveClassSubjects,
+        }.toList()..sort();
+        controller.add(merged);
+      }
+    }
+
+    final sub1 = courseRef.collection('lessons').snapshots().listen((snap) {
+      lessonSubjects.clear();
+      for (final doc in snap.docs) {
+        final s = doc.data()['subject'] as String? ?? '';
+        if (s.isNotEmpty) lessonSubjects.add(s);
+      }
+      emitMerged();
+    });
+
+    final sub2 = courseRef.collection('notes').snapshots().listen((snap) {
+      noteSubjects.clear();
+      for (final doc in snap.docs) {
+        final s = doc.data()['subject'] as String? ?? '';
+        if (s.isNotEmpty) noteSubjects.add(s);
+      }
+      emitMerged();
+    });
+
+    final sub3 = courseRef.collection('dpps').snapshots().listen((snap) {
+      dppSubjects.clear();
+      for (final doc in snap.docs) {
+        final s = doc.data()['subject'] as String? ?? '';
+        if (s.isNotEmpty) dppSubjects.add(s);
+      }
+      emitMerged();
+    });
+
+    final sub4 = courseRef.collection('live_classes').snapshots().listen((snap) {
+      liveClassSubjects.clear();
+      for (final doc in snap.docs) {
+        final s = doc.data()['subject'] as String? ?? '';
+        if (s.isNotEmpty) liveClassSubjects.add(s);
+      }
+      emitMerged();
+    });
+
+    controller.onCancel = () {
+      sub1.cancel();
+      sub2.cancel();
+      sub3.cancel();
+      sub4.cancel();
+    };
+
+    return controller.stream;
   }
 
 

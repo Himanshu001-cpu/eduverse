@@ -92,7 +92,24 @@ class SeeAllComboPacksPage extends StatelessWidget {
                               if (pack.thumbnailUrl.isNotEmpty)
                                 ClipRRect(
                                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                                  child: Image.network(pack.thumbnailUrl, fit: BoxFit.cover),
+                                  child: Image.network(
+                                    pack.thumbnailUrl,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const Center(child: Text('🎁', style: TextStyle(fontSize: 40))),
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return const Center(
+                                        child: SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
                               if (discount != null)
                                 Positioned(
@@ -311,7 +328,24 @@ class SeeAllComboPacksPage extends StatelessWidget {
                         child: pack.thumbnailUrl.isNotEmpty
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
-                                child: Image.network(pack.thumbnailUrl, fit: BoxFit.cover),
+                                child: Image.network(
+                                  pack.thumbnailUrl,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Center(child: Text('🎁', style: TextStyle(fontSize: 40))),
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                    );
+                                  },
+                                ),
                               )
                             : const Center(
                                 child: Text('🎁', style: TextStyle(fontSize: 40)),

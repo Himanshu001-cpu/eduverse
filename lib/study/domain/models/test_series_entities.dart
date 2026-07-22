@@ -12,6 +12,7 @@ class TestSeriesItem {
   final List<Color> gradientColors;
   final String emoji;
   final double price;
+  final double realPrice;
   final int totalTests;
   final int completedTests;
   final double progress; // 0.0 to 1.0
@@ -27,6 +28,7 @@ class TestSeriesItem {
     required this.gradientColors,
     this.emoji = '📝',
     this.price = 0.0,
+    this.realPrice = 0.0,
     this.totalTests = 0,
     this.completedTests = 0,
     this.progress = 0.0,
@@ -43,6 +45,7 @@ class TestSeriesItem {
     List<Color>? gradientColors,
     String? emoji,
     double? price,
+    double? realPrice,
     int? totalTests,
     int? completedTests,
     double? progress,
@@ -58,6 +61,7 @@ class TestSeriesItem {
       gradientColors: gradientColors ?? this.gradientColors,
       emoji: emoji ?? this.emoji,
       price: price ?? this.price,
+      realPrice: realPrice ?? this.realPrice,
       totalTests: totalTests ?? this.totalTests,
       completedTests: completedTests ?? this.completedTests,
       progress: progress ?? this.progress,

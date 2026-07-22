@@ -16,6 +16,7 @@ class TrendingSection extends StatefulWidget {
 class _TrendingSectionState extends State<TrendingSection> {
   List<Poster> _posters = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -35,16 +36,22 @@ class _TrendingSectionState extends State<TrendingSection> {
         return Poster.fromMap(doc.data(), doc.id);
       }).toList();
 
+      debugPrint('TrendingSection loaded ${items.length} active posters');
+
       if (mounted) {
         setState(() {
           _posters = items;
           _isLoading = false;
+          _errorMessage = null;
         });
       }
-    } catch (e) {
-      debugPrint('Error loading posters for trending: $e');
+    } catch (e, stack) {
+      debugPrint('Error loading posters for trending: $e\n$stack');
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString();
+        });
       }
     }
   }
@@ -105,7 +112,54 @@ class _TrendingSectionState extends State<TrendingSection> {
     }
 
     if (_posters.isEmpty) {
-      return const SizedBox.shrink();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Trending Posts',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
+          ),
+          Container(
+            height: bannerHeight,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade400, Colors.blue.shade600],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.photo_library_outlined, size: 48, color: Colors.white70),
+                  const SizedBox(height: 12),
+                  Text(
+                    _errorMessage != null ? 'Failed to load posts' : 'No trending posts yet',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _errorMessage ?? 'Check back soon for new updates!',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      );
     }
 
     return Column(

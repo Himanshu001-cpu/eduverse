@@ -293,6 +293,7 @@ class StudyLiveClass {
   final String subject;
   final String chapter;
   final String? courseId;
+  final String? courseName;
   final String? batchId;
   final String? parentRuleId;
   final String? generatedDateString;
@@ -310,6 +311,7 @@ class StudyLiveClass {
     this.subject = '',
     this.chapter = '',
     this.courseId,
+    this.courseName,
     this.batchId,
     this.parentRuleId,
     this.generatedDateString,
@@ -328,6 +330,7 @@ class StudyLiveClass {
     String? subject,
     String? chapter,
     String? courseId,
+    String? courseName,
     String? batchId,
     String? parentRuleId,
     String? generatedDateString,
@@ -345,6 +348,7 @@ class StudyLiveClass {
       subject: subject ?? this.subject,
       chapter: chapter ?? this.chapter,
       courseId: courseId ?? this.courseId,
+      courseName: courseName ?? this.courseName,
       batchId: batchId ?? this.batchId,
       parentRuleId: parentRuleId ?? this.parentRuleId,
       generatedDateString: generatedDateString ?? this.generatedDateString,

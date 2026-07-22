@@ -24,6 +24,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late TextEditingController _priceController;
+  late TextEditingController _realPriceController;
   late TextEditingController _durationController;
   late TextEditingController _emojiController;
 
@@ -54,6 +55,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
     _titleController = TextEditingController(text: ts?.title ?? '');
     _descriptionController = TextEditingController(text: ts?.description ?? '');
     _priceController = TextEditingController(text: ts?.price.toString() ?? '0');
+    _realPriceController = TextEditingController(text: ts?.realPrice.toString() ?? '0');
     _durationController = TextEditingController(
       text: ts?.durationMinutes.toString() ?? '0',
     );
@@ -71,6 +73,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _realPriceController.dispose();
     _durationController.dispose();
     _emojiController.dispose();
     super.dispose();
@@ -168,6 +171,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
         emoji: _emojiController.text.trim(),
         thumbnailUrl: _thumbnailUrl,
         price: double.tryParse(_priceController.text) ?? 0,
+        realPrice: double.tryParse(_realPriceController.text) ?? 0,
         durationMinutes: int.tryParse(_durationController.text) ?? 0,
         visibility: _visibility,
         gradientColors:
@@ -438,9 +442,21 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
                               controller: _priceController,
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
-                                labelText: 'Price (₹)',
+                                labelText: 'Sell Price (₹)',
                                 border: OutlineInputBorder(),
                                 hintText: '0 = Free',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _realPriceController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Real Price / MRP (₹)',
+                                border: OutlineInputBorder(),
+                                hintText: 'Original MRP',
                               ),
                             ),
                           ),
@@ -450,7 +466,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
                               controller: _durationController,
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
-                                labelText: 'Duration (minutes)',
+                                labelText: 'Duration (min)',
                                 border: OutlineInputBorder(),
                               ),
                             ),

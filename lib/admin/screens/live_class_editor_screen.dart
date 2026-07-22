@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
@@ -205,7 +206,34 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
     if (courseId == null || courseId.isEmpty) {
       return service.getSubjects();
     }
-    return service.getSubjectsForCourse(courseId);
+    
+    final controller = StreamController<List<String>>();
+    List<String> courseSubs = [];
+    List<String> globalSubs = [];
+
+    void emitMerged() {
+      if (!controller.isClosed) {
+        final merged = <String>{...courseSubs, ...globalSubs}.toList()..sort();
+        controller.add(merged);
+      }
+    }
+
+    final sub1 = service.getSubjectsForCourse(courseId).listen((list) {
+      courseSubs = list;
+      emitMerged();
+    });
+
+    final sub2 = service.getSubjects().listen((list) {
+      globalSubs = list;
+      emitMerged();
+    });
+
+    controller.onCancel = () {
+      sub1.cancel();
+      sub2.cancel();
+    };
+
+    return controller.stream;
   }
 
   @override

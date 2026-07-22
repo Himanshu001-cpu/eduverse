@@ -23,8 +23,8 @@ class _VersionCardState extends State<VersionCard> {
   }
 
   Future<void> _loadVersionInfo() async {
-    String current = '1.1.2'; // Safe default matching pubspec.yaml
-    String latest = '1.1.2';
+    String current = '1.1.3'; // Safe default matching pubspec.yaml
+    String latest = '1.1.3';
     String url = '';
 
     try {

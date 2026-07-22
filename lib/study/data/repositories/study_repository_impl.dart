@@ -596,6 +596,8 @@ class StudyRepositoryImpl implements IStudyRepository {
           status: data['status'] ?? 'upcoming',
           youtubeUrl: data['youtubeUrl'] as String?,
           thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
+          subject: data['subject'] ?? '',
+          chapter: data['chapter'] ?? '',
           parentRuleId: data['parentRuleId'] as String?,
           generatedDateString: data['generatedDateString'] as String?,
         );

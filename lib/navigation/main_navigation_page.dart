@@ -7,7 +7,7 @@ import '../store/store_page.dart';
 import '../profile/profile_page.dart';
 import 'package:eduverse/core/services/live_class_notifier_service.dart';
 import 'package:eduverse/common/widgets/live_class_popup.dart';
-import 'package:eduverse/core/services/new_batch_promotion_service.dart';
+import 'package:eduverse/core/services/popup_manager.dart';
 
 class MainNavigationPage extends StatefulWidget {
   const MainNavigationPage({super.key});
@@ -18,7 +18,6 @@ class MainNavigationPage extends StatefulWidget {
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
-  final NewBatchPromotionService _newBatchPromotionService = NewBatchPromotionService();
 
   final List<Widget> _pages = const [
     FeedPage(),
@@ -30,14 +29,18 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   @override
   void initState() {
     super.initState();
+    PopupManager.instance.initialize();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
-        final result = await _newBatchPromotionService.getEligiblePromotion();
-        if (result != null && mounted) {
-          await _newBatchPromotionService.showPromoDialog(context, result);
-        }
+        await PopupManager.instance.triggerAppOpenPopups(context);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    PopupManager.instance.dispose();
+    super.dispose();
   }
 
 

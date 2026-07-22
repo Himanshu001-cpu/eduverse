@@ -19,7 +19,7 @@ class BatchThumbnailWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasThumbnail = batch.thumbnailUrl.isNotEmpty && batch.thumbnailUrl.startsWith('http');
+    final hasThumbnail = batch.thumbnailUrl.trim().isNotEmpty;
 
     return Container(
       width: width,

@@ -29,6 +29,8 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
   String _aspectRatio = '16:9';
   String? _thumbnailUrl;
   bool _isActive = true;
+  bool _showAsPopup = false;
+  String _popupFrequency = 'once';
   bool _sendNotification = false;
   bool _isSaving = false;
 
@@ -55,6 +57,8 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
       _aspectRatio = p.aspectRatio;
       _thumbnailUrl = p.thumbnailUrl;
       _isActive = p.isActive;
+      _showAsPopup = p.showAsPopup;
+      _popupFrequency = p.popupFrequency;
       _sendNotification = p.sendNotification;
       
       if (p.inAppTargetType != null) {
@@ -119,6 +123,8 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
         'inAppTargetId': _inAppTargetId,
         'inAppRoute': _generateInAppRoute(_inAppTargetType, _inAppTargetId),
         'buttons': _buttons.map((b) => b.toMap()).toList(),
+        'showAsPopup': _showAsPopup,
+        'popupFrequency': _popupFrequency,
         'sendNotification': _sendNotification,
         'isActive': _isActive,
         'order': order,
@@ -540,6 +546,43 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
                       });
                     },
                   ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text('Show as App Launch Popup?'),
+                    subtitle: const Text('Displays this poster automatically as a modal popup when students open the app.'),
+                    value: _showAsPopup,
+                    onChanged: (val) {
+                      setState(() {
+                        _showAsPopup = val;
+                      });
+                    },
+                  ),
+                  if (_showAsPopup) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _popupFrequency,
+                        decoration: const InputDecoration(
+                          labelText: 'Popup Frequency',
+                          helperText: 'How often should eligible students see this popup when opening the app?',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.av_timer),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'once', child: Text('Show Once Ever (Until Dismissed)')),
+                          DropdownMenuItem(value: 'daily', child: Text('Show Once Per Day')),
+                          DropdownMenuItem(value: 'always', child: Text('Show On Every App Launch')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _popupFrequency = val;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   SwitchListTile(
                     title: const Text('Send Push Notification?'),

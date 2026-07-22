@@ -9,6 +9,8 @@ class Poster {
   final String? inAppTargetId;
   final String? inAppTargetType;
   final List<PosterButton> buttons;
+  final bool showAsPopup;
+  final String popupFrequency; // 'once', 'daily', 'always'
   final bool sendNotification;
   final bool isActive;
   final int order;
@@ -26,6 +28,8 @@ class Poster {
     this.inAppTargetId,
     this.inAppTargetType,
     required this.buttons,
+    this.showAsPopup = false,
+    this.popupFrequency = 'once',
     this.sendNotification = false,
     this.isActive = true,
     this.order = 0,
@@ -48,6 +52,8 @@ class Poster {
               ?.map((b) => PosterButton.fromMap(b as Map<String, dynamic>))
               .toList() ??
           [],
+      showAsPopup: data['showAsPopup'] ?? false,
+      popupFrequency: data['popupFrequency'] ?? 'once',
       sendNotification: data['sendNotification'] ?? false,
       isActive: data['isActive'] ?? true,
       order: data['order'] ?? 0,
@@ -71,6 +77,8 @@ class Poster {
       'inAppTargetId': inAppTargetId,
       'inAppTargetType': inAppTargetType,
       'buttons': buttons.map((b) => b.toMap()).toList(),
+      'showAsPopup': showAsPopup,
+      'popupFrequency': popupFrequency,
       'sendNotification': sendNotification,
       'isActive': isActive,
       'order': order,

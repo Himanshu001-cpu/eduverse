@@ -329,9 +329,14 @@ class StudyController extends ChangeNotifier {
       for (final courseId in courseIds) {
         try {
           final liveList = await getBatchLiveClasses(courseId, batch.id);
-          // Attach courseId and batchId to each class
+          final courseName = _enrolledBatches.firstWhere(
+            (b) => b.courseId == courseId,
+            orElse: () => batch,
+          ).courseName;
+          // Attach courseId, courseName, and batchId to each class
           final mapped = liveList.map((lc) => lc.copyWith(
             courseId: courseId,
+            courseName: courseName,
             batchId: batch.id,
           )).toList();
           loadedLiveClasses.addAll(mapped);

@@ -149,16 +149,36 @@ class _LiveClassPopupState extends State<LiveClassPopup> with SingleTickerProvid
                         decoration: BoxDecoration(
                           color: Colors.grey.shade800,
                           borderRadius: BorderRadius.circular(8),
-                          image: liveClass.thumbnailUrl.isNotEmpty
-                              ? DecorationImage(
-                                  image: NetworkImage(liveClass.thumbnailUrl),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
                         ),
-                        child: liveClass.thumbnailUrl.isEmpty
-                            ? const Icon(Icons.videocam, color: Colors.white54, size: 28)
-                            : null,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: liveClass.thumbnailUrl.isNotEmpty
+                              ? Image.network(
+                                  liveClass.thumbnailUrl,
+                                  width: 76,
+                                  height: 57,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Center(child: Icon(Icons.videocam, color: Colors.white54, size: 28)),
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white38,
+                                          value: loadingProgress.expectedTotalBytes != null
+                                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : const Center(child: Icon(Icons.videocam, color: Colors.white54, size: 28)),
+                        ),
                       ),
                       // pulsing Live indicator
                       Positioned(

@@ -225,20 +225,24 @@ class _CourseSectionPageState extends State<CourseSectionPage>
               itemCount: subjects.length,
               itemBuilder: (context, index) {
                 final subject = subjects[index];
-                final lectureCount = lectures.where((l) => l.subject == subject).length;
+                final lectureCount = lectures.where((l) => l.subject == subject && l.type != 'folder').length;
                 final noteCount = notes.where((n) => n.subject == subject).length;
                 final dppCount = dpps.where((d) => d.subject == subject).length;
 
                 // Count unique chapters
                 final chapSet = <String>{};
                 for (final l in lectures.where((l) => l.subject == subject)) {
-                  if (l.chapter.isNotEmpty) chapSet.add(l.chapter);
+                  if (l.type == 'folder') {
+                    chapSet.add(l.chapter.isEmpty ? l.title : l.chapter.split('/')[0]);
+                  } else if (l.chapter.isNotEmpty) {
+                    chapSet.add(l.chapter.split('/')[0]);
+                  }
                 }
                 for (final n in notes.where((n) => n.subject == subject)) {
-                  if (n.chapter.isNotEmpty) chapSet.add(n.chapter);
+                  if (n.chapter.isNotEmpty) chapSet.add(n.chapter.split('/')[0]);
                 }
                 for (final d in dpps.where((d) => d.subject == subject)) {
-                  if (d.chapter.isNotEmpty) chapSet.add(d.chapter);
+                  if (d.chapter.isNotEmpty) chapSet.add(d.chapter.split('/')[0]);
                 }
 
                 return _SubjectCard(

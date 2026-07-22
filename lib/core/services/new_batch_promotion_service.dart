@@ -320,11 +320,44 @@ class _PromoDialogContentState extends State<_PromoDialogContent> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Big Emoji
-                Text(
-                  widget.course.emoji,
-                  style: const TextStyle(fontSize: 56),
-                ),
+                // Big Emoji or Thumbnail
+                if (widget.course.thumbnailUrl.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      widget.course.thumbnailUrl,
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Text(
+                            widget.course.emoji,
+                            style: const TextStyle(fontSize: 56),
+                          ),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const SizedBox(
+                          height: 120,
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    widget.course.emoji,
+                    style: const TextStyle(fontSize: 56),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 // Course Title
                 Text(

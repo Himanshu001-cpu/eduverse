@@ -91,7 +91,7 @@ class StoreTestSeriesContent extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 140,
+          height: 210,
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
@@ -126,40 +126,133 @@ class _TestSeriesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double finalPrice = item.price;
+    final double realPrice = item.realPrice;
+
+    final discountPercent = realPrice > 0 && realPrice > finalPrice
+        ? ((realPrice - finalPrice) / realPrice * 100).toStringAsFixed(0)
+        : null;
+
     return Container(
-      width: 220,
+      width: 200,
       margin: const EdgeInsets.only(right: 16),
-      child: GestureDetector(
-        onTap: onTap,
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: item.gradientColors.first.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // AspectRatio Thumbnail with Discount Badge
+                Container(
+                  height: 110,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: item.gradientColors.first.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: item.thumbnailUrl.isNotEmpty
+                            ? Image.network(
+                                item.thumbnailUrl,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildFallback(),
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return _buildFallback(showLoader: true);
+                                },
+                              )
+                            : _buildFallback(),
+                      ),
+                      if (discountPercent != null)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2E7D32),
+                              borderRadius: BorderRadius.circular(6),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              '$discountPercent% OFF',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${item.totalTests} Tests',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      finalPrice > 0 ? '₹${finalPrice.toStringAsFixed(0)}' : 'FREE',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    if (realPrice > finalPrice) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '₹${realPrice.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          decoration: TextDecoration.lineThrough,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: item.thumbnailUrl.isNotEmpty
-                  ? Image.network(
-                      item.thumbnailUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildFallback(),
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return _buildFallback(showLoader: true);
-                      },
-                    )
-                  : _buildFallback(),
             ),
           ),
         ),
@@ -467,16 +560,33 @@ class _TestSeriesDetailPage extends StatelessWidget {
                             children: [
                               const Text(
                                 'Price',
-                                style: TextStyle(color: Colors.grey),
+                                style: TextStyle(color: Colors.grey, fontSize: 12),
                               ),
-                              Text(
-                                testSeries.price > 0
-                                    ? '₹${testSeries.price.toInt()}'
-                                    : 'FREE',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    testSeries.price > 0
+                                        ? '₹${testSeries.price.toInt()}'
+                                        : 'FREE',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).primaryColor,
+                                    ),
+                                  ),
+                                  if (testSeries.realPrice > testSeries.price) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '₹${testSeries.realPrice.toInt()}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                        decoration: TextDecoration.lineThrough,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ],
                           ),

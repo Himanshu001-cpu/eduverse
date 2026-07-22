@@ -5,6 +5,7 @@ import '../services/test_series_service.dart';
 import '../models/admin_models.dart';
 import '../models/test_series_models.dart';
 import '../widgets/admin_scaffold.dart';
+import '../widgets/thumbnail_upload_widget.dart';
 
 class CombinationPacksScreen extends StatefulWidget {
   const CombinationPacksScreen({super.key});
@@ -263,7 +264,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
   void _showEditPackDialog(BuildContext context, FirebaseAdminService service, AdminCombinationPack? existing) {
     final titleController = TextEditingController(text: existing?.title ?? '');
     final descController = TextEditingController(text: existing?.description ?? '');
-    final thumbController = TextEditingController(text: existing?.thumbnailUrl ?? '');
+    String thumbnailUrl = existing?.thumbnailUrl ?? '';
     final realPriceController = TextEditingController(text: existing?.realPrice.toStringAsFixed(0) ?? '0');
     final finalPriceController = TextEditingController(text: existing?.finalPrice.toStringAsFixed(0) ?? '0');
     bool isActive = existing?.isActive ?? true;
@@ -296,9 +297,14 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                     decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: thumbController,
-                    decoration: const InputDecoration(labelText: 'Thumbnail Image URL (Optional)', border: OutlineInputBorder()),
+                  ThumbnailUploadWidget(
+                    currentUrl: thumbnailUrl,
+                    storagePath: 'combination_packs/thumbnails',
+                    onUploaded: (url) {
+                      setStateDialog(() {
+                        thumbnailUrl = url;
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -454,7 +460,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                   id: existing?.id ?? '',
                   title: title,
                   description: desc,
-                  thumbnailUrl: thumbController.text.trim(),
+                  thumbnailUrl: thumbnailUrl,
                   realPrice: double.tryParse(realPriceController.text) ?? 0.0,
                   finalPrice: double.tryParse(finalPriceController.text) ?? 0.0,
                   courses: selectedCourses,

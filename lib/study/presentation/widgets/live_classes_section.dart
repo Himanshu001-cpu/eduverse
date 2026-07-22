@@ -144,7 +144,11 @@ class LiveClassesSection extends StatelessWidget {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        liveClass.subject.isNotEmpty ? liveClass.subject.toUpperCase() : 'LIVE CLASS',
+                                        liveClass.subject.isNotEmpty
+                                            ? liveClass.subject.toUpperCase()
+                                            : (liveClass.courseName?.isNotEmpty == true
+                                                ? liveClass.courseName!.toUpperCase()
+                                                : 'LIVE CLASS'),
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
