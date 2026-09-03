@@ -148,7 +148,7 @@ class CtaSection extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Limited Time: 50% Off All Courses',
+                                  'Start Your Exam Preparation Today',
                                   style: GoogleFonts.inter(
                                     color: const Color(0xFF6ee7b7),
                                     fontWeight: FontWeight.w600,
@@ -210,7 +210,7 @@ class CtaSection extends StatelessWidget {
                           SizedBox(
                             width: 640,
                             child: Text(
-                              'Join 50,000+ students already learning smarter with AI. Get unlimited access to mock tests, video lectures, and personalized guidance.',
+                              'Join thousands of students preparing for MPPSC, UPSC & competitive exams. Get access to video lectures, practice tests, study notes & more.',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.inter(
                                 fontSize: 20,
@@ -302,13 +302,13 @@ class CtaSection extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(
-                                      LucideIcons.calendar,
+                                      LucideIcons.smartphone,
                                       size: 20,
                                       color: Color(0xFF34d399),
                                     ),
                                     const SizedBox(width: 12),
                                     Text(
-                                      'Book a Live Demo',
+                                      'Download the App',
                                       style: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
@@ -329,9 +329,9 @@ class CtaSection extends StatelessWidget {
                             runSpacing: 8,
                             alignment: WrapAlignment.center,
                             children: [
-                              _trustItem('✓  No credit card'),
-                              _trustItem('✓  7-day free trial'),
-                              _trustItem('✓  Cancel anytime'),
+                              _trustItem('✓  Easy registration'),
+                              _trustItem('✓  Free content available'),
+                              _trustItem('✓  Affordable pricing'),
                             ],
                           ),
                         ],

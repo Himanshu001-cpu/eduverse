@@ -33,6 +33,7 @@ class StudentPost {
   final String id;
   final String title;
   final String body;
+  final List<String> imageUrls;
   final String authorId;
   final String authorName;
   final String authorRole; // student, teacher, admin
@@ -45,6 +46,7 @@ class StudentPost {
     required this.id,
     required this.title,
     required this.body,
+    this.imageUrls = const [],
     required this.authorId,
     required this.authorName,
     required this.authorRole,
@@ -55,10 +57,17 @@ class StudentPost {
   });
 
   factory StudentPost.fromMap(Map<String, dynamic> data, String id) {
+    List<String> imgs = [];
+    if (data['imageUrls'] != null) {
+      imgs = List<String>.from(data['imageUrls']);
+    } else if (data['imageUrl'] != null && (data['imageUrl'] as String).isNotEmpty) {
+      imgs = [data['imageUrl'] as String];
+    }
     return StudentPost(
       id: id,
       title: data['title'] ?? '',
       body: data['body'] ?? '',
+      imageUrls: imgs,
       authorId: data['authorId'] ?? '',
       authorName: data['authorName'] ?? '',
       authorRole: data['authorRole'] ?? 'student',
@@ -73,6 +82,7 @@ class StudentPost {
     return {
       'title': title,
       'body': body,
+      'imageUrls': imageUrls,
       'authorId': authorId,
       'authorName': authorName,
       'authorRole': authorRole,
@@ -88,6 +98,7 @@ class StudentPost {
 class StudentReply {
   final String id;
   final String body;
+  final List<String> imageUrls;
   final String authorId;
   final String authorName;
   final String authorRole;
@@ -97,6 +108,7 @@ class StudentReply {
   StudentReply({
     required this.id,
     required this.body,
+    this.imageUrls = const [],
     required this.authorId,
     required this.authorName,
     required this.authorRole,
@@ -105,9 +117,16 @@ class StudentReply {
   });
 
   factory StudentReply.fromMap(Map<String, dynamic> data, String id) {
+    List<String> imgs = [];
+    if (data['imageUrls'] != null) {
+      imgs = List<String>.from(data['imageUrls']);
+    } else if (data['imageUrl'] != null && (data['imageUrl'] as String).isNotEmpty) {
+      imgs = [data['imageUrl'] as String];
+    }
     return StudentReply(
       id: id,
       body: data['body'] ?? '',
+      imageUrls: imgs,
       authorId: data['authorId'] ?? '',
       authorName: data['authorName'] ?? '',
       authorRole: data['authorRole'] ?? 'student',
@@ -119,6 +138,7 @@ class StudentReply {
   Map<String, dynamic> toMap() {
     return {
       'body': body,
+      'imageUrls': imageUrls,
       'authorId': authorId,
       'authorName': authorName,
       'authorRole': authorRole,

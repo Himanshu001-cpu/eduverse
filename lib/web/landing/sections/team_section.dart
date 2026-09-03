@@ -253,30 +253,30 @@ class _TeamMember {
 final _teamMembers = [
   _TeamMember(
     name: 'Dr. Raghav Mehta',
-    role: 'Founder & CEO',
+    role: 'Founder & Lead Educator',
     avatar:
         'https://ui-avatars.com/api/?name=Raghav+Mehta&background=059669&color=fff&size=200',
-    description: 'Ex-IAS officer with 15+ years in education technology.',
+    description: 'Experienced educator with 10+ years mentoring competitive exam aspirants.',
   ),
   _TeamMember(
     name: 'Kavita Nair',
-    role: 'Head of Content',
+    role: 'Head of Content & Faculty',
     avatar:
         'https://ui-avatars.com/api/?name=Kavita+Nair&background=3b82f6&color=fff&size=200',
-    description: 'Designed curriculum for 100K+ successful aspirants.',
+    description: 'Expert faculty in General Studies & History with a focus on conceptual clarity.',
   ),
   _TeamMember(
     name: 'Arjun Desai',
-    role: 'CTO',
+    role: 'Technology Lead',
     avatar:
         'https://ui-avatars.com/api/?name=Arjun+Desai&background=8b5cf6&color=fff&size=200',
-    description: 'Ex-Google engineer building AI-powered learning systems.',
+    description: 'Dedicated to building seamless, accessible learning tools for students.',
   ),
   _TeamMember(
     name: 'Simran Kaur',
-    role: 'Head of AI',
+    role: 'Senior Faculty - Polity & CSAT',
     avatar:
         'https://ui-avatars.com/api/?name=Simran+Kaur&background=f59e0b&color=fff&size=200',
-    description: 'PhD in ML, specializing in adaptive learning algorithms.',
+    description: 'Specialist in Indian Polity and Aptitude with 8+ years of classroom experience.',
   ),
 ];

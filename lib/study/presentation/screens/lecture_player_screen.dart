@@ -15,7 +15,10 @@ import 'package:eduverse/core/firebase/live_viewer_service.dart';
 import 'package:eduverse/core/utils/youtube_utils.dart';
 import 'package:eduverse/common/widgets/cross_platform_youtube_player.dart';
 import 'package:eduverse/common/widgets/video_skip_overlay.dart';
+import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
+import 'package:eduverse/core/widgets/image_attachment_widget.dart';
+import 'package:eduverse/core/widgets/image_grid_display.dart';
 
 class LecturePlayerScreen extends StatefulWidget {
   final String? courseId;
@@ -55,8 +58,11 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
 
   // Comments
   final TextEditingController _commentController = TextEditingController();
+  final GlobalKey<ImageAttachmentWidgetState> _commentAttachmentKey = GlobalKey();
   bool _isPostingComment = false;
   String? _replyingToCommentId;
+  List<String> _commentUploadedUrls = [];
+  bool _isUploadingCommentImages = false;
   String? _replyingToUserName;
 
   // Watch time tracking
@@ -484,7 +490,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
 
   Future<void> _postComment() async {
     final text = _commentController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _commentUploadedUrls.isEmpty) return;
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -504,6 +510,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
             .collection('replies')
             .add({
               'text': text,
+              'imageUrls': _commentUploadedUrls,
               'userId': user.uid,
               'userName': user.displayName ?? 'Student',
               'userPhoto': user.photoURL,
@@ -512,6 +519,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
       } else {
         await FirebaseFirestore.instance.collection(_commentsPath).add({
           'text': text,
+          'imageUrls': _commentUploadedUrls,
           'userId': user.uid,
           'userName': user.displayName ?? 'Student',
           'userPhoto': user.photoURL,
@@ -519,6 +527,10 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
         });
       }
       _commentController.clear();
+      _commentAttachmentKey.currentState?.clear();
+      setState(() {
+        _commentUploadedUrls = [];
+      });
       _cancelReply();
       FocusScope.of(context).unfocus();
     } catch (e) {
@@ -1023,9 +1035,130 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
               ),
             ),
           ),
+
+          _buildLinkedNotesSection(),
         ],
       ),
     );
+  }
+
+  Widget _buildLinkedNotesSection() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _fetchLinkedNotes(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final notes = snapshot.data ?? [];
+        if (notes.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.attach_file, color: Colors.orange.shade700),
+                const SizedBox(width: 8),
+                const Text(
+                  'Attached Notes & PDFs',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Column(
+              children: notes.map((note) {
+                final pdfUrl = (note['pdfUrl'] ?? note['fileUrl'] ?? note['url']) as String?;
+                final title = (note['title'] ?? 'Untitled Note') as String;
+                final subtitle = (note['subtitle'] ?? '') as String;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
+                    trailing: ElevatedButton.icon(
+                      onPressed: () async {
+                        if (pdfUrl != null && pdfUrl.isNotEmpty) {
+                          await PdfNavigationManager.navigateToViewer(
+                            context,
+                            SecurePdfViewerArgs(
+                              pdfUrl: pdfUrl,
+                              title: title,
+                              isProtected: false,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      label: const Text('Open'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade800,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchLinkedNotes() async {
+    if (widget.courseId == null) return [];
+    final db = FirebaseFirestore.instance;
+    final List<Map<String, dynamic>> results = [];
+    final Set<String> loadedIds = {};
+
+    // 1. Fetch by linkedNoteIds
+    for (final noteId in widget.lecture.linkedNoteIds) {
+      try {
+        final doc = await db
+            .collection('courses')
+            .doc(widget.courseId)
+            .collection('notes')
+            .doc(noteId)
+            .get();
+        if (doc.exists && loadedIds.add(doc.id)) {
+          results.add({'id': doc.id, ...doc.data()!});
+        }
+      } catch (e) {
+        debugPrint('Error fetching linked note $noteId: $e');
+      }
+    }
+
+    // 2. Fetch notes where lectureId == widget.lecture.id
+    try {
+      final query = await db
+          .collection('courses')
+          .doc(widget.courseId)
+          .collection('notes')
+          .where('lectureId', isEqualTo: widget.lecture.id)
+          .get();
+      for (var doc in query.docs) {
+        if (loadedIds.add(doc.id)) {
+          results.add({'id': doc.id, ...doc.data()});
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching notes by lectureId: $e');
+    }
+
+    return results;
   }
 
   Widget _buildCommentsTab() {
@@ -1122,40 +1255,62 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
             color: Colors.white,
             border: Border(top: BorderSide(color: Colors.grey.shade200)),
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _commentController,
-                  decoration: InputDecoration(
-                    hintText: _replyingToCommentId != null
-                        ? 'Write a reply...'
-                        : 'Add a comment...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    isDense: true,
-                  ),
-                  maxLines: 1,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _postComment(),
-                ),
+              ImageAttachmentWidget(
+                key: _commentAttachmentKey,
+                storageFolder: 'study_comments/${widget.lecture.id}',
+                maxImages: 3,
+                onImagesUploaded: (urls) {
+                  setState(() {
+                    _commentUploadedUrls = urls;
+                  });
+                },
+                onUploadingStateChanged: (uploading) {
+                  setState(() {
+                    _isUploadingCommentImages = uploading;
+                  });
+                },
               ),
-              const SizedBox(width: 8),
-              _isPostingComment
-                  ? const SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : IconButton(
-                      icon: const Icon(Icons.send, color: Colors.blue),
-                      onPressed: _postComment,
+              Row(
+                children: [
+                  ImageAttachmentWidget.buildAttachButton(key: _commentAttachmentKey, iconColor: Colors.blue),
+                  Expanded(
+                    child: TextField(
+                      controller: _commentController,
+                      decoration: InputDecoration(
+                        hintText: _replyingToCommentId != null
+                            ? 'Write a reply...'
+                            : 'Add a comment...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        isDense: true,
+                      ),
+                      maxLines: null,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _postComment(),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  (_isPostingComment || _isUploadingCommentImages)
+                      ? const SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.send, color: Colors.blue),
+                          onPressed: (_isPostingComment || _isUploadingCommentImages) ? null : _postComment,
+                        ),
+                ],
+              ),
             ],
           ),
         ),
@@ -1169,6 +1324,13 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
     final userId = data['userId'] as String?;
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final isOwner = userId != null && userId == currentUserId;
+
+    List<String> imageUrls = [];
+    if (data['imageUrls'] != null) {
+      imageUrls = List<String>.from(data['imageUrls']);
+    } else if (data['imageUrl'] != null && (data['imageUrl'] as String).isNotEmpty) {
+      imageUrls = [data['imageUrl'] as String];
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1222,11 +1384,17 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      data['text'] ?? '',
-                      style: const TextStyle(height: 1.4),
-                    ),
+                    if ((data['text'] as String? ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        data['text'] ?? '',
+                        style: const TextStyle(height: 1.4),
+                      ),
+                    ],
+
+                    if (imageUrls.isNotEmpty)
+                      ImageGridDisplay(imageUrls: imageUrls, maxHeight: 180),
+
                     const SizedBox(height: 6),
                     InkWell(
                       onTap: () => _startReply(commentId, userName),
@@ -1279,6 +1447,13 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
                     final isReplyOwner =
                         replyUserId != null &&
                         replyUserId == FirebaseAuth.instance.currentUser?.uid;
+
+                    List<String> replyImageUrls = [];
+                    if (replyData['imageUrls'] != null) {
+                      replyImageUrls = List<String>.from(replyData['imageUrls']);
+                    } else if (replyData['imageUrl'] != null && (replyData['imageUrl'] as String).isNotEmpty) {
+                      replyImageUrls = [replyData['imageUrl'] as String];
+                    }
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
@@ -1343,14 +1518,15 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
                                           ),
                                       ],
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      replyData['text'] ?? '',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        height: 1.3,
+                                    if ((replyData['text'] as String? ?? '').isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        replyData['text'] ?? '',
+                                        style: const TextStyle(fontSize: 13, height: 1.3),
                                       ),
-                                    ),
+                                    ],
+                                    if (replyImageUrls.isNotEmpty)
+                                      ImageGridDisplay(imageUrls: replyImageUrls, maxHeight: 150),
                                   ],
                                 ),
                               ),

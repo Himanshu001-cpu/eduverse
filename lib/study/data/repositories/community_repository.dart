@@ -18,6 +18,24 @@ class CommunityRepository {
         });
   }
 
+  // Stream of active communities for a student matching any enrolled course IDs
+  Stream<List<StudentCommunity>> getCommunitiesForStudent(Set<String> courseIds) {
+    return _db
+        .collection('communities')
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => StudentCommunity.fromMap(doc.data(), doc.id))
+              .where((comm) {
+                if (courseIds.isEmpty) return false;
+                return comm.courseIds.any((cid) => cid == '*' || courseIds.contains(cid));
+              })
+              .toList();
+        });
+  }
+
+
   // Stream of posts in a community (ordered by pinned first, then newest)
   Stream<List<StudentPost>> getPostsForCommunity(String communityId) {
     return _db
@@ -70,6 +88,7 @@ class CommunityRepository {
     required String communityId,
     required String title,
     required String body,
+    List<String> imageUrls = const [],
     required String authorId,
     required String authorName,
     required String authorRole,
@@ -88,6 +107,7 @@ class CommunityRepository {
       id: postRef.id,
       title: title,
       body: body,
+      imageUrls: imageUrls,
       authorId: authorId,
       authorName: authorName,
       authorRole: authorRole,
@@ -111,6 +131,7 @@ class CommunityRepository {
     required String communityId,
     required String postId,
     required String body,
+    List<String> imageUrls = const [],
     required String authorId,
     required String authorName,
     required String authorRole,
@@ -135,6 +156,7 @@ class CommunityRepository {
     final newReply = StudentReply(
       id: replyRef.id,
       body: body,
+      imageUrls: imageUrls,
       authorId: authorId,
       authorName: authorName,
       authorRole: authorRole,

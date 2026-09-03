@@ -5,6 +5,7 @@ import '../widgets/admin_scaffold.dart';
 import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 import '../widgets/link_live_class_dialog.dart';
+import '../widgets/manage_linked_courses_dialog.dart';
 
 class LiveClassesScreen extends StatelessWidget {
   final String? courseId;
@@ -223,6 +224,36 @@ class LiveClassesScreen extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                if (item.linkedCourses.isNotEmpty) ...[
+                                  IconButton(
+                                    icon: const Icon(Icons.hub, size: 20, color: Colors.teal),
+                                    tooltip: 'Manage Linked Courses (Bulk & Single)',
+                                    constraints: const BoxConstraints(),
+                                    padding: const EdgeInsets.all(4),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => Provider<FirebaseAdminService>.value(
+                                          value: adminService,
+                                          child: ManageLinkedCoursesDialog(
+                                            liveClass: item,
+                                            sourceCourseId: courseId ?? '',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 4),
+                                ] else if (hasLinks) ...[
+                                  IconButton(
+                                    icon: const Icon(Icons.sync, size: 20, color: Colors.teal),
+                                    tooltip: 'Sync to All Linked Courses',
+                                    constraints: const BoxConstraints(),
+                                    padding: const EdgeInsets.all(4),
+                                    onPressed: () => _confirmAndSyncLiveClass(context, adminService, item),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
                                 IconButton(
                                   icon: const Icon(Icons.edit, size: 20),
                                   constraints: const BoxConstraints(),
@@ -259,6 +290,53 @@ class LiveClassesScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _confirmAndSyncLiveClass(
+    BuildContext context,
+    FirebaseAdminService service,
+    AdminLiveClass liveClass,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sync Live Class to Linked Courses?'),
+        content: Text(
+          'This will update details for "${liveClass.title}" in all other courses where this live class is shared/linked.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.sync),
+            label: const Text('Sync Now'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final updatedCount = await service.syncLiveClassToLinkedCourses(
+        sourceCourseId: courseId ?? '',
+        liveClass: liveClass,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Successfully synced live class across $updatedCount location(s)')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to sync live class: $e')),
+        );
+      }
+    }
+  }
+
   void _confirmDelete(BuildContext context, FirebaseAdminService adminService, AdminLiveClass item) {
     final isLinked = item.linkedFrom != null || item.linkedCourses.isNotEmpty;
 
@@ -273,7 +351,8 @@ class LiveClassesScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
-            TextButton(
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () async {
                 Navigator.pop(dialogContext);
                 try {
@@ -295,7 +374,7 @@ class LiveClassesScreen extends StatelessWidget {
                   }
                 }
               },
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -307,19 +386,59 @@ class LiveClassesScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Linked Class?'),
+        title: const Text('Linked Live Class Options'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '"${item.title}" is linked across multiple courses.',
+              '"${item.title}" is linked to other courses.',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             const Text(
-              'Choose how you want to proceed with the deletion:',
+              'Choose what you would like to do:',
               style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('🔗 Delink', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                  SizedBox(height: 2),
+                  Text(
+                    'Removes sync connection. The class stays in this course as an independent copy.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('🗑️ Delete', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                  SizedBox(height: 2),
+                  Text(
+                    'Warning: Permanently removes the live class from this course.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -328,7 +447,36 @@ class LiveClassesScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          OutlinedButton(
+          OutlinedButton.icon(
+            icon: const Icon(Icons.link_off, size: 16),
+            label: const Text('Delink'),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                if (courseId != null && courseId!.isNotEmpty) {
+                  await adminService.delinkLiveClass(courseId!, item.id);
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Live class delinked successfully (now independent)')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error delinking: $e')),
+                  );
+                }
+              }
+            },
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.delete, size: 16),
+            label: const Text('Delete'),
             onPressed: () async {
               Navigator.pop(dialogContext);
               try {
@@ -350,35 +498,6 @@ class LiveClassesScreen extends StatelessWidget {
                 }
               }
             },
-            child: const Text('This Course Only'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              try {
-                if (courseId != null && courseId!.isNotEmpty) {
-                  await adminService.deleteCourseLiveClass(courseId!, item.id, deleteAllLinked: true);
-                } else {
-                  await adminService.deleteLiveClass(item.id, deleteAllLinked: true);
-                }
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Deleted from all courses successfully')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('All Linked Courses'),
           ),
         ],
       ),

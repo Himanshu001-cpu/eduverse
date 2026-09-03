@@ -4,11 +4,13 @@ import 'package:eduverse/store/models/store_models.dart';
 class ComboPackCard extends StatelessWidget {
   final CombinationPack pack;
   final VoidCallback onTap;
+  final double? width;
 
   const ComboPackCard({
     super.key,
     required this.pack,
     required this.onTap,
+    this.width,
   });
 
   @override
@@ -20,8 +22,12 @@ class ComboPackCard extends StatelessWidget {
         ? ((realPrice - finalPrice) / realPrice * 100).toStringAsFixed(0)
         : null;
 
+    final double cardWidth = width ?? 260.0;
+    // 16:9 aspect ratio based on card width minus horizontal padding (8.0)
+    final double imageHeight = (cardWidth - 8.0) * 9 / 16;
+
     return Container(
-      width: 160,
+      width: cardWidth,
       margin: const EdgeInsets.only(right: 16),
       child: Material(
         color: Colors.transparent,
@@ -35,7 +41,8 @@ class ComboPackCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  height: 100,
+                  height: imageHeight,
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
@@ -105,16 +112,18 @@ class ComboPackCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  pack.description,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
+                if (pack.description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    pack.description,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
                 const SizedBox(height: 6),
                 Row(
                   children: [

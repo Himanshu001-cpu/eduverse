@@ -29,16 +29,9 @@ class BrowseByExamSection extends StatelessWidget {
 
       // 2. Filter by Active Filter Chip (Online/Offline/All)
       if (controller.activeFilterChip != 'All') {
-        // Assume isCourseBatch determines Online/Offline or add custom property. 
-        // We will default to matching type field or check type field mapping if present in mock data.
-        // For backwards compatibility we check if type contains it or fallback.
         final batchType = b.isCourseBatch ? 'Online' : 'Offline';
         if (controller.activeFilterChip != batchType) {
-          // If mock batches have type field in E2E tests:
-          // E2E test stubs loaded availableBatches from map:
-          // availableBatches has 'type' which is 'Online' or 'Offline'.
-          // So let's handle both objects and E2E maps safely:
-          // In real app, standard batches are online/offline. We can treat isCourseBatch as Online.
+          return false;
         }
       }
 

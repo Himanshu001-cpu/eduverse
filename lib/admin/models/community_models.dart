@@ -91,7 +91,8 @@ class CommunityPost {
   final String authorRole; // student, teacher, admin
   final String title;
   final String body;
-  final String? imageUrl;
+  final List<String> imageUrls;
+  final String? imageUrl; // Legacy support
   final bool isPinned;
   final bool isAnswered;
   final int replyCount;
@@ -106,6 +107,7 @@ class CommunityPost {
     required this.authorRole,
     required this.title,
     required this.body,
+    this.imageUrls = const [],
     this.imageUrl,
     this.isPinned = false,
     this.isAnswered = false,
@@ -115,6 +117,12 @@ class CommunityPost {
   });
 
   factory CommunityPost.fromMap(Map<String, dynamic> data, String id, String communityId) {
+    List<String> imgs = [];
+    if (data['imageUrls'] != null) {
+      imgs = List<String>.from(data['imageUrls']);
+    } else if (data['imageUrl'] != null && (data['imageUrl'] as String).isNotEmpty) {
+      imgs = [data['imageUrl'] as String];
+    }
     return CommunityPost(
       id: id,
       communityId: communityId,
@@ -123,7 +131,8 @@ class CommunityPost {
       authorRole: data['authorRole'] ?? 'student',
       title: data['title'] ?? '',
       body: data['body'] ?? '',
-      imageUrl: data['imageUrl'],
+      imageUrls: imgs,
+      imageUrl: data['imageUrl'] ?? (imgs.isNotEmpty ? imgs.first : null),
       isPinned: data['isPinned'] ?? false,
       isAnswered: data['isAnswered'] ?? false,
       replyCount: data['replyCount'] ?? 0,
@@ -139,7 +148,8 @@ class CommunityPost {
       'authorRole': authorRole,
       'title': title,
       'body': body,
-      if (imageUrl != null) 'imageUrl': imageUrl,
+      'imageUrls': imageUrls,
+      if (imageUrls.isNotEmpty) 'imageUrl': imageUrls.first,
       'isPinned': isPinned,
       'isAnswered': isAnswered,
       'replyCount': replyCount,
@@ -151,12 +161,14 @@ class CommunityPost {
   CommunityPost copyWith({
     String? title,
     String? body,
+    List<String>? imageUrls,
     String? imageUrl,
     bool? isPinned,
     bool? isAnswered,
     int? replyCount,
     DateTime? updatedAt,
   }) {
+    final newImgs = imageUrls ?? this.imageUrls;
     return CommunityPost(
       id: id,
       communityId: communityId,
@@ -165,7 +177,8 @@ class CommunityPost {
       authorRole: authorRole,
       title: title ?? this.title,
       body: body ?? this.body,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: newImgs,
+      imageUrl: imageUrl ?? (newImgs.isNotEmpty ? newImgs.first : null),
       isPinned: isPinned ?? this.isPinned,
       isAnswered: isAnswered ?? this.isAnswered,
       replyCount: replyCount ?? this.replyCount,
@@ -182,7 +195,8 @@ class CommunityReply {
   final String authorName;
   final String authorRole;
   final String body;
-  final String? imageUrl;
+  final List<String> imageUrls;
+  final String? imageUrl; // Legacy support
   final bool isTeacherReply;
   final DateTime createdAt;
 
@@ -193,12 +207,19 @@ class CommunityReply {
     required this.authorName,
     required this.authorRole,
     required this.body,
+    this.imageUrls = const [],
     this.imageUrl,
     this.isTeacherReply = false,
     required this.createdAt,
   });
 
   factory CommunityReply.fromMap(Map<String, dynamic> data, String id, String postId) {
+    List<String> imgs = [];
+    if (data['imageUrls'] != null) {
+      imgs = List<String>.from(data['imageUrls']);
+    } else if (data['imageUrl'] != null && (data['imageUrl'] as String).isNotEmpty) {
+      imgs = [data['imageUrl'] as String];
+    }
     return CommunityReply(
       id: id,
       postId: postId,
@@ -206,7 +227,8 @@ class CommunityReply {
       authorName: data['authorName'] ?? '',
       authorRole: data['authorRole'] ?? 'student',
       body: data['body'] ?? '',
-      imageUrl: data['imageUrl'],
+      imageUrls: imgs,
+      imageUrl: data['imageUrl'] ?? (imgs.isNotEmpty ? imgs.first : null),
       isTeacherReply: data['isTeacherReply'] ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -218,7 +240,8 @@ class CommunityReply {
       'authorName': authorName,
       'authorRole': authorRole,
       'body': body,
-      if (imageUrl != null) 'imageUrl': imageUrl,
+      'imageUrls': imageUrls,
+      if (imageUrls.isNotEmpty) 'imageUrl': imageUrls.first,
       'isTeacherReply': isTeacherReply,
       'createdAt': Timestamp.fromDate(createdAt),
     };

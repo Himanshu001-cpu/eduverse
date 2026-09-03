@@ -1,21 +1,27 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:mime/mime.dart';
 import '../services/firebase_admin_service.dart';
 import '../models/admin_models.dart';
 import '../widgets/admin_scaffold.dart';
 import '../widgets/media_uploader.dart';
 import '../widgets/link_lecture_to_batch_dialog.dart';
+import '../widgets/manage_linked_courses_dialog.dart';
 
 class LectureEditorScreen extends StatefulWidget {
   final String courseId;
   final String batchId;
   final String? initialResourceType; // 'video', 'note', 'dpp'
+  final bool isRecordedBatch;
 
   const LectureEditorScreen({
     super.key,
     required this.courseId,
     required this.batchId,
     this.initialResourceType,
+    this.isRecordedBatch = false,
   });
 
   @override
@@ -42,13 +48,19 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     final service = context.read<FirebaseAdminService>();
 
     return StreamBuilder<List<AdminLecture>>(
-      stream: service.getLectures(widget.courseId),
+      stream: widget.isRecordedBatch
+          ? service.getRecordedBatchLectures(widget.courseId, widget.batchId)
+          : service.getLectures(widget.courseId),
       builder: (context, lecturesSnap) {
         return StreamBuilder<List<AdminNote>>(
-          stream: service.getCourseNotes(widget.courseId),
+          stream: widget.isRecordedBatch
+              ? service.getRecordedBatchNotes(widget.courseId, widget.batchId)
+              : service.getCourseNotes(widget.courseId),
           builder: (context, notesSnap) {
             return StreamBuilder<List<AdminDpp>>(
-              stream: service.getCourseDpps(widget.courseId),
+              stream: widget.isRecordedBatch
+                  ? service.getRecordedBatchDpps(widget.courseId, widget.batchId)
+                  : service.getCourseDpps(widget.courseId),
               builder: (context, dppsSnap) {
                 final lectures = lecturesSnap.data ?? [];
                 final notes = notesSnap.data ?? [];
@@ -85,245 +97,319 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     List<AdminNote> notes,
     List<AdminDpp> dpps,
   ) {
-    // Collect all unique subjects
-    final Set<String> subjectsSet = {};
-    for (final l in lectures) {
-      if (l.subject.isNotEmpty && l.type != 'folder') subjectsSet.add(l.subject);
-    }
-    for (final n in notes) {
-      if (n.subject.isNotEmpty) subjectsSet.add(n.subject);
-    }
-    for (final d in dpps) {
-      if (d.subject.isNotEmpty) subjectsSet.add(d.subject);
-    }
+    return StreamBuilder<AdminCourse>(
+      stream: service.getCourse(widget.courseId),
+      builder: (context, courseSnap) {
+        final subjectLogos = courseSnap.data?.subjectLogos ?? {};
 
-    final subjectsList = subjectsSet.toList()..sort();
+        // Collect all unique subjects
+        final Set<String> subjectsSet = {...subjectLogos.keys};
+        for (final l in lectures) {
+          if (l.subject.isNotEmpty && l.type != 'folder') subjectsSet.add(l.subject);
+        }
+        for (final n in notes) {
+          if (n.subject.isNotEmpty) subjectsSet.add(n.subject);
+        }
+        for (final d in dpps) {
+          if (d.subject.isNotEmpty) subjectsSet.add(d.subject);
+        }
 
-    return AdminScaffold(
-      title: 'Unified Resource Browser',
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Elegant Header Card
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.indigo.shade800, Colors.purple.shade900],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.indigo.shade900.withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Unified Batch resources',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+        final subjectsList = subjectsSet.toList()..sort();
+
+        return AdminScaffold(
+          title: 'Unified Resource Browser',
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Elegant Header Card
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.indigo.shade800, Colors.purple.shade900],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.indigo.shade900.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Manage Lectures, Notes, DPPs, and nested directory trees seamlessly.',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Subjects',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (FolderClipboard.hasData && FolderClipboard.isSubjectOnly) ...[
-                      ElevatedButton.icon(
-                        onPressed: () => _handlePasteSubject(context, service, lectures, notes, dpps),
-                        icon: const Icon(Icons.content_paste, size: 16),
-                        label: const Text('Paste Subject', style: TextStyle(fontSize: 12)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade700,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
+                    Text(
+                      'Unified Batch resources',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(width: 8),
-                    ],
-                    ElevatedButton.icon(
-                      onPressed: () => _showAddSubjectDialog(context, service),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Subject'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
-                        foregroundColor: Colors.white,
-                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Manage Lectures, Notes, DPPs, and nested directory trees seamlessly.',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          Expanded(
-            child: subjectsList.isEmpty
-                ? const Center(
-                    child: Text('No subjects added yet. Tap "Add Subject" to begin.'),
-                  )
-                : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 350,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.5,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Subjects',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    itemCount: subjectsList.length,
-                    itemBuilder: (context, index) {
-                      final subject = subjectsList[index];
-                      // Calculate resource count
-                      final lecCount = lectures.where((l) => l.subject == subject && l.type != 'folder').length;
-                      final noteCount = notes.where((n) => n.subject == subject).length;
-                      final dppCount = dpps.where((d) => d.subject == subject).length;
-
-                      return InkWell(
-                        onTap: () {
-                          setState(() {
-                            _selectedSubject = subject;
-                            _currentPath = [];
-                          });
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.indigo.shade200, width: 1.5),
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: LinearGradient(
-                              colors: [Colors.indigo.shade50, Colors.purple.shade50],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (FolderClipboard.hasData && FolderClipboard.isSubjectOnly) ...[
+                          ElevatedButton.icon(
+                            onPressed: () => _handlePasteSubject(context, service, lectures, notes, dpps),
+                            icon: const Icon(Icons.content_paste, size: 16),
+                            label: const Text('Paste Subject', style: TextStyle(fontSize: 12)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
+                          const SizedBox(width: 8),
+                        ],
+                        ElevatedButton.icon(
+                          onPressed: () => _showAddSubjectDialog(context, service),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Subject'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.indigo,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: subjectsList.isEmpty
+                    ? const Center(
+                        child: Text('No subjects added yet. Tap "Add Subject" to begin.'),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 350,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 1.5,
+                        ),
+                        itemCount: subjectsList.length,
+                        itemBuilder: (context, index) {
+                          final subject = subjectsList[index];
+                          final logoUrl = subjectLogos[subject];
+
+                          // Calculate resource count
+                          final lecCount = lectures.where((l) => l.subject == subject && l.type != 'folder').length;
+                          final noteCount = notes.where((n) => n.subject == subject).length;
+                          final dppCount = dpps.where((d) => d.subject == subject).length;
+
+                          return InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedSubject = subject;
+                                _currentPath = [];
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.indigo.shade200, width: 1.5),
+                                borderRadius: BorderRadius.circular(12),
+                                gradient: LinearGradient(
+                                  colors: [Colors.indigo.shade50, Colors.purple.shade50],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor: Colors.indigo.shade100,
-                                          child: Icon(Icons.folder, color: Colors.indigo.shade800),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            subject,
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.indigo.shade900,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuButton<String>(
-                                    icon: Icon(Icons.more_vert, size: 16, color: Colors.grey.shade600),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onSelected: (val) {
-                                      if (val == 'copy') {
-                                        FolderClipboard.copy(
-                                          courseId: widget.courseId,
-                                          subject: subject,
-                                          folderPath: '',
-                                          folderName: '',
-                                          isSubject: true,
-                                        );
-                                        setState(() {});
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Subject "$subject" copied to clipboard.')),
-                                        );
-                                      } else if (val == 'delete') {
-                                        _showDeleteSubjectDialog(context, service, subject, lectures, notes, dpps);
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'copy',
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
                                         child: Row(
                                           children: [
-                                            Icon(Icons.copy, size: 14),
-                                            SizedBox(width: 8),
-                                            Text('Copy Subject', style: TextStyle(fontSize: 13)),
+                                            (logoUrl != null && logoUrl.isNotEmpty)
+                                                ? Container(
+                                                    width: 40,
+                                                    height: 40,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius: BorderRadius.circular(10),
+                                                      border: Border.all(color: Colors.indigo.shade100),
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius: BorderRadius.circular(10),
+                                                      child: Image.network(
+                                                        logoUrl,
+                                                        fit: BoxFit.cover,
+                                                        width: 40,
+                                                        height: 40,
+                                                        errorBuilder: (_, __, ___) => Image.asset(
+                                                          'assets/icon.png',
+                                                          fit: BoxFit.cover,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  )
+                                                : Container(
+                                                    width: 40,
+                                                    height: 40,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius: BorderRadius.circular(10),
+                                                      border: Border.all(color: Colors.indigo.shade100),
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius: BorderRadius.circular(10),
+                                                      child: Image.asset(
+                                                        'assets/icon.png',
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                    ),
+                                                  ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                subject,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.indigo.shade900,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete, color: Colors.red, size: 14),
-                                            SizedBox(width: 8),
-                                            Text('Delete Subject', style: TextStyle(color: Colors.red, fontSize: 13)),
-                                          ],
-                                        ),
+                                      PopupMenuButton<String>(
+                                        icon: Icon(Icons.more_vert, size: 16, color: Colors.grey.shade600),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onSelected: (val) async {
+                                          if (val == 'upload_logo') {
+                                            await _pickAndUploadSubjectLogoForSubject(context, service, subject);
+                                          } else if (val == 'remove_logo') {
+                                            await service.removeCourseSubjectLogo(widget.courseId, subject);
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Logo removed for $subject')),
+                                              );
+                                            }
+                                          } else if (val == 'copy') {
+                                            FolderClipboard.copy(
+                                              courseId: widget.courseId,
+                                              subject: subject,
+                                              folderPath: '',
+                                              folderName: '',
+                                              isSubject: true,
+                                            );
+                                            setState(() {});
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Subject "$subject" copied to clipboard.')),
+                                            );
+                                          } else if (val == 'delete') {
+                                            _showDeleteSubjectDialog(context, service, subject, lectures, notes, dpps);
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          PopupMenuItem(
+                                            value: 'upload_logo',
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.upload_file, size: 14),
+                                                const SizedBox(width: 8),
+                                                Text(logoUrl != null && logoUrl.isNotEmpty ? 'Change Logo' : 'Upload Logo', style: const TextStyle(fontSize: 13)),
+                                              ],
+                                            ),
+                                          ),
+                                          if (logoUrl != null && logoUrl.isNotEmpty)
+                                            const PopupMenuItem(
+                                              value: 'remove_logo',
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.hide_image, size: 14, color: Colors.orange),
+                                                  SizedBox(width: 8),
+                                                  Text('Remove Logo', style: TextStyle(color: Colors.orange, fontSize: 13)),
+                                                ],
+                                              ),
+                                            ),
+                                          const PopupMenuItem(
+                                            value: 'copy',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.copy, size: 14),
+                                                SizedBox(width: 8),
+                                                Text('Copy Subject', style: TextStyle(fontSize: 13)),
+                                              ],
+                                            ),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.delete, color: Colors.red, size: 14),
+                                                SizedBox(width: 8),
+                                                Text('Delete Subject', style: TextStyle(color: Colors.red, fontSize: 13)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '$lecCount Lec • $noteCount Note • $dppCount DPP',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade700,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Icon(Icons.arrow_forward_ios, size: 14, color: Colors.indigo.shade300),
+                                    ],
+                                  )
                                 ],
                               ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '$lecCount Lec • $noteCount Note • $dppCount DPP',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade700,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  Icon(Icons.arrow_forward_ios, size: 14, color: Colors.indigo.shade300),
-                                ],
-                              )
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -549,17 +635,74 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                     ),
                     if (filteredLectures.isNotEmpty) ...[
                       const SizedBox(width: 8),
+                      if (_isSelectMode && _selectedLectureIds.isNotEmpty) ...[
+                        ElevatedButton.icon(
+                          onPressed: () => _bulkSyncSelectedLectures(context, service, filteredLectures),
+                          icon: const Icon(Icons.sync, size: 16),
+                          label: const Text('Sync Selected', style: TextStyle(fontSize: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () => _bulkDelinkSelectedLectures(context, service, filteredLectures),
+                          icon: const Icon(Icons.link_off, size: 16),
+                          label: const Text('Delink Selected', style: TextStyle(fontSize: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       ElevatedButton.icon(
                         onPressed: () {
-                          setState(() {
-                            _isSelectMode = !_isSelectMode;
-                            _selectedLectureIds.clear();
-                          });
+                          if (_isSelectMode && _selectedLectureIds.isNotEmpty) {
+                            // If items selected in select mode, open Link dialog for selected
+                            final selectedList = filteredLectures
+                                .where((l) => _selectedLectureIds.contains(l.id))
+                                .toList();
+                            showDialog(
+                              context: context,
+                              builder: (_) => Provider<FirebaseAdminService>.value(
+                                value: service,
+                                child: LinkLectureToBatchDialog(
+                                  lectures: selectedList,
+                                  sourceCourseId: widget.courseId,
+                                ),
+                              ),
+                            ).then((val) {
+                              if (val == true && mounted) {
+                                setState(() {
+                                  _selectedLectureIds.clear();
+                                  _isSelectMode = false;
+                                });
+                              }
+                            });
+                          } else {
+                            setState(() {
+                              _isSelectMode = !_isSelectMode;
+                              _selectedLectureIds.clear();
+                            });
+                          }
                         },
-                        icon: Icon(_isSelectMode ? Icons.close : Icons.share, size: 16),
-                        label: Text(_isSelectMode ? 'Cancel' : 'Link Multiple', style: const TextStyle(fontSize: 12)),
+                        icon: Icon(_isSelectMode ? (_selectedLectureIds.isNotEmpty ? Icons.share : Icons.close) : Icons.checklist, size: 16),
+                        label: Text(
+                          _isSelectMode
+                              ? (_selectedLectureIds.isNotEmpty ? 'Link Selected (${_selectedLectureIds.length})' : 'Cancel')
+                              : 'Select Multiple',
+                          style: const TextStyle(fontSize: 12),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _isSelectMode ? Colors.red.shade700 : Colors.teal.shade700,
+                          backgroundColor: _isSelectMode
+                              ? (_selectedLectureIds.isNotEmpty ? Colors.deepPurple.shade700 : Colors.red.shade700)
+                              : Colors.teal.shade700,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -972,6 +1115,32 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                       style: TextStyle(color: iconColor, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                   ),
+                  if (isLec && item.linkedCourses.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => _openManageLinkedCoursesDialog(context, service, item),
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.teal.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.link, color: Colors.teal, size: 12),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${item.linkedCourses.length} Linked',
+                              style: const TextStyle(color: Colors.teal, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(width: 8),
                   Text(subtitle, style: const TextStyle(fontSize: 12)),
                 ],
@@ -998,7 +1167,13 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (isLec)
+                    if (isLec && item.linkedCourses.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.hub, size: 20, color: Colors.teal),
+                        tooltip: 'Manage Linked Courses (Bulk & Single)',
+                        onPressed: () => _openManageLinkedCoursesDialog(context, service, item),
+                      )
+                    else if (isLec)
                       IconButton(
                         icon: const Icon(Icons.share, size: 20, color: Colors.blue),
                         tooltip: 'Link to Batches',
@@ -1015,6 +1190,12 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                             ),
                           );
                         },
+                      ),
+                    if (isLec && item.linkedCourses.isEmpty && _hasLinkedCopies(item))
+                      IconButton(
+                        icon: const Icon(Icons.sync, size: 20, color: Colors.teal),
+                        tooltip: 'Sync to All Linked Courses',
+                        onPressed: () => _confirmAndSyncLecture(context, service, item),
                       ),
                     IconButton(
                       icon: const Icon(Icons.edit, size: 20),
@@ -1050,41 +1231,191 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
 
   // ================= DIALOGS & ACTIONS =================
 
+  Future<void> _pickAndUploadSubjectLogoForSubject(
+    BuildContext context,
+    FirebaseAdminService service,
+    String subjectName,
+  ) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not read image file bytes'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final mimeType = lookupMimeType(file.name) ?? 'image/jpeg';
+    try {
+      final logoUrl = await service.uploadSubjectLogo(
+        widget.courseId,
+        subjectName,
+        bytes,
+        mimeType,
+      );
+      await service.updateCourseSubjectLogo(widget.courseId, subjectName, logoUrl);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logo updated for $subjectName!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading logo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showAddSubjectDialog(BuildContext context, FirebaseAdminService service) {
     final controller = TextEditingController();
+    Uint8List? selectedLogoBytes;
+    String? selectedLogoName;
+    String? selectedLogoMime;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Subject'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Subject Name',
-            border: OutlineInputBorder(),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = controller.text.trim();
-              if (name.isNotEmpty) {
-                await service.addSubject(name);
-                setState(() {
-                  _selectedSubject = name;
-                  _currentPath = [];
-                });
-                if (context.mounted) Navigator.pop(context);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Add Subject'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        labelText: 'Subject Name *',
+                        hintText: 'e.g. Physics',
+                        border: OutlineInputBorder(),
+                      ),
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Subject Logo (Optional)',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    if (selectedLogoBytes != null)
+                      Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.memory(
+                              selectedLogoBytes!,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              selectedLogoName ?? 'Selected Image',
+                              style: const TextStyle(fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                            onPressed: () {
+                              setDialogState(() {
+                                selectedLogoBytes = null;
+                                selectedLogoName = null;
+                                selectedLogoMime = null;
+                              });
+                            },
+                          ),
+                        ],
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final result = await FilePicker.platform.pickFiles(
+                            type: FileType.image,
+                            withData: true,
+                          );
+                          if (result != null && result.files.isNotEmpty) {
+                            final file = result.files.first;
+                            if (file.bytes != null) {
+                              setDialogState(() {
+                                selectedLogoBytes = file.bytes;
+                                selectedLogoName = file.name;
+                                selectedLogoMime = lookupMimeType(file.name) ?? 'image/jpeg';
+                              });
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.add_a_photo, size: 18),
+                        label: const Text('Upload Logo'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.indigo,
+                          side: BorderSide(color: Colors.indigo.shade200),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final name = controller.text.trim();
+                    if (name.isNotEmpty) {
+                      Navigator.pop(dialogContext);
+                      await service.addSubjectFolderToCourse(widget.courseId, name);
+                      if (selectedLogoBytes != null) {
+                        try {
+                          final logoUrl = await service.uploadSubjectLogo(
+                            widget.courseId,
+                            name,
+                            selectedLogoBytes!,
+                            selectedLogoMime ?? 'image/jpeg',
+                          );
+                          await service.updateCourseSubjectLogo(widget.courseId, name, logoUrl);
+                        } catch (e) {
+                          debugPrint('Error uploading subject logo: $e');
+                        }
+                      }
+                      setState(() {
+                        _selectedSubject = name;
+                        _currentPath = [];
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1123,7 +1454,11 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                   subject: _selectedSubject!,
                   chapter: _currentPath.join('/'),
                 );
-                await service.saveLecture(widget.courseId, placeholder, isNew: true);
+                if (widget.isRecordedBatch) {
+                  await service.saveRecordedBatchLecture(widget.courseId, widget.batchId, placeholder, isNew: true);
+                } else {
+                  await service.saveLecture(widget.courseId, placeholder, isNew: true);
+                }
                 if (context.mounted) Navigator.pop(context);
               }
             },
@@ -1265,6 +1600,8 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                 courseId: widget.courseId,
                 subject: subject,
               );
+              // Clean up subject logo from course document
+              await service.removeCourseSubjectLogo(widget.courseId, subject);
               if (context.mounted) Navigator.pop(context);
             },
             child: const Text('Delete All', style: TextStyle(color: Colors.white)),
@@ -1585,6 +1922,163 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     );
   }
 
+  bool _hasLinkedCopies(dynamic item) {
+    if (item is AdminLecture) {
+      return item.linkedCourses.isNotEmpty || (item.linkedFrom != null && item.linkedFrom!.isNotEmpty);
+    }
+    return false;
+  }
+
+  void _openManageLinkedCoursesDialog(BuildContext context, FirebaseAdminService service, AdminLecture item) {
+    showDialog(
+      context: context,
+      builder: (_) => Provider<FirebaseAdminService>.value(
+        value: service,
+        child: ManageLinkedCoursesDialog(
+          lecture: item,
+          sourceCourseId: widget.courseId,
+        ),
+      ),
+    ).then((val) {
+      if (val == true && mounted) setState(() {});
+    });
+  }
+
+  Future<void> _bulkSyncSelectedLectures(
+    BuildContext context,
+    FirebaseAdminService service,
+    List<AdminLecture> allLectures,
+  ) async {
+    final selectedLectures = allLectures
+        .where((lec) => _selectedLectureIds.contains(lec.id))
+        .toList();
+
+    if (selectedLectures.isEmpty) return;
+
+    int totalSynced = 0;
+    for (final lec in selectedLectures) {
+      if (_hasLinkedCopies(lec)) {
+        final count = await service.syncLectureToLinkedCourses(
+          sourceCourseId: widget.courseId,
+          lecture: lec,
+        );
+        totalSynced += count;
+      }
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Successfully synced ${selectedLectures.length} selected lecture(s) across $totalSynced location(s) in one go!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _bulkDelinkSelectedLectures(
+    BuildContext context,
+    FirebaseAdminService service,
+    List<AdminLecture> allLectures,
+  ) async {
+    final selectedLectures = allLectures
+        .where((lec) => _selectedLectureIds.contains(lec.id))
+        .toList();
+
+    if (selectedLectures.isEmpty) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delink Selected Lectures in One Go?'),
+        content: Text(
+          'This will delink all ${selectedLectures.length} selected lectures from their linked courses. They will become independent copies.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delink Selected Now'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    for (final lec in selectedLectures) {
+      if (lec.linkedCourses.isNotEmpty) {
+        await service.delinkAllLinkedCoursesForLecture(
+          sourceCourseId: widget.courseId,
+          lectureId: lec.id,
+        );
+      } else if (lec.linkedFrom != null) {
+        await service.delinkLecture(widget.courseId, lec.id);
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _selectedLectureIds.clear();
+        _isSelectMode = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selected lectures delinked in one go!'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmAndSyncLecture(BuildContext context, FirebaseAdminService service, AdminLecture lecture) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sync Lecture to Linked Courses?'),
+        content: Text(
+          'This will update details for "${lecture.title}" in all other courses where this lecture is shared/linked.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.sync),
+            label: const Text('Sync Now'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final updatedCount = await service.syncLectureToLinkedCourses(
+        sourceCourseId: widget.courseId,
+        lecture: lecture,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(updatedCount > 0
+                ? 'Successfully synced lecture across $updatedCount linked course(s).'
+                : 'No other linked copies found to sync.'),
+            backgroundColor: updatedCount > 0 ? Colors.green : Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to sync lecture: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   void _showEditResourceDialog(
     BuildContext context,
     FirebaseAdminService service, {
@@ -1838,6 +2332,38 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                 ),
               ),
               actions: [
+                if (existingItem is AdminLecture && _hasLinkedCopies(existingItem))
+                  TextButton.icon(
+                    icon: const Icon(Icons.sync, size: 16, color: Colors.teal),
+                    label: const Text('Sync Linked Courses', style: TextStyle(color: Colors.teal)),
+                    onPressed: () async {
+                      final title = titleController.text.trim();
+                      final val1 = val1Controller.text.trim();
+                      final val2 = val2Controller.text.trim();
+                      if (title.isEmpty || val1.isEmpty) return;
+                      final currentFullPath = _currentPath.join('/');
+                      final updatedLecture = AdminLecture(
+                        id: existingItem.id,
+                        title: title,
+                        description: existingItem.description,
+                        orderIndex: existingItem.orderIndex,
+                        type: 'video',
+                        storagePath: val1,
+                        isLocked: existingItem.isLocked,
+                        subject: _selectedSubject!,
+                        chapter: currentFullPath,
+                        lectureNo: int.tryParse(val2),
+                        linkedNoteIds: selectedNoteIds,
+                        linkedCourses: existingItem.linkedCourses,
+                        linkedFrom: existingItem.linkedFrom,
+                      );
+                      await service.saveLecture(widget.courseId, updatedLecture, isNew: false);
+                      if (context.mounted) Navigator.pop(context);
+                      if (context.mounted) {
+                        _confirmAndSyncLecture(context, service, updatedLecture);
+                      }
+                    },
+                  ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Cancel'),
@@ -1856,7 +2382,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                       final lecture = AdminLecture(
                         id: existingItem?.id ?? '',
                         title: title,
-                        description: '',
+                        description: existingItem is AdminLecture ? existingItem.description : '',
                         orderIndex: existingItem?.orderIndex ?? 0,
                         type: 'video',
                         storagePath: val1,
@@ -1865,8 +2391,12 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                         chapter: currentFullPath,
                         lectureNo: int.tryParse(val2),
                         linkedNoteIds: selectedNoteIds,
+                        linkedCourses: existingItem is AdminLecture ? existingItem.linkedCourses : const [],
+                        linkedFrom: existingItem is AdminLecture ? existingItem.linkedFrom : null,
                       );
-                      final savedId = await service.saveLecture(widget.courseId, lecture, isNew: existingItem == null);
+                      final savedId = widget.isRecordedBatch
+                          ? await service.saveRecordedBatchLecture(widget.courseId, widget.batchId, lecture, isNew: existingItem == null)
+                          : await service.saveLecture(widget.courseId, lecture, isNew: existingItem == null);
  
                       // Update note lectureIds
                       for (final note in localNotes) {
@@ -1883,7 +2413,11 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                             chapter: note.chapter,
                             lectureId: isSelected ? savedId : null,
                           );
-                          await service.saveCourseNote(widget.courseId, updatedNote, isNew: false);
+                          if (widget.isRecordedBatch) {
+                            await service.saveRecordedBatchNote(widget.courseId, widget.batchId, updatedNote, isNew: false);
+                          } else {
+                            await service.saveCourseNote(widget.courseId, updatedNote, isNew: false);
+                          }
                         }
                       }
  
@@ -1902,7 +2436,11 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                             lectureId: isSelected ? savedId : null,
                             createdAt: dpp.createdAt,
                           );
-                          await service.saveCourseDpp(widget.courseId, updatedDpp, isNew: false);
+                          if (widget.isRecordedBatch) {
+                            await service.saveRecordedBatchDpp(widget.courseId, widget.batchId, updatedDpp, isNew: false);
+                          } else {
+                            await service.saveCourseDpp(widget.courseId, updatedDpp, isNew: false);
+                          }
                         }
                       }
                     } else if (type == 'note') {
@@ -1915,7 +2453,11 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                         subject: _selectedSubject!,
                         chapter: currentFullPath,
                       );
-                      await service.saveCourseNote(widget.courseId, note, isNew: existingItem == null);
+                      if (widget.isRecordedBatch) {
+                        await service.saveRecordedBatchNote(widget.courseId, widget.batchId, note, isNew: existingItem == null);
+                      } else {
+                        await service.saveCourseNote(widget.courseId, note, isNew: existingItem == null);
+                      }
                     } else if (type == 'dpp') {
                       final dpp = AdminDpp(
                         id: existingItem?.id ?? '',
@@ -1926,7 +2468,11 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                         solutionPdfUrl: val2,
                         createdAt: existingItem?.createdAt ?? DateTime.now(),
                       );
-                      await service.saveCourseDpp(widget.courseId, dpp, isNew: existingItem == null);
+                      if (widget.isRecordedBatch) {
+                        await service.saveRecordedBatchDpp(widget.courseId, widget.batchId, dpp, isNew: existingItem == null);
+                      } else {
+                        await service.saveCourseDpp(widget.courseId, dpp, isNew: existingItem == null);
+                      }
                     }
 
                     if (context.mounted) Navigator.pop(context);
@@ -1960,6 +2506,127 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
       title = item.title;
     }
 
+    if (item is AdminLecture && _hasLinkedCopies(item)) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Linked Lecture Options'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '"${item.title}" is linked across courses.',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Choose what you would like to do:',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('🔗 Delink', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                    SizedBox(height: 2),
+                    Text(
+                      'Removes sync connection. The lecture stays in this course as an independent copy.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('🗑️ Delete', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                    SizedBox(height: 2),
+                    Text(
+                      'Warning: Permanently removes the lecture from this course/batch.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.link_off, size: 16),
+              label: const Text('Delink'),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  await service.delinkLecture(widget.courseId, item.id);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Lecture delinked successfully (now independent)')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error delinking: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.delete, size: 16),
+              label: const Text('Delete'),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                try {
+                  if (widget.isRecordedBatch) {
+                    await service.deleteRecordedBatchLecture(widget.courseId, widget.batchId, item.id);
+                  } else {
+                    await service.deleteLecture(widget.courseId, item.id);
+                  }
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Lecture deleted from this course')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error deleting: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1974,11 +2641,23 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               if (item is AdminLecture) {
-                await service.deleteLecture(widget.courseId, item.id);
+                if (widget.isRecordedBatch) {
+                  await service.deleteRecordedBatchLecture(widget.courseId, widget.batchId, item.id);
+                } else {
+                  await service.deleteLecture(widget.courseId, item.id);
+                }
               } else if (item is AdminNote) {
-                await service.deleteCourseNote(widget.courseId, item.id);
+                if (widget.isRecordedBatch) {
+                  await service.deleteRecordedBatchNote(widget.courseId, widget.batchId, item.id);
+                } else {
+                  await service.deleteCourseNote(widget.courseId, item.id);
+                }
               } else if (item is AdminDpp) {
-                await service.deleteCourseDpp(widget.courseId, item.id);
+                if (widget.isRecordedBatch) {
+                  await service.deleteRecordedBatchDpp(widget.courseId, widget.batchId, item.id);
+                } else {
+                  await service.deleteCourseDpp(widget.courseId, item.id);
+                }
               }
               if (context.mounted) Navigator.pop(context);
             },

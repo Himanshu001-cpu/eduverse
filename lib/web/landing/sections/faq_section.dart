@@ -213,14 +213,14 @@ final _faqItems = [
         'Eduverse covers a wide range of competitive exams including UPSC, SSC, Banking (SBI PO, IBPS, RBI), Railways, NDA, State PSCs, and more. We are constantly expanding our exam coverage based on student demand.',
   ),
   _FaqItem(
-    question: 'Is there a free trial available?',
+    question: 'Is there free content available?',
     answer:
-        'Yes! We offer a 7-day free trial with full access to all features including AI-powered study plans, mock tests, video lectures, and performance analytics. No credit card required.',
+        'Yes! We offer free access to sample video lectures, demo quizzes, daily current affairs, and select study materials so you can explore the platform before enrolling.',
   ),
   _FaqItem(
-    question: 'How does the AI-personalized study plan work?',
+    question: 'How do the video lectures and study notes work?',
     answer:
-        'Our AI analyzes your strengths, weaknesses, and learning pace based on your test performance and study patterns. It then creates a dynamic study plan that adapts in real-time, ensuring you focus on areas that need the most improvement.',
+        'Our courses include high-quality recorded video lectures by expert faculty, downloadable PDF notes, DPPs, and e-books with in-app reading, search, night mode, and offline study support.',
   ),
   _FaqItem(
     question: 'Can I access Eduverse on my mobile device?',
@@ -228,9 +228,9 @@ final _faqItems = [
         'Absolutely! Eduverse is available on Android, iOS, and web. Your progress syncs across all devices, so you can switch between your phone, tablet, and laptop seamlessly.',
   ),
   _FaqItem(
-    question: 'How are the mock tests different from other platforms?',
+    question: 'How are the mock tests and quizzes structured?',
     answer:
-        'Our mock tests are designed by toppers and subject experts who have cleared these exams. Each test comes with detailed analytics showing time spent per question, accuracy by topic, and comparison with other students. The AI also identifies your weak areas and suggests targeted practice.',
+        'Our mock tests and quizzes are designed according to the latest exam patterns. Each test comes with instant scoring, question-by-question analysis, and detailed explanations to help you identify areas for improvement.',
   ),
   _FaqItem(
     question: 'What is the refund policy?',

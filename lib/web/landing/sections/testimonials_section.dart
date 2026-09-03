@@ -77,7 +77,7 @@ class _TestimonialsSectionState extends State<TestimonialsSection> {
                             const TextSpan(text: 'Loved by '),
                             WidgetSpan(
                               child: GradientText(
-                                '50,000+',
+                                'thousands of',
                                 gradient: const LinearGradient(
                                   colors: [
                                     Color(0xFF059669),
@@ -98,7 +98,7 @@ class _TestimonialsSectionState extends State<TestimonialsSection> {
                       SizedBox(
                         width: 560,
                         child: Text(
-                          'Real stories from real toppers who cracked their dream exams with Eduverse.',
+                          'Hear from students who are preparing for their dream exams with Eduverse.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
                             fontSize: 18,
@@ -346,50 +346,50 @@ class _TestimonialData {
 final _testimonials = [
   _TestimonialData(
     name: 'Ankit Sharma',
-    role: 'UPSC CSE 2024 — AIR 47',
+    role: 'MPPSC Aspirant',
     avatar:
         'https://ui-avatars.com/api/?name=Ankit+Sharma&background=10b981&color=fff&size=150',
     text:
-        'Eduverse completely transformed my preparation. The AI-personalized study plan helped me focus on weak areas I didn\'t even know I had. Cleared UPSC in my first attempt!',
+        'The video lectures are very well structured and the study notes save me so much time. Being able to download PDFs and study offline has been a game changer for my preparation.',
   ),
   _TestimonialData(
     name: 'Priya Patel',
-    role: 'SBI PO 2024 — Selected',
+    role: 'UPSC Aspirant',
     avatar:
         'https://ui-avatars.com/api/?name=Priya+Patel&background=3b82f6&color=fff&size=150',
     text:
-        'The mock tests are incredibly realistic. The detailed analytics after each test showed me exactly where I was losing marks. Best decision I made was joining Eduverse.',
+        'The practice tests are really helpful for self-assessment. I can track my scores and see where I need to improve. The community feature also helps me get my doubts resolved quickly.',
   ),
   _TestimonialData(
     name: 'Rohit Kumar',
-    role: 'SSC CGL 2024 — Rank 12',
+    role: 'SSC Aspirant',
     avatar:
         'https://ui-avatars.com/api/?name=Rohit+Kumar&background=8b5cf6&color=fff&size=150',
     text:
-        'From daily quizzes to answer writing practice, everything is so well organized. The AI doubt solver is like having a tutor available 24/7. Highly recommended!',
+        'I love the daily quizzes and current affairs section. The app keeps me consistent with my preparation. The combo packs offer great value with all subjects covered.',
   ),
   _TestimonialData(
     name: 'Sneha Reddy',
-    role: 'RBI Grade B — Selected',
+    role: 'Banking Exam Aspirant',
     avatar:
         'https://ui-avatars.com/api/?name=Sneha+Reddy&background=f59e0b&color=fff&size=150',
     text:
-        'The video lectures are world-class and the current affairs section saved me so much time. Eduverse is hands down the best platform for banking exam preparation.',
+        'The video lectures are excellent and the current affairs section is updated regularly. I can study on my phone anywhere. Really convenient compared to traditional coaching.',
   ),
   _TestimonialData(
     name: 'Vikram Singh',
-    role: 'NDA 2024 — Written Cleared',
+    role: 'Defence Exam Aspirant',
     avatar:
         'https://ui-avatars.com/api/?name=Vikram+Singh&background=ef4444&color=fff&size=150',
     text:
-        'The performance analytics showed me I was spending too much time on strong topics. After adjusting my strategy based on Eduverse insights, my scores jumped 30%.',
+        'The test series with instant results helps me understand my weak areas. The performance dashboard shows my progress over time which keeps me motivated.',
   ),
   _TestimonialData(
     name: 'Meera Joshi',
-    role: 'UPPSC 2024 — Rank 8',
+    role: 'State PSC Aspirant',
     avatar:
         'https://ui-avatars.com/api/?name=Meera+Joshi&background=06b6d4&color=fff&size=150',
     text:
-        'I switched from traditional coaching to Eduverse mid-preparation and it was the best decision. The AI revision scheduler ensured I never forgot what I studied.',
+        'Switched from physical coaching classes to Eduverse and I can study at my own pace now. The e-books and downloadable notes are very comprehensive.',
   ),
 ];

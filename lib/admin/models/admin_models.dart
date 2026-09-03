@@ -54,6 +54,9 @@ class AdminCourse {
   final List<CourseTeacher> teachers; // NEW: Assigned teachers
   final DateTime createdAt;
   final bool isCourseBatch;
+  final List<String> linkedTestSeries;
+  final List<String> linkedEbooks;
+  final Map<String, String> subjectLogos;
 
   AdminCourse({
     required this.id,
@@ -80,6 +83,9 @@ class AdminCourse {
     this.teachers = const [],
     required this.createdAt,
     this.isCourseBatch = false,
+    this.linkedTestSeries = const [],
+    this.linkedEbooks = const [],
+    this.subjectLogos = const {},
   });
 
   factory AdminCourse.fromMap(Map<String, dynamic> data, String id) {
@@ -131,6 +137,9 @@ class AdminCourse {
           [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isCourseBatch: data['isCourseBatch'] as bool? ?? false,
+      linkedTestSeries: List<String>.from(data['linkedTestSeries'] ?? []),
+      linkedEbooks: List<String>.from(data['linkedEbooks'] ?? []),
+      subjectLogos: Map<String, String>.from(data['subjectLogos'] as Map? ?? {}),
     );
   }
 
@@ -160,6 +169,9 @@ class AdminCourse {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
       'isCourseBatch': isCourseBatch,
+      'linkedTestSeries': linkedTestSeries,
+      'linkedEbooks': linkedEbooks,
+      'subjectLogos': subjectLogos,
     };
   }
 
@@ -234,6 +246,19 @@ class AdminLecture {
       'linkedNoteIds': linkedNoteIds,
       'linkedCourses': linkedCourses,
       'linkedFrom': linkedFrom,
+    };
+  }
+
+  /// Returns a map of content fields to sync across linked courses.
+  Map<String, dynamic> toSyncMap() {
+    return {
+      'title': title,
+      'description': description,
+      'type': type,
+      'storagePath': storagePath,
+      'isLocked': isLocked,
+      'lectureNo': lectureNo,
+      'linkedNoteIds': linkedNoteIds,
     };
   }
 
@@ -814,6 +839,21 @@ class AdminLiveClass {
     };
   }
 
+  /// Returns a map of content fields to sync across linked courses.
+  Map<String, dynamic> toSyncMap() {
+    return {
+      'title': title,
+      'description': description,
+      'instructorName': instructorName,
+      'startTime': Timestamp.fromDate(startTime),
+      'durationMinutes': durationMinutes,
+      'youtubeUrl': youtubeUrl,
+      'thumbnailUrl': thumbnailUrl,
+      'status': status,
+      'lectureNo': lectureNo,
+    };
+  }
+
   AdminLiveClass copyWith({
     String? title,
     String? description,
@@ -864,6 +904,7 @@ class AdminCombinationPack {
   final List<String> courses; // list of course IDs
   final List<String> testSeries; // list of test series IDs
   final bool isActive;
+  final bool isCourseBatch;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -877,6 +918,7 @@ class AdminCombinationPack {
     required this.courses,
     required this.testSeries,
     required this.isActive,
+    this.isCourseBatch = true,
     required this.createdAt,
     this.updatedAt,
   });
@@ -905,6 +947,7 @@ class AdminCombinationPack {
       courses: parsedCourses,
       testSeries: List<String>.from(data['testSeries'] ?? []),
       isActive: data['isActive'] ?? true,
+      isCourseBatch: data['isCourseBatch'] as bool? ?? true,
       createdAt: createdAtVal,
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? createdAtVal,
     );
@@ -920,6 +963,7 @@ class AdminCombinationPack {
       'courses': courses,
       'testSeries': testSeries,
       'isActive': isActive,
+      'isCourseBatch': isCourseBatch,
     };
   }
 
@@ -932,6 +976,7 @@ class AdminCombinationPack {
     List<String>? courses,
     List<String>? testSeries,
     bool? isActive,
+    bool? isCourseBatch,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -945,9 +990,96 @@ class AdminCombinationPack {
       courses: courses ?? this.courses,
       testSeries: testSeries ?? this.testSeries,
       isActive: isActive ?? this.isActive,
+      isCourseBatch: isCourseBatch ?? this.isCourseBatch,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
+
+class AdminRecordedBatch {
+  final String id;
+  final String courseId;
+  final String title;
+  final String description;
+  final String thumbnailUrl;
+  final double realPrice;
+  final double finalPrice;
+  final bool isFreeForEnrolled;
+  final bool isActive;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+
+  AdminRecordedBatch({
+    required this.id,
+    required this.courseId,
+    required this.title,
+    required this.description,
+    this.thumbnailUrl = '',
+    this.realPrice = 0.0,
+    this.finalPrice = 0.0,
+    this.isFreeForEnrolled = true,
+    this.isActive = true,
+    required this.createdAt,
+    this.updatedAt,
+  });
+
+  factory AdminRecordedBatch.fromMap(Map<String, dynamic> data, String id) {
+    return AdminRecordedBatch(
+      id: id,
+      courseId: data['courseId'] ?? '',
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      thumbnailUrl: data['thumbnailUrl'] ?? '',
+      realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
+      finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? 0.0,
+      isFreeForEnrolled: data['isFreeForEnrolled'] as bool? ?? true,
+      isActive: data['isActive'] as bool? ?? true,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'courseId': courseId,
+      'title': title,
+      'description': description,
+      'thumbnailUrl': thumbnailUrl,
+      'realPrice': realPrice,
+      'finalPrice': finalPrice,
+      'isFreeForEnrolled': isFreeForEnrolled,
+      'isActive': isActive,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  AdminRecordedBatch copyWith({
+    String? title,
+    String? description,
+    String? thumbnailUrl,
+    double? realPrice,
+    double? finalPrice,
+    bool? isFreeForEnrolled,
+    bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return AdminRecordedBatch(
+      id: id,
+      courseId: courseId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      realPrice: realPrice ?? this.realPrice,
+      finalPrice: finalPrice ?? this.finalPrice,
+      isFreeForEnrolled: isFreeForEnrolled ?? this.isFreeForEnrolled,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+}
+
 

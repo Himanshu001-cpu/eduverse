@@ -43,6 +43,8 @@ import 'screens/poster_list_screen.dart';
 import 'screens/poster_editor_screen.dart';
 import 'package:eduverse/store/models/poster_model.dart';
 
+import 'screens/recorded_batches_list_screen.dart';
+
 class AdminRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -68,6 +70,14 @@ class AdminRouter {
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => CourseDetailScreen(course: course),
+        );
+      case '/recorded_batches':
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => RecordedBatchesListScreen(
+            courseId: args['courseId'] as String,
+          ),
         );
       case '/batch_notes':
         final args = settings.arguments as Map<String, String>;
@@ -106,13 +116,16 @@ class AdminRouter {
           ),
         );
       case '/lecture_editor':
-        final args = settings.arguments as Map<String, String>;
+        final args = settings.arguments is Map
+            ? Map<String, dynamic>.from(settings.arguments as Map)
+            : <String, dynamic>{};
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => LectureEditorScreen(
-            courseId: args['courseId']!,
-            batchId: args['batchId'] ?? '',
-            initialResourceType: args['initialResourceType'],
+            courseId: args['courseId']?.toString() ?? '',
+            batchId: args['batchId']?.toString() ?? '',
+            initialResourceType: args['initialResourceType']?.toString(),
+            isRecordedBatch: args['isRecordedBatch'] as bool? ?? false,
           ),
         );
       case '/combination_packs':

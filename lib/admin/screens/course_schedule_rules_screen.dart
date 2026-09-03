@@ -118,6 +118,10 @@ class _CourseScheduleRulesScreenState extends State<CourseScheduleRulesScreen> {
 
     String selectedSubject = existingRule?.subject ?? '';
     String selectedChapter = existingRule?.chapter ?? '';
+    bool showAddSubject = false;
+    bool showAddChapter = false;
+    final newSubjectController = TextEditingController();
+    final newChapterController = TextEditingController();
 
     // Weekdays
     final List<int> selectedWeekdays = List<int>.from(existingRule?.weekdays ?? [1]); // default Monday
@@ -206,7 +210,7 @@ class _CourseScheduleRulesScreenState extends State<CourseScheduleRulesScreen> {
                   StreamBuilder<List<String>>(
                     stream: widget.courseId.isNotEmpty
                         ? service.getSubjectsForCourse(widget.courseId)
-                        : service.getSubjects(),
+                        : service.getAllCourseSubjects(),
                     builder: (context, subjectsSnap) {
                       final subjects = subjectsSnap.data ?? [];
                       return DropdownButtonFormField<String>(
@@ -224,43 +228,167 @@ class _CourseScheduleRulesScreenState extends State<CourseScheduleRulesScreen> {
                             child: Text('None', style: TextStyle(color: Colors.grey)),
                           ),
                           ...subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))),
+                          const DropdownMenuItem(
+                            value: '__add_new__',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_circle_outline, size: 18, color: Colors.blue),
+                                SizedBox(width: 8),
+                                Text('Add new subject', style: TextStyle(color: Colors.blue)),
+                              ],
+                            ),
+                          ),
                         ],
                         onChanged: (val) {
-                          setStateSheet(() {
-                            selectedSubject = val ?? '';
-                            selectedChapter = '';
-                          });
+                          if (val == '__add_new__') {
+                            setStateSheet(() => showAddSubject = true);
+                          } else {
+                            setStateSheet(() {
+                              selectedSubject = val ?? '';
+                              selectedChapter = '';
+                              showAddSubject = false;
+                            });
+                          }
                         },
                       );
                     },
                   ),
+                  if (showAddSubject) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: newSubjectController,
+                            decoration: const InputDecoration(
+                              hintText: 'Enter new subject name (adds folder)',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            ),
+                            autofocus: true,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.check_circle, color: Colors.green),
+                          onPressed: () async {
+                            final name = newSubjectController.text.trim();
+                            if (name.isNotEmpty) {
+                              if (widget.courseId.isNotEmpty) {
+                                await service.addSubjectFolderToCourse(widget.courseId, name);
+                              }
+                              setStateSheet(() {
+                                selectedSubject = name;
+                                selectedChapter = '';
+                                showAddSubject = false;
+                                newSubjectController.clear();
+                              });
+                            }
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.cancel, color: Colors.red),
+                          onPressed: () => setStateSheet(() {
+                            showAddSubject = false;
+                            newSubjectController.clear();
+                          }),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   if (selectedSubject.isNotEmpty)
                     StreamBuilder<List<String>>(
-                      stream: service.getChaptersForSubject(selectedSubject),
+                      stream: widget.courseId.isNotEmpty
+                          ? service.getChaptersForCourseSubject(widget.courseId, selectedSubject)
+                          : service.getAllCourseChaptersForSubject(selectedSubject),
                       builder: (context, chaptersSnap) {
                         final chapters = chaptersSnap.data ?? [];
-                        return DropdownButtonFormField<String>(
-                          initialValue: selectedChapter.isNotEmpty && chapters.contains(selectedChapter)
-                              ? selectedChapter
-                              : null,
-                          decoration: const InputDecoration(
-                            labelText: 'Chapter/Folder',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.folder),
-                          ),
-                          items: [
-                            const DropdownMenuItem(
-                              value: '',
-                              child: Text('None', style: TextStyle(color: Colors.grey)),
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            DropdownButtonFormField<String>(
+                              initialValue: selectedChapter.isNotEmpty && chapters.contains(selectedChapter)
+                                  ? selectedChapter
+                                  : null,
+                              decoration: const InputDecoration(
+                                labelText: 'Topic / Chapter',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.folder),
+                              ),
+                              items: [
+                                const DropdownMenuItem(
+                                  value: '',
+                                  child: Text('None', style: TextStyle(color: Colors.grey)),
+                                ),
+                                ...chapters.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                                const DropdownMenuItem(
+                                  value: '__add_new__',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.add_circle_outline, size: 18, color: Colors.blue),
+                                      SizedBox(width: 8),
+                                      Text('Add new topic / chapter', style: TextStyle(color: Colors.blue)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val == '__add_new__') {
+                                  setStateSheet(() => showAddChapter = true);
+                                } else {
+                                  setStateSheet(() {
+                                    selectedChapter = val ?? '';
+                                    showAddChapter = false;
+                                  });
+                                }
+                              },
                             ),
-                            ...chapters.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                            if (showAddChapter) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: newChapterController,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Enter new topic/chapter name',
+                                        border: OutlineInputBorder(),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      ),
+                                      autofocus: true,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(Icons.check_circle, color: Colors.green),
+                                    onPressed: () async {
+                                      final name = newChapterController.text.trim();
+                                      if (name.isNotEmpty) {
+                                        if (widget.courseId.isNotEmpty) {
+                                          await service.addTopicFolderToCourse(widget.courseId, selectedSubject, name);
+                                        }
+                                        setStateSheet(() {
+                                          selectedChapter = name;
+                                          showAddChapter = false;
+                                          newChapterController.clear();
+                                        });
+                                      }
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.cancel, color: Colors.red),
+                                    onPressed: () => setStateSheet(() {
+                                      showAddChapter = false;
+                                      newChapterController.clear();
+                                    }),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
-                          onChanged: (val) {
-                            setStateSheet(() {
-                              selectedChapter = val ?? '';
-                            });
-                          },
                         );
                       },
                     ),

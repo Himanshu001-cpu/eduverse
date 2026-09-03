@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'rich_editor_toolbar.dart';
 import 'find_replace_panel.dart';
 import 'equation_builder.dart';
@@ -46,7 +47,6 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
   int _autoSaveCount = 0;
   TextAlign _currentAlignment = TextAlign.left;
   double _currentFontSize = 16.0;
-  String? _currentHighlight;
 
   @override
   void initState() {
@@ -112,7 +112,6 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
           'attributes': {
             'align': _currentAlignment.name,
             'size': _currentFontSize,
-            if (_currentHighlight != null) 'highlight': _currentHighlight,
           }
         }
       ]
@@ -162,21 +161,23 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
 
     // Wrap with formatting styles
     var styles = 'font-size: ${_currentFontSize}px; text-align: ${_currentAlignment.name};';
-    if (_currentHighlight != null) {
-      styles += ' background-color: ${_currentHighlight};';
-    }
 
     return '<div style="$styles">$html</div>';
   }
 
-  void _applyFormatting(String startTag, String endTag) {
+  void _applyFormatting(String startTag, String endTag, {bool requireSelection = false}) {
     final text = _textController.text;
     final selection = _textController.selection;
     
+    if (requireSelection && (!selection.isValid || selection.isCollapsed)) {
+      return;
+    }
+
     int start = selection.isValid ? selection.start : text.length;
     int end = selection.isValid ? selection.end : text.length;
 
     if (start == end && text.isNotEmpty) {
+      if (requireSelection) return;
       start = 0;
       end = text.length;
     }
@@ -264,10 +265,9 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
             }
           },
           onHighlightChanged: (color) {
-            setState(() {
-              _currentHighlight = color;
-            });
-            _onTextChanged();
+            if (color != null) {
+              _applyFormatting('<mark style="background-color: $color">', '</mark>', requireSelection: true);
+            }
           },
           onInsertTablePressed: () {
             setState(() {
@@ -424,20 +424,42 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
             ),
           ),
 
-        Container(
-          height: 120,
-          margin: const EdgeInsets.all(8.0),
-          padding: const EdgeInsets.all(8.0),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade400),
-            borderRadius: BorderRadius.circular(4.0),
-          ),
-          child: TextField(
-            key: const Key('editor_text_field'),
-            controller: _textController,
-            maxLines: null,
-            decoration: InputDecoration.collapsed(
-              hintText: widget.hintText ?? 'Start typing here...',
+        CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.keyB, control: true): () => _applyFormatting('**', '**'),
+            const SingleActivator(LogicalKeyboardKey.keyB, meta: true): () => _applyFormatting('**', '**'),
+            const SingleActivator(LogicalKeyboardKey.keyI, control: true): () => _applyFormatting('*', '*'),
+            const SingleActivator(LogicalKeyboardKey.keyI, meta: true): () => _applyFormatting('*', '*'),
+            const SingleActivator(LogicalKeyboardKey.keyU, control: true): () => _applyFormatting('<u>', '</u>'),
+            const SingleActivator(LogicalKeyboardKey.keyU, meta: true): () => _applyFormatting('<u>', '</u>'),
+            const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+              setState(() {
+                _showFindReplace = !_showFindReplace;
+              });
+            },
+            const SingleActivator(LogicalKeyboardKey.keyF, meta: true): () {
+              setState(() {
+                _showFindReplace = !_showFindReplace;
+              });
+            },
+            const SingleActivator(LogicalKeyboardKey.keyS, control: true): _forceSave,
+            const SingleActivator(LogicalKeyboardKey.keyS, meta: true): _forceSave,
+          },
+          child: Container(
+            height: 120,
+            margin: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade400),
+              borderRadius: BorderRadius.circular(4.0),
+            ),
+            child: TextField(
+              key: const Key('editor_text_field'),
+              controller: _textController,
+              maxLines: null,
+              decoration: InputDecoration.collapsed(
+                hintText: widget.hintText ?? 'Start typing here...',
+              ),
             ),
           ),
         ),

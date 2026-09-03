@@ -248,6 +248,16 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     },
                   ),
                 ),
+                _ResourceCard(
+                  icon: Icons.video_library_outlined,
+                  title: 'Recorded Batches',
+                  color: Colors.teal,
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    '/recorded_batches',
+                    arguments: {'courseId': widget.course.id},
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 32),

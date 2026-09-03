@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:eduverse/admin/widgets/admin_scaffold.dart';
 import 'package:eduverse/store/models/poster_model.dart';
+import 'package:eduverse/core/services/popup_manager.dart';
 
 class PosterListScreen extends StatelessWidget {
   const PosterListScreen({super.key});
@@ -103,7 +104,7 @@ class _PosterCard extends StatelessWidget {
                   child: poster.thumbnailUrl.isNotEmpty
                       ? Image.network(
                           poster.thumbnailUrl,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => _buildFallback(),
                         )
                       : _buildFallback(),
@@ -139,6 +140,8 @@ class _PosterCard extends StatelessWidget {
                     children: [
                       _buildBadge('Ratio: ${poster.aspectRatio}', Colors.blue),
                       _buildBadge('Weight: ${poster.order}', Colors.purple),
+                      if (poster.showInStore) _buildBadge('STORE', Colors.indigo),
+                      if (poster.showInFeed) _buildBadge('FEED', Colors.orange),
                       _buildStatusBadge(),
                     ],
                   ),
@@ -151,6 +154,14 @@ class _PosterCard extends StatelessWidget {
               icon: const Icon(Icons.more_vert),
               onSelected: (val) => _handleAction(context, val),
               itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'preview',
+                  child: ListTile(
+                    leading: Icon(Icons.remove_red_eye, color: Colors.teal),
+                    title: Text('Preview Popup'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
                 const PopupMenuItem(
                   value: 'edit',
                   child: ListTile(
@@ -204,7 +215,9 @@ class _PosterCard extends StatelessWidget {
   }
 
   Future<void> _handleAction(BuildContext context, String action) async {
-    if (action == 'edit') {
+    if (action == 'preview') {
+      PopupManager.instance.showPosterPopupDirectly(context, poster);
+    } else if (action == 'edit') {
       Navigator.pushNamed(context, '/poster_editor', arguments: poster);
     } else if (action == 'delete') {
       final confirm = await showDialog<bool>(

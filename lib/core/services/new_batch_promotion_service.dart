@@ -176,6 +176,7 @@ class NewBatchPromotionService {
             opacity: anim1.value,
             child: AlertDialog(
               contentPadding: EdgeInsets.zero,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               content: _PromoDialogContent(
                 course: course,
@@ -273,9 +274,17 @@ class _PromoDialogContentState extends State<_PromoDialogContent> {
 
     return PopScope(
       canPop: !_isProcessing,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          maxWidth: 420,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
           // Premium Header with Course Gradient and Emoji
           Container(
             width: double.infinity,
@@ -328,7 +337,7 @@ class _PromoDialogContentState extends State<_PromoDialogContent> {
                       widget.course.thumbnailUrl,
                       height: 120,
                       width: double.infinity,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) =>
                           Text(
                             widget.course.emoji,
@@ -505,8 +514,11 @@ class _PromoDialogContentState extends State<_PromoDialogContent> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  ),
+),
+);
+}
 
   Widget _buildHighlightRow(IconData icon, String text) {
     return Row(

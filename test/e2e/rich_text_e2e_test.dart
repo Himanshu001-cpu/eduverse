@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
@@ -129,6 +130,55 @@ void main() {
       await tester.tap(find.byKey(const Key('btn_manual_save')));
       await tester.pump();
       expect(savedHtml, contains('background-color: #FFFF00'));
+    });
+
+    testWidgets('F1_6: Highlight applies only to selected text when selection is active', (WidgetTester tester) async {
+      String savedHtml = '';
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Editor',
+            onSave: (_, html) => savedHtml = html,
+          ),
+        ),
+      ));
+      final textFieldFinder = find.byKey(const Key('editor_text_field'));
+      await tester.enterText(textFieldFinder, 'Hello World');
+      await tester.pump();
+      tester.widget<TextField>(textFieldFinder).controller!.selection = const TextSelection(baseOffset: 6, extentOffset: 11);
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('dropdown_highlight')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yellow').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('btn_manual_save')));
+      await tester.pump();
+      expect(savedHtml, contains('Hello <mark style="background-color: #FFFF00">World</mark>'));
+    });
+
+    testWidgets('F1_7: Keyboard shortcut Ctrl+B bolds selected text', (WidgetTester tester) async {
+      String savedHtml = '';
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Editor',
+            onSave: (_, html) => savedHtml = html,
+          ),
+        ),
+      ));
+      final textFieldFinder = find.byKey(const Key('editor_text_field'));
+      await tester.enterText(textFieldFinder, 'Shortcut test');
+      await tester.pump();
+      tester.widget<TextField>(textFieldFinder).controller!.selection = const TextSelection(baseOffset: 0, extentOffset: 8);
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyB);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyB);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('btn_manual_save')));
+      await tester.pump();
+      expect(savedHtml, contains('<strong>Shortcut</strong> test'));
     });
 
     // === FEATURE 2: Find & Replace ===

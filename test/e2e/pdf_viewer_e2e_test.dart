@@ -65,6 +65,21 @@ class MockStudyRepository implements IStudyRepository {
 
   @override
   Future<void> toggleBatchBookmark(String userId, String batchId) async {}
+
+  @override
+  Future<List<StudyRecordedBatch>> getRecordedBatchesForCourse(String courseId) async => [];
+
+  @override
+  Future<List<StudyLecture>> getRecordedBatchLectures(String userId, String courseId, String batchId) async => [];
+
+  @override
+  Future<List<StudyNote>> getRecordedBatchNotes(String courseId, String batchId) async => [];
+
+  @override
+  Future<List<StudyDpp>> getRecordedBatchDpps(String courseId, String batchId) async => [];
+
+  @override
+  Future<List<StudyQuiz>> getRecordedBatchQuizzes(String courseId, String batchId) async => [];
 }
 
 void main() {

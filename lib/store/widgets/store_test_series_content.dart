@@ -51,22 +51,16 @@ class StoreTestSeriesContent extends StatelessWidget {
           );
         }
 
-        // Group by Exam Name (title)
-        final Map<String, List<TestSeriesItem>> grouped = {};
-        for (final ts in allSeries) {
-          final key = ts.title.isEmpty ? 'Other' : ts.title;
-          grouped.putIfAbsent(key, () => []).add(ts);
-        }
+        final trendingSeries = allSeries.reversed.take(5).toList();
+        final featuredSeries = allSeries;
 
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              ...grouped.entries.map(
-                (entry) =>
-                    _buildExamSection(context, entry.key, entry.value),
-              ),
+              _buildExamSection(context, 'Trending', trendingSeries),
+              _buildExamSection(context, 'Featured', featuredSeries),
               const SizedBox(height: 32),
             ],
           ),
@@ -104,7 +98,7 @@ class StoreTestSeriesContent extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) =>
-                          _TestSeriesDetailPage(testSeries: items[index]),
+                          TestSeriesDetailPage(testSeries: items[index]),
                     ),
                   );
                 },
@@ -296,10 +290,10 @@ const Map<String, (String, IconData)> _categoryConfig = {
 
 /// Detail page for a test series (store view).
 /// Groups tests by category (Full Length / Topic Wise / Sectional).
-class _TestSeriesDetailPage extends StatelessWidget {
+class TestSeriesDetailPage extends StatelessWidget {
   final TestSeriesItem testSeries;
 
-  const _TestSeriesDetailPage({required this.testSeries});
+  const TestSeriesDetailPage({super.key, required this.testSeries});
 
   @override
   Widget build(BuildContext context) {

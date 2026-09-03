@@ -99,6 +99,27 @@ class DeepLinkService {
           }
           break;
           
+        case 'comboPack':
+          if (pathSegments.length >= 3) {
+            final comboPackId = pathSegments[2];
+            _navigateToComboPack(navigator, comboPackId);
+          }
+          break;
+
+        case 'testSeries':
+          if (pathSegments.length >= 3) {
+            final testSeriesId = pathSegments[2];
+            _navigateToTestSeries(navigator, testSeriesId);
+          }
+          break;
+
+        case 'ebook':
+          if (pathSegments.length >= 3) {
+            final ebookId = pathSegments[2];
+            _navigateToEbook(navigator, ebookId);
+          }
+          break;
+
         default:
           debugPrint('Unknown deep link route: $routeType');
       }
@@ -128,6 +149,24 @@ class DeepLinkService {
   void _navigateToFeed(NavigatorState navigator, String feedId) {
     debugPrint('Deep link navigating to feed: $feedId');
     navigator.pushNamed('/feed', arguments: feedId);
+  }
+
+  /// Navigate to combo pack detail page.
+  void _navigateToComboPack(NavigatorState navigator, String comboPackId) {
+    debugPrint('Deep link navigating to comboPack: $comboPackId');
+    navigator.pushNamed('/comboPack', arguments: comboPackId);
+  }
+
+  /// Navigate to test series detail page.
+  void _navigateToTestSeries(NavigatorState navigator, String testSeriesId) {
+    debugPrint('Deep link navigating to testSeries: $testSeriesId');
+    navigator.pushNamed('/testSeries', arguments: testSeriesId);
+  }
+
+  /// Navigate to ebook detail page.
+  void _navigateToEbook(NavigatorState navigator, String ebookId) {
+    debugPrint('Deep link navigating to ebook: $ebookId');
+    navigator.pushNamed('/ebook', arguments: ebookId);
   }
 
   /// Dispose of the service. Call when the app is being destroyed.

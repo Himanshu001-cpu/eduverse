@@ -18,30 +18,30 @@ class _StatsSectionState extends State<StatsSection>
   final List<_StatData> _stats = [
     _StatData(
       label: 'Active Students',
-      value: 50000,
+      value: 1000,
       suffix: '+',
-      formattedTarget: '50K+',
+      formattedTarget: '1K+',
       gradient: [const Color(0xFF34d399), const Color(0xFF22c55e)],
     ),
     _StatData(
-      label: 'Courses Completed',
-      value: 100000,
+      label: 'Video Lectures',
+      value: 500,
       suffix: '+',
-      formattedTarget: '100K+',
+      formattedTarget: '500+',
       gradient: [const Color(0xFF2dd4bf), const Color(0xFF06b6d4)],
     ),
     _StatData(
-      label: 'Hours of Content',
-      value: 5000,
+      label: 'Expert Courses',
+      value: 10,
       suffix: '+',
-      formattedTarget: '5K+',
+      formattedTarget: '10+',
       gradient: [const Color(0xFFa3e635), const Color(0xFF22c55e)],
     ),
     _StatData(
-      label: 'Success Rate',
-      value: 95,
-      suffix: '%',
-      formattedTarget: '95%',
+      label: 'App Rating',
+      value: 4,
+      suffix: '.5★',
+      formattedTarget: '4.5★',
       gradient: [const Color(0xFFfbbf24), const Color(0xFFf97316)],
     ),
   ];
@@ -70,6 +70,9 @@ class _StatsSectionState extends State<StatsSection>
   }
 
   String _formatNumber(int current, _StatData stat) {
+    if (stat.value < 10) {
+      return '$current${stat.suffix}';
+    }
     if (stat.value >= 1000) {
       double val = current / 1000;
       if (current >= 10000) {

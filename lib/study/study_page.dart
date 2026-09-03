@@ -12,9 +12,10 @@ import 'package:eduverse/study/presentation/widgets/study_ebooks_content.dart';
 import 'package:eduverse/study/presentation/widgets/batch_selector_widget.dart';
 import 'package:eduverse/study/presentation/widgets/sticky_tab_pills.dart';
 import 'package:eduverse/admin/screens/exam_management_screen.dart';
+import 'package:eduverse/study/screens/student_accessible_communities_screen.dart';
 import '../../common/search/global_search_delegate.dart';
 
-import 'package:eduverse/study/domain/models/study_entities.dart';
+
 import 'package:eduverse/study/domain/models/test_series_entities.dart';
 import 'package:eduverse/store/models/store_models.dart';
 
@@ -65,6 +66,22 @@ class _StudyPageState extends State<StudyPage> {
                   },
                 ),
                 IconButton(
+                  key: const Key('my_communities_nav_link'),
+                  icon: const Icon(Icons.groups_outlined),
+                  tooltip: 'My Communities',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (ctx) => ChangeNotifierProvider.value(
+                          value: controller,
+                          child: const StudentAccessibleCommunitiesScreen(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: () {
                     showSearch(context: context, delegate: GlobalSearchDelegate());
@@ -93,40 +110,20 @@ class _StudyPageState extends State<StudyPage> {
     } else if (controller.selectedRoomType == 'ebook') {
       slivers.add(_buildEbookSliver(context, controller));
     } else {
-      StudyBatch? selectedBatch;
-      try {
-        selectedBatch = controller.enrolledBatches.firstWhere(
-          (b) => b.id == controller.selectedBatchId,
-        );
-      } catch (_) {}
-
-      final showTabs = selectedBatch == null || selectedBatch.isCombo;
-
-      if (showTabs) {
-        slivers.addAll([
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: StickyTabPillHeaderDelegate(
-              child: const StickyTabPillsWidget(),
-            ),
+      slivers.addAll([
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: StickyTabPillHeaderDelegate(
+            child: const StickyTabPillsWidget(),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.only(top: 12, bottom: 24),
-            sliver: SliverToBoxAdapter(
-              child: _buildTabContent(context, controller.currentTab),
-            ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.only(top: 12, bottom: 24),
+          sliver: SliverToBoxAdapter(
+            child: _buildTabContent(context, controller.currentTab),
           ),
-        ]);
-      } else {
-        slivers.add(
-          const SliverPadding(
-            padding: EdgeInsets.only(top: 12, bottom: 24),
-            sliver: SliverToBoxAdapter(
-              child: StudyHomeScreen(),
-            ),
-          ),
-        );
-      }
+        ),
+      ]);
     }
 
     return slivers;
@@ -345,6 +342,7 @@ class _StudyPageState extends State<StudyPage> {
                   width: 140,
                   height: 210,
                   decoration: BoxDecoration(
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -359,7 +357,7 @@ class _StudyPageState extends State<StudyPage> {
                     child: ebook.thumbnailUrl.isNotEmpty
                         ? Image.network(
                             ebook.thumbnailUrl,
-                            fit: BoxFit.cover,
+                            fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) =>
                                 _buildEbookFallback(ebook!),
                           )

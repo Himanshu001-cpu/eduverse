@@ -96,16 +96,19 @@ class StudyEbooksContent extends StatelessWidget {
                       // Cover thumbnail (Aspect Ratio 2/3)
                       SizedBox(
                         width: 90,
-                        child: AspectRatio(
-                          aspectRatio: 2 / 3,
-                          child: ebook.thumbnailUrl.isNotEmpty
-                              ? Image.network(
-                                  ebook.thumbnailUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      _buildFallback(),
-                                )
-                              : _buildFallback(),
+                        child: Container(
+                          color: Colors.white,
+                          child: AspectRatio(
+                            aspectRatio: 2 / 3,
+                            child: ebook.thumbnailUrl.isNotEmpty
+                                ? Image.network(
+                                    ebook.thumbnailUrl,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        _buildFallback(),
+                                  )
+                                : _buildFallback(),
+                          ),
                         ),
                       ),
                       // E-book information & Action Button

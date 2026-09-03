@@ -121,7 +121,7 @@ class LiveClassNotifierService extends ChangeNotifier {
     });
   }
 
-  StudyLiveClass _mapToStudyLiveClass(String id, Map<String, dynamic> data, {String? courseId}) {
+  StudyLiveClass _mapToStudyLiveClass(String id, Map<String, dynamic> data, {String? courseId, String? batchName}) {
     return StudyLiveClass(
       id: id,
       title: data['title'] ?? '',
@@ -135,6 +135,8 @@ class LiveClassNotifierService extends ChangeNotifier {
       subject: data['subject'] ?? '',
       chapter: data['chapter'] ?? '',
       courseId: courseId,
+      courseName: data['courseName'] as String?,
+      batchName: batchName ?? data['batchName'] as String? ?? data['courseName'] as String?,
     );
   }
 

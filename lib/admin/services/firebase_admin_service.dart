@@ -353,6 +353,47 @@ class FirebaseAdminService {
     return await task.ref.getDownloadURL();
   }
 
+  Future<String> uploadSubjectLogo(
+    String courseId,
+    String subjectName,
+    Uint8List bytes,
+    String contentType,
+  ) async {
+    final safeSubject = subjectName.replaceAll(RegExp(r'[^\w\s-]'), '').trim().replaceAll(' ', '_');
+    final path = 'subject_logos/$courseId/${safeSubject}_${DateTime.now().millisecondsSinceEpoch}';
+    return await uploadMedia(path, bytes, contentType);
+  }
+
+  Future<void> updateCourseSubjectLogo(
+    String courseId,
+    String subjectName,
+    String logoUrl,
+  ) async {
+    final docRef = _db.collection('courses').doc(courseId);
+    await docRef.update({
+      'subjectLogos.$subjectName': logoUrl,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await _logAudit('update_subject_logo', 'course', courseId, {
+      'subject': subjectName,
+      'logoUrl': logoUrl,
+    });
+  }
+
+  Future<void> removeCourseSubjectLogo(
+    String courseId,
+    String subjectName,
+  ) async {
+    final docRef = _db.collection('courses').doc(courseId);
+    await docRef.update({
+      'subjectLogos.$subjectName': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await _logAudit('remove_subject_logo', 'course', courseId, {
+      'subject': subjectName,
+    });
+  }
+
   // Functions
   Future<void> enrollStudent(
     String userId,
@@ -1668,8 +1709,591 @@ class FirebaseAdminService {
         'targetCourse': targetCourseId,
       });
     } catch (e) {
-      debugPrint('Non-critical: Failed to log audit for link: $e');
+      debugPrint('Non-critical: Failed to log link audit: $e');
     }
+  }
+
+  /// Syncs content fields of a lecture across all linked courses.
+  /// Works whether the provided lecture is the original or a linked copy.
+  Future<int> syncLectureToLinkedCourses({
+    required String sourceCourseId,
+    required AdminLecture lecture,
+  }) async {
+    final syncData = lecture.toSyncMap();
+    int updatedCount = 0;
+
+    String originalCourseId;
+    String originalLectureId;
+
+    if (lecture.linkedFrom != null && lecture.linkedFrom!['originalId'] != null) {
+      originalCourseId = lecture.linkedFrom!['courseId'] ?? '';
+      originalLectureId = lecture.linkedFrom!['originalId'] ?? '';
+    } else {
+      originalCourseId = sourceCourseId;
+      originalLectureId = lecture.id;
+    }
+
+    final batch = _db.batch();
+
+    // 1. Update the original lecture document if we are editing a copy
+    if (originalCourseId != sourceCourseId || originalLectureId != lecture.id) {
+      final originalRef = _db
+          .collection('courses')
+          .doc(originalCourseId)
+          .collection('lessons')
+          .doc(originalLectureId);
+      batch.update(originalRef, syncData);
+      updatedCount++;
+    }
+
+    // 2. Fetch original lecture to get linkedCourses list
+    final originalSnap = await _db
+        .collection('courses')
+        .doc(originalCourseId)
+        .collection('lessons')
+        .doc(originalLectureId)
+        .get();
+
+    List<String> linkedCoursesList = [];
+    if (originalSnap.exists) {
+      linkedCoursesList = List<String>.from(originalSnap.data()?['linkedCourses'] ?? []);
+    } else if (lecture.linkedCourses.isNotEmpty) {
+      linkedCoursesList = List<String>.from(lecture.linkedCourses);
+    }
+
+    // 3. For each target course in linkedCourses, query for matching linked copies
+    for (final targetCourseId in linkedCoursesList) {
+      if (targetCourseId.isEmpty) continue;
+
+      final querySnap = await _db
+          .collection('courses')
+          .doc(targetCourseId)
+          .collection('lessons')
+          .where('linkedFrom.originalId', isEqualTo: originalLectureId)
+          .get();
+
+      for (final doc in querySnap.docs) {
+        if (targetCourseId == sourceCourseId && doc.id == lecture.id) continue;
+        batch.update(doc.reference, syncData);
+        updatedCount++;
+      }
+    }
+
+    if (updatedCount > 0) {
+      await batch.commit();
+      try {
+        await _logAudit('sync_lecture', 'lecture', lecture.id, {
+          'sourceCourse': sourceCourseId,
+          'updatedCount': updatedCount,
+        });
+      } catch (e) {
+        debugPrint('Non-critical: Failed to log sync audit: $e');
+      }
+    }
+
+    return updatedCount;
+  }
+
+  /// Delinks a lecture document from its linked original/copies.
+  /// Content is kept in the course, but linkedFrom and linkedCourses connection is removed.
+  Future<void> delinkLecture(String courseId, String lectureId) async {
+    final docRef = _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('lessons')
+        .doc(lectureId);
+
+    final snap = await docRef.get();
+    if (!snap.exists) return;
+
+    final data = snap.data()!;
+    final linkedFrom = data['linkedFrom'] as Map<dynamic, dynamic>?;
+
+    final batch = _db.batch();
+
+    // 1. Remove linkedFrom and clear linkedCourses on this lecture
+    batch.update(docRef, {
+      'linkedFrom': FieldValue.delete(),
+      'linkedCourses': <String>[],
+    });
+
+    // 2. Remove courseId from original lecture's linkedCourses list
+    if (linkedFrom != null) {
+      final originalId = linkedFrom['originalId'] as String? ?? '';
+      final originalCourseId = linkedFrom['courseId'] as String? ?? '';
+
+      if (originalCourseId.isNotEmpty && originalId.isNotEmpty) {
+        final origRef = _db
+            .collection('courses')
+            .doc(originalCourseId)
+            .collection('lessons')
+            .doc(originalId);
+        batch.update(origRef, {
+          'linkedCourses': FieldValue.arrayRemove([courseId]),
+        });
+      }
+    }
+
+    await batch.commit();
+
+    await _logAudit('delink_lecture', 'lecture', lectureId, {
+      'courseId': courseId,
+    });
+  }
+
+  /// Delinks a live class document from its linked original/copies.
+  /// Content is kept in the course, but linkedFrom and linkedCourses connection is removed.
+  Future<void> delinkLiveClass(String courseId, String classId) async {
+    final docRef = _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('live_classes')
+        .doc(classId);
+
+    final snap = await docRef.get();
+    if (!snap.exists) return;
+
+    final data = snap.data()!;
+    final linkedFrom = data['linkedFrom'] as Map<dynamic, dynamic>?;
+
+    final batch = _db.batch();
+
+    batch.update(docRef, {
+      'linkedFrom': FieldValue.delete(),
+      'linkedCourses': <String>[],
+    });
+
+    if (linkedFrom != null) {
+      final originalId = linkedFrom['originalId'] as String? ?? '';
+      final originalCourseId = linkedFrom['courseId'] as String? ?? '';
+      final source = linkedFrom['source'] as String? ?? '';
+
+      if (source == 'free_live_classes' && originalId.isNotEmpty) {
+        final origRef = _db.collection('free_live_classes').doc(originalId);
+        batch.update(origRef, {
+          'linkedCourses': FieldValue.arrayRemove([courseId]),
+        });
+      } else if (originalCourseId.isNotEmpty && originalId.isNotEmpty) {
+        final origRef = _db
+            .collection('courses')
+            .doc(originalCourseId)
+            .collection('live_classes')
+            .doc(originalId);
+        batch.update(origRef, {
+          'linkedCourses': FieldValue.arrayRemove([courseId]),
+        });
+      }
+    }
+
+    await batch.commit();
+
+    await _logAudit('delink_live_class', 'live_class', classId, {
+      'courseId': courseId,
+    });
+  }
+
+  /// Delinks ALL target courses from a Main Lecture in one batch.
+  Future<void> delinkAllLinkedCoursesForLecture({
+    required String sourceCourseId,
+    required String lectureId,
+  }) async {
+    final docRef = _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('lessons')
+        .doc(lectureId);
+
+    final snap = await docRef.get();
+    if (!snap.exists) return;
+
+    final data = snap.data()!;
+    final linkedCourses = List<String>.from(data['linkedCourses'] ?? []);
+
+    final batch = _db.batch();
+
+    // 1. Clear linkedCourses array on the main lecture
+    batch.update(docRef, {'linkedCourses': <String>[]});
+
+    // 2. Remove linkedFrom on each target copy document
+    for (final targetCourseId in linkedCourses) {
+      if (targetCourseId.isEmpty) continue;
+      final querySnap = await _db
+          .collection('courses')
+          .doc(targetCourseId)
+          .collection('lessons')
+          .where('linkedFrom.originalId', isEqualTo: lectureId)
+          .get();
+
+      for (final doc in querySnap.docs) {
+        batch.update(doc.reference, {
+          'linkedFrom': FieldValue.delete(),
+        });
+      }
+    }
+
+    await batch.commit();
+
+    await _logAudit('delink_all_lectures', 'lecture', lectureId, {
+      'sourceCourse': sourceCourseId,
+      'targetCount': linkedCourses.length,
+    });
+  }
+
+  /// Delinks a single target course from a Main Lecture.
+  Future<void> delinkSingleCourseFromMainLecture({
+    required String sourceCourseId,
+    required String lectureId,
+    required String targetCourseId,
+  }) async {
+    final batch = _db.batch();
+
+    // 1. Remove targetCourseId from main lecture's linkedCourses array
+    final mainRef = _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('lessons')
+        .doc(lectureId);
+    batch.update(mainRef, {
+      'linkedCourses': FieldValue.arrayRemove([targetCourseId]),
+    });
+
+    // 2. Clear linkedFrom on target copy
+    final querySnap = await _db
+        .collection('courses')
+        .doc(targetCourseId)
+        .collection('lessons')
+        .where('linkedFrom.originalId', isEqualTo: lectureId)
+        .get();
+
+    for (final doc in querySnap.docs) {
+      batch.update(doc.reference, {
+        'linkedFrom': FieldValue.delete(),
+      });
+    }
+
+    await batch.commit();
+  }
+
+  /// Deletes ALL target copies of a Main Lecture in one batch (keeps main lecture).
+  Future<void> deleteAllLinkedCopiesForLecture({
+    required String sourceCourseId,
+    required String lectureId,
+  }) async {
+    final docRef = _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('lessons')
+        .doc(lectureId);
+
+    final snap = await docRef.get();
+    if (!snap.exists) return;
+
+    final data = snap.data()!;
+    final linkedCourses = List<String>.from(data['linkedCourses'] ?? []);
+
+    final batch = _db.batch();
+
+    // 1. Clear linkedCourses array on main lecture
+    batch.update(docRef, {'linkedCourses': <String>[]});
+
+    // 2. Delete target copy documents
+    for (final targetCourseId in linkedCourses) {
+      if (targetCourseId.isEmpty) continue;
+      final querySnap = await _db
+          .collection('courses')
+          .doc(targetCourseId)
+          .collection('lessons')
+          .where('linkedFrom.originalId', isEqualTo: lectureId)
+          .get();
+
+      for (final doc in querySnap.docs) {
+        batch.delete(doc.reference);
+      }
+    }
+
+    await batch.commit();
+
+    await _logAudit('delete_all_linked_copies', 'lecture', lectureId, {
+      'sourceCourse': sourceCourseId,
+      'targetCount': linkedCourses.length,
+    });
+  }
+
+  /// Deletes a single target copy of a Main Lecture.
+  Future<void> deleteSingleCourseLinkedCopy({
+    required String sourceCourseId,
+    required String lectureId,
+    required String targetCourseId,
+  }) async {
+    final batch = _db.batch();
+
+    // 1. Remove targetCourseId from main lecture's linkedCourses array
+    final mainRef = _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('lessons')
+        .doc(lectureId);
+    batch.update(mainRef, {
+      'linkedCourses': FieldValue.arrayRemove([targetCourseId]),
+    });
+
+    // 2. Delete target copy document
+    final querySnap = await _db
+        .collection('courses')
+        .doc(targetCourseId)
+        .collection('lessons')
+        .where('linkedFrom.originalId', isEqualTo: lectureId)
+        .get();
+
+    for (final doc in querySnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    await batch.commit();
+  }
+
+  /// Delinks ALL target courses from a Main Live Class in one batch.
+  Future<void> delinkAllLinkedCoursesForLiveClass({
+    required String sourceCourseId,
+    required String classId,
+  }) async {
+    final docRef = _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('live_classes')
+        .doc(classId);
+
+    final snap = await docRef.get();
+    if (!snap.exists) return;
+
+    final data = snap.data()!;
+    final linkedCourses = List<String>.from(data['linkedCourses'] ?? []);
+
+    final batch = _db.batch();
+
+    batch.update(docRef, {'linkedCourses': <String>[]});
+
+    for (final targetCourseId in linkedCourses) {
+      if (targetCourseId.isEmpty) continue;
+      final querySnap = await _db
+          .collection('courses')
+          .doc(targetCourseId)
+          .collection('live_classes')
+          .where('linkedFrom.originalId', isEqualTo: classId)
+          .get();
+
+      for (final doc in querySnap.docs) {
+        batch.update(doc.reference, {
+          'linkedFrom': FieldValue.delete(),
+        });
+      }
+    }
+
+    await batch.commit();
+
+    await _logAudit('delink_all_live_classes', 'live_class', classId, {
+      'sourceCourse': sourceCourseId,
+      'targetCount': linkedCourses.length,
+    });
+  }
+
+  /// Delinks a single target course from a Main Live Class.
+  Future<void> delinkSingleCourseFromMainLiveClass({
+    required String sourceCourseId,
+    required String classId,
+    required String targetCourseId,
+  }) async {
+    final batch = _db.batch();
+
+    final mainRef = _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('live_classes')
+        .doc(classId);
+    batch.update(mainRef, {
+      'linkedCourses': FieldValue.arrayRemove([targetCourseId]),
+    });
+
+    final querySnap = await _db
+        .collection('courses')
+        .doc(targetCourseId)
+        .collection('live_classes')
+        .where('linkedFrom.originalId', isEqualTo: classId)
+        .get();
+
+    for (final doc in querySnap.docs) {
+      batch.update(doc.reference, {
+        'linkedFrom': FieldValue.delete(),
+      });
+    }
+
+    await batch.commit();
+  }
+
+  /// Deletes ALL target copies of a Main Live Class in one batch.
+  Future<void> deleteAllLinkedCopiesForLiveClass({
+    required String sourceCourseId,
+    required String classId,
+  }) async {
+    final docRef = _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('live_classes')
+        .doc(classId);
+
+    final snap = await docRef.get();
+    if (!snap.exists) return;
+
+    final data = snap.data()!;
+    final linkedCourses = List<String>.from(data['linkedCourses'] ?? []);
+
+    final batch = _db.batch();
+
+    batch.update(docRef, {'linkedCourses': <String>[]});
+
+    for (final targetCourseId in linkedCourses) {
+      if (targetCourseId.isEmpty) continue;
+      final querySnap = await _db
+          .collection('courses')
+          .doc(targetCourseId)
+          .collection('live_classes')
+          .where('linkedFrom.originalId', isEqualTo: classId)
+          .get();
+
+      for (final doc in querySnap.docs) {
+        batch.delete(doc.reference);
+      }
+    }
+
+    await batch.commit();
+
+    await _logAudit('delete_all_linked_live_class_copies', 'live_class', classId, {
+      'sourceCourse': sourceCourseId,
+      'targetCount': linkedCourses.length,
+    });
+  }
+
+  /// Deletes a single target copy of a Main Live Class.
+  Future<void> deleteSingleCourseLinkedLiveClassCopy({
+    required String sourceCourseId,
+    required String classId,
+    required String targetCourseId,
+  }) async {
+    final batch = _db.batch();
+
+    final mainRef = _db
+        .collection('courses')
+        .doc(sourceCourseId)
+        .collection('live_classes')
+        .doc(classId);
+    batch.update(mainRef, {
+      'linkedCourses': FieldValue.arrayRemove([targetCourseId]),
+    });
+
+    final querySnap = await _db
+        .collection('courses')
+        .doc(targetCourseId)
+        .collection('live_classes')
+        .where('linkedFrom.originalId', isEqualTo: classId)
+        .get();
+
+    for (final doc in querySnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    await batch.commit();
+  }
+
+  /// Syncs live class content across all linked courses.
+  Future<int> syncLiveClassToLinkedCourses({
+    required String sourceCourseId,
+    required AdminLiveClass liveClass,
+  }) async {
+    final syncData = liveClass.toSyncMap();
+    int updatedCount = 0;
+
+    String originalCourseId;
+    String originalClassId;
+    String? source;
+
+    if (liveClass.linkedFrom != null && liveClass.linkedFrom!['originalId'] != null) {
+      originalCourseId = liveClass.linkedFrom!['courseId'] ?? '';
+      originalClassId = liveClass.linkedFrom!['originalId'] ?? '';
+      source = liveClass.linkedFrom!['source'];
+    } else {
+      originalCourseId = sourceCourseId;
+      originalClassId = liveClass.id;
+    }
+
+    final batch = _db.batch();
+
+    // 1. Update original document if editing a copy
+    if (source == 'free_live_classes') {
+      final originalRef = _db.collection('free_live_classes').doc(originalClassId);
+      batch.update(originalRef, syncData);
+      updatedCount++;
+    } else if (originalCourseId.isNotEmpty && (originalCourseId != sourceCourseId || originalClassId != liveClass.id)) {
+      final originalRef = _db
+          .collection('courses')
+          .doc(originalCourseId)
+          .collection('live_classes')
+          .doc(originalClassId);
+      batch.update(originalRef, syncData);
+      updatedCount++;
+    }
+
+    // 2. Fetch original live class to get linkedCourses list
+    List<String> linkedCoursesList = [];
+    if (source == 'free_live_classes') {
+      final originalSnap = await _db.collection('free_live_classes').doc(originalClassId).get();
+      if (originalSnap.exists) {
+        linkedCoursesList = List<String>.from(originalSnap.data()?['linkedCourses'] ?? []);
+      }
+    } else if (originalCourseId.isNotEmpty) {
+      final originalSnap = await _db
+          .collection('courses')
+          .doc(originalCourseId)
+          .collection('live_classes')
+          .doc(originalClassId)
+          .get();
+      if (originalSnap.exists) {
+        linkedCoursesList = List<String>.from(originalSnap.data()?['linkedCourses'] ?? []);
+      } else if (liveClass.linkedCourses.isNotEmpty) {
+        linkedCoursesList = List<String>.from(liveClass.linkedCourses);
+      }
+    }
+
+    // 3. For each target course, update linked copies
+    for (final targetCourseId in linkedCoursesList) {
+      if (targetCourseId.isEmpty) continue;
+
+      final querySnap = await _db
+          .collection('courses')
+          .doc(targetCourseId)
+          .collection('live_classes')
+          .where('linkedFrom.originalId', isEqualTo: originalClassId)
+          .get();
+
+      for (final doc in querySnap.docs) {
+        if (targetCourseId == sourceCourseId && doc.id == liveClass.id) continue;
+        batch.update(doc.reference, syncData);
+        updatedCount++;
+      }
+    }
+
+    if (updatedCount > 0) {
+      await batch.commit();
+      try {
+        await _logAudit('sync_live_class', 'live_class', liveClass.id, {
+          'sourceCourse': sourceCourseId,
+          'updatedCount': updatedCount,
+        });
+      } catch (e) {
+        debugPrint('Non-critical: Failed to log live class sync audit: $e');
+      }
+    }
+
+    return updatedCount;
   }
 
   /// Legacy wrapper for linkLectureToBatch
@@ -1844,6 +2468,223 @@ class FirebaseAdminService {
   }
 
 
+  Stream<List<String>> getAllCourseSubjects() {
+    final controller = StreamController<List<String>>();
+    final Set<String> subjects = {};
+
+    void emit() {
+      if (!controller.isClosed) {
+        controller.add(subjects.toList()..sort());
+      }
+    }
+
+    final sub1 = _db.collectionGroup('lessons').snapshots().listen((snap) {
+      subjects.clear();
+      for (final doc in snap.docs) {
+        final s = doc.data()['subject'] as String? ?? '';
+        if (s.isNotEmpty) subjects.add(s);
+      }
+      emit();
+    });
+
+    controller.onCancel = () {
+      sub1.cancel();
+    };
+
+    return controller.stream;
+  }
+
+  Stream<List<String>> getChaptersForCourseSubject(String courseId, String subject) {
+    if (subject.isEmpty) return Stream.value([]);
+    final controller = StreamController<List<String>>();
+    final courseRef = _db.collection('courses').doc(courseId);
+
+    final Set<String> lessonChapters = {};
+    final Set<String> noteChapters = {};
+    final Set<String> dppChapters = {};
+    final Set<String> liveClassChapters = {};
+
+    void emitMerged() {
+      if (!controller.isClosed) {
+        final merged = <String>{
+          ...lessonChapters,
+          ...noteChapters,
+          ...dppChapters,
+          ...liveClassChapters,
+        }.toList()..sort();
+        controller.add(merged);
+      }
+    }
+
+    final sub1 = courseRef.collection('lessons').snapshots().listen((snap) {
+      lessonChapters.clear();
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final s = data['subject'] as String? ?? '';
+        if (s == subject) {
+          final type = data['type'] as String? ?? '';
+          final title = data['title'] as String? ?? '';
+          final ch = data['chapter'] as String? ?? '';
+
+          if (type == 'folder') {
+            if (title.isNotEmpty && title != subject) {
+              lessonChapters.add(title);
+            }
+          }
+          if (ch.isNotEmpty) {
+            final firstSeg = ch.split('/')[0].trim();
+            if (firstSeg.isNotEmpty && firstSeg != subject) {
+              lessonChapters.add(firstSeg);
+            }
+          }
+        }
+      }
+      emitMerged();
+    });
+
+    final sub2 = courseRef.collection('notes').snapshots().listen((snap) {
+      noteChapters.clear();
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        if ((data['subject'] as String? ?? '') == subject) {
+          final ch = data['chapter'] as String? ?? '';
+          if (ch.isNotEmpty) {
+            final firstSeg = ch.split('/')[0].trim();
+            if (firstSeg.isNotEmpty && firstSeg != subject) {
+              noteChapters.add(firstSeg);
+            }
+          }
+        }
+      }
+      emitMerged();
+    });
+
+    final sub3 = courseRef.collection('dpps').snapshots().listen((snap) {
+      dppChapters.clear();
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        if ((data['subject'] as String? ?? '') == subject) {
+          final ch = data['chapter'] as String? ?? '';
+          if (ch.isNotEmpty) {
+            final firstSeg = ch.split('/')[0].trim();
+            if (firstSeg.isNotEmpty && firstSeg != subject) {
+              dppChapters.add(firstSeg);
+            }
+          }
+        }
+      }
+      emitMerged();
+    });
+
+    final sub4 = courseRef.collection('live_classes').snapshots().listen((snap) {
+      liveClassChapters.clear();
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        if ((data['subject'] as String? ?? '') == subject) {
+          final ch = data['chapter'] as String? ?? '';
+          if (ch.isNotEmpty) {
+            final firstSeg = ch.split('/')[0].trim();
+            if (firstSeg.isNotEmpty && firstSeg != subject) {
+              liveClassChapters.add(firstSeg);
+            }
+          }
+        }
+      }
+      emitMerged();
+    });
+
+    controller.onCancel = () {
+      sub1.cancel();
+      sub2.cancel();
+      sub3.cancel();
+      sub4.cancel();
+    };
+
+    return controller.stream;
+  }
+
+  Stream<List<String>> getAllCourseChaptersForSubject(String subject) {
+    if (subject.isEmpty) return Stream.value([]);
+    final controller = StreamController<List<String>>();
+    final Set<String> chapters = {};
+
+    void emit() {
+      if (!controller.isClosed) {
+        controller.add(chapters.toList()..sort());
+      }
+    }
+
+    final sub1 = _db.collectionGroup('lessons').snapshots().listen((snap) {
+      chapters.clear();
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        if ((data['subject'] as String? ?? '') == subject) {
+          final type = data['type'] as String? ?? '';
+          final title = data['title'] as String? ?? '';
+          final ch = data['chapter'] as String? ?? '';
+
+          if (type == 'folder' && title.isNotEmpty && title != subject) {
+            chapters.add(title);
+          }
+          if (ch.isNotEmpty) {
+            final firstSeg = ch.split('/')[0].trim();
+            if (firstSeg.isNotEmpty && firstSeg != subject) {
+              chapters.add(firstSeg);
+            }
+          }
+        }
+      }
+      emit();
+    });
+
+    controller.onCancel = () {
+      sub1.cancel();
+    };
+
+    return controller.stream;
+  }
+
+  /// Adds a new subject folder to a course
+  Future<void> addSubjectFolderToCourse(String courseId, String subjectName) async {
+    final name = subjectName.trim();
+    if (name.isEmpty) return;
+    if (courseId.isNotEmpty) {
+      final docRef = _db.collection('courses').doc(courseId).collection('lessons').doc();
+      await docRef.set({
+        'title': name,
+        'subject': name,
+        'chapter': '',
+        'type': 'folder',
+        'orderIndex': 999,
+        'isLocked': false,
+        'storagePath': '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      await _logAudit('add_subject_folder', 'lessons', docRef.id, {'courseId': courseId, 'subject': name});
+    }
+  }
+
+  /// Adds a new topic/chapter folder to a subject in a course
+  Future<void> addTopicFolderToCourse(String courseId, String subjectName, String topicName) async {
+    final sub = subjectName.trim();
+    final topic = topicName.trim();
+    if (sub.isEmpty || topic.isEmpty) return;
+    if (courseId.isNotEmpty) {
+      final docRef = _db.collection('courses').doc(courseId).collection('lessons').doc();
+      await docRef.set({
+        'title': topic,
+        'subject': sub,
+        'chapter': '',
+        'type': 'folder',
+        'orderIndex': 999,
+        'isLocked': false,
+        'storagePath': '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      await _logAudit('add_topic_folder', 'lessons', docRef.id, {'courseId': courseId, 'subject': sub, 'topic': topic});
+    }
+  }
+
   Future<void> addSubject(String name) async {
     final docId = name.trim();
     if (docId.isEmpty) return;
@@ -1927,6 +2768,9 @@ class FirebaseAdminService {
     }
 
     await commitInChunks(operations);
+
+    // Clean up subject logo from course document
+    await removeCourseSubjectLogo(courseId, subject);
 
     await _logAudit('delete_subject_recursive', 'subject', subject, {
       'courseId': courseId,
@@ -2741,14 +3585,273 @@ class FirebaseAdminService {
     }
     if (updates.isNotEmpty) {
       updates['updatedAt'] = FieldValue.serverTimestamp();
+      await _logAudit('update_live_class', 'live_classes', classId, updates);
+    }
+  }
+
+  // ================= RECORDED BATCHES =================
+  Stream<List<AdminRecordedBatch>> getRecordedBatches(String courseId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map((d) => AdminRecordedBatch.fromMap(d.data(), d.id)).toList());
+  }
+
+  Future<String> saveRecordedBatch(
+    String courseId,
+    AdminRecordedBatch batch, {
+    bool isNew = false,
+  }) async {
+    final data = batch.toMap();
+    if (isNew) {
+      final docRef = _db
+          .collection('courses')
+          .doc(courseId)
+          .collection('recorded_batches')
+          .doc();
+      await docRef.set(data);
+      await _logAudit('create_recorded_batch', 'recorded_batch', docRef.id, data);
+      return docRef.id;
+    } else {
       await _db
           .collection('courses')
           .doc(courseId)
-          .collection('live_classes')
-          .doc(classId)
-          .update(updates);
-      await _logAudit('update_live_class', 'live_classes', classId, updates);
+          .collection('recorded_batches')
+          .doc(batch.id)
+          .update(data);
+      await _logAudit('update_recorded_batch', 'recorded_batch', batch.id, data);
+      return batch.id;
     }
+  }
+
+  Future<void> deleteRecordedBatch(String courseId, String batchId) async {
+    final batchRef = _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId);
+
+    // Delete subcollections (lessons, notes, dpps, quizzes)
+    for (final colName in ['lessons', 'notes', 'dpps', 'quizzes']) {
+      final subSnap = await batchRef.collection(colName).get();
+      for (final doc in subSnap.docs) {
+        await doc.reference.delete();
+      }
+    }
+
+    await batchRef.delete();
+    await _logAudit('delete_recorded_batch', 'recorded_batch', batchId, {'courseId': courseId});
+  }
+
+  // Recorded Batch Content: Lessons
+  Stream<List<AdminLecture>> getRecordedBatchLectures(String courseId, String batchId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('lessons')
+        .orderBy('orderIndex')
+        .snapshots()
+        .map((s) => s.docs.map((d) => AdminLecture.fromMap(d.data(), d.id)).toList());
+  }
+
+  Future<String> saveRecordedBatchLecture(
+    String courseId,
+    String batchId,
+    AdminLecture lecture, {
+    bool isNew = false,
+  }) async {
+    final data = lecture.toMap();
+    final colRef = _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('lessons');
+
+    if (isNew) {
+      final docRef = colRef.doc();
+      await docRef.set(data);
+      return docRef.id;
+    } else {
+      await colRef.doc(lecture.id).update(data);
+      return lecture.id;
+    }
+  }
+
+  Future<void> deleteRecordedBatchLecture(
+    String courseId,
+    String batchId,
+    String lectureId,
+  ) async {
+    await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('lessons')
+        .doc(lectureId)
+        .delete();
+  }
+
+  // Recorded Batch Content: Notes
+  Stream<List<AdminNote>> getRecordedBatchNotes(String courseId, String batchId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('notes')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map((d) => AdminNote.fromMap(d.data(), d.id)).toList());
+  }
+
+  Future<String> saveRecordedBatchNote(
+    String courseId,
+    String batchId,
+    AdminNote note, {
+    bool isNew = false,
+  }) async {
+    final data = note.toMap();
+    final colRef = _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('notes');
+
+    if (isNew) {
+      final docRef = colRef.doc();
+      await docRef.set(data);
+      return docRef.id;
+    } else {
+      await colRef.doc(note.id).update(data);
+      return note.id;
+    }
+  }
+
+  Future<void> deleteRecordedBatchNote(
+    String courseId,
+    String batchId,
+    String noteId,
+  ) async {
+    await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('notes')
+        .doc(noteId)
+        .delete();
+  }
+
+  // Recorded Batch Content: DPPs
+  Stream<List<AdminDpp>> getRecordedBatchDpps(String courseId, String batchId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('dpps')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map((d) => AdminDpp.fromMap(d.data(), d.id)).toList());
+  }
+
+  Future<String> saveRecordedBatchDpp(
+    String courseId,
+    String batchId,
+    AdminDpp dpp, {
+    bool isNew = false,
+  }) async {
+    final data = dpp.toMap();
+    final colRef = _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('dpps');
+
+    if (isNew) {
+      final docRef = colRef.doc();
+      await docRef.set(data);
+      return docRef.id;
+    } else {
+      await colRef.doc(dpp.id).update(data);
+      return dpp.id;
+    }
+  }
+
+  Future<void> deleteRecordedBatchDpp(
+    String courseId,
+    String batchId,
+    String dppId,
+  ) async {
+    await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('dpps')
+        .doc(dppId)
+        .delete();
+  }
+
+  // Recorded Batch Content: Quizzes
+  Stream<List<AdminQuiz>> getRecordedBatchQuizzes(String courseId, String batchId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('quizzes')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map((d) => AdminQuiz.fromMap(d.data(), d.id)).toList());
+  }
+
+  Future<String> saveRecordedBatchQuiz(
+    String courseId,
+    String batchId,
+    AdminQuiz quiz, {
+    bool isNew = false,
+  }) async {
+    final data = quiz.toMap();
+    final colRef = _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('quizzes');
+
+    if (isNew) {
+      final docRef = colRef.doc();
+      await docRef.set(data);
+      return docRef.id;
+    } else {
+      await colRef.doc(quiz.id).update(data);
+      return quiz.id;
+    }
+  }
+
+  Future<void> deleteRecordedBatchQuiz(
+    String courseId,
+    String batchId,
+    String quizId,
+  ) async {
+    await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('quizzes')
+        .doc(quizId)
+        .delete();
   }
 }
 

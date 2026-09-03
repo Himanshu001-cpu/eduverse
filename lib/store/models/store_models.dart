@@ -18,6 +18,9 @@ class Course {
   final String duration;
   final bool isActive;
   bool isEnrolled;
+  final List<String> linkedTestSeries;
+  final List<String> linkedEbooks;
+  final Map<String, String> subjectLogos;
 
   Course({
     required this.id,
@@ -37,6 +40,9 @@ class Course {
     this.duration = '',
     this.isActive = true,
     this.isEnrolled = false,
+    this.linkedTestSeries = const [],
+    this.linkedEbooks = const [],
+    this.subjectLogos = const {},
   });
 
   /// Backward-compatible virtual batch representation for the course.
@@ -103,6 +109,7 @@ class CartItem {
   final String? testSeriesId;
   final String? combinationPackId;
   final String? ebookId;
+  final String? recordedBatchId;
   final String title;
   final double price;
   final int quantity;
@@ -113,6 +120,7 @@ class CartItem {
     this.testSeriesId,
     this.combinationPackId,
     this.ebookId,
+    this.recordedBatchId,
     required this.title,
     required this.price,
     this.quantity = 1,
@@ -124,6 +132,7 @@ class CartItem {
         if (testSeriesId != null) 'testSeriesId': testSeriesId,
         if (combinationPackId != null) 'combinationPackId': combinationPackId,
         if (ebookId != null) 'ebookId': ebookId,
+        if (recordedBatchId != null) 'recordedBatchId': recordedBatchId,
         'title': title,
         'price': price,
         'quantity': quantity,
@@ -135,6 +144,7 @@ class CartItem {
         testSeriesId: json['testSeriesId'] as String?,
         combinationPackId: json['combinationPackId'] as String?,
         ebookId: json['ebookId'] as String?,
+        recordedBatchId: json['recordedBatchId'] as String?,
         title: json['title'] ?? '',
         price: (json['price'] as num?)?.toDouble() ?? 0.0,
         quantity: json['quantity'] ?? 1,
@@ -204,7 +214,9 @@ class CombinationPack {
   final double finalPrice;
   final List<String> courses; // list of course IDs
   final List<String> testSeries; // list of test series IDs
+  final List<String> ebooks; // list of ebook IDs
   final bool isActive;
+  final bool isCourseBatch;
 
   CombinationPack({
     required this.id,
@@ -215,7 +227,9 @@ class CombinationPack {
     required this.finalPrice,
     required this.courses,
     required this.testSeries,
+    this.ebooks = const [],
     required this.isActive,
+    this.isCourseBatch = true,
   });
 
   /// Virtual batches representation mapping courses to legacy maps.
@@ -244,7 +258,9 @@ class CombinationPack {
       finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? 0.0,
       courses: parsedCourses,
       testSeries: List<String>.from(data['testSeries'] ?? []),
+      ebooks: List<String>.from(data['ebooks'] ?? []),
       isActive: data['isActive'] ?? true,
+      isCourseBatch: data['isCourseBatch'] as bool? ?? true,
     );
   }
 }

@@ -477,6 +477,12 @@ class StudyRepository implements IStudyRepository {
           status: data['status'] ?? 'upcoming',
           youtubeUrl: data['youtubeUrl'] as String?,
           thumbnailUrl: data['thumbnailUrl'] as String? ?? '',
+          subject: data['subject'] ?? '',
+          chapter: data['chapter'] ?? '',
+          courseId: courseId,
+          courseName: data['courseName'] as String?,
+          batchId: batchId,
+          batchName: data['batchName'] as String? ?? data['courseName'] as String?,
         );
       }).toList();
     } catch (e) {
@@ -688,5 +694,158 @@ class StudyRepository implements IStudyRepository {
       }
     }
     await localStorage.cacheFavoriteBatchIds(updated);
+  }
+
+  @override
+  Future<List<StudyRecordedBatch>> getRecordedBatchesForCourse(String courseId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('recorded_batches')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      List<StudyRecordedBatch> batches = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+
+        // Count total lectures in subcollection
+        final lessonsSnap = await doc.reference.collection('lessons').get();
+        final totalLecs = lessonsSnap.docs.where((d) => d.data()['type'] != 'folder').length;
+
+        batches.add(StudyRecordedBatch(
+          id: doc.id,
+          courseId: courseId,
+          title: data['title'] ?? '',
+          description: data['description'] ?? '',
+          thumbnailUrl: data['thumbnailUrl'] ?? '',
+          isFreeForEnrolled: data['isFreeForEnrolled'] as bool? ?? true,
+          realPrice: (data['realPrice'] as num?)?.toDouble() ?? 0.0,
+          finalPrice: (data['finalPrice'] as num?)?.toDouble() ?? 0.0,
+          isActive: data['isActive'] as bool? ?? true,
+          totalLectures: totalLecs,
+        ));
+      }
+      return batches;
+    } catch (e) {
+      debugPrint('Error fetching recorded batches for course $courseId: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<StudyLecture>> getRecordedBatchLectures(
+    String userId,
+    String courseId,
+    String batchId,
+  ) async {
+    final snapshot = await _firestore
+        .collection('courses')
+        .doc(courseId)
+        .collection('recorded_batches')
+        .doc(batchId)
+        .collection('lessons')
+        .orderBy('orderIndex')
+        .get();
+
+    return await _mapLectures(
+      snapshot,
+      userId,
+      courseId,
+      batchId,
+      checkProgress: true,
+    );
+  }
+
+  @override
+  Future<List<StudyNote>> getRecordedBatchNotes(String courseId, String batchId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('recorded_batches')
+          .doc(batchId)
+          .collection('notes')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return StudyNote(
+          id: doc.id,
+          title: data['title'] ?? 'Untitled Note',
+          fileUrl: data['pdfUrl'] as String?,
+          createdAt: (data['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
+          subject: data['subject'] ?? '',
+          chapter: data['chapter'] ?? '',
+          lectureId: data['lectureId'] as String?,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching recorded batch notes: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<StudyDpp>> getRecordedBatchDpps(String courseId, String batchId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('recorded_batches')
+          .doc(batchId)
+          .collection('dpps')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return StudyDpp(
+          id: doc.id,
+          title: data['title'] ?? '',
+          subject: data['subject'] ?? '',
+          chapter: data['chapter'] ?? '',
+          dppPdfUrl: data['dppPdfUrl'] ?? '',
+          solutionPdfUrl: data['solutionPdfUrl'] ?? '',
+          lectureId: data['lectureId'] as String?,
+          createdAt: (data['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching recorded batch DPPs: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<StudyQuiz>> getRecordedBatchQuizzes(String courseId, String batchId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('recorded_batches')
+          .doc(batchId)
+          .collection('quizzes')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        final questions = (data['questions'] as List<dynamic>?) ?? [];
+        return StudyQuiz(
+          id: doc.id,
+          title: data['title'] ?? 'Untitled Quiz',
+          description: data['description'] ?? '',
+          questionCount: questions.length,
+          durationMinutes: data['durationMinutes'] ?? 30,
+          scheduledAt: (data['scheduledAt'] as Timestamp?)?.toDate(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching recorded batch quizzes: $e');
+      return [];
+    }
   }
 }

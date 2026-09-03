@@ -44,19 +44,16 @@ class StoreEbooksContent extends StatelessWidget {
           );
         }
 
-        // Group E-books under a default category section matching StoreTestSeriesContent structure
-        final Map<String, List<Ebook>> grouped = {
-          'Curated E-books': allEbooks,
-        };
+        final trendingEbooks = allEbooks.reversed.take(5).toList();
+        final featuredEbooks = allEbooks;
 
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              ...grouped.entries.map(
-                (entry) => _buildEbookSection(context, entry.key, entry.value),
-              ),
+              _buildEbookSection(context, 'Trending', trendingEbooks),
+              _buildEbookSection(context, 'Featured', featuredEbooks),
               const SizedBox(height: 32),
             ],
           ),
@@ -141,6 +138,7 @@ class _EbookCard extends StatelessWidget {
                 Container(
                   height: 150,
                   decoration: BoxDecoration(
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -158,7 +156,7 @@ class _EbookCard extends StatelessWidget {
                         child: ebook.thumbnailUrl.isNotEmpty
                             ? Image.network(
                                 ebook.thumbnailUrl,
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                                 width: double.infinity,
                                 height: double.infinity,
                                 errorBuilder: (context, error, stackTrace) => _buildFallback(),

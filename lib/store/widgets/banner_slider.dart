@@ -75,7 +75,10 @@ class BannerSlider extends StatelessWidget {
         }
 
         final docs = snapshot.data?.docs ?? [];
-        final posters = docs.map((doc) => Poster.fromMap(doc.data(), doc.id)).toList();
+        final posters = docs
+            .map((doc) => Poster.fromMap(doc.data(), doc.id))
+            .where((poster) => poster.showInStore)
+            .toList();
 
         if (posters.isEmpty) {
           return const SizedBox.shrink();
@@ -129,123 +132,69 @@ class BannerSlider extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Stack(
-                      children: [
-                        // Background: Thumbnail (Aspect Ratio Fitted) or Default Gradient
-                        Positioned.fill(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: poster.thumbnailUrl.isNotEmpty
-                                ? Image.network(
-                                    poster.thumbnailUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) => _buildFallback(poster),
-                                  )
-                                : _buildFallback(poster),
-                          ),
-                        ),
-
-                        // Dark overlay for text readability
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
+                      child: Stack(
+                        children: [
+                          // Background: Thumbnail (Aspect Ratio Fitted) or Default Gradient
+                          Positioned.fill(
+                            child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.75),
-                                ],
-                              ),
+                              child: poster.thumbnailUrl.isNotEmpty
+                                  ? Image.network(
+                                      poster.thumbnailUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => _buildFallback(poster),
+                                    )
+                                  : _buildFallback(poster),
                             ),
                           ),
-                        ),
 
-                        // Poster Content (Title, Subtitle, Buttons)
-                        Padding(
-                          padding: EdgeInsets.all(screenWidth > 600 ? 24.0 : 16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              if (poster.title.isNotEmpty) ...[
-                                Text(
-                                  poster.title,
-                                  style: TextStyle(
-                                    fontSize: screenWidth > 600 ? 24 : 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black.withValues(alpha: 0.5),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
+                          // Assigned Buttons (Positioned at bottom-left)
+                          if (poster.buttons.isNotEmpty)
+                            Positioned(
+                              bottom: 12,
+                              left: 12,
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: poster.buttons.map((btn) {
+                                  return ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.blue.shade900,
+                                      elevation: 4,
+                                      shadowColor: Colors.black45,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
                                       ),
-                                    ],
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                              ],
-                              if (poster.subtitle.isNotEmpty) ...[
-                                Text(
-                                  poster.subtitle,
-                                  style: TextStyle(
-                                    fontSize: screenWidth > 600 ? 14 : 12,
-                                    color: Colors.white70,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                              
-                              // Buttons List
-                              if (poster.buttons.isNotEmpty)
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: poster.buttons.map((btn) {
-                                    return ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white,
-                                        foregroundColor: Colors.blue.shade900,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      ),
-                                      onPressed: () {
-                                        _handleNavigation(
-                                          context,
-                                          btn.externalUrl,
-                                          btn.inAppTargetType,
-                                          btn.inAppTargetId,
-                                        );
-                                      },
-                                      child: Text(
-                                        btn.label,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    ),
+                                    onPressed: () {
+                                      _handleNavigation(
+                                        context,
+                                        btn.externalUrl,
+                                        btn.inAppTargetType,
+                                        btn.inAppTargetId,
+                                      );
+                                    },
+                                    child: Text(
+                                      btn.label,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          );
-        }).toList(),
-      );
-    },
-  );
+                );
+              },
+            );
+          }).toList(),
+        );
+      },
+    );
   }
 
   Widget _buildFallback(Poster poster) {

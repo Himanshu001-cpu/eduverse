@@ -406,6 +406,30 @@ void main() {
     });
   });
 
+  group('StudyLiveClass Unit Tests', () {
+    test('StudyLiveClass stores batchName and copyWith updates batchName correctly', () {
+      final liveClass = StudyLiveClass(
+        id: 'lc_1',
+        title: 'Physics Live Lecture',
+        startTime: DateTime(2026, 7, 30, 10, 0),
+        status: 'live',
+        subject: 'Physics',
+        courseId: 'c_1',
+        courseName: 'Physics Course',
+        batchId: 'b_1',
+        batchName: 'Target NEET 2026 Batch',
+      );
+
+      expect(liveClass.id, 'lc_1');
+      expect(liveClass.batchName, 'Target NEET 2026 Batch');
+      expect(liveClass.isLive, true);
+
+      final updatedClass = liveClass.copyWith(batchName: 'Super Revision 2026 Batch');
+      expect(updatedClass.batchName, 'Super Revision 2026 Batch');
+      expect(updatedClass.courseName, 'Physics Course');
+    });
+  });
+
   group('StudyBatch Unit Tests', () {
     test('StudyBatch copyWith works correctly', () {
       final batch = StudyBatch(

@@ -134,6 +134,7 @@ class StudyLecture {
   final Duration? duration;
   final int? lectureNo;
   final List<String> linkedNoteIds;
+  final String thumbnailUrl;
 
   const StudyLecture({
     required this.id,
@@ -151,6 +152,7 @@ class StudyLecture {
     this.duration,
     this.lectureNo,
     this.linkedNoteIds = const [],
+    this.thumbnailUrl = '',
   });
 
   factory StudyLecture.fromMap(Map<String, dynamic> data, String id) {
@@ -170,6 +172,7 @@ class StudyLecture {
       duration: data['durationSeconds'] != null ? Duration(seconds: (data['durationSeconds'] as num).toInt()) : null,
       lectureNo: data['lectureNo'],
       linkedNoteIds: List<String>.from(data['linkedNoteIds'] ?? []),
+      thumbnailUrl: data['thumbnailUrl'] ?? data['thumbnail'] ?? '',
     );
   }
 
@@ -189,6 +192,7 @@ class StudyLecture {
     Duration? duration,
     int? lectureNo,
     List<String>? linkedNoteIds,
+    String? thumbnailUrl,
   }) {
     return StudyLecture(
       id: id ?? this.id,
@@ -206,6 +210,7 @@ class StudyLecture {
       duration: duration ?? this.duration,
       lectureNo: lectureNo ?? this.lectureNo,
       linkedNoteIds: linkedNoteIds ?? this.linkedNoteIds,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
     );
   }
 }
@@ -295,6 +300,7 @@ class StudyLiveClass {
   final String? courseId;
   final String? courseName;
   final String? batchId;
+  final String? batchName;
   final String? parentRuleId;
   final String? generatedDateString;
 
@@ -313,6 +319,7 @@ class StudyLiveClass {
     this.courseId,
     this.courseName,
     this.batchId,
+    this.batchName,
     this.parentRuleId,
     this.generatedDateString,
   });
@@ -332,6 +339,7 @@ class StudyLiveClass {
     String? courseId,
     String? courseName,
     String? batchId,
+    String? batchName,
     String? parentRuleId,
     String? generatedDateString,
   }) {
@@ -350,6 +358,7 @@ class StudyLiveClass {
       courseId: courseId ?? this.courseId,
       courseName: courseName ?? this.courseName,
       batchId: batchId ?? this.batchId,
+      batchName: batchName ?? this.batchName,
       parentRuleId: parentRuleId ?? this.parentRuleId,
       generatedDateString: generatedDateString ?? this.generatedDateString,
     );
@@ -381,3 +390,64 @@ class StudyDpp {
     required this.createdAt,
   });
 }
+
+class StudyRecordedBatch {
+  final String id;
+  final String courseId;
+  final String title;
+  final String description;
+  final String thumbnailUrl;
+  final bool isFreeForEnrolled;
+  final double realPrice;
+  final double finalPrice;
+  final bool isActive;
+  final int totalLectures;
+  final int completedLectures;
+  final double progress;
+
+  const StudyRecordedBatch({
+    required this.id,
+    required this.courseId,
+    required this.title,
+    required this.description,
+    this.thumbnailUrl = '',
+    this.isFreeForEnrolled = true,
+    this.realPrice = 0.0,
+    this.finalPrice = 0.0,
+    this.isActive = true,
+    this.totalLectures = 0,
+    this.completedLectures = 0,
+    this.progress = 0.0,
+  });
+
+  StudyRecordedBatch copyWith({
+    String? id,
+    String? courseId,
+    String? title,
+    String? description,
+    String? thumbnailUrl,
+    bool? isFreeForEnrolled,
+    double? realPrice,
+    double? finalPrice,
+    bool? isActive,
+    int? totalLectures,
+    int? completedLectures,
+    double? progress,
+  }) {
+    return StudyRecordedBatch(
+      id: id ?? this.id,
+      courseId: courseId ?? this.courseId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      isFreeForEnrolled: isFreeForEnrolled ?? this.isFreeForEnrolled,
+      realPrice: realPrice ?? this.realPrice,
+      finalPrice: finalPrice ?? this.finalPrice,
+      isActive: isActive ?? this.isActive,
+      totalLectures: totalLectures ?? this.totalLectures,
+      completedLectures: completedLectures ?? this.completedLectures,
+      progress: progress ?? this.progress,
+    );
+  }
+}
+

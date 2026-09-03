@@ -25,12 +25,19 @@ class ComboBatchesSection extends StatelessWidget {
 
     // Find all individual batches whose courseId is in the combo's courseIds
     final combosCourseIds = selectedCombo.courseIds ?? [];
-    final batchesInCombo = controller.enrolledBatches
+    var batchesInCombo = controller.enrolledBatches
         .where((b) =>
             !b.isCombo &&
             (combosCourseIds.contains(b.courseId) ||
                 combosCourseIds.contains(b.id)))
         .toList();
+
+    if (controller.activeFilterChip != 'All') {
+      batchesInCombo = batchesInCombo.where((b) {
+        final batchType = b.isCourseBatch ? 'Online' : 'Offline';
+        return controller.activeFilterChip == batchType;
+      }).toList();
+    }
 
     if (batchesInCombo.isEmpty) return const SizedBox.shrink();
 

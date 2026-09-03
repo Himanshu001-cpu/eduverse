@@ -160,6 +160,36 @@ class _LearningAppState extends State<LearningApp> {
           }
         }
 
+        // Handle /comboPack or /app/comboPack/{id} route
+        if (settings.name == '/comboPack' || (settings.name != null && settings.name!.startsWith('/app/comboPack/'))) {
+          final id = settings.arguments as String? ?? (settings.name!.split('/').length >= 4 ? settings.name!.split('/')[3] : null);
+          if (id != null && id.isNotEmpty) {
+            return MaterialPageRoute(
+              builder: (_) => DeepLinkComboPackScreen(comboPackId: id),
+            );
+          }
+        }
+
+        // Handle /testSeries or /app/testSeries/{id} route
+        if (settings.name == '/testSeries' || (settings.name != null && settings.name!.startsWith('/app/testSeries/'))) {
+          final id = settings.arguments as String? ?? (settings.name!.split('/').length >= 4 ? settings.name!.split('/')[3] : null);
+          if (id != null && id.isNotEmpty) {
+            return MaterialPageRoute(
+              builder: (_) => DeepLinkTestSeriesScreen(testSeriesId: id),
+            );
+          }
+        }
+
+        // Handle /ebook or /app/ebook/{id} route
+        if (settings.name == '/ebook' || (settings.name != null && settings.name!.startsWith('/app/ebook/'))) {
+          final id = settings.arguments as String? ?? (settings.name!.split('/').length >= 4 ? settings.name!.split('/')[3] : null);
+          if (id != null && id.isNotEmpty) {
+            return MaterialPageRoute(
+              builder: (_) => DeepLinkEbookScreen(ebookId: id),
+            );
+          }
+        }
+
         return null;
       },
       routes: {

@@ -81,7 +81,7 @@ class FeaturesSection extends StatelessWidget {
               const SizedBox(height: 24),
 
               Text(
-                'We combine cutting-edge AI technology with expert-curated content to\ngive you an unfair competitive advantage.',
+                'Expert-curated content and powerful study tools designed to\ngive you a complete exam preparation experience.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 18,
@@ -131,50 +131,50 @@ class _FeatureData {
 
 final _features = [
   _FeatureData(
-    icon: LucideIcons.brain,
-    title: 'AI Personalized Learning',
+    icon: LucideIcons.play,
+    title: 'HD Video Lectures',
     description:
-        'Adaptive study plans that evolve with your performance, focusing on what you need most.',
+        'Watch high-quality recorded lectures with playback controls, speed adjustment, and resume-from-where-you-left support.',
     gradient: [const Color(0xFF10b981), const Color(0xFF0d9488)],
     bgLight: const Color(0xFFecfdf5),
   ),
   _FeatureData(
     icon: LucideIcons.fileCheck,
-    title: 'Smart Mock Tests',
+    title: 'Practice Tests & Quizzes',
     description:
-        'Exam-like environment with instant AI analysis and national ranking predictions.',
+        'Take timed mock tests, topic-wise quizzes, and full-length test series with instant scoring and detailed explanations.',
     gradient: [const Color(0xFF3b82f6), const Color(0xFF06b6d4)],
     bgLight: const Color(0xFFeff6ff),
   ),
   _FeatureData(
-    icon: LucideIcons.globe,
-    title: 'Daily Current Affairs',
+    icon: LucideIcons.fileText,
+    title: 'Downloadable Study Notes',
     description:
-        'Curated news, editorials, and PIB summaries mapped to your exam syllabus daily.',
+        'Access secure PDF study materials, DPPs, and e-books with in-app reading, search, night mode, and offline support.',
     gradient: [const Color(0xFF84cc16), const Color(0xFF16a34a)],
     bgLight: const Color(0xFFf7fee7),
   ),
   _FeatureData(
-    icon: LucideIcons.timer,
-    title: 'Speed Quizzes',
+    icon: LucideIcons.users,
+    title: 'Community & Doubt Solving',
     description:
-        'Short topic-wise timed quizzes designed to boost accuracy and speed under pressure.',
+        'Ask doubts with photo attachments, get verified mentor answers, and discuss topics with fellow students.',
     gradient: [const Color(0xFFf59e0b), const Color(0xFFea580c)],
     bgLight: const Color(0xFFfffbeb),
   ),
   _FeatureData(
-    icon: LucideIcons.barChart3,
-    title: 'Performance Analytics',
+    icon: LucideIcons.shoppingCart,
+    title: 'Course Store & Combos',
     description:
-        'Deep insights into your strengths, weaknesses, and progress with visual dashboards.',
+        'Browse individual courses or combo packs, add to cart, and purchase securely with multiple payment options.',
     gradient: [const Color(0xFFf43f5e), const Color(0xFFdb2777)],
     bgLight: const Color(0xFFfff1f2),
   ),
   _FeatureData(
-    icon: LucideIcons.lightbulb,
-    title: 'Smart Revision',
+    icon: LucideIcons.barChart3,
+    title: 'Progress & Performance',
     description:
-        'Spaced repetition and AI-powered revision schedules so you never forget what you learn.',
+        'Track your quiz scores, video watch time, and test accuracy with visual charts and time-filtered analytics.',
     gradient: [const Color(0xFF06b6d4), const Color(0xFF0ea5e9)],
     bgLight: const Color(0xFFecfeff),
   ),

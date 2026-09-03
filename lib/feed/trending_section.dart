@@ -32,9 +32,10 @@ class _TrendingSectionState extends State<TrendingSection> {
           .orderBy('order')
           .get();
 
-      final items = snapshot.docs.map((doc) {
-        return Poster.fromMap(doc.data(), doc.id);
-      }).toList();
+      final items = snapshot.docs
+          .map((doc) => Poster.fromMap(doc.data(), doc.id))
+          .where((poster) => poster.showInFeed)
+          .toList();
 
       debugPrint('TrendingSection loaded ${items.length} active posters');
 
@@ -237,6 +238,45 @@ class _TrendingSectionState extends State<TrendingSection> {
                       },
                     )
                   : _buildFallback(item),
+
+              // Assigned Buttons (Positioned at bottom-left)
+              if (item.buttons.isNotEmpty)
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: item.buttons.map((btn) {
+                      return ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.blue.shade900,
+                          elevation: 4,
+                          shadowColor: Colors.black45,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                        ),
+                        onPressed: () {
+                          _handleNavigation(
+                            context,
+                            btn.externalUrl,
+                            btn.inAppTargetType,
+                            btn.inAppTargetId,
+                          );
+                        },
+                        child: Text(
+                          btn.label,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
             ],
           ),
         ),

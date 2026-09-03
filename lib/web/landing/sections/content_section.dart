@@ -318,33 +318,33 @@ final _contents = [
   ),
   _ContentData(
     title: 'Video Lectures',
-    description: '1000+ hours by top faculty',
+    description: 'HD lectures by expert educators',
     icon: LucideIcons.video,
     gradient: [const Color(0xFF10b981), const Color(0xFF16a34a)],
   ),
   _ContentData(
     title: 'Daily Quiz',
     description: 'Test yourself every day',
-    icon: LucideIcons.brain,
+    icon: LucideIcons.timer,
     gradient: [const Color(0xFFf59e0b), const Color(0xFFea580c)],
   ),
   _ContentData(
     title: 'Answer Writing',
-    description: 'Practice with AI evaluation',
+    description: 'Mains practice with model answers',
     icon: LucideIcons.penTool,
     gradient: [const Color(0xFFf43f5e), const Color(0xFFdb2777)],
     span: 2,
   ),
   _ContentData(
     title: 'Previous Papers',
-    description: '20+ years solved PYQs',
+    description: 'Solved previous year papers',
     icon: LucideIcons.bookOpen,
     gradient: [const Color(0xFF14b8a6), const Color(0xFF06b6d4)],
   ),
   _ContentData(
     title: 'Articles & Notes',
     description: 'Expert study material',
-    icon: LucideIcons.trophy,
+    icon: LucideIcons.fileText,
     gradient: [const Color(0xFF8b5cf6), const Color(0xFF7c3aed)],
   ),
 ];

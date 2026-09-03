@@ -144,16 +144,23 @@ class LiveClassesSection extends StatelessWidget {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        liveClass.subject.isNotEmpty
-                                            ? liveClass.subject.toUpperCase()
-                                            : (liveClass.courseName?.isNotEmpty == true
-                                                ? liveClass.courseName!.toUpperCase()
-                                                : 'LIVE CLASS'),
+                                        () {
+                                          final String displayBatchName = liveClass.batchName?.isNotEmpty == true
+                                              ? liveClass.batchName!
+                                              : (liveClass.courseName?.isNotEmpty == true ? liveClass.courseName! : '');
+                                          final String headerLabel = [
+                                            if (displayBatchName.isNotEmpty) displayBatchName.toUpperCase(),
+                                            if (liveClass.subject.isNotEmpty) liveClass.subject.toUpperCase(),
+                                          ].join(' • ');
+                                          return headerLabel.isNotEmpty ? headerLabel : 'LIVE CLASS';
+                                        }(),
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.red[700],
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 4),
                                       Text(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:eduverse/study/models/study_models.dart';
 import 'package:eduverse/study/models/community_models.dart';
 import 'package:eduverse/study/data/repositories/community_repository.dart';
@@ -176,6 +178,7 @@ class _CourseSectionPageState extends State<CourseSectionPage>
             controller.getLectures(widget.course.id, widget.batchId),
             controller.getBatchNotes(widget.course.id, widget.batchId),
             controller.repository.getBatchDpps(widget.course.id, widget.batchId),
+            EduverseFirebase.firestore.collection('courses').doc(widget.course.id).get(),
           ]),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -188,6 +191,9 @@ class _CourseSectionPageState extends State<CourseSectionPage>
             final lectures = snapshot.data![0] as List<StudyLecture>;
             final notes = snapshot.data![1] as List<StudyNote>;
             final dpps = snapshot.data![2] as List<StudyDpp>;
+            final courseDoc = snapshot.data![3] as DocumentSnapshot;
+            final courseData = courseDoc.data() as Map<String, dynamic>?;
+            final subjectLogos = Map<String, String>.from(courseData?['subjectLogos'] as Map? ?? {});
 
             // Aggregate unique subjects
             final subjectSet = <String>{};
@@ -247,6 +253,7 @@ class _CourseSectionPageState extends State<CourseSectionPage>
 
                 return _SubjectCard(
                   subject: subject,
+                  logoUrl: subjectLogos[subject],
                   chapterCount: chapSet.length,
                   lectureCount: lectureCount,
                   noteCount: noteCount,
@@ -256,10 +263,13 @@ class _CourseSectionPageState extends State<CourseSectionPage>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => SubjectDetailScreen(
-                          courseId: widget.course.id,
-                          batchId: widget.batchId,
-                          subject: subject,
+                        builder: (_) => ChangeNotifierProvider.value(
+                          value: controller,
+                          child: SubjectDetailScreen(
+                            courseId: widget.course.id,
+                            batchId: widget.batchId,
+                            subject: subject,
+                          ),
                         ),
                       ),
                     );
@@ -949,6 +959,7 @@ class _LessonDetailSheet extends StatelessWidget {
 // Subject card for the Subjects tab
 class _SubjectCard extends StatelessWidget {
   final String subject;
+  final String? logoUrl;
   final int chapterCount;
   final int lectureCount;
   final int noteCount;
@@ -958,6 +969,7 @@ class _SubjectCard extends StatelessWidget {
 
   const _SubjectCard({
     required this.subject,
+    this.logoUrl,
     required this.chapterCount,
     required this.lectureCount,
     required this.noteCount,
@@ -966,18 +978,10 @@ class _SubjectCard extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _gradients = [
-    [Color(0xFF4A90E2), Color(0xFF357ABD)],
-    [Color(0xFF7B61FF), Color(0xFF5B3FD4)],
-    [Color(0xFFE94560), Color(0xFFC23152)],
-    [Color(0xFF00B894), Color(0xFF009874)],
-    [Color(0xFFF39C12), Color(0xFFD68910)],
-    [Color(0xFF6C5CE7), Color(0xFF5341C4)],
-  ];
+
 
   @override
   Widget build(BuildContext context) {
-    final gradient = _gradients[colorIndex % _gradients.length];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -993,22 +997,60 @@ class _SubjectCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Subject icon
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: gradient,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.folder, color: Colors.white, size: 26),
-                  ),
-                ),
+                // Subject icon / logo
+                logoUrl != null && logoUrl!.isNotEmpty
+                    ? Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.network(
+                            logoUrl!,
+                            fit: BoxFit.cover,
+                            width: 50,
+                            height: 50,
+                            errorBuilder: (context, error, stackTrace) => Image.asset(
+                              'assets/icon.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.asset(
+                            'assets/icon.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
                 const SizedBox(width: 14),
                 // Info
                 Expanded(

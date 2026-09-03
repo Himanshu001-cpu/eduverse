@@ -118,16 +118,33 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
               Positioned(
                 top: 8,
                 right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: pack.isActive ? Colors.green.shade800 : Colors.grey.shade800,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    pack.isActive ? 'ACTIVE' : 'INACTIVE',
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: pack.isCourseBatch ? Colors.blue.shade800 : Colors.purple.shade800,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        pack.isCourseBatch ? 'ONLINE' : 'OFFLINE',
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: pack.isActive ? Colors.green.shade800 : Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        pack.isActive ? 'ACTIVE' : 'INACTIVE',
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (discountPercent > 0)
@@ -268,6 +285,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
     final realPriceController = TextEditingController(text: existing?.realPrice.toStringAsFixed(0) ?? '0');
     final finalPriceController = TextEditingController(text: existing?.finalPrice.toStringAsFixed(0) ?? '0');
     bool isActive = existing?.isActive ?? true;
+    bool isCourseBatch = existing?.isCourseBatch ?? true;
 
     // List of courses currently selected: { 'courseId': '...', 'courseTitle': '...' }
     // We will dynamically fetch names of course list.
@@ -332,6 +350,17 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                     value: isActive,
                     onChanged: (val) => setStateDialog(() => isActive = val),
                     contentPadding: EdgeInsets.zero,
+                  ),
+                  SwitchListTile(
+                    title: const Text(
+                      'Online Combo Pack / Batch',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    subtitle: const Text('Turn on to list as Online. Turn off to list as Offline.'),
+                    value: isCourseBatch,
+                    activeThumbColor: Colors.blue.shade700,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (val) => setStateDialog(() => isCourseBatch = val),
                   ),
                   const Divider(),
                   // Bundled Courses Section
@@ -466,6 +495,7 @@ class _CombinationPacksScreenState extends State<CombinationPacksScreen> {
                   courses: selectedCourses,
                   testSeries: selectedTestSeries,
                   isActive: isActive,
+                  isCourseBatch: isCourseBatch,
                   createdAt: existing?.createdAt ?? DateTime.now(),
                 );
 

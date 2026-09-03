@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../models/community_models.dart';
 import '../data/repositories/community_repository.dart';
 import 'student_post_detail_screen.dart';
+import '../../core/widgets/image_attachment_widget.dart';
+import '../../core/widgets/image_grid_display.dart';
 
 class StudentCommunityScreen extends StatefulWidget {
   final StudentCommunity community;
@@ -235,13 +237,20 @@ class _StudentCommunityScreenState extends State<StudentCommunityScreen> {
                 post.title,
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 6),
-              Text(
-                post.body,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-              ),
+              if (post.body.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  post.body,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                ),
+              ],
+
+              // Attached Images Grid
+              if (post.imageUrls.isNotEmpty)
+                ImageGridDisplay(imageUrls: post.imageUrls, maxHeight: 180),
+
               const SizedBox(height: 12),
               
               // Footer
@@ -305,66 +314,114 @@ class _StudentCommunityScreenState extends State<StudentCommunityScreen> {
     final titleController = TextEditingController();
     final bodyController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final attachmentKey = GlobalKey<ImageAttachmentWidgetState>();
+    List<String> uploadedImageUrls = [];
+    bool isUploadingImages = false;
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ask a Doubt'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Topic/Title',
-                  hintText: 'e.g. Question from Lecture 3',
-                  border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Ask a Doubt'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Topic/Title',
+                        hintText: 'e.g. Question from Lecture 3',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (val) => val == null || val.trim().isEmpty ? 'Please enter a title' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: bodyController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Describe your doubt...',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Attachments Section
+                    Row(
+                      children: [
+                        const Text('Attachments:', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        ImageAttachmentWidget.buildAttachButton(key: attachmentKey),
+                      ],
+                    ),
+                    ImageAttachmentWidget(
+                      key: attachmentKey,
+                      storageFolder: 'communities/${widget.community.id}/doubts',
+                      maxImages: 3,
+                      onImagesUploaded: (urls) {
+                        setDialogState(() {
+                          uploadedImageUrls = urls;
+                        });
+                      },
+                      onUploadingStateChanged: (uploading) {
+                        setDialogState(() {
+                          isUploadingImages = uploading;
+                        });
+                      },
+                    ),
+                  ],
                 ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Please enter a title' : null,
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: bodyController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Describe your doubt...',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Please describe your doubt' : null,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: isUploadingImages ? null : () async {
+                  if (formKey.currentState!.validate()) {
+                    final bodyText = bodyController.text.trim();
+                    if (bodyText.isEmpty && uploadedImageUrls.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please add text or attach an image.')),
+                      );
+                      return;
+                    }
+
+                    await _repository.createPost(
+                      communityId: widget.community.id,
+                      title: titleController.text.trim(),
+                      body: bodyText,
+                      imageUrls: uploadedImageUrls,
+                      authorId: _currentUserUid ?? '',
+                      authorName: _currentUserName ?? 'Student',
+                      authorRole: _currentUserRole ?? 'student',
+                    );
+                    
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Doubt posted successfully!')),
+                      );
+                    }
+                  }
+                },
+                child: isUploadingImages
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text('Post Doubt'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                await _repository.createPost(
-                  communityId: widget.community.id,
-                  title: titleController.text.trim(),
-                  body: bodyController.text.trim(),
-                  authorId: _currentUserUid ?? '',
-                  authorName: _currentUserName ?? 'Student',
-                  authorRole: _currentUserRole ?? 'student',
-                );
-                
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Doubt posted successfully!')),
-                  );
-                }
-              }
-            },
-            child: const Text('Post Doubt'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

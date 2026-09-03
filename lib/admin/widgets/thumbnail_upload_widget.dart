@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-/// A reusable widget for uploading and displaying thumbnail images
+/// A reusable widget for uploading and displaying thumbnail images with Media Picker support.
 class ThumbnailUploadWidget extends StatefulWidget {
   final String? currentUrl;
-  final String storagePath; // e.g., 'courses/thumbnails' or 'batches/thumbnails'
+  final String storagePath; // e.g., 'courses/thumbnails' or 'combination_packs/thumbnails'
   final ValueChanged<String> onUploaded;
   final double height;
   final double width;
@@ -129,12 +129,10 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
         debugPrint('Skipping deletion of non-firebase-storage URL: $url');
         return;
       }
-      // Extract reference from URL and delete
       final ref = FirebaseStorage.instance.refFromURL(url);
       await ref.delete();
       debugPrint('Deleted old thumbnail: $url');
     } catch (e) {
-      // Log but don't fail - the old file might not exist or be inaccessible
       debugPrint('Failed to delete old thumbnail: $e');
     }
   }
@@ -144,10 +142,184 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
     setState(() => _displayUrl = null);
     widget.onUploaded('');
     
-    // Delete from storage
     if (oldUrl != null && oldUrl.isNotEmpty) {
       await _deleteImageFromStorage(oldUrl);
     }
+  }
+
+  void _showMediaPickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'Media Picker',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.upload_file, color: Colors.indigo.shade700),
+                ),
+                title: const Text('Upload Local Media File'),
+                subtitle: const Text('Select PNG/JPG image from your device'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadImage();
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.link, color: Colors.purple.shade700),
+                ),
+                title: const Text('Enter Media URL'),
+                subtitle: const Text('Paste direct image link from network or storage'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showUrlInputDialog();
+                },
+              ),
+              if (_displayUrl != null && _displayUrl!.isNotEmpty)
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.delete_outline, color: Colors.red),
+                  ),
+                  title: const Text('Remove Thumbnail', style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _removeImage();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUrlInputDialog() {
+    final urlController = TextEditingController(text: _displayUrl ?? '');
+    String previewUrl = urlController.text.trim();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.perm_media, color: Colors.indigo),
+              SizedBox(width: 8),
+              Text('Media Picker - Enter URL'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: urlController,
+                decoration: InputDecoration(
+                  labelText: 'Image / Media URL',
+                  hintText: 'https://example.com/image.jpg',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: urlController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            urlController.clear();
+                            setDialogState(() => previewUrl = '');
+                          },
+                        )
+                      : null,
+                ),
+                onChanged: (val) {
+                  setDialogState(() => previewUrl = val.trim());
+                },
+              ),
+              const SizedBox(height: 16),
+              Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: previewUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          previewUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image, color: Colors.red, size: 32),
+                                SizedBox(height: 4),
+                                Text('Invalid Image URL', style: TextStyle(color: Colors.red, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          'Image preview will appear here',
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final url = urlController.text.trim();
+                setState(() => _displayUrl = url.isEmpty ? null : url);
+                widget.onUploaded(url);
+                Navigator.pop(dialogCtx);
+              },
+              child: const Text('Set Thumbnail'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -155,13 +327,27 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Thumbnail Image',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Thumbnail Image',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            OutlinedButton.icon(
+              onPressed: _isUploading ? null : _showMediaPickerOptions,
+              icon: const Icon(Icons.perm_media, size: 16),
+              label: const Text('Media Picker', style: TextStyle(fontSize: 12)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: _isUploading ? null : _pickAndUploadImage,
+          onTap: _isUploading ? null : _showMediaPickerOptions,
           child: Container(
             height: widget.height,
             width: widget.width,
@@ -183,7 +369,7 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
             child: Row(
               children: [
                 TextButton.icon(
-                  onPressed: _pickAndUploadImage,
+                  onPressed: _showMediaPickerOptions,
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Change'),
                 ),
@@ -206,12 +392,12 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
         Icon(Icons.cloud_upload_outlined, size: 48, color: Colors.grey[400]),
         const SizedBox(height: 8),
         Text(
-          'Tap to upload image',
+          'Tap for Media Picker / Upload',
           style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 4),
         Text(
-          'PNG, JPG up to 5MB',
+          'Upload local file or enter Image URL',
           style: TextStyle(color: Colors.grey[400], fontSize: 12),
         ),
       ],
@@ -275,12 +461,11 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
               ));
             },
           ),
-          // Overlay for tap feedback
           Positioned.fill(
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: _pickAndUploadImage,
+                onTap: _showMediaPickerOptions,
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -293,7 +478,6 @@ class _ThumbnailUploadWidgetState extends State<ThumbnailUploadWidget> {
               ),
             ),
           ),
-          // Edit icon
           Positioned(
             bottom: 8,
             right: 8,

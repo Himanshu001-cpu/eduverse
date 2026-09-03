@@ -6,6 +6,9 @@ import '../models/community_models.dart';
 import '../services/community_service.dart';
 import 'community_post_detail_screen.dart';
 
+import '../../core/widgets/image_attachment_widget.dart';
+import '../../core/widgets/image_grid_display.dart';
+
 class CommunityPostsScreen extends StatefulWidget {
   final Community community;
 
@@ -237,13 +240,19 @@ class _CommunityPostsScreenState extends State<CommunityPostsScreen> {
                 post.title,
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 6),
-              Text(
-                post.body,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-              ),
+              if (post.body.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  post.body,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                ),
+              ],
+
+              if (post.imageUrls.isNotEmpty)
+                ImageGridDisplay(imageUrls: post.imageUrls, maxHeight: 180),
+
               const SizedBox(height: 12),
               
               // Footer Stats and Moderation
@@ -328,72 +337,118 @@ class _CommunityPostsScreenState extends State<CommunityPostsScreen> {
     final titleController = TextEditingController();
     final bodyController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final attachmentKey = GlobalKey<ImageAttachmentWidgetState>();
+    List<String> uploadedImageUrls = [];
+    bool isUploadingImages = false;
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Post Announcement'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Post Announcement'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (val) => val == null || val.trim().isEmpty ? 'Enter a title' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: bodyController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Announcement Message',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Text('Attachments:', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        ImageAttachmentWidget.buildAttachButton(key: attachmentKey),
+                      ],
+                    ),
+                    ImageAttachmentWidget(
+                      key: attachmentKey,
+                      storageFolder: 'communities/${widget.community.id}/announcements',
+                      maxImages: 3,
+                      onImagesUploaded: (urls) {
+                        setDialogState(() {
+                          uploadedImageUrls = urls;
+                        });
+                      },
+                      onUploadingStateChanged: (uploading) {
+                        setDialogState(() {
+                          isUploadingImages = uploading;
+                        });
+                      },
+                    ),
+                  ],
                 ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Enter a title' : null,
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: bodyController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Announcement Message',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Enter message body' : null,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: isUploadingImages ? null : () async {
+                  if (formKey.currentState!.validate()) {
+                    final bodyText = bodyController.text.trim();
+                    if (bodyText.isEmpty && uploadedImageUrls.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please add message or attach an image.')),
+                      );
+                      return;
+                    }
+
+                    final newPost = CommunityPost(
+                      id: '',
+                      communityId: widget.community.id,
+                      authorId: _currentUserUid ?? '',
+                      authorName: _currentUserName ?? 'Admin/Teacher',
+                      authorRole: _currentUserRole ?? 'teacher',
+                      title: titleController.text.trim(),
+                      body: bodyText,
+                      imageUrls: uploadedImageUrls,
+                      isPinned: true, // Announcements pinned by default
+                      isAnswered: true, // No doubt to answer
+                      createdAt: DateTime.now(),
+                      updatedAt: DateTime.now(),
+                    );
+                    
+                    await _communityService.createPost(widget.community.id, newPost);
+                    
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Announcement posted successfully!')),
+                      );
+                    }
+                  }
+                },
+                child: isUploadingImages
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text('Post'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final newPost = CommunityPost(
-                  id: '',
-                  communityId: widget.community.id,
-                  authorId: _currentUserUid ?? '',
-                  authorName: _currentUserName ?? 'Admin/Teacher',
-                  authorRole: _currentUserRole ?? 'teacher',
-                  title: titleController.text.trim(),
-                  body: bodyController.text.trim(),
-                  isPinned: true, // Announcements pinned by default
-                  isAnswered: true, // No doubt to answer
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                );
-                
-                await _communityService.createPost(widget.community.id, newPost);
-                
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Announcement posted successfully!')),
-                  );
-                }
-              }
-            },
-            child: const Text('Post'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

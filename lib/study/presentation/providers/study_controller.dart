@@ -316,6 +316,7 @@ class StudyController extends ChangeNotifier {
     if (_userId.isEmpty) return;
 
     final List<StudyLiveClass> loadedLiveClasses = [];
+    final Set<String> fetchedCourseIds = {};
 
     // For each enrolled batch, get its courseIds
     for (final batch in _enrolledBatches) {
@@ -327,17 +328,22 @@ class StudyController extends ChangeNotifier {
       }
 
       for (final courseId in courseIds) {
+        if (fetchedCourseIds.contains(courseId)) continue;
+        fetchedCourseIds.add(courseId);
+
         try {
           final liveList = await getBatchLiveClasses(courseId, batch.id);
           final courseName = _enrolledBatches.firstWhere(
             (b) => b.courseId == courseId,
             orElse: () => batch,
           ).courseName;
-          // Attach courseId, courseName, and batchId to each class
+          final batchName = batch.name;
+          // Attach courseId, courseName, batchId, and batchName to each class
           final mapped = liveList.map((lc) => lc.copyWith(
             courseId: courseId,
             courseName: courseName,
             batchId: batch.id,
+            batchName: batchName,
           )).toList();
           loadedLiveClasses.addAll(mapped);
         } catch (e) {
@@ -346,8 +352,12 @@ class StudyController extends ChangeNotifier {
       }
     }
 
+    // Deduplicate by class ID as a safety net
+    final Set<String> seenClassIds = {};
+    final List<StudyLiveClass> dedupedLiveClasses = loadedLiveClasses.where((lc) => seenClassIds.add(lc.id)).toList();
+
     // Sort: live first, then upcoming by start time
-    loadedLiveClasses.sort((a, b) {
+    dedupedLiveClasses.sort((a, b) {
       final aLive = YouTubeUtils.shouldTreatAsLive(
         url: a.youtubeUrl ?? '',
         status: a.status,
@@ -367,7 +377,7 @@ class StudyController extends ChangeNotifier {
       return a.startTime.compareTo(b.startTime);
     });
 
-    _allLiveClasses = loadedLiveClasses;
+    _allLiveClasses = dedupedLiveClasses;
     if (!_disposed) notifyListeners();
   }
 
@@ -606,6 +616,51 @@ class StudyController extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error toggling bookmark: $e');
       rethrow;
+    }
+  }
+
+  Future<List<StudyRecordedBatch>> getRecordedBatchesForCourse(String courseId) async {
+    try {
+      return await _repository.getRecordedBatchesForCourse(courseId);
+    } catch (e) {
+      debugPrint('Error getting recorded batches: $e');
+      return [];
+    }
+  }
+
+  Future<List<StudyLecture>> getRecordedBatchLectures(String courseId, String batchId) async {
+    try {
+      return await _repository.getRecordedBatchLectures(_userId, courseId, batchId);
+    } catch (e) {
+      debugPrint('Error getting recorded batch lectures: $e');
+      return [];
+    }
+  }
+
+  Future<List<StudyNote>> getRecordedBatchNotes(String courseId, String batchId) async {
+    try {
+      return await _repository.getRecordedBatchNotes(courseId, batchId);
+    } catch (e) {
+      debugPrint('Error getting recorded batch notes: $e');
+      return [];
+    }
+  }
+
+  Future<List<StudyDpp>> getRecordedBatchDpps(String courseId, String batchId) async {
+    try {
+      return await _repository.getRecordedBatchDpps(courseId, batchId);
+    } catch (e) {
+      debugPrint('Error getting recorded batch DPPs: $e');
+      return [];
+    }
+  }
+
+  Future<List<StudyQuiz>> getRecordedBatchQuizzes(String courseId, String batchId) async {
+    try {
+      return await _repository.getRecordedBatchQuizzes(courseId, batchId);
+    } catch (e) {
+      debugPrint('Error getting recorded batch quizzes: $e');
+      return [];
     }
   }
 

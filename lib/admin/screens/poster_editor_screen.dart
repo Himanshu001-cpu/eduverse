@@ -8,6 +8,7 @@ import 'package:eduverse/admin/services/firebase_admin_service.dart';
 import 'package:eduverse/store/models/poster_model.dart';
 import 'package:eduverse/core/notifications/notification_model.dart';
 import 'package:eduverse/core/notifications/notification_repository.dart';
+import 'package:eduverse/core/services/popup_manager.dart';
 
 class PosterEditorScreen extends StatefulWidget {
   final Poster? poster;
@@ -29,6 +30,8 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
   String _aspectRatio = '16:9';
   String? _thumbnailUrl;
   bool _isActive = true;
+  bool _showInStore = true;
+  bool _showInFeed = true;
   bool _showAsPopup = false;
   String _popupFrequency = 'once';
   bool _sendNotification = false;
@@ -40,6 +43,9 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
   String? _selectedLinkLectureId;
   String? _selectedLinkFeedItemId;
   String? _selectedLinkLiveClassId;
+  String? _selectedLinkComboPackId;
+  String? _selectedLinkTestSeriesId;
+  String? _selectedLinkEbookId;
   String? _inAppTargetId;
 
   // Interactive buttons list
@@ -57,6 +63,8 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
       _aspectRatio = p.aspectRatio;
       _thumbnailUrl = p.thumbnailUrl;
       _isActive = p.isActive;
+      _showInStore = p.showInStore;
+      _showInFeed = p.showInFeed;
       _showAsPopup = p.showAsPopup;
       _popupFrequency = p.popupFrequency;
       _sendNotification = p.sendNotification;
@@ -66,6 +74,11 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
           (e) => e.name == p.inAppTargetType,
           orElse: () => NotificationTargetType.course,
         );
+        // Auto-migrate legacy batch targets to course
+        if (_inAppTargetType == NotificationTargetType.batch) {
+          _inAppTargetType = NotificationTargetType.course;
+        }
+
         _inAppTargetId = p.inAppTargetId;
 
         // Populate dynamic link selections
@@ -77,6 +90,12 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
           _selectedLinkFeedItemId = p.inAppTargetId;
         } else if (_inAppTargetType == NotificationTargetType.liveClass) {
           _selectedLinkLiveClassId = p.inAppTargetId;
+        } else if (_inAppTargetType == NotificationTargetType.comboPack) {
+          _selectedLinkComboPackId = p.inAppTargetId;
+        } else if (_inAppTargetType == NotificationTargetType.testSeries) {
+          _selectedLinkTestSeriesId = p.inAppTargetId;
+        } else if (_inAppTargetType == NotificationTargetType.ebook) {
+          _selectedLinkEbookId = p.inAppTargetId;
         }
       }
 
@@ -125,6 +144,8 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
         'buttons': _buttons.map((b) => b.toMap()).toList(),
         'showAsPopup': _showAsPopup,
         'popupFrequency': _popupFrequency,
+        'showInStore': _showInStore,
+        'showInFeed': _showInFeed,
         'sendNotification': _sendNotification,
         'isActive': _isActive,
         'order': order,
@@ -177,6 +198,12 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
         return '/app/batch/$id'; // Legacy fallback
       case NotificationTargetType.feedItem:
         return '/app/feed/$id';
+      case NotificationTargetType.comboPack:
+        return '/app/comboPack/$id';
+      case NotificationTargetType.testSeries:
+        return '/app/testSeries/$id';
+      case NotificationTargetType.ebook:
+        return '/app/ebook/$id';
       default:
         return null;
     }
@@ -242,7 +269,9 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
                       DropdownButtonFormField<NotificationTargetType>(
                         initialValue: tempInAppTargetType,
                         decoration: const InputDecoration(labelText: 'In-App Target Screen'),
-                        items: NotificationTargetType.values.map((type) {
+                        items: NotificationTargetType.values
+                            .where((t) => t != NotificationTargetType.batch)
+                            .map((type) {
                           return DropdownMenuItem(value: type, child: Text(type.name));
                         }).toList(),
                         onChanged: (val) {
@@ -436,7 +465,9 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
                             ),
                             items: [
                               const DropdownMenuItem(value: null, child: Text('No In-App Route (None)')),
-                              ...NotificationTargetType.values.map((type) {
+                              ...NotificationTargetType.values
+                                  .where((t) => t != NotificationTargetType.batch)
+                                  .map((type) {
                                 return DropdownMenuItem(value: type, child: Text(type.name));
                               }),
                             ],
@@ -447,6 +478,9 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
                                 _selectedLinkLectureId = null;
                                 _selectedLinkFeedItemId = null;
                                 _selectedLinkLiveClassId = null;
+                                _selectedLinkComboPackId = null;
+                                _selectedLinkTestSeriesId = null;
+                                _selectedLinkEbookId = null;
                                 _inAppTargetId = null;
                               });
                             },
@@ -538,11 +572,33 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
                   // Toggles
                   SwitchListTile(
                     title: const Text('Active Status'),
-                    subtitle: const Text('Inactive posters are hidden from the store tab slider.'),
+                    subtitle: const Text('Inactive posters are completely hidden from the app.'),
                     value: _isActive,
                     onChanged: (val) {
                       setState(() {
                         _isActive = val;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text('Show in Store Section'),
+                    subtitle: const Text('Displays this poster card in the Store tab hero banner slider.'),
+                    value: _showInStore,
+                    onChanged: (val) {
+                      setState(() {
+                        _showInStore = val;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text('Show in Feed Section'),
+                    subtitle: const Text('Displays this poster card in the Feed tab trending slider.'),
+                    value: _showInFeed,
+                    onChanged: (val) {
+                      setState(() {
+                        _showInFeed = val;
                       });
                     },
                   ),
@@ -603,17 +659,47 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
                       OutlinedButton(
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         ),
                         child: const Text('Cancel'),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          final draftPoster = Poster(
+                            id: widget.poster?.id ?? 'preview',
+                            title: _titleController.text.trim(),
+                            subtitle: _subtitleController.text.trim(),
+                            thumbnailUrl: _thumbnailUrl ?? '',
+                            aspectRatio: _aspectRatio,
+                            order: int.tryParse(_orderController.text) ?? 1,
+                            isActive: _isActive,
+                            showInStore: _showInStore,
+                            showInFeed: _showInFeed,
+                            showAsPopup: _showAsPopup,
+                            popupFrequency: _popupFrequency,
+                            externalUrl: _externalUrlController.text.trim().isNotEmpty ? _externalUrlController.text.trim() : null,
+                            inAppTargetType: _inAppTargetType?.name,
+                            inAppTargetId: _inAppTargetId,
+                            buttons: _buttons,
+                            createdAt: DateTime.now(),
+                            updatedAt: DateTime.now(),
+                          );
+                          PopupManager.instance.showPosterPopupDirectly(context, draftPoster);
+                        },
+                        icon: const Icon(Icons.remove_red_eye, color: Colors.teal),
+                        label: const Text('Preview Popup', style: TextStyle(color: Colors.teal)),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       FilledButton.icon(
                         onPressed: _savePoster,
                         icon: const Icon(Icons.save),
                         label: const Text('Save & Publish Poster'),
                         style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                         ),
                       ),
                     ],
@@ -667,6 +753,12 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
         return _buildFeedItemSelector();
       case NotificationTargetType.liveClass:
         return _buildLiveClassSelector();
+      case NotificationTargetType.comboPack:
+        return _buildComboPackSelector();
+      case NotificationTargetType.testSeries:
+        return _buildTestSeriesSelector();
+      case NotificationTargetType.ebook:
+        return _buildEbookSelector();
     }
   }
 
@@ -787,7 +879,88 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
     );
   }
 
-  // --- Modal version ofselectors for the interactive CTA buttons dialog ---
+  Widget _buildComboPackSelector() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('combination_packs').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(strokeWidth: 2)));
+        }
+        final docs = snapshot.data?.docs ?? [];
+        return DropdownButtonFormField<String>(
+          initialValue: _selectedLinkComboPackId,
+          decoration: const InputDecoration(labelText: 'Select Combo Pack', border: OutlineInputBorder()),
+          items: docs.map((doc) {
+            final data = doc.data();
+            final title = data['title'] ?? 'Untitled Combo Pack';
+            return DropdownMenuItem(value: doc.id, child: Text(title));
+          }).toList(),
+          onChanged: (val) {
+            setState(() {
+              _selectedLinkComboPackId = val;
+              _inAppTargetId = val;
+            });
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTestSeriesSelector() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('test_series').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(strokeWidth: 2)));
+        }
+        final docs = snapshot.data?.docs ?? [];
+        return DropdownButtonFormField<String>(
+          initialValue: _selectedLinkTestSeriesId,
+          decoration: const InputDecoration(labelText: 'Select Test Series', border: OutlineInputBorder()),
+          items: docs.map((doc) {
+            final data = doc.data();
+            final title = data['title'] ?? 'Untitled Test Series';
+            return DropdownMenuItem(value: doc.id, child: Text(title));
+          }).toList(),
+          onChanged: (val) {
+            setState(() {
+              _selectedLinkTestSeriesId = val;
+              _inAppTargetId = val;
+            });
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildEbookSelector() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('ebooks').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(strokeWidth: 2)));
+        }
+        final docs = snapshot.data?.docs ?? [];
+        return DropdownButtonFormField<String>(
+          initialValue: _selectedLinkEbookId,
+          decoration: const InputDecoration(labelText: 'Select Ebook', border: OutlineInputBorder()),
+          items: docs.map((doc) {
+            final data = doc.data();
+            final title = data['title'] ?? 'Untitled Ebook';
+            return DropdownMenuItem(value: doc.id, child: Text(title));
+          }).toList(),
+          onChanged: (val) {
+            setState(() {
+              _selectedLinkEbookId = val;
+              _inAppTargetId = val;
+            });
+          },
+        );
+      },
+    );
+  }
+
+  // --- Modal version of selectors for the interactive CTA buttons dialog ---
   Widget _buildModalTargetItemSelector(NotificationTargetType type, ValueChanged<String?> onSelected) {
     switch (type) {
       case NotificationTargetType.course:
@@ -817,6 +990,51 @@ class _PosterEditorScreenState extends State<PosterEditorScreen> {
             final docs = snapshot.data?.docs ?? [];
             return DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'Select Feed Item'),
+              items: docs.map((doc) => DropdownMenuItem(value: doc.id, child: Text(doc.data()['title'] ?? ''))).toList(),
+              onChanged: onSelected,
+            );
+          },
+        );
+      case NotificationTargetType.comboPack:
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('combination_packs').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
+            final docs = snapshot.data?.docs ?? [];
+            return DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'Select Combo Pack'),
+              items: docs.map((doc) => DropdownMenuItem(value: doc.id, child: Text(doc.data()['title'] ?? ''))).toList(),
+              onChanged: onSelected,
+            );
+          },
+        );
+      case NotificationTargetType.testSeries:
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('test_series').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
+            final docs = snapshot.data?.docs ?? [];
+            return DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'Select Test Series'),
+              items: docs.map((doc) => DropdownMenuItem(value: doc.id, child: Text(doc.data()['title'] ?? ''))).toList(),
+              onChanged: onSelected,
+            );
+          },
+        );
+      case NotificationTargetType.ebook:
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('ebooks').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
+            final docs = snapshot.data?.docs ?? [];
+            return DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'Select Ebook'),
               items: docs.map((doc) => DropdownMenuItem(value: doc.id, child: Text(doc.data()['title'] ?? ''))).toList(),
               onChanged: onSelected,
             );

@@ -129,7 +129,7 @@ class HeroSection extends StatelessWidget {
                                     ),
                                 const SizedBox(width: 10),
                                 Text(
-                                  '#1 AI-Powered Learning Platform',
+                                  'MPPSC · UPSC · Competitive Exams',
                                   style: GoogleFonts.inter(
                                     color: const Color(0xFF047857),
                                     fontWeight: FontWeight.w600,
@@ -158,10 +158,10 @@ class HeroSection extends StatelessWidget {
                                 height: 1.1,
                               ),
                               children: [
-                                const TextSpan(text: 'Master every '),
+                                const TextSpan(text: 'Your Complete\n'),
                                 WidgetSpan(
                                   child: GradientText(
-                                    'Exam',
+                                    'Exam Preparation',
                                     gradient: const LinearGradient(
                                       colors: [
                                         Color(0xFF059669),
@@ -174,22 +174,7 @@ class HeroSection extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                const TextSpan(text: '\nwith '),
-                                WidgetSpan(
-                                  child: GradientText(
-                                    'AI',
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF059669),
-                                        Color(0xFF10b981),
-                                      ],
-                                    ),
-                                    style: GoogleFonts.outfit(
-                                      fontSize: size.width > 768 ? 72 : 48,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                                const TextSpan(text: ' Platform'),
                               ],
                             ),
                           )
@@ -200,7 +185,7 @@ class HeroSection extends StatelessWidget {
                       const SizedBox(height: 24),
 
                       Text(
-                        'Personalized learning paths, smart mock tests, and real-time analytics. Crack UPSC, SSC, Banking & more with 3x higher success rate.',
+                        'HD video lectures, practice tests, downloadable study notes & community discussions. Everything you need for MPPSC, UPSC & competitive exams.',
                         textAlign: size.width > 992
                             ? TextAlign.start
                             : TextAlign.center,
@@ -488,23 +473,23 @@ class HeroSection extends StatelessWidget {
                                           child: Column(
                                             children: [
                                               _buildStatBar(
-                                                'Questions Solved',
-                                                '1,240',
-                                                0.8,
+                                                'Video Lectures',
+                                                '100+',
+                                                0.75,
                                                 const Color(0xFF10b981),
                                               ),
                                               const SizedBox(height: 16),
                                               _buildStatBar(
-                                                'Tests Completed',
-                                                '48',
-                                                0.6,
+                                                'Practice Tests',
+                                                '50+',
+                                                0.65,
                                                 const Color(0xFF3b82f6),
                                               ),
                                               const SizedBox(height: 16),
                                               _buildStatBar(
-                                                'Study Hours',
-                                                '320h',
-                                                0.85,
+                                                'Study Notes',
+                                                '200+',
+                                                0.8,
                                                 const Color(0xFFf97316),
                                               ),
                                             ],

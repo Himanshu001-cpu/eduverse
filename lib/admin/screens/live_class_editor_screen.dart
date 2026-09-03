@@ -9,6 +9,7 @@ import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 import '../widgets/media_uploader.dart';
 import '../widgets/link_class_to_batch_dialog.dart';
+import '../widgets/manage_linked_courses_dialog.dart';
 import 'package:eduverse/common/widgets/cross_platform_youtube_player.dart';
 
 class LiveClassEditorScreen extends StatefulWidget {
@@ -203,37 +204,10 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
   Stream<List<String>> _getSubjectsStream() {
     final service = context.read<FirebaseAdminService>();
     final courseId = _effectiveCourseId;
-    if (courseId == null || courseId.isEmpty) {
-      return service.getSubjects();
+    if (courseId != null && courseId.isNotEmpty) {
+      return service.getSubjectsForCourse(courseId);
     }
-    
-    final controller = StreamController<List<String>>();
-    List<String> courseSubs = [];
-    List<String> globalSubs = [];
-
-    void emitMerged() {
-      if (!controller.isClosed) {
-        final merged = <String>{...courseSubs, ...globalSubs}.toList()..sort();
-        controller.add(merged);
-      }
-    }
-
-    final sub1 = service.getSubjectsForCourse(courseId).listen((list) {
-      courseSubs = list;
-      emitMerged();
-    });
-
-    final sub2 = service.getSubjects().listen((list) {
-      globalSubs = list;
-      emitMerged();
-    });
-
-    controller.onCancel = () {
-      sub1.cancel();
-      sub2.cancel();
-    };
-
-    return controller.stream;
+    return service.getAllCourseSubjects();
   }
 
   @override
@@ -242,6 +216,73 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
       appBar: AppBar(
         title: Text(widget.liveClass == null ? 'Schedule Live Class' : 'Edit Live Class'),
         actions: [
+          // Manage Linked Courses button (for main class with linked courses)
+          if (widget.liveClass != null && widget.liveClass!.linkedCourses.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.hub, color: Colors.teal),
+              tooltip: 'Manage Linked Courses (Bulk & Single)',
+              onPressed: () {
+                final adminService = context.read<FirebaseAdminService>();
+                showDialog(
+                  context: context,
+                  builder: (_) => Provider<FirebaseAdminService>.value(
+                    value: adminService,
+                    child: ManageLinkedCoursesDialog(
+                      liveClass: widget.liveClass!,
+                      sourceCourseId: widget.courseId ?? '',
+                    ),
+                  ),
+                );
+              },
+            )
+          else if (widget.liveClass != null && widget.liveClass!.linkedFrom != null && widget.liveClass!.linkedFrom!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.sync, color: Colors.teal),
+              tooltip: 'Sync to All Linked Courses',
+              onPressed: () async {
+                final adminService = context.read<FirebaseAdminService>();
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Sync Live Class to Linked Courses?'),
+                    content: Text(
+                      'This will update details for "${widget.liveClass!.title}" in all other courses where this live class is shared/linked.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton.icon(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        icon: const Icon(Icons.sync),
+                        label: const Text('Sync Now'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm != true || !context.mounted) return;
+
+                try {
+                  final count = await adminService.syncLiveClassToLinkedCourses(
+                    sourceCourseId: widget.courseId ?? '',
+                    liveClass: widget.liveClass!,
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Successfully synced live class across $count location(s)')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to sync live class: $e')),
+                    );
+                  }
+                }
+              },
+            ),
           // Link to batches button (only for existing classes)
           if (widget.liveClass != null)
             IconButton(
@@ -444,7 +485,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                             child: TextField(
                               controller: _newSubjectController,
                               decoration: const InputDecoration(
-                                hintText: 'Enter new subject name',
+                                hintText: 'Enter new subject name (adds folder)',
                                 border: OutlineInputBorder(),
                                 isDense: true,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -458,7 +499,10 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                             onPressed: () async {
                               final name = _newSubjectController.text.trim();
                               if (name.isNotEmpty) {
-                                await context.read<FirebaseAdminService>().addSubject(name);
+                                final cid = _effectiveCourseId ?? '';
+                                if (cid.isNotEmpty) {
+                                  await context.read<FirebaseAdminService>().addSubjectFolderToCourse(cid, name);
+                                }
                                 setState(() {
                                   _selectedSubject = name;
                                   _selectedChapter = '';
@@ -479,10 +523,12 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                       ),
                     ],
                     const SizedBox(height: 12),
-                    // Chapter dropdown (depends on subject)
+                    // Topic/Chapter dropdown (depends on subject)
                     if (_selectedSubject.isNotEmpty)
                       StreamBuilder<List<String>>(
-                        stream: context.read<FirebaseAdminService>().getChaptersForSubject(_selectedSubject),
+                        stream: (_effectiveCourseId != null && _effectiveCourseId!.isNotEmpty)
+                            ? context.read<FirebaseAdminService>().getChaptersForCourseSubject(_effectiveCourseId!, _selectedSubject)
+                            : context.read<FirebaseAdminService>().getAllCourseChaptersForSubject(_selectedSubject),
                         builder: (context, chaptersSnap) {
                           final chapters = chaptersSnap.data ?? [];
                           final chapterItems = <DropdownMenuItem<String>>[
@@ -499,7 +545,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                                 children: [
                                   Icon(Icons.add_circle_outline, size: 18, color: Colors.blue),
                                   SizedBox(width: 8),
-                                  Text('Add new chapter', style: TextStyle(color: Colors.blue)),
+                                  Text('Add new topic / chapter', style: TextStyle(color: Colors.blue)),
                                 ],
                               ),
                             ),
@@ -512,7 +558,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                                     ? _selectedChapter
                                     : null,
                                 decoration: const InputDecoration(
-                                  labelText: 'Chapter',
+                                  labelText: 'Topic / Chapter',
                                   border: OutlineInputBorder(),
                                   prefixIcon: Icon(Icons.menu_book),
                                 ),
@@ -536,7 +582,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                                       child: TextField(
                                         controller: _newChapterController,
                                         decoration: const InputDecoration(
-                                          hintText: 'Enter new chapter name',
+                                          hintText: 'Enter new topic/chapter name',
                                           border: OutlineInputBorder(),
                                           isDense: true,
                                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -550,7 +596,10 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                                       onPressed: () async {
                                         final name = _newChapterController.text.trim();
                                         if (name.isNotEmpty) {
-                                          await context.read<FirebaseAdminService>().addChapterToSubject(_selectedSubject, name);
+                                          final cid = _effectiveCourseId ?? '';
+                                          if (cid.isNotEmpty) {
+                                            await context.read<FirebaseAdminService>().addTopicFolderToCourse(cid, _selectedSubject, name);
+                                          }
                                           setState(() {
                                             _selectedChapter = name;
                                             _showAddChapter = false;
@@ -575,7 +624,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                       )
                     else
                       const Text(
-                        'Select a subject to see chapters',
+                        'Select a subject to see topics/chapters',
                         style: TextStyle(color: Colors.grey, fontSize: 13),
                       ),
                     const SizedBox(height: 12),

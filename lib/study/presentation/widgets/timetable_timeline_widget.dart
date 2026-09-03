@@ -240,19 +240,35 @@ class _TimetableTimelineWidgetState extends State<TimetableTimelineWidget> {
                                 ),
                               ],
                             ),
-                            if (item.subject.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Row(
+                            () {
+                              final String displayBatch = item.batchName?.isNotEmpty == true
+                                  ? item.batchName!
+                                  : (item.courseName?.isNotEmpty == true ? item.courseName! : '');
+                              final List<String> infoParts = [
+                                if (displayBatch.isNotEmpty) displayBatch,
+                                if (item.subject.isNotEmpty) item.subject,
+                              ];
+                              if (infoParts.isEmpty) return const SizedBox.shrink();
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.bookmark_border, size: 16, color: Colors.grey),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    item.subject,
-                                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.school_outlined, size: 16, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          infoParts.join(' • '),
+                                          style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
-                              ),
-                            ],
+                              );
+                            }(),
                             if (!isCancelled && !isCompleted) ...[
                               const SizedBox(height: 12),
                               Row(

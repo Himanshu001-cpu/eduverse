@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../models/community_models.dart';
 import '../services/community_service.dart';
+import '../../core/widgets/image_attachment_widget.dart';
+import '../../core/widgets/image_grid_display.dart';
 
 class CommunityPostDetailScreen extends StatefulWidget {
   final String communityId;
@@ -25,10 +27,14 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
   final CommunityService _communityService = CommunityService();
   final TextEditingController _replyController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey<ImageAttachmentWidgetState> _replyAttachmentKey = GlobalKey();
+
   String? _currentUserUid;
   String? _currentUserRole;
   String? _currentUserName;
   bool _isSubmitting = false;
+  List<String> _replyUploadedUrls = [];
+  bool _isUploadingReplyImages = false;
 
   @override
   void initState() {
@@ -58,7 +64,7 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
 
   Future<void> _submitReply() async {
     final body = _replyController.text.trim();
-    if (body.isEmpty) return;
+    if (body.isEmpty && _replyUploadedUrls.isEmpty) return;
 
     setState(() => _isSubmitting = true);
 
@@ -72,12 +78,17 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
         authorName: _currentUserName ?? 'Admin/Teacher',
         authorRole: _currentUserRole ?? 'teacher',
         body: body,
+        imageUrls: _replyUploadedUrls,
         isTeacherReply: isTeacherReply,
         createdAt: DateTime.now(),
       );
 
       await _communityService.createReply(widget.communityId, widget.post.id, reply);
       _replyController.clear();
+      _replyAttachmentKey.currentState?.clear();
+      setState(() {
+        _replyUploadedUrls = [];
+      });
       
       // Scroll to bottom
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -281,11 +292,16 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
               post.title,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            Text(
-              post.body,
-              style: TextStyle(fontSize: 15, color: Colors.grey.shade800, height: 1.4),
-            ),
+            if (post.body.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                post.body,
+                style: TextStyle(fontSize: 15, color: Colors.grey.shade800, height: 1.4),
+              ),
+            ],
+
+            if (post.imageUrls.isNotEmpty)
+              ImageGridDisplay(imageUrls: post.imageUrls, maxHeight: 220),
           ],
         ),
       ),
@@ -357,11 +373,16 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              reply.body,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade800, height: 1.3),
-            ),
+            if (reply.body.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                reply.body,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade800, height: 1.3),
+              ),
+            ],
+
+            if (reply.imageUrls.isNotEmpty)
+              ImageGridDisplay(imageUrls: reply.imageUrls, maxHeight: 180),
           ],
         ),
       ),
@@ -370,7 +391,7 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
 
   Widget _buildReplyInputBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -382,27 +403,49 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
         ],
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: TextField(
-                controller: _replyController,
-                maxLines: null,
-                decoration: const InputDecoration(
-                  hintText: 'Write a reply...',
-                  border: InputBorder.none,
-                ),
-              ),
+            ImageAttachmentWidget(
+              key: _replyAttachmentKey,
+              storageFolder: 'communities/${widget.communityId}/doubts/${widget.post.id}',
+              maxImages: 3,
+              onImagesUploaded: (urls) {
+                setState(() {
+                  _replyUploadedUrls = urls;
+                });
+              },
+              onUploadingStateChanged: (uploading) {
+                setState(() {
+                  _isUploadingReplyImages = uploading;
+                });
+              },
             ),
-            IconButton(
-              icon: _isSubmitting 
-                  ? const SizedBox(
-                      width: 20, 
-                      height: 20, 
-                      child: CircularProgressIndicator(strokeWidth: 2)
-                    )
-                  : const Icon(Icons.send, color: Colors.teal),
-              onPressed: _isSubmitting ? null : _submitReply,
+            Row(
+              children: [
+                ImageAttachmentWidget.buildAttachButton(key: _replyAttachmentKey, iconColor: Colors.teal),
+                Expanded(
+                  child: TextField(
+                    controller: _replyController,
+                    maxLines: null,
+                    decoration: const InputDecoration(
+                      hintText: 'Write a reply...',
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: (_isSubmitting || _isUploadingReplyImages) 
+                      ? const SizedBox(
+                          width: 20, 
+                          height: 20, 
+                          child: CircularProgressIndicator(strokeWidth: 2)
+                        )
+                      : const Icon(Icons.send, color: Colors.teal),
+                  onPressed: (_isSubmitting || _isUploadingReplyImages) ? null : _submitReply,
+                ),
+              ],
             ),
           ],
         ),

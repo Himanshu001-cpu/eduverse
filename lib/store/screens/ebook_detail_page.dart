@@ -114,6 +114,7 @@ class _EbookDetailPageState extends State<EbookDetailPage> {
                   width: 180,
                   height: 270,
                   decoration: BoxDecoration(
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -128,7 +129,7 @@ class _EbookDetailPageState extends State<EbookDetailPage> {
                     child: ebook.thumbnailUrl.isNotEmpty
                         ? Image.network(
                             ebook.thumbnailUrl,
-                            fit: BoxFit.cover,
+                            fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) => _buildFallback(),
                           )
                         : _buildFallback(),

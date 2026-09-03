@@ -136,7 +136,47 @@ class CourseDetailPage extends StatelessWidget {
                         height: 1.6,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
+                  ],
+
+                  // Linked Content Section
+                  if (course.linkedTestSeries.isNotEmpty || course.linkedEbooks.isNotEmpty) ...[
+                    const Text(
+                      'Bonus Included Content',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    if (course.linkedTestSeries.isNotEmpty)
+                      Card(
+                        elevation: 0,
+                        color: Colors.purple.shade50,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.purple.shade200),
+                        ),
+                        child: ListTile(
+                          leading: const Text('📝', style: TextStyle(fontSize: 24)),
+                          title: const Text('Test Series Included', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          subtitle: Text('${course.linkedTestSeries.length} Test Series included with this course'),
+                        ),
+                      ),
+                    if (course.linkedEbooks.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Card(
+                        elevation: 0,
+                        color: Colors.indigo.shade50,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.indigo.shade200),
+                        ),
+                        child: ListTile(
+                          leading: const Text('📚', style: TextStyle(fontSize: 24)),
+                          title: const Text('E-books Included', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          subtitle: Text('${course.linkedEbooks.length} E-books included with this course'),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 28),
                   ],
 
                   // Curated Purchase / Access Block

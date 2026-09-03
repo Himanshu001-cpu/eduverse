@@ -353,6 +353,39 @@ class _NotificationsPageState extends State<NotificationsPage> {
           _showErrorSnackBar('Missing batch information for this content');
         }
         break;
+
+      case NotificationTargetType.comboPack:
+        if (n.targetId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DeepLinkComboPackScreen(comboPackId: n.targetId),
+            ),
+          );
+        }
+        break;
+
+      case NotificationTargetType.testSeries:
+        if (n.targetId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DeepLinkTestSeriesScreen(testSeriesId: n.targetId),
+            ),
+          );
+        }
+        break;
+
+      case NotificationTargetType.ebook:
+        if (n.targetId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DeepLinkEbookScreen(ebookId: n.targetId),
+            ),
+          );
+        }
+        break;
     }
   }
 

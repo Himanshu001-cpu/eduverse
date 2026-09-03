@@ -66,4 +66,23 @@ abstract class IStudyRepository {
 
   /// Toggle batch bookmark
   Future<void> toggleBatchBookmark(String userId, String batchId);
+
+  /// Get list of recorded batches for a course.
+  Future<List<StudyRecordedBatch>> getRecordedBatchesForCourse(String courseId);
+
+  /// Get recorded batch lectures.
+  Future<List<StudyLecture>> getRecordedBatchLectures(
+    String userId,
+    String courseId,
+    String batchId,
+  );
+
+  /// Get recorded batch notes.
+  Future<List<StudyNote>> getRecordedBatchNotes(String courseId, String batchId);
+
+  /// Get recorded batch DPPs.
+  Future<List<StudyDpp>> getRecordedBatchDpps(String courseId, String batchId);
+
+  /// Get recorded batch quizzes.
+  Future<List<StudyQuiz>> getRecordedBatchQuizzes(String courseId, String batchId);
 }

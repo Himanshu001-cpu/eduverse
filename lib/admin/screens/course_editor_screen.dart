@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:mime/mime.dart';
 import '../models/admin_models.dart';
 import '../services/firebase_admin_service.dart';
 import '../widgets/admin_scaffold.dart';
@@ -51,6 +53,11 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
   final TextEditingController _subjectEditorController = TextEditingController();
   String? _selectedTeacherUid;
   bool _isSavingTeacher = false;
+
+  // For subject logos
+  Map<String, String> _subjectLogos = {};
+  final TextEditingController _newSubjectLogoNameController = TextEditingController();
+  final Map<String, bool> _uploadingLogos = {};
 
   final List<String> _visibilityOptions = ['draft', 'published', 'archived'];
   final List<String> _levelOptions = ['beginner', 'intermediate', 'advanced'];
@@ -109,8 +116,32 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
     _thumbnailUrl = course?.thumbnailUrl ?? '';
     _isCourseBatch = course?.isCourseBatch ?? false;
     _assignedTeachers = course?.teachers != null ? List.from(course!.teachers) : [];
+    _selectedTestSeriesIds = course?.linkedTestSeries != null ? List.from(course!.linkedTestSeries) : [];
+    _selectedEbookIds = course?.linkedEbooks != null ? List.from(course!.linkedEbooks) : [];
+    _subjectLogos = course?.subjectLogos != null ? Map.from(course!.subjectLogos) : {};
     _loadTeachers();
+    _loadTestSeriesAndEbooks();
     _listenToCourseDoc();
+  }
+
+  List<Map<String, dynamic>> _allTestSeries = [];
+  List<Map<String, dynamic>> _allEbooks = [];
+  List<String> _selectedTestSeriesIds = [];
+  List<String> _selectedEbookIds = [];
+
+  Future<void> _loadTestSeriesAndEbooks() async {
+    try {
+      final tsSnap = await FirebaseFirestore.instance.collection('test_series').get();
+      final ebSnap = await FirebaseFirestore.instance.collection('ebooks').get();
+      if (mounted) {
+        setState(() {
+          _allTestSeries = tsSnap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+          _allEbooks = ebSnap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading test series/ebooks for course editor: $e');
+    }
   }
 
   @override
@@ -125,6 +156,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
     _seatsTotalController.dispose();
     _seatsLeftController.dispose();
     _subjectEditorController.dispose();
+    _newSubjectLogoNameController.dispose();
     _teachersSub?.cancel();
     _courseDocSub?.cancel();
     super.dispose();
@@ -163,6 +195,9 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
         teachers: _assignedTeachers,
         createdAt: widget.course?.createdAt ?? DateTime.now(),
         isCourseBatch: _isCourseBatch,
+        linkedTestSeries: _selectedTestSeriesIds,
+        linkedEbooks: _selectedEbookIds,
+        subjectLogos: _subjectLogos,
       );
 
       await context.read<FirebaseAdminService>().saveCourse(
@@ -616,8 +651,16 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                     ),
                     const SizedBox(height: 32),
 
+                    // Linked Test Series & E-books Section
+                    _buildLinkedContentSection(),
+                    const SizedBox(height: 32),
+
                     // Teachers & Subjects Section
                     _buildTeachersSection(),
+                    const SizedBox(height: 32),
+
+                    // Subject Logos Section
+                    _buildSubjectLogosSection(),
                     const SizedBox(height: 32),
 
                     // Save Button
@@ -834,6 +877,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
           if (mounted) {
             setState(() {
               _assignedTeachers = course.teachers;
+              _subjectLogos = course.subjectLogos;
             });
           }
         }
@@ -1041,5 +1085,397 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildLinkedContentSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Merge Test Series & E-books with Course'),
+        const SizedBox(height: 4),
+        Text(
+          'Students who purchase this course will automatically receive access to the linked test series and e-books.',
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+        ),
+        const SizedBox(height: 12),
+
+        // Linked Test Series
+        Card(
+          elevation: 0,
+          color: Colors.purple.shade50.withValues(alpha: 0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.purple.shade100),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Text('📝', style: TextStyle(fontSize: 18)),
+                    SizedBox(width: 8),
+                    Text(
+                      'Linked Test Series',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_allTestSeries.isEmpty)
+                  const Text('No test series available to link.', style: TextStyle(color: Colors.grey, fontSize: 12))
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _allTestSeries.map((ts) {
+                      final id = ts['id'] as String;
+                      final title = ts['title'] as String? ?? 'Test Series';
+                      final isSelected = _selectedTestSeriesIds.contains(id);
+                      return FilterChip(
+                        label: Text(title),
+                        selected: isSelected,
+                        selectedColor: Colors.purple.shade100,
+                        checkmarkColor: Colors.purple.shade800,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedTestSeriesIds.add(id);
+                            } else {
+                              _selectedTestSeriesIds.remove(id);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Linked E-books
+        Card(
+          elevation: 0,
+          color: Colors.indigo.shade50.withValues(alpha: 0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.indigo.shade100),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Text('📚', style: TextStyle(fontSize: 18)),
+                    SizedBox(width: 8),
+                    Text(
+                      'Linked E-books',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_allEbooks.isEmpty)
+                  const Text('No e-books available to link.', style: TextStyle(color: Colors.grey, fontSize: 12))
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _allEbooks.map((eb) {
+                      final id = eb['id'] as String;
+                      final title = eb['title'] as String? ?? 'E-book';
+                      final isSelected = _selectedEbookIds.contains(id);
+                      return FilterChip(
+                        label: Text(title),
+                        selected: isSelected,
+                        selectedColor: Colors.indigo.shade100,
+                        checkmarkColor: Colors.indigo.shade800,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedEbookIds.add(id);
+                            } else {
+                              _selectedEbookIds.remove(id);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubjectLogosSection() {
+    if (widget.course == null) {
+      return Card(
+        color: Colors.amber.shade50,
+        child: const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.amber),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Please save the course first to manage subject logos.',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final service = context.read<FirebaseAdminService>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Subject Logos'),
+        const SizedBox(height: 4),
+        Text(
+          'Upload custom logos for each subject in this course.',
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<List<String>>(
+          stream: service.getSubjectsForCourse(widget.course!.id),
+          builder: (context, snapshot) {
+            final courseSubjects = snapshot.data ?? [];
+            final allSubjectsSet = <String>{...courseSubjects, ..._subjectLogos.keys};
+            final allSubjects = allSubjectsSet.toList()..sort();
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (allSubjects.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'No subjects added to this course yet. Add lectures/notes or add a subject below.',
+                        style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: allSubjects.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final subjectName = allSubjects[index];
+                      final logoUrl = _subjectLogos[subjectName];
+                      final isUploading = _uploadingLogos[subjectName] ?? false;
+
+                      return Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.indigo.shade100),
+                                ),
+                                child: isUploading
+                                    ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                                    : (logoUrl != null && logoUrl.isNotEmpty)
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(10),
+                                            child: Image.network(
+                                              logoUrl,
+                                              fit: BoxFit.cover,
+                                              width: 50,
+                                              height: 50,
+                                              errorBuilder: (_, __, ___) => Image.asset('assets/icon.png', fit: BoxFit.cover),
+                                            ),
+                                          )
+                                        : ClipRRect(
+                                            borderRadius: BorderRadius.circular(10),
+                                            child: Image.asset('assets/icon.png', fit: BoxFit.cover),
+                                          ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      subjectName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      logoUrl != null && logoUrl.isNotEmpty ? 'Logo uploaded' : 'No custom logo',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: logoUrl != null && logoUrl.isNotEmpty ? Colors.green : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: isUploading ? null : () => _pickAndUploadSubjectLogo(subjectName),
+                                icon: const Icon(Icons.upload_file, size: 18),
+                                label: Text(logoUrl != null && logoUrl.isNotEmpty ? 'Change' : 'Upload'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.indigo,
+                                ),
+                              ),
+                              if (logoUrl != null && logoUrl.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                  tooltip: 'Remove logo',
+                                  onPressed: isUploading
+                                      ? null
+                                      : () async {
+                                          try {
+                                            await service.removeCourseSubjectLogo(widget.course!.id, subjectName);
+                                            setState(() {
+                                              _subjectLogos.remove(subjectName);
+                                            });
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Removed logo for $subjectName')),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Error removing logo: $e'), backgroundColor: Colors.red),
+                                              );
+                                            }
+                                          }
+                                        },
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _newSubjectLogoNameController,
+                        decoration: const InputDecoration(
+                          hintText: 'Add custom subject name (e.g. History)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        final name = _newSubjectLogoNameController.text.trim();
+                        if (name.isEmpty) return;
+                        _newSubjectLogoNameController.clear();
+                        _pickAndUploadSubjectLogo(name);
+                      },
+                      icon: const Icon(Icons.add_a_photo, size: 18),
+                      label: const Text('Add Logo'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickAndUploadSubjectLogo(String subjectName) async {
+    if (widget.course == null) return;
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not read image file bytes'), backgroundColor: Colors.red),
+        );
+      }
+      return;
+    }
+
+    final mimeType = lookupMimeType(file.name) ?? 'image/jpeg';
+    final service = context.read<FirebaseAdminService>();
+
+    setState(() {
+      _uploadingLogos[subjectName] = true;
+    });
+
+    try {
+      final logoUrl = await service.uploadSubjectLogo(
+        widget.course!.id,
+        subjectName,
+        bytes,
+        mimeType,
+      );
+      await service.updateCourseSubjectLogo(widget.course!.id, subjectName, logoUrl);
+
+      if (mounted) {
+        setState(() {
+          _subjectLogos[subjectName] = logoUrl;
+          _uploadingLogos[subjectName] = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Subject logo updated for $subjectName!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _uploadingLogos[subjectName] = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading subject logo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

@@ -98,6 +98,9 @@ class StoreRepository {
           duration: data['duration'] as String? ?? '',
           isActive: data['isActive'] ?? true,
           isEnrolled: isEnrolled,
+          linkedTestSeries: List<String>.from(data['linkedTestSeries'] ?? []),
+          linkedEbooks: List<String>.from(data['linkedEbooks'] ?? []),
+          subjectLogos: Map<String, String>.from(data['subjectLogos'] as Map? ?? {}),
         );
       }).toList();
 

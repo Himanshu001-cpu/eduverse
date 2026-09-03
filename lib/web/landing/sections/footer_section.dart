@@ -317,17 +317,17 @@ class FooterSection extends StatelessWidget {
                                     ],
                                   ),
                                   const SizedBox(height: 24),
-                                  SizedBox(
-                                    width: 280,
-                                    child: Text(
-                                      'India\'s #1 AI-powered exam preparation platform. Master UPSC, SSC, Banking & more with personalized learning.',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 14,
-                                        color: const Color(0xFF94a3b8),
-                                        height: 1.6,
+                                    SizedBox(
+                                      width: 280,
+                                      child: Text(
+                                        'Comprehensive exam preparation platform for MPPSC, UPSC, and competitive examinations. Quality video lectures, mock tests, and study materials.',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          color: const Color(0xFF94a3b8),
+                                          height: 1.6,
+                                        ),
                                       ),
                                     ),
-                                  ),
                                   const SizedBox(height: 32),
                                   // Social icons
                                   Row(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
@@ -15,6 +17,7 @@ import 'package:eduverse/profile/models/bookmark_model.dart';
 import 'package:eduverse/study/models/community_models.dart';
 import 'package:eduverse/study/screens/student_community_screen.dart';
 import 'package:eduverse/study/data/repositories/community_repository.dart';
+import 'package:eduverse/study/presentation/screens/recorded_batch_detail_screen.dart';
 
 class BatchDetailScreen extends StatefulWidget {
   final StudyBatch batch;
@@ -50,7 +53,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
     _checkBookmarkStatus();
     _loadLiveClasses();
     _loadStats();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   Future<void> _loadLiveClasses() async {
@@ -62,7 +65,12 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
       );
       if (mounted) {
         setState(() {
-          _liveClasses = classes;
+          _liveClasses = classes.map((lc) => lc.copyWith(
+            courseId: widget.batch.courseId,
+            courseName: widget.batch.courseName,
+            batchId: widget.batch.id,
+            batchName: widget.batch.name,
+          )).toList();
           _isLoadingLiveClasses = false;
         });
       }
@@ -152,6 +160,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                   Tab(text: 'Quizzes'),
                   Tab(text: 'Schedule'),
                   Tab(text: 'Community'),
+                  Tab(text: 'Recorded'),
                 ],
               ),
             ),
@@ -164,6 +173,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             _buildQuizzesTab(),
             _buildScheduleTab(),
             _buildCommunityTab(),
+            _buildRecordedTab(),
           ],
         ),
       ),
@@ -982,6 +992,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             controller.getLectures(widget.batch.courseId, widget.batch.id),
             controller.getBatchNotes(widget.batch.courseId, widget.batch.id),
             controller.repository.getBatchDpps(widget.batch.courseId, widget.batch.id),
+            EduverseFirebase.firestore.collection('courses').doc(widget.batch.courseId).get(),
           ]),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -994,6 +1005,9 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             final lectures = snapshot.data![0] as List<StudyLecture>;
             final notes = snapshot.data![1] as List<StudyNote>;
             final dpps = snapshot.data![2] as List<StudyDpp>;
+            final courseDoc = snapshot.data![3] as DocumentSnapshot;
+            final courseData = courseDoc.data() as Map<String, dynamic>?;
+            final subjectLogos = Map<String, String>.from(courseData?['subjectLogos'] as Map? ?? {});
 
             // Aggregate unique subjects
             final subjectSet = <String>{};
@@ -1052,6 +1066,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
 
                 return _SubjectCard(
                   subject: subject,
+                  logoUrl: subjectLogos[subject],
                   chapterCount: chapSet.length,
                   lectureCount: lectureCount,
                   noteCount: noteCount,
@@ -1648,6 +1663,124 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
       },
     );
   }
+
+  Widget _buildRecordedTab() {
+    final controller = Provider.of<StudyController>(context, listen: false);
+
+    return FutureBuilder<List<StudyRecordedBatch>>(
+      future: controller.getRecordedBatchesForCourse(widget.batch.courseId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        final list = snapshot.data ?? [];
+        if (list.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.video_library_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No recorded batches available for this course.',
+                  style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: list.length,
+          itemBuilder: (context, index) {
+            final batch = list[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Colors.teal.shade100),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(16),
+                leading: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.video_library, color: Colors.teal, size: 28),
+                ),
+                title: Text(
+                  batch.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (batch.description.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        batch.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${batch.totalLectures} Lectures',
+                            style: TextStyle(fontSize: 11, color: Colors.teal.shade900, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (!batch.isFreeForEnrolled)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '₹${batch.finalPrice}',
+                              style: TextStyle(fontSize: 11, color: Colors.purple.shade900, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+                trailing: const Icon(Icons.chevron_right, color: Colors.teal),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecordedBatchDetailScreen(
+                        courseId: widget.batch.courseId,
+                        batch: batch,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
@@ -2010,6 +2143,7 @@ class _DownloadAllProgressDialog extends StatelessWidget {
 // Subject card for the Subjects tab
 class _SubjectCard extends StatelessWidget {
   final String subject;
+  final String? logoUrl;
   final int chapterCount;
   final int lectureCount;
   final int noteCount;
@@ -2019,6 +2153,7 @@ class _SubjectCard extends StatelessWidget {
 
   const _SubjectCard({
     required this.subject,
+    this.logoUrl,
     required this.chapterCount,
     required this.lectureCount,
     required this.noteCount,
@@ -2027,18 +2162,10 @@ class _SubjectCard extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _gradients = [
-    [Color(0xFF4A90E2), Color(0xFF357ABD)],
-    [Color(0xFF7B61FF), Color(0xFF5B3FD4)],
-    [Color(0xFFE94560), Color(0xFFC23152)],
-    [Color(0xFF00B894), Color(0xFF009874)],
-    [Color(0xFFF39C12), Color(0xFFD68910)],
-    [Color(0xFF6C5CE7), Color(0xFF5341C4)],
-  ];
+
 
   @override
   Widget build(BuildContext context) {
-    final gradient = _gradients[colorIndex % _gradients.length];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -2054,22 +2181,60 @@ class _SubjectCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Subject icon
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: gradient,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.subject, color: Colors.white, size: 26),
-                  ),
-                ),
+                // Subject icon / logo
+                logoUrl != null && logoUrl!.isNotEmpty
+                    ? Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.network(
+                            logoUrl!,
+                            fit: BoxFit.cover,
+                            width: 50,
+                            height: 50,
+                            errorBuilder: (context, error, stackTrace) => Image.asset(
+                              'assets/icon.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.asset(
+                            'assets/icon.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
                 const SizedBox(width: 14),
                 // Info
                 Expanded(

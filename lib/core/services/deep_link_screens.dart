@@ -10,6 +10,10 @@ import 'package:eduverse/feed/repository/feed_repository.dart';
 import 'package:eduverse/feed/screens/generic_feed_detail_router.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/data/repositories/study_repository_impl.dart';
+import 'package:eduverse/store/screens/combo_pack_detail_page.dart';
+import 'package:eduverse/store/screens/ebook_detail_page.dart';
+import 'package:eduverse/store/widgets/store_test_series_content.dart';
+import 'package:eduverse/store/services/test_series_repository.dart';
 
 /// Screens that handle deep link navigation by loading data asynchronously.
 /// These screens show a loading indicator while fetching the required data,
@@ -407,6 +411,288 @@ class _DeepLinkFeedScreenState extends State<DeepLinkFeedScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Deep link screen for combo pack detail pages.
+/// Route: /app/comboPack/{comboPackId}
+class DeepLinkComboPackScreen extends StatefulWidget {
+  final String comboPackId;
+
+  const DeepLinkComboPackScreen({super.key, required this.comboPackId});
+
+  @override
+  State<DeepLinkComboPackScreen> createState() => _DeepLinkComboPackScreenState();
+}
+
+class _DeepLinkComboPackScreenState extends State<DeepLinkComboPackScreen> {
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComboPack();
+  }
+
+  Future<void> _loadComboPack() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('combination_packs')
+          .doc(widget.comboPackId)
+          .get();
+
+      if (!mounted) return;
+
+      if (!doc.exists || doc.data() == null) {
+        setState(() {
+          _error = 'Combo pack not found';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final pack = CombinationPack.fromMap(doc.data()!, doc.id);
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ComboPackDetailPage(pack: pack),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Error loading combo pack: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Loading...')),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading combo pack...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Error')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(_error ?? 'Unknown error'),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Go Back'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Deep link screen for test series detail pages.
+/// Route: /app/testSeries/{testSeriesId}
+class DeepLinkTestSeriesScreen extends StatefulWidget {
+  final String testSeriesId;
+
+  const DeepLinkTestSeriesScreen({super.key, required this.testSeriesId});
+
+  @override
+  State<DeepLinkTestSeriesScreen> createState() => _DeepLinkTestSeriesScreenState();
+}
+
+class _DeepLinkTestSeriesScreenState extends State<DeepLinkTestSeriesScreen> {
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTestSeries();
+  }
+
+  Future<void> _loadTestSeries() async {
+    try {
+      final repo = TestSeriesRepository();
+      final item = await repo.getTestSeriesDetail(widget.testSeriesId);
+
+      if (!mounted) return;
+
+      if (item == null) {
+        setState(() {
+          _error = 'Test series not found';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TestSeriesDetailPage(testSeries: item),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Error loading test series: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Loading...')),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading test series...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Error')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(_error ?? 'Unknown error'),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Go Back'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Deep link screen for ebook detail pages.
+/// Route: /app/ebook/{ebookId}
+class DeepLinkEbookScreen extends StatefulWidget {
+  final String ebookId;
+
+  const DeepLinkEbookScreen({super.key, required this.ebookId});
+
+  @override
+  State<DeepLinkEbookScreen> createState() => _DeepLinkEbookScreenState();
+}
+
+class _DeepLinkEbookScreenState extends State<DeepLinkEbookScreen> {
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEbook();
+  }
+
+  Future<void> _loadEbook() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('ebooks')
+          .doc(widget.ebookId)
+          .get();
+
+      if (!mounted) return;
+
+      if (!doc.exists || doc.data() == null) {
+        setState(() {
+          _error = 'Ebook not found';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final ebook = Ebook.fromMap(doc.data()!, doc.id);
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EbookDetailPage(ebook: ebook),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Error loading ebook: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Loading...')),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading ebook...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Error')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(_error ?? 'Unknown error'),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Go Back'),
+            ),
+          ],
         ),
       ),
     );

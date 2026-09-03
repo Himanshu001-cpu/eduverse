@@ -11,6 +11,8 @@ class Poster {
   final List<PosterButton> buttons;
   final bool showAsPopup;
   final String popupFrequency; // 'once', 'daily', 'always'
+  final bool showInStore;
+  final bool showInFeed;
   final bool sendNotification;
   final bool isActive;
   final int order;
@@ -30,6 +32,8 @@ class Poster {
     required this.buttons,
     this.showAsPopup = false,
     this.popupFrequency = 'once',
+    this.showInStore = true,
+    this.showInFeed = true,
     this.sendNotification = false,
     this.isActive = true,
     this.order = 0,
@@ -54,6 +58,8 @@ class Poster {
           [],
       showAsPopup: data['showAsPopup'] ?? false,
       popupFrequency: data['popupFrequency'] ?? 'once',
+      showInStore: data['showInStore'] ?? true,
+      showInFeed: data['showInFeed'] ?? true,
       sendNotification: data['sendNotification'] ?? false,
       isActive: data['isActive'] ?? true,
       order: data['order'] ?? 0,
@@ -79,6 +85,8 @@ class Poster {
       'buttons': buttons.map((b) => b.toMap()).toList(),
       'showAsPopup': showAsPopup,
       'popupFrequency': popupFrequency,
+      'showInStore': showInStore,
+      'showInFeed': showInFeed,
       'sendNotification': sendNotification,
       'isActive': isActive,
       'order': order,

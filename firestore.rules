@@ -264,6 +264,32 @@ service cloud.firestore {
         allow write: if isAdmin() || isTeacher();
       }
 
+      // Recorded Batches subcollection
+      match /recorded_batches/{batchId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin();
+
+        match /lessons/{lessonId} {
+          allow read: if isEnrolled(courseId);
+          allow write: if isAdmin();
+        }
+
+        match /notes/{noteId} {
+          allow read: if isEnrolled(courseId);
+          allow write: if isAdmin();
+        }
+
+        match /dpps/{dppId} {
+          allow read: if isEnrolled(courseId);
+          allow write: if isAdmin();
+        }
+
+        match /quizzes/{quizId} {
+          allow read: if isEnrolled(courseId);
+          allow write: if isAdmin();
+        }
+      }
+
       // ─── Legacy Batch Subcollection Rules (backwards compatibility) ───
       // These rules allow old app versions to continue reading content
       // from the nested batch path: courses/{courseId}/batches/{batchId}/...

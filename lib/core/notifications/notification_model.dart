@@ -15,6 +15,9 @@ enum NotificationTargetType {
   quiz,
   batch,
   course,
+  comboPack,
+  testSeries,
+  ebook,
 }
 
 /// Notification model for in-app and push notifications

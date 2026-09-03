@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/screens/lecture_player_screen.dart';
+import 'package:eduverse/core/utils/youtube_utils.dart';
 
 class ContinueLearningSection extends StatelessWidget {
   const ContinueLearningSection({super.key});
@@ -42,6 +43,7 @@ class ContinueLearningSection extends StatelessWidget {
           duration: Duration(minutes: liveClass.durationMinutes),
           subject: liveClass.subject,
           chapter: liveClass.chapter,
+          thumbnailUrl: liveClass.thumbnailUrl,
         ));
       }
     }
@@ -126,7 +128,7 @@ class ContinueLearningSection extends StatelessWidget {
         else
 
         SizedBox(
-          height: 160,
+          height: 200,
           child: ListView.builder(
             key: const Key('continue_learning_list_view'),
             scrollDirection: Axis.horizontal,
@@ -142,8 +144,9 @@ class ContinueLearningSection extends StatelessWidget {
               // Find parent batch details for courseId/batchId context
               String? courseId;
               String? batchId;
+              StudyBatch? parentBatch;
               try {
-                final parentBatch = controller.enrolledBatches.firstWhere(
+                parentBatch = controller.enrolledBatches.firstWhere(
                   (b) => b.courseIds?.contains(lecture.id.split('_')[0]) == true || b.courseId == lecture.id.split('_')[0],
                 );
                 courseId = parentBatch.courseId;
@@ -153,8 +156,21 @@ class ContinueLearningSection extends StatelessWidget {
                 batchId = courseId;
               }
 
+              // Compute effective thumbnail URL
+              String effectiveThumbnailUrl = '';
+              if (lecture.thumbnailUrl.isNotEmpty) {
+                effectiveThumbnailUrl = lecture.thumbnailUrl;
+              } else {
+                final videoId = YouTubeUtils.extractVideoId(lecture.videoUrl);
+                if (videoId != null && videoId.isNotEmpty) {
+                  effectiveThumbnailUrl = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+                } else if (parentBatch != null && parentBatch.thumbnailUrl.isNotEmpty) {
+                  effectiveThumbnailUrl = parentBatch.thumbnailUrl;
+                }
+              }
+
               return Container(
-                width: 200,
+                width: 230,
                 margin: const EdgeInsets.symmetric(horizontal: 8),
                 child: Material(
                   color: Colors.transparent,
@@ -194,18 +210,58 @@ class ContinueLearningSection extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Thumbnail section
-                          Expanded(
-                            flex: 3,
+                          // 16:9 Thumbnail section
+                          AspectRatio(
+                            aspectRatio: 16 / 9,
                             child: Container(
                               color: Colors.grey.shade100,
                               child: Stack(
+                                fit: StackFit.expand,
                                 children: [
+                                  if (effectiveThumbnailUrl.isNotEmpty)
+                                    Image.network(
+                                      effectiveThumbnailUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Container(
+                                        color: Colors.blue.shade900,
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.play_circle_fill_rounded,
+                                            color: Colors.white70,
+                                            size: 40,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Container(
+                                      color: Colors.blue.shade900,
+                                    ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.black.withValues(alpha: 0.3),
+                                          Colors.transparent,
+                                          Colors.black.withValues(alpha: 0.4),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                   Center(
-                                    child: Icon(
-                                      Icons.play_circle_fill_rounded,
-                                      color: Colors.blue.shade700,
-                                      size: 40,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(alpha: 0.35),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.play_arrow_rounded,
+                                        color: Colors.white,
+                                        size: 32,
+                                      ),
                                     ),
                                   ),
                                   Positioned(
@@ -233,7 +289,6 @@ class ContinueLearningSection extends StatelessWidget {
                           ),
                           // Details section
                           Expanded(
-                            flex: 2,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                               child: Column(
@@ -247,7 +302,7 @@ class ContinueLearningSection extends StatelessWidget {
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
                                     ),
-                                    maxLines: 2,
+                                    maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Column(

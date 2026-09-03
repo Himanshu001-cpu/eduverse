@@ -31,8 +31,9 @@ class PurchaseService {
 
     try {
       await _firestore.runTransaction((transaction) async {
-        // 1. READ PHASE: Fetch all unique combination packs first
+        // 1. READ PHASE: Fetch all unique combination packs and courses first
         final Map<String, Map<String, dynamic>> comboPacksData = {};
+        final Map<String, Map<String, dynamic>> coursesData = {};
         for (var item in items) {
           final combinationPackId = item['combinationPackId'] as String?;
           if (combinationPackId != null && combinationPackId.isNotEmpty) {
@@ -41,6 +42,16 @@ class PurchaseService {
               final snap = await transaction.get(docRef);
               if (snap.exists && snap.data() != null) {
                 comboPacksData[combinationPackId] = Map<String, dynamic>.from(snap.data()!);
+              }
+            }
+          }
+          final courseId = item['courseId'] as String?;
+          if (courseId != null && courseId.isNotEmpty && courseId != 'combination_pack') {
+            if (!coursesData.containsKey(courseId)) {
+              final docRef = _firestore.collection('courses').doc(courseId);
+              final snap = await transaction.get(docRef);
+              if (snap.exists && snap.data() != null) {
+                coursesData[courseId] = Map<String, dynamic>.from(snap.data()!);
               }
             }
           }
@@ -181,6 +192,38 @@ class PurchaseService {
             }, SetOptions(merge: true));
 
             enrollmentIds.add(enrollmentId);
+
+            // Grant linked test series and ebooks if any
+            final courseData = coursesData[courseId];
+            if (courseData != null) {
+              final List<dynamic> linkedTs = courseData['linkedTestSeries'] ?? [];
+              for (var ts in linkedTs) {
+                if (ts is String && ts.isNotEmpty) {
+                  debugPrint('     -> Course Linked Test Series: $ts');
+                  testSeriesIds.add(ts);
+                }
+              }
+              final List<dynamic> linkedEb = courseData['linkedEbooks'] ?? [];
+              for (var eb in linkedEb) {
+                if (eb is String && eb.isNotEmpty) {
+                  debugPrint('     -> Course Linked E-book: $eb');
+                  final ebookDoc = _firestore
+                      .collection('users')
+                      .doc(uid)
+                      .collection('purchasedEbooks')
+                      .doc(eb);
+
+                  transaction.set(ebookDoc, {
+                    'ebookId': eb,
+                    'purchasedAt': FieldValue.serverTimestamp(),
+                    'purchaseId': purchaseId,
+                    'status': 'active',
+                  }, SetOptions(merge: true));
+
+                  ebookIds.add(eb);
+                }
+              }
+            }
           } else {
             debugPrint('  -> SKIPPED: invalid course, batch, test series, combination pack or e-book configuration');
           }

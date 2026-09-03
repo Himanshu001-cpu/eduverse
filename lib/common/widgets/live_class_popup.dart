@@ -226,16 +226,25 @@ class _LiveClassPopupState extends State<LiveClassPopup> with SingleTickerProvid
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 3),
-                        if (liveClass.instructorName.isNotEmpty)
-                          Text(
-                            liveClass.instructorName,
+                        () {
+                          final String displayBatch = liveClass.batchName?.isNotEmpty == true
+                              ? liveClass.batchName!
+                              : (liveClass.courseName?.isNotEmpty == true ? liveClass.courseName! : '');
+                          final List<String> popupParts = [
+                            if (displayBatch.isNotEmpty) displayBatch,
+                            if (liveClass.instructorName.isNotEmpty) liveClass.instructorName,
+                          ];
+                          if (popupParts.isEmpty) return const SizedBox.shrink();
+                          return Text(
+                            popupParts.join(' • '),
                             style: TextStyle(
                               color: Colors.grey.shade400,
                               fontSize: 11,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                          ),
+                          );
+                        }(),
                         const SizedBox(height: 4),
                         Row(
                           children: [

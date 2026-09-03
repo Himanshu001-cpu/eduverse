@@ -623,6 +623,10 @@ class _NotificationEditorScreenState extends State<NotificationEditorScreen> {
         return _buildFeedItemSelector();
       case NotificationTargetType.liveClass:
         return _buildLiveClassSelector();
+      case NotificationTargetType.comboPack:
+      case NotificationTargetType.testSeries:
+      case NotificationTargetType.ebook:
+        return const SizedBox.shrink();
     }
   }
 

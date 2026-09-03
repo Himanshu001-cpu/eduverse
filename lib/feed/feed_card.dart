@@ -61,7 +61,7 @@ class FeedCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Title at bottom
+                  // Title & Action Button at bottom
                   Positioned(
                     left: 16,
                     right: 16,
@@ -87,16 +87,25 @@ class FeedCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            height: 1.3,
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: item.color,
+                            elevation: 4,
+                            shadowColor: Colors.black45,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                          ),
+                          onPressed: () => FeedDetailRouter.open(context, item),
+                          icon: Icon(item.buttonIcon, size: 16),
+                          label: Text(
+                            item.buttonLabel,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                         ),
                       ],
