@@ -442,6 +442,71 @@ void main() {
       expect(parsed, contains('&theta;'));
     });
 
+    testWidgets('F5_6: EquationBuilder category selector filters symbols across Algebra, Calculus, Greek, Matrices, and Symbols (D-03)', (WidgetTester tester) async {
+      String savedLatex = '';
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: EquationBuilder(
+            onEquationSaved: (eq) => savedLatex = eq,
+          ),
+        ),
+      ));
+
+      // Verify category chips exist
+      expect(find.byKey(const Key('category_algebra')), findsOneWidget);
+      expect(find.byKey(const Key('category_calculus')), findsOneWidget);
+      expect(find.byKey(const Key('category_greek')), findsOneWidget);
+      expect(find.byKey(const Key('category_matrices')), findsOneWidget);
+      expect(find.byKey(const Key('category_symbols')), findsOneWidget);
+
+      // Select Matrices category and tap a matrix preset
+      await tester.tap(find.byKey(const Key('category_matrices')));
+      await tester.pump();
+
+      expect(find.text('Matrix ( )'), findsOneWidget);
+      await tester.tap(find.text('Matrix ( )'));
+      await tester.pump();
+
+      final input = tester.widget<TextField>(find.byKey(const Key('latex_input')));
+      expect(input.controller!.text, contains(r'\begin{pmatrix}'));
+
+      await tester.tap(find.byKey(const Key('save_equation_button')));
+      await tester.pump();
+      expect(savedLatex, contains(r'\begin{pmatrix}'));
+    });
+
+    testWidgets('F5_7: RichContentViewer renders block display math and inline math natively on canvas (D-04)', (WidgetTester tester) async {
+      const html = '<p>Solve inline <span class="math-latex math-inline" data-latex="x%5E2%20%2B%20y%5E2%20%3D%20r%5E2">x^2 + y^2 = r^2</span> '
+          'and block: <div class="math-latex math-block" data-latex="%5Cint_%7Ba%7D%5E%7Bb%7D%20f(x)%20dx">\\int_{a}^{b} f(x) dx</div></p>';
+
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: RichContentViewer(htmlContent: html),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.byType(Math), findsNWidgets(2));
+    });
+
+    testWidgets('F5_8: RichContentViewer adapts math formula color in Dark Theme (D-04)', (WidgetTester tester) async {
+      const html = '<span class="math-latex" data-latex="E%20%3D%20mc%5E2">E = mc^2</span>';
+
+      await tester.pumpWidget(MaterialApp(
+        theme: ThemeData.dark(),
+        home: const Scaffold(
+          body: RichContentViewer(htmlContent: html),
+        ),
+      ));
+      await tester.pump();
+
+      final mathWidget = tester.widget<Math>(find.byType(Math));
+      expect(mathWidget.textStyle?.color, isNotNull);
+      // Under dark theme, color should adapt to theme's body text color
+      final darkThemeColor = ThemeData.dark().textTheme.bodyMedium?.color;
+      expect(mathWidget.textStyle!.color, equals(darkThemeColor));
+    });
+
     // === FEATURE 6: Whiteboard Diagrams ===
     testWidgets('F6_1: Whiteboard inserts diagram block tags into editor', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(

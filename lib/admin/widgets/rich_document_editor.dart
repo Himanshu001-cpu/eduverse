@@ -147,6 +147,20 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
       return RichTextService.parseLatexToHtml(match.group(1) ?? '');
     });
 
+    // Parse block display math $$...$$
+    final blockMathRegex = RegExp(r'\$\$(.*?)\$\$', dotAll: true);
+    html = html.replaceAllMapped(blockMathRegex, (match) {
+      final math = match.group(1)?.trim() ?? '';
+      return '<div class="math-latex math-block" data-latex="${Uri.encodeComponent(math)}">$math</div>';
+    });
+
+    // Parse inline math $...$
+    final inlineMathRegex = RegExp(r'(?<!\$)\$(?!\$)([^\$\n]+?)(?<!\$)\$(?!\$)');
+    html = html.replaceAllMapped(inlineMathRegex, (match) {
+      final math = match.group(1)?.trim() ?? '';
+      return '<span class="math-latex math-inline" data-latex="${Uri.encodeComponent(math)}">$math</span>';
+    });
+
     // Parse custom whiteboard diagram blocks
     final diagRegex = RegExp(r'\[diagram\](.*?)\[/diagram\]');
     html = html.replaceAllMapped(diagRegex, (match) {
