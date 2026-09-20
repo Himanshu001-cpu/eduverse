@@ -385,6 +385,8 @@ class FirebaseAdminService {
     String subjectName,
   ) async {
     final docRef = _db.collection('courses').doc(courseId);
+    final snap = await docRef.get();
+    if (!snap.exists) return;
     await docRef.update({
       'subjectLogos.$subjectName': FieldValue.delete(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -3585,6 +3587,12 @@ class FirebaseAdminService {
     }
     if (updates.isNotEmpty) {
       updates['updatedAt'] = FieldValue.serverTimestamp();
+      await _db
+          .collection('courses')
+          .doc(courseId)
+          .collection('live_classes')
+          .doc(classId)
+          .update(updates);
       await _logAudit('update_live_class', 'live_classes', classId, updates);
     }
   }

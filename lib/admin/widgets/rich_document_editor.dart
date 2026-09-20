@@ -266,7 +266,7 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
           },
           onHighlightChanged: (color) {
             if (color != null) {
-              _applyFormatting('<mark style="background-color: $color">', '</mark>', requireSelection: true);
+              _applyFormatting('<mark style="background-color: $color">', '</mark>');
             }
           },
           onInsertTablePressed: () {
