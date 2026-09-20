@@ -45,6 +45,7 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
 
   final TextEditingController _tableRowsController = TextEditingController();
   final TextEditingController _tableColsController = TextEditingController();
+  bool _tableHasHeader = false;
   String? _tableError;
 
   Timer? _autoSaveTimer;
@@ -168,11 +169,12 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
     });
 
     // Parse custom table blocks
-    final tableRegex = RegExp(r'\[table rows=(\d+) cols=(\d+)\](.*?)\[/table\]');
+    final tableRegex = RegExp(r'\[table rows=(\d+) cols=(\d+)(?:\s+header=(true|false))?\](.*?)\[/table\]', dotAll: true);
     html = html.replaceAllMapped(tableRegex, (match) {
       final rows = int.tryParse(match.group(1) ?? '1') ?? 1;
       final cols = int.tryParse(match.group(2) ?? '1') ?? 1;
-      final content = match.group(3) ?? '';
+      final hasHeader = match.group(3) == 'true';
+      final content = match.group(4) ?? '';
       
       final cells = content.split('|');
       var cellIndex = 0;
@@ -181,9 +183,15 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
       sb.writeln('<table class="rich-table" border="1" style="border-collapse: collapse; width: 100%;">');
       for (int r = 0; r < rows; r++) {
         sb.writeln('  <tr>');
+        final isHeaderRow = hasHeader && r == 0;
         for (int c = 0; c < cols; c++) {
           final cellText = cellIndex < cells.length ? cells[cellIndex].trim() : '';
-          sb.writeln('    <td style="padding: 8px;">${RichTextService.convertMarkdownToHtml(cellText)}</td>');
+          final formatted = RichTextService.convertMarkdownToHtml(cellText);
+          if (isHeaderRow) {
+            sb.writeln('    <th style="padding: 8px; font-weight: bold; background-color: rgba(0,0,0,0.06); text-align: left;">$formatted</th>');
+          } else {
+            sb.writeln('    <td style="padding: 8px;">$formatted</td>');
+          }
           cellIndex++;
         }
         sb.writeln('  </tr>');
@@ -253,17 +261,26 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
 
     // Create empty cells content string
     final cellCount = rows * cols;
-    final cells = List.generate(cellCount, (i) => 'Cell ${i + 1}').join(' | ');
-    final tableTag = '\n[table rows=$rows cols=$cols]$cells[/table]\n';
+    final cells = List.generate(cellCount, (i) {
+      if (_tableHasHeader && i < cols) {
+        return 'Header ${i + 1}';
+      }
+      return 'Cell ${i + 1}';
+    }).join(' | ');
+    final headerAttr = _tableHasHeader ? ' header=true' : '';
+    final tableTag = '\n[table rows=$rows cols=$cols$headerAttr]$cells[/table]\n';
     
     final text = _textController.text;
     final selection = _textController.selection;
     int index = selection.isValid ? selection.start : text.length;
     
     final newText = text.substring(0, index) + tableTag + text.substring(index);
-    _textController.text = newText;
+    setState(() {
+      _textController.text = newText;
+    });
     _tableRowsController.clear();
     _tableColsController.clear();
+    _onTextChanged();
   }
 
   @override
@@ -391,6 +408,19 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8.0),
+                  CheckboxListTile(
+                    key: const Key('table_header_toggle'),
+                    title: const Text('Format first row as table header'),
+                    value: _tableHasHeader,
+                    onChanged: (val) {
+                      setState(() {
+                        _tableHasHeader = val ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
                   if (_tableError != null) ...[
                     const SizedBox(height: 8.0),
                     Text(
@@ -516,14 +546,15 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
 
   List<_ParsedTable> _parseTablesFromText(String text) {
     final List<_ParsedTable> list = [];
-    final regex = RegExp(r'\[table rows=(\d+) cols=(\d+)\](.*?)\[/table\]', dotAll: true);
+    final regex = RegExp(r'\[table rows=(\d+) cols=(\d+)(?:\s+header=(true|false))?\](.*?)\[/table\]', dotAll: true);
     final matches = regex.allMatches(text).toList();
     
     for (int i = 0; i < matches.length; i++) {
       final match = matches[i];
       final rows = int.tryParse(match.group(1) ?? '1') ?? 1;
       final cols = int.tryParse(match.group(2) ?? '1') ?? 1;
-      final content = match.group(3) ?? '';
+      final hasHeader = match.group(3) == 'true';
+      final content = match.group(4) ?? '';
       
       final cellStrings = content.split('|');
       final cells = List.generate(
@@ -543,6 +574,7 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
         cols: cols,
         cells: cells,
         rawText: match.group(0)!,
+        hasHeader: hasHeader,
       ));
     }
     return list;
@@ -561,7 +593,8 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
       return (r < newCells.length && c < newCells[r].length) ? newCells[r][c] : '';
     });
     
-    final newTableMarkdown = '[table rows=$newRows cols=$newCols]${cellStrings.join(' | ')}[/table]';
+    final headerAttr = target.hasHeader ? ' header=true' : '';
+    final newTableMarkdown = '[table rows=$newRows cols=$newCols$headerAttr]${cellStrings.join(' | ')}[/table]';
     final newText = text.replaceFirst(target.rawText, newTableMarkdown);
     
     final selection = _textController.selection;
@@ -778,6 +811,7 @@ class _ParsedTable {
   final int cols;
   final List<List<String>> cells;
   final String rawText;
+  final bool hasHeader;
 
   _ParsedTable({
     required this.index,
@@ -785,6 +819,7 @@ class _ParsedTable {
     required this.cols,
     required this.cells,
     required this.rawText,
+    this.hasHeader = false,
   });
 }
 

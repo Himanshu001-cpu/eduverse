@@ -384,6 +384,51 @@ void main() {
       expect(find.byKey(const Key('rich_content_html_widget')), findsOneWidget);
     });
 
+    testWidgets('F4_6: Table builder toggle header row generates header=true markdown and renders th elements in HTML', (WidgetTester tester) async {
+      String savedHtml = '';
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Editor',
+            onSave: (_, html) => savedHtml = html,
+          ),
+        ),
+      ));
+      await tester.tap(find.byKey(const Key('btn_insert_table')));
+      await tester.pump();
+      await tester.enterText(find.byKey(const Key('table_rows_input')), '2');
+      await tester.enterText(find.byKey(const Key('table_cols_input')), '2');
+      await tester.tap(find.byKey(const Key('table_header_toggle')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('btn_submit_table')));
+      await tester.pump();
+
+      final editorField = tester.widget<TextField>(find.byKey(const Key('editor_text_field')));
+      expect(editorField.controller!.text, contains('[table rows=2 cols=2 header=true]'));
+      expect(editorField.controller!.text, contains('Header 1'));
+
+      await tester.tap(find.byKey(const Key('btn_manual_save')));
+      await tester.pump();
+      expect(savedHtml, contains('<table class="rich-table"'));
+      expect(savedHtml, contains('<th style="padding: 8px; font-weight: bold; background-color: rgba(0,0,0,0.06); text-align: left;">Header 1</th>'));
+      expect(savedHtml, contains('<td style="padding: 8px;">Cell 3</td>'));
+    });
+
+    testWidgets('F4_7: Render table inside responsive scrollable card with horizontal scroll and gradient shadow cue', (WidgetTester tester) async {
+      const html = '<table class="rich-table"><tr><th>Header 1</th><th>Header 2</th></tr><tr><td>Data 1</td><td>Data 2</td></tr></table>';
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: RichContentViewer(htmlContent: html),
+        ),
+      ));
+      await tester.pump();
+      expect(find.byKey(const Key('responsive_table_card')), findsOneWidget);
+      expect(find.byKey(const Key('table_horizontal_scroll')), findsOneWidget);
+      final scrollFinder = find.byKey(const Key('table_horizontal_scroll'));
+      final SingleChildScrollView scrollView = tester.widget(scrollFinder);
+      expect(scrollView.scrollDirection, Axis.horizontal);
+    });
+
     // === FEATURE 5: Equation Builder ===
     testWidgets('F5_1: Show equation builder dialog and insert simple equation', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
