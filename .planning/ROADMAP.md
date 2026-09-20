@@ -67,7 +67,7 @@ Eduverse is a mature brownfield application with ~98k lines of Dart code, server
   1. `analysis_options.yaml` exists at project root extending `package:flutter_lints/flutter.yaml`
   2. Orphaned dead files (`lib/study/screens/lecture_player_page.dart`) are safely pruned
   3. `flutter analyze` runs clean with zero errors and zero critical warnings
-**Plans**: TBD
+**Plans**: 2 plans (05-01, 05-02) - All Complete
 
 ## Progress
 
@@ -80,4 +80,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Rich Text & Office Suite Integration | 4/4 | Complete | 2026-09-20 |
 | 3. Architecture Consolidation & Repository Migration | 2/2 | Complete | 2026-09-20 |
 | 4. Admin Performance & Data Pagination | 2/2 | Complete | 2026-09-20 |
-| 5. Code Hygiene & Linter Enforcement | 0/TBD | Pending | - |
+| 5. Code Hygiene & Linter Enforcement | 2/2 | Complete | 2026-09-20 |
