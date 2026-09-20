@@ -1,0 +1,27 @@
+{
+  "source_path": "docs/PRD.md",
+  "type": "PRD",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — Product Requirements Document (PRD)",
+  "summary": "Comprehensive product requirements for the Eduverse ed-tech platform covering student, teacher, admin, and superadmin personas, core user journeys, functional modules (study, feed, store, profile, admin panel), and non-functional requirements.",
+  "scope": [
+    "ed-tech",
+    "competitive exams",
+    "course delivery",
+    "video lectures",
+    "quizzes",
+    "live classes",
+    "e-commerce",
+    "payments",
+    "admin back-office"
+  ],
+  "cross_refs": [
+    "docs/features.md",
+    "docs/architecture.md",
+    "docs/db-schema.md"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": "Primary Product Requirements Document establishing overall product vision, user personas, journeys, and functional specs."
+}

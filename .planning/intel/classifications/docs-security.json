@@ -1,0 +1,22 @@
+{
+  "source_path": "docs/security.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — Security Model & Data Protection",
+  "summary": "Security specifications covering Firebase Security Rules, hardware screenshot prevention (ScreenProtector), Firebase App Check attestation, and PDF DRM obfuscation.",
+  "scope": [
+    "Firebase rules",
+    "App Check",
+    "ScreenProtector",
+    "DRM obfuscation",
+    "RBAC claims"
+  ],
+  "cross_refs": [
+    "docs/architecture.md",
+    "docs/db-schema.md"
+  ],
+  "locked": false,
+  "precedence": 1,
+  "notes": "Non-functional and technical security specifications."
+}

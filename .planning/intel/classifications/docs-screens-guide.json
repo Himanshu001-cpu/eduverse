@@ -1,0 +1,21 @@
+{
+  "source_path": "docs/screens-guide.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — Screens & Navigation Guide",
+  "summary": "Comprehensive screen map, route navigation paths, and view hierarchies for mobile, admin, and web interfaces.",
+  "scope": [
+    "screen routing",
+    "navigation stack",
+    "admin routes",
+    "deep links"
+  ],
+  "cross_refs": [
+    "docs/component-inventory.md",
+    "docs/DEEP_LINK_SETUP.md"
+  ],
+  "locked": false,
+  "precedence": 3,
+  "notes": "Route map and screen navigation guide."
+}

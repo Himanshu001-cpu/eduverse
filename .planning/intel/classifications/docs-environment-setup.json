@@ -1,0 +1,20 @@
+{
+  "source_path": "docs/environment-setup.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — Environment & Developer Setup",
+  "summary": "Local development setup instructions, Flutter environment requirements, Firebase emulators configuration, and build instructions.",
+  "scope": [
+    "environment setup",
+    "Flutter SDK",
+    "Firebase emulators",
+    "Android/iOS build"
+  ],
+  "cross_refs": [
+    "docs/architecture.md"
+  ],
+  "locked": false,
+  "precedence": 3,
+  "notes": "Developer workstation and tooling setup instructions."
+}

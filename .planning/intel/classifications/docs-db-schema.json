@@ -1,0 +1,25 @@
+{
+  "source_path": "docs/db-schema.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — Database Schema",
+  "summary": "Complete data schema specifications for Cloud Firestore collections, subcollections, document field definitions, indexes, Realtime Database paths, and storage bucket structures.",
+  "scope": [
+    "Firestore collections",
+    "users subcollections",
+    "courses",
+    "purchases",
+    "enrollments",
+    "live_classes",
+    "RTDB presence",
+    "Storage buckets"
+  ],
+  "cross_refs": [
+    "docs/data-models.md",
+    "docs/api-specs.md"
+  ],
+  "locked": false,
+  "precedence": 1,
+  "notes": "Technical specification of all database collections, fields, and access rules."
+}

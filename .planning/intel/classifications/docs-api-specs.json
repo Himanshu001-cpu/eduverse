@@ -1,0 +1,23 @@
+{
+  "source_path": "docs/api-specs.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse API Specifications & Architecture Reference",
+  "summary": "Technical interface specifications for all Firebase Cloud Functions (onPurchaseCreate, enrollStudent, webhookPaymentUpdate, etc.) and client service APIs with request/response schemas, transactional state machines, and error handling.",
+  "scope": [
+    "Cloud Functions",
+    "Client Services",
+    "Razorpay Webhook",
+    "RBAC Callables",
+    "Presence Sync",
+    "FCM Multicast"
+  ],
+  "cross_refs": [
+    "docs/architecture.md",
+    "docs/rfcs.md"
+  ],
+  "locked": false,
+  "precedence": 1,
+  "notes": "Defines strict interface contracts, error codes, and request/response specifications for all platform APIs."
+}

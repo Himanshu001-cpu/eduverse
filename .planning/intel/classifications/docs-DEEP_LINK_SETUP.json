@@ -1,0 +1,20 @@
+{
+  "source_path": "docs/DEEP_LINK_SETUP.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — Deep Link Setup & Integration Guide",
+  "summary": "Configuration guide for Android App Links, iOS Universal Links, and web URL rewrites for direct course/batch routing.",
+  "scope": [
+    "deep linking",
+    "assetlinks.json",
+    "apple-app-site-association",
+    "app_links"
+  ],
+  "cross_refs": [
+    "docs/screens-guide.md"
+  ],
+  "locked": false,
+  "precedence": 3,
+  "notes": "Deep link operational setup guide."
+}
