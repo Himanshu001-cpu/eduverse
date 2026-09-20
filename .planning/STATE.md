@@ -3,11 +3,11 @@ gsd_state_version: "1.0"
 current_phase: 5
 current_phase_name: Code Hygiene & Linter Enforcement
 status: ready
-stopped_at: "Phase 4 completed: 2 plans executed (04-01, 04-02), all 405 tests passing"
-last_updated: "2026-09-20T12:12:00.000Z"
+stopped_at: "Phase 5 planned: 2 plans in 2 waves (05-01, 05-02 verified)"
+last_updated: "2026-09-20T12:38:00.000Z"
 last_activity: 2026-09-20
-last_activity_desc: "Completed Phase 4: Admin Performance & Data Pagination (04-01, 04-02 executed, verified, 405 tests passing, 0 linter issues)."
-state_head: 6fa4a88dc146e2973eb7f98e7fa56a64282f1b40
+last_activity_desc: "Planned Phase 5: Code Hygiene & Linter Enforcement (05-01, 05-02 verified by plan checker)."
+state_head: ff0c35cd5ecfaad0fc8433391d4411a0ea47271e
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: `.planning/PROJECT.md` (updated 2026-09-20)
 
 ## Current Position
 
-Phase: 5 (Code Hygiene & Linter Enforcement) — READY TO PLAN
-Plan: 0 in current phase
-Status: Ready to plan
-Last activity: 2026-09-20 — Completed Phase 4: Admin Performance & Data Pagination (04-01, 04-02 executed, verified, 405 tests passing, 0 linter issues).
+Phase: 5 (Code Hygiene & Linter Enforcement) — READY TO EXECUTE
+Plan: 0 of 2 in current phase
+Status: Ready to execute
+Last activity: 2026-09-20 — Planned Phase 5: Code Hygiene & Linter Enforcement (05-01, 05-02 verified by plan checker).
 
 Progress: [████████░░] 80%
 
@@ -50,6 +50,7 @@ Progress: [████████░░] 80%
 | 2. Rich Text & Office Suite Integration | 4/4 | 1.5h | 22m |
 | 3. Architecture Consolidation & Repository Migration | 2/2 | 27m | 14m |
 | 4. Admin Performance & Data Pagination | 2/2 | 32m | 16m |
+| 5. Code Hygiene & Linter Enforcement | 0/2 | - | - |
 
 **Recent Trend:**
 
@@ -72,13 +73,14 @@ Key architectural decisions locked during document ingestion and execution:
 - RFC-009: Notification delivery pipeline (Firestore trigger + FCM multicast)
 - Phase 3 Consolidation: Eliminated legacy `lib/study/study_repository.dart`. All study screens and views strictly use `StudyRepositoryImpl` / `IStudyRepository`. Combination packs unbundled into enrolled courses.
 - RFC-010: Server-side Firestore cursor pagination for Admin Tables (`UsersScreen` & `PurchasesScreen` limit 20 items with `startAfterDocument` cursor, infinite scroll, accessible Load More buttons, 400ms debounced search, date-range picker filters, LRU customer resolution cache, and cached `admin_stats/dashboard` document streaming).
+- Phase 5 Hygiene: `analysis_options.yaml` extends `package:flutter_lints/flutter.yaml`, elevates `avoid_print`, `unused_import`, `unused_local_variable`, `dead_code` to errors, prunes `lecture_player_page.dart` (513 lines), runs `dart fix --apply` for 96 AST issues, and remediates 53 `use_build_context_synchronously` gaps.
 
 ### Blockers/Concerns
 
-- None. All high-volume admin collection streaming eliminated; all 405 tests pass.
+- None.
 
 ## Session Continuity
 
-Last session: 2026-09-20T12:12:00.000Z
-Stopped at: Phase 4 completed: 2 plans executed (04-01, 04-02), all 405 tests passing
-Resume file: .planning/ROADMAP.md
+Last session: 2026-09-20T12:38:00.000Z
+Stopped at: Phase 5 planned: 2 plans verified (05-01, 05-02), ready to execute
+Resume file: .planning/phases/05-code-hygiene-linter-enforcement/05-01-PLAN.md
