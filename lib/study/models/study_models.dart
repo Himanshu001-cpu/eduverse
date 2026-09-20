@@ -542,7 +542,10 @@ class WorkbookModel {
       id: id,
       userId: map['userId'] ?? '',
       title: map['title'] ?? '',
-      dueDate: DateTime.tryParse(map['dueDate'] ?? '') ?? DateTime.now(),
+      dueDate: map['dueDate'] is Timestamp
+          ? (map['dueDate'] as Timestamp).toDate()
+          : (DateTime.tryParse(map['dueDate']?.toString() ?? '') ??
+              DateTime.now()),
       status: map['status'] ?? 'Not Started',
       progress: (map['progress'] as num?)?.toDouble() ?? 0.0,
       tasks:

@@ -712,9 +712,43 @@ class StudyRepositoryImpl implements IStudyRepository {
       final List<String> courseIds = [];
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        final courseId = data['courseId'] as String? ?? doc.id.split('_')[0];
-        if (courseId.isNotEmpty && !courseIds.contains(courseId)) {
-          courseIds.add(courseId);
+        final comboId = data['combinationPackId'] as String?;
+        if (comboId != null && comboId.isNotEmpty) {
+          try {
+            final comboDoc = await _firestore
+                .collection('combination_packs')
+                .doc(comboId)
+                .get();
+            if (comboDoc.exists) {
+              final comboData = comboDoc.data()!;
+              if (comboData['courses'] != null) {
+                final List<dynamic> coursesList = comboData['courses'] as List<dynamic>;
+                for (var c in coursesList) {
+                  final cid = c.toString();
+                  if (cid.isNotEmpty && !courseIds.contains(cid)) {
+                    courseIds.add(cid);
+                  }
+                }
+              } else if (comboData['batches'] != null) {
+                final List<dynamic> legacyBatches = comboData['batches'] as List<dynamic>;
+                for (var b in legacyBatches) {
+                  if (b is Map && b['courseId'] != null) {
+                    final cid = b['courseId'].toString();
+                    if (cid.isNotEmpty && !courseIds.contains(cid)) {
+                      courseIds.add(cid);
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            debugPrint('Error unbundling combo pack $comboId in getEnrolledCourses: $e');
+          }
+        } else {
+          final courseId = data['courseId'] as String? ?? doc.id.split('_')[0];
+          if (courseId.isNotEmpty && !courseIds.contains(courseId)) {
+            courseIds.add(courseId);
+          }
         }
       }
 
