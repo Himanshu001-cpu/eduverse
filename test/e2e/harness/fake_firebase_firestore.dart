@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_firestore_platform_interface/cloud_firestore_platform_interface.dart' hide TransactionHandler;
+import 'package:cloud_firestore_platform_interface/cloud_firestore_platform_interface.dart' hide TransactionHandler, AggregateQuery;
 import 'package:cloud_firestore_platform_interface/src/method_channel/method_channel_field_value.dart';
 import 'package:uuid/uuid.dart';
 
@@ -300,6 +300,34 @@ class FakeDocumentSnapshot<T extends Object?> extends Fake implements DocumentSn
   }
 }
 
+class FakeAggregateQuery extends Fake implements AggregateQuery {
+  final FakeQuery _query;
+
+  FakeAggregateQuery(this._query);
+
+  @override
+  Query get query => _query;
+
+  @override
+  Future<AggregateQuerySnapshot> get({AggregateSource source = AggregateSource.server}) async {
+    final docs = _query._getDocs();
+    return FakeAggregateQuerySnapshot(_query, docs.length);
+  }
+}
+
+class FakeAggregateQuerySnapshot extends Fake implements AggregateQuerySnapshot {
+  final Query _query;
+  final int _count;
+
+  FakeAggregateQuerySnapshot(this._query, this._count);
+
+  @override
+  Query get query => _query;
+
+  @override
+  int? get count => _count;
+}
+
 class FakeCollectionReference<T extends Object?> extends FakeQuery<T> implements CollectionReference<T> {
   FakeCollectionReference(super.path, super.firestore);
 
@@ -327,8 +355,33 @@ class FakeQuery<T extends Object?> extends Fake implements Query<T> {
   final List<bool Function(String id, Map<String, dynamic> data)> _filters;
   final List<int Function(Map<String, dynamic> a, Map<String, dynamic> b)> _sorts;
   final int? _limit;
+  final DocumentSnapshot? _startAfterDoc;
+  final Iterable<Object?>? _startAfterValues;
 
-  FakeQuery(this.path, this.firestore, [this._filters = const [], this._sorts = const [], this._limit]);
+  FakeQuery(
+    this.path,
+    this.firestore, [
+    this._filters = const [],
+    this._sorts = const [],
+    this._limit,
+    this._startAfterDoc,
+    this._startAfterValues,
+  ]);
+
+  @override
+  Query<T> startAfterDocument(DocumentSnapshot documentSnapshot) {
+    return FakeQuery<T>(path, firestore, _filters, _sorts, _limit, documentSnapshot, _startAfterValues);
+  }
+
+  @override
+  Query<T> startAfter(Iterable<Object?> values) {
+    return FakeQuery<T>(path, firestore, _filters, _sorts, _limit, _startAfterDoc, values);
+  }
+
+  @override
+  AggregateQuery count() {
+    return FakeAggregateQuery(this);
+  }
 
   @override
   Query<T> where(Object field, {
@@ -393,7 +446,7 @@ class FakeQuery<T extends Object?> extends Fake implements Query<T> {
       return true;
     });
 
-    return FakeQuery<T>(path, firestore, filters, _sorts, _limit);
+    return FakeQuery<T>(path, firestore, filters, _sorts, _limit, _startAfterDoc, _startAfterValues);
   }
 
   dynamic _getValueForFieldPath(Map<String, dynamic> data, FieldPath path) {
@@ -428,12 +481,12 @@ class FakeQuery<T extends Object?> extends Fake implements Query<T> {
       final cmp = valA.compareTo(valB);
       return descending ? -cmp : cmp;
     });
-    return FakeQuery<T>(path, firestore, _filters, sorts, _limit);
+    return FakeQuery<T>(path, firestore, _filters, sorts, _limit, _startAfterDoc, _startAfterValues);
   }
 
   @override
   Query<T> limit(int value) {
-    return FakeQuery<T>(path, firestore, _filters, _sorts, value);
+    return FakeQuery<T>(path, firestore, _filters, _sorts, value, _startAfterDoc, _startAfterValues);
   }
 
   List<QueryDocumentSnapshot<T>> _getDocs() {
@@ -476,11 +529,19 @@ class FakeQuery<T extends Object?> extends Fake implements Query<T> {
       });
     }
 
-    if (_limit != null && results.length > _limit) {
-      return results.sublist(0, _limit);
+    List<QueryDocumentSnapshot<T>> filteredDocs = results;
+    if (_startAfterDoc != null) {
+      final index = filteredDocs.indexWhere((d) => d.id == _startAfterDoc!.id);
+      if (index != -1) {
+        filteredDocs = filteredDocs.sublist(index + 1);
+      }
     }
 
-    return results;
+    if (_limit != null && filteredDocs.length > _limit!) {
+      return filteredDocs.sublist(0, _limit!);
+    }
+
+    return filteredDocs;
   }
 
   @override

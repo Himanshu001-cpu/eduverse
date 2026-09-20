@@ -2,48 +2,37 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Service to fetch and aggregate admin dashboard statistics
 class AdminStatsService {
-  static final AdminStatsService _instance = AdminStatsService._internal();
-  factory AdminStatsService() => _instance;
-  AdminStatsService._internal();
+  final FirebaseFirestore _firestore;
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  AdminStatsService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  /// Get dashboard stats as a stream
-  Stream<DashboardStats> getDashboardStatsStream() async* {
-    // Get start of today for filtering
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final startOfDayTimestamp = Timestamp.fromDate(startOfDay);
-
-    while (true) {
-      try {
-        // Fetch all stats in parallel
-        final results = await Future.wait([
-          _getTotalUsers(),
-          _getActiveCourses(),
-          _getEnrollmentsToday(startOfDayTimestamp),
-          _getRevenueToday(startOfDayTimestamp),
-        ]);
-
-        yield DashboardStats(
-          totalUsers: results[0] as int,
-          activeCourses: results[1] as int,
-          enrollmentsToday: results[2] as int,
-          revenueToday: results[3] as double,
-        );
-      } catch (e) {
-        // Return default stats on error
-        yield DashboardStats(
+  /// Get dashboard stats as a stream from the cached stats document
+  Stream<DashboardStats> getDashboardStatsStream() {
+    return _firestore
+        .collection('admin_stats')
+        .doc('dashboard')
+        .snapshots()
+        .asyncMap((doc) async {
+      if (!doc.exists || doc.data() == null) {
+        // Initial setup or fallback: compute once, cache to admin_stats/dashboard, and emit
+        try {
+          await updateDashboardStats();
+          final updatedDoc =
+              await _firestore.collection('admin_stats').doc('dashboard').get();
+          if (updatedDoc.exists && updatedDoc.data() != null) {
+            return DashboardStats.fromJson(updatedDoc.data()!);
+          }
+        } catch (_) {}
+        return DashboardStats(
           totalUsers: 0,
           activeCourses: 0,
           enrollmentsToday: 0,
           revenueToday: 0,
         );
       }
-
-      // Refresh every 30 seconds
-      await Future.delayed(const Duration(seconds: 30));
-    }
+      return DashboardStats.fromJson(doc.data()!);
+    });
   }
 
   /// Get total number of users

@@ -495,6 +495,91 @@ class FirebaseAdminService {
     });
   }
 
+  /// T-04-01: Verifies that the current user has administrative claims or roles.
+  Future<bool> _verifyAdminAccess() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    // Check custom claims
+    try {
+      final token = await user.getIdTokenResult();
+      final claimRole = token.claims?['role'];
+      if (claimRole == 'admin' || claimRole == 'superadmin') {
+        return true;
+      }
+    } catch (_) {}
+
+    // Fallback: check users/{uid} document role in Firestore
+    try {
+      final doc = await _db.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final role = doc.data()?['role'];
+        if (role == 'admin' || role == 'superadmin') {
+          return true;
+        }
+      }
+    } catch (_) {}
+
+    return false;
+  }
+
+  /// Paginated purchases query using Firestore cursors and date range boundaries.
+  Future<PaginatedResult<AdminPurchase>> getPurchasesPaginated({
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+    String? statusFilter,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final isAuthorized = await _verifyAdminAccess();
+    if (!isAuthorized) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'Admin privileges required to access paginated purchases.',
+      );
+    }
+
+    Query<Map<String, dynamic>> query = _db.collection('purchases');
+
+    if (startDate != null) {
+      query = query.where(
+        'createdAt',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+      );
+    }
+    if (endDate != null) {
+      query = query.where(
+        'createdAt',
+        isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+      );
+    }
+    if (statusFilter != null &&
+        statusFilter.isNotEmpty &&
+        statusFilter.toLowerCase() != 'all') {
+      query = query.where('status', isEqualTo: statusFilter);
+    }
+
+    query = query.orderBy('createdAt', descending: true);
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    query = query.limit(limit);
+
+    final snapshot = await query.get();
+    final purchases = snapshot.docs
+        .map((doc) => AdminPurchase.fromMap(doc.data(), doc.id))
+        .toList();
+
+    return PaginatedResult<AdminPurchase>(
+      items: purchases,
+      lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+      hasMore: snapshot.docs.length == limit,
+    );
+  }
+
   // Migrate older user-specific transactions to top-level purchases collection
   Future<String> migrateUserTransactionsToPurchases() async {
     try {
@@ -629,6 +714,63 @@ class FirebaseAdminService {
               .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
               .toList();
         });
+  }
+
+  /// Paginated users query using Firestore cursors with role and disabled filters.
+  Future<PaginatedResult<AdminUser>> getUsersPaginated({
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+    String? roleFilter,
+    bool showDisabledOnly = false,
+    String? searchQuery,
+  }) async {
+    final isAuthorized = await _verifyAdminAccess();
+    if (!isAuthorized) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'Admin privileges required to access paginated users.',
+      );
+    }
+
+    Query<Map<String, dynamic>> query = _db.collection('users');
+
+    if (roleFilter != null &&
+        roleFilter.isNotEmpty &&
+        roleFilter.toLowerCase() != 'all') {
+      query = query.where('role', isEqualTo: roleFilter);
+    }
+    if (showDisabledOnly) {
+      query = query.where('disabled', isEqualTo: true);
+    }
+
+    query = query.orderBy('createdAt', descending: true);
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    query = query.limit(limit);
+
+    final snapshot = await query.get();
+    var users = snapshot.docs
+        .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
+        .toList();
+
+    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+      final lower = searchQuery.trim().toLowerCase();
+      users = users.where((u) =>
+          u.name.toLowerCase().contains(lower) ||
+          u.email.toLowerCase().contains(lower) ||
+          (u.phone ?? '').toLowerCase().contains(lower)
+      ).toList();
+    }
+
+    return PaginatedResult<AdminUser>(
+      items: users,
+      lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+      hasMore: snapshot.docs.length == limit,
+    );
   }
 
   // Get single user by ID
