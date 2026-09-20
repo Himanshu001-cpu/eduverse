@@ -12,18 +12,22 @@ import '../../core/services/rich_text_service.dart';
 class RichDocumentEditor extends StatefulWidget {
   final String? initialDeltaJson;
   final String? initialHtml;
+  final String? initialText;
   final String labelText;
   final String? hintText;
   final void Function(String deltaJson, String html) onSave;
+  final void Function(Map<String, dynamic> payload)? onSaveDualFormat;
   final Duration autoSaveDebounceDuration;
 
   const RichDocumentEditor({
     super.key,
     this.initialDeltaJson,
     this.initialHtml,
+    this.initialText,
     required this.labelText,
     this.hintText,
     required this.onSave,
+    this.onSaveDualFormat,
     this.autoSaveDebounceDuration = const Duration(minutes: 1),
   });
 
@@ -52,7 +56,7 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
   void initState() {
     super.initState();
     String initialText = '';
-    if (widget.initialDeltaJson != null) {
+    if (widget.initialDeltaJson != null && widget.initialDeltaJson!.trim().isNotEmpty) {
       try {
         final decoded = json.decode(widget.initialDeltaJson!);
         if (decoded is Map && decoded.containsKey('ops')) {
@@ -60,14 +64,17 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
           initialText = ops.map((op) => op['insert']?.toString() ?? '').join();
         }
       } catch (_) {
-        // Fallback to initialHtml parsing or empty
+        // Fallback to initialHtml parsing or initialText
       }
     }
-    if (initialText.isEmpty && widget.initialHtml != null) {
+    if (initialText.trim().isEmpty && widget.initialHtml != null && widget.initialHtml!.trim().isNotEmpty) {
       // Very simple extraction of text from html tags for editing
       initialText = widget.initialHtml!
           .replaceAll(RegExp(r'<[^>]*>'), '')
           .trim();
+    }
+    if (initialText.trim().isEmpty && widget.initialText != null && widget.initialText!.isNotEmpty) {
+      initialText = widget.initialText!;
     }
 
     _textController = TextEditingController(text: initialText);
@@ -95,6 +102,12 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
     final delta = _generateDeltaJson();
     final html = _generateHtml();
     widget.onSave(delta, html);
+    final payload = RichTextService.serializeForFirestore(
+      deltaJson: delta,
+      html: html,
+      plainText: _textController.text,
+    );
+    widget.onSaveDualFormat?.call(payload);
   }
 
   void _forceSave() {
@@ -102,6 +115,12 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
     final delta = _generateDeltaJson();
     final html = _generateHtml();
     widget.onSave(delta, html);
+    final payload = RichTextService.serializeForFirestore(
+      deltaJson: delta,
+      html: html,
+      plainText: _textController.text,
+    );
+    widget.onSaveDualFormat?.call(payload);
   }
 
   String _generateDeltaJson() {

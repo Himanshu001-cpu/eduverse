@@ -590,6 +590,81 @@ void main() {
       expect(DateTime.tryParse(dateStr), isNotNull);
     });
 
+    testWidgets('F7_6: RichTextService serializes dual format with contentDelta, contentHtml, content, plainText, and legacy aliases (D-01)', (WidgetTester tester) async {
+      const delta = '{"ops":[{"insert":"Hello Eduverse\\n"}]}';
+      const html = '<p>Hello Eduverse</p>';
+      final serialized = RichTextService.serializeForFirestore(deltaJson: delta, html: html);
+
+      expect(serialized['contentDelta'], equals(delta));
+      expect(serialized['contentHtml'], equals(html));
+      expect(serialized['deltaJson'], equals(delta));
+      expect(serialized['htmlSnapshot'], equals(html));
+      expect(serialized['content'], contains('Hello Eduverse'));
+      expect(serialized['plainText'], contains('Hello Eduverse'));
+      expect(serialized['updatedAt'], isNotNull);
+    });
+
+    testWidgets('F7_7: RichTextService sanitizes script tags and inline event handlers (T-02-01)', (WidgetTester tester) async {
+      const delta = '{"ops":[{"insert":"Malicious Test"}]}';
+      const maliciousHtml = '<p>Safe</p><script>alert("XSS")</script><img src="x" onerror="alert(1)" /><a href="javascript:steal()">Link</a>';
+      final serialized = RichTextService.serializeForFirestore(deltaJson: delta, html: maliciousHtml);
+
+      expect(serialized['contentHtml'], isNot(contains('<script>')));
+      expect(serialized['contentHtml'], isNot(contains('onerror')));
+      expect(serialized['contentHtml'], isNot(contains('javascript:steal()')));
+      expect(serialized['contentHtml'], contains('<p>Safe</p>'));
+    });
+
+    testWidgets('F7_8: RichDocumentEditor loads legacy plain text via initialText and emits dual format on save (D-02)', (WidgetTester tester) async {
+      String savedDelta = '';
+      String savedHtml = '';
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Legacy Document',
+            initialText: 'This is legacy plain text content',
+            onSave: (delta, html) {
+              savedDelta = delta;
+              savedHtml = html;
+            },
+          ),
+        ),
+      ));
+
+      final textField = tester.widget<TextField>(find.byKey(const Key('editor_text_field')));
+      expect(textField.controller!.text, equals('This is legacy plain text content'));
+
+      await tester.tap(find.byKey(const Key('btn_manual_save')));
+      await tester.pump();
+
+      expect(savedDelta, contains('This is legacy plain text content'));
+      expect(savedHtml, contains('This is legacy plain text content'));
+    });
+
+    testWidgets('F7_9: RichDocumentEditor triggers onSaveDualFormat callback with full payload', (WidgetTester tester) async {
+      Map<String, dynamic>? dualPayload;
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Dual Format Editor',
+            onSave: (_, __) {},
+            onSaveDualFormat: (payload) {
+              dualPayload = payload;
+            },
+          ),
+        ),
+      ));
+
+      await tester.enterText(find.byKey(const Key('editor_text_field')), 'Testing dual save');
+      await tester.tap(find.byKey(const Key('btn_manual_save')));
+      await tester.pump();
+
+      expect(dualPayload, isNotNull);
+      expect(dualPayload!['contentDelta'], contains('Testing dual save'));
+      expect(dualPayload!['contentHtml'], contains('Testing dual save'));
+      expect(dualPayload!['content'], contains('Testing dual save'));
+    });
+
     // === FEATURE 8: Student Viewer & Compatibility ===
     testWidgets('F8_1: Parse standard paragraph HTML structures in viewer', (WidgetTester tester) async {
       const html = '<p>Normal text</p>';

@@ -16,14 +16,55 @@ class RichTextService {
     return deltaJson;
   }
 
-  /// Serializes the rich text editor contents for Firestore storage.
+  /// Sanitizes HTML by stripping executable script tags, event handler attributes, and unsafe javascript: URIs (T-02-01).
+  static String sanitizeHtml(String html) {
+    if (html.isEmpty) return '';
+    var sanitized = html;
+    // Remove script tags and contents
+    sanitized = sanitized.replaceAll(
+      RegExp(r'<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>', caseSensitive: false, multiLine: true),
+      '',
+    );
+    // Remove inline event handlers like onload, onerror, onclick, etc.
+    sanitized = sanitized.replaceAll(
+      RegExp(r'\s+on[a-zA-Z]+\s*=\s*(?:"[^"]*"|' + r"'[^']*'|[^\s>]+)", caseSensitive: false),
+      '',
+    );
+    // Remove javascript: pseudo-protocols
+    sanitized = sanitized.replaceAll(
+      RegExp(r'href\s*=\s*(?:"javascript:[^"]*"|' + r"'javascript:[^']*')", caseSensitive: false),
+      'href="#"',
+    );
+    sanitized = sanitized.replaceAll(
+      RegExp(r'src\s*=\s*(?:"javascript:[^"]*"|' + r"'javascript:[^']*')", caseSensitive: false),
+      'src=""',
+    );
+    return sanitized;
+  }
+
+  /// Serializes the rich text editor contents for Firestore storage in dual format (D-01, D-02).
+  /// Stores both raw Quill Delta JSON ('contentDelta') and pre-rendered HTML ('contentHtml'),
+  /// alongside legacy field aliases ('deltaJson', 'htmlSnapshot', 'content', 'plainText').
   static Map<String, dynamic> serializeForFirestore({
     required String deltaJson,
     required String html,
+    String? plainText,
   }) {
+    // T-02-02: Guard against oversized delta payloads (>500KB)
+    final safeDelta = deltaJson.length > 500 * 1024
+        ? deltaJson.substring(0, 500 * 1024)
+        : deltaJson;
+
+    final sanitizedHtml = sanitizeHtml(html);
+    final text = plainText ?? extractPlainText(safeDelta);
+
     return {
-      'deltaJson': deltaJson,
-      'htmlSnapshot': html,
+      'contentDelta': safeDelta,
+      'contentHtml': sanitizedHtml,
+      'deltaJson': safeDelta,
+      'htmlSnapshot': sanitizedHtml,
+      'content': text,
+      'plainText': text,
       'updatedAt': DateTime.now().toIso8601String(),
     };
   }

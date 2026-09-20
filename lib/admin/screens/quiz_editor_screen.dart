@@ -1134,6 +1134,7 @@ class _QuestionCardState extends State<_QuestionCard> {
             RichDocumentEditor(
               initialDeltaJson: widget.question.questionDelta,
               initialHtml: widget.question.questionHtml,
+              initialText: widget.question.questionText,
               labelText: 'Question',
               autoSaveDebounceDuration: const Duration(milliseconds: 300),
               onSave: (delta, html) {
@@ -1226,6 +1227,7 @@ class _QuestionCardState extends State<_QuestionCard> {
                     child: RichDocumentEditor(
                       initialDeltaJson: index < widget.question.options.length ? widget.question.options[index].textDelta : null,
                       initialHtml: index < widget.question.options.length ? widget.question.options[index].textHtml : null,
+                      initialText: index < widget.question.options.length ? widget.question.options[index].text : null,
                       labelText: 'Option ${String.fromCharCode(65 + index)}',
                       autoSaveDebounceDuration: const Duration(milliseconds: 300),
                       onSave: (delta, html) {
