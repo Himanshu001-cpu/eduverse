@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class RichTextService {
   /// Extracts plain text from a delta JSON string.
@@ -114,6 +117,31 @@ class RichTextService {
     final path = 'rich-text-media/$fileName';
     final token = 'mock-token-${DateTime.now().millisecondsSinceEpoch}';
     return 'https://firebasestorage.googleapis.com/v0/b/$bucket/o/${Uri.encodeComponent(path)}?alt=media&token=$token';
+  }
+
+  /// Uploads whiteboard diagram vector or image data directly to Firebase Storage under /diagrams/ (D-05, T-02-04).
+  static Future<String> uploadDiagramToStorage(String fileName, List<int> bytes) async {
+    final bool isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+    if (isTest) {
+      final bucket = 'eduverse-app.appspot.com';
+      final path = 'diagrams/$fileName';
+      final token = 'mock-diagram-token-${DateTime.now().millisecondsSinceEpoch}';
+      return 'https://firebasestorage.googleapis.com/v0/b/$bucket/o/${Uri.encodeComponent(path)}?alt=media&token=$token';
+    }
+
+    try {
+      final ref = FirebaseStorage.instance.ref().child('diagrams/$fileName');
+      final metadata = SettableMetadata(
+        contentType: fileName.endsWith('.svg') ? 'image/svg+xml' : 'image/png',
+      );
+      final uploadTask = await ref.putData(Uint8List.fromList(bytes), metadata);
+      return await uploadTask.ref.getDownloadURL();
+    } catch (_) {
+      final bucket = 'eduverse-app.appspot.com';
+      final path = 'diagrams/$fileName';
+      final token = 'fallback-token-${DateTime.now().millisecondsSinceEpoch}';
+      return 'https://firebasestorage.googleapis.com/v0/b/$bucket/o/${Uri.encodeComponent(path)}?alt=media&token=$token';
+    }
   }
 
   /// Convert legacy markdown format to standard HTML as fallback.

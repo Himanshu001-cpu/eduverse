@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../../core/services/rich_text_service.dart';
 
 class TldrawWebview extends StatefulWidget {
   final String initialUrl;
@@ -47,7 +49,7 @@ class _TldrawWebviewState extends State<TldrawWebview> {
     });
   }
 
-  void _exportSvg() {
+  void _exportSvg() async {
     // Build a genuine SVG containing the shapes added by the user
     final sb = StringBuffer();
     sb.writeln('<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">');
@@ -64,7 +66,13 @@ class _TldrawWebviewState extends State<TldrawWebview> {
     }
     
     sb.writeln('</svg>');
-    widget.onDiagramExported?.call(sb.toString());
+    final svg = sb.toString();
+
+    // Trigger Firebase Storage upload pipeline (D-05, T-02-04)
+    final fileName = 'diagram_${DateTime.now().millisecondsSinceEpoch}.svg';
+    await RichTextService.uploadDiagramToStorage(fileName, utf8.encode(svg));
+
+    widget.onDiagramExported?.call(svg);
   }
 
   @override

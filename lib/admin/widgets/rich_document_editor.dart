@@ -499,6 +499,9 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
         
         // Render any visual tables detected in the text
         ..._buildVisualTableEditors(),
+
+        // Render any visual diagrams detected in the text (D-06)
+        ..._buildVisualDiagramEditors(),
         
         // Debug output widget for testing auto-save triggering
         Container(
@@ -584,6 +587,189 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
       );
     });
   }
+
+  List<_ParsedDiagram> _parseDiagramsFromText(String text) {
+    final List<_ParsedDiagram> list = [];
+    final regex = RegExp(r'\[diagram\](.*?)\[/diagram\]', dotAll: true);
+    final matches = regex.allMatches(text).toList();
+    for (int i = 0; i < matches.length; i++) {
+      final match = matches[i];
+      list.add(_ParsedDiagram(
+        index: i,
+        content: match.group(1) ?? '',
+        rawText: match.group(0)!,
+      ));
+    }
+    return list;
+  }
+
+  void _deleteDiagram(int index) {
+    final text = _textController.text;
+    final parsed = _parseDiagramsFromText(text);
+    if (index >= parsed.length) return;
+    final target = parsed[index];
+    final newText = text.replaceFirst(target.rawText, '').trim();
+    setState(() {
+      _textController.text = newText;
+    });
+    _onTextChanged();
+  }
+
+  void _showFullscreenDiagram(String content) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog.fullscreen(
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Diagram Fullscreen Preview'),
+            actions: [
+              IconButton(
+                key: const Key('btn_close_diagram_fullscreen'),
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ],
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                alignment: Alignment.center,
+                child: content.contains('<svg')
+                    ? SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Text(
+                          content,
+                          style: const TextStyle(fontFamily: 'monospace'),
+                        ),
+                      )
+                    : Text(content),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _replaceDiagram(int index) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: SizedBox(
+          width: 500,
+          height: 400,
+          child: Column(
+            children: [
+              AppBar(
+                title: const Text('Replace Diagram'),
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: TldrawWebview(
+                  key: Key('replace_whiteboard_$index'),
+                  onDiagramExported: (newSvg) {
+                    Navigator.of(ctx).pop();
+                    final text = _textController.text;
+                    final parsed = _parseDiagramsFromText(text);
+                    if (index < parsed.length) {
+                      final target = parsed[index];
+                      final newBlock = '[diagram]$newSvg[/diagram]';
+                      setState(() {
+                        _textController.text = text.replaceFirst(target.rawText, newBlock);
+                      });
+                      _onTextChanged();
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildVisualDiagramEditors() {
+    final parsed = _parseDiagramsFromText(_textController.text);
+    if (parsed.isEmpty) return [];
+
+    return [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        child: Text(
+          'Diagrams (${parsed.length}):',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      ...List.generate(parsed.length, (index) {
+        final diagram = parsed[index];
+        final snippet = diagram.content.length > 60
+            ? '${diagram.content.substring(0, 60)}...'
+            : diagram.content;
+
+        return Card(
+          key: Key('diagram_card_$index'),
+          margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          child: ListTile(
+            leading: const Icon(Icons.draw, color: Colors.blue),
+            title: Text('Diagram #${index + 1}'),
+            subtitle: Text(
+              snippet,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  key: Key('btn_preview_diagram_$index'),
+                  icon: const Icon(Icons.fullscreen),
+                  tooltip: 'Fullscreen Preview',
+                  onPressed: () => _showFullscreenDiagram(diagram.content),
+                ),
+                IconButton(
+                  key: Key('btn_replace_diagram_$index'),
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Replace Diagram',
+                  onPressed: () => _replaceDiagram(index),
+                ),
+                IconButton(
+                  key: Key('btn_delete_diagram_$index'),
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  tooltip: 'Delete Diagram',
+                  onPressed: () => _deleteDiagram(index),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    ];
+  }
+}
+
+class _ParsedDiagram {
+  final int index;
+  final String content;
+  final String rawText;
+
+  _ParsedDiagram({
+    required this.index,
+    required this.content,
+    required this.rawText,
+  });
 }
 
 class _ParsedTable {

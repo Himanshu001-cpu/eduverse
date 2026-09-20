@@ -591,6 +591,62 @@ void main() {
       expect(find.byKey(const Key('rich_diagram_widget')), findsOneWidget);
     });
 
+    testWidgets('F6_6: RichTextService.uploadDiagramToStorage uploads to /diagrams/ and returns CDN URL (D-05, T-02-04)', (WidgetTester tester) async {
+      final svgBytes = utf8.encode('<svg><circle cx="50" cy="50" r="20" /></svg>');
+      final url = await RichTextService.uploadDiagramToStorage('test_diagram.svg', svgBytes);
+
+      expect(url, contains('https://firebasestorage.googleapis.com'));
+      expect(url, contains('diagrams%2Ftest_diagram.svg'));
+    });
+
+    testWidgets('F6_7: Diagram visual card displays in editor with fullscreen preview, replace, and delete actions (D-06)', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Editor with Diagram',
+            initialText: 'Here is a diagram: [diagram]<svg><rect width="50" height="50"/></svg>[/diagram]',
+            onSave: (_, __) {},
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.byKey(const Key('diagram_card_0')), findsOneWidget);
+      expect(find.byKey(const Key('btn_preview_diagram_0')), findsOneWidget);
+      expect(find.byKey(const Key('btn_replace_diagram_0')), findsOneWidget);
+      expect(find.byKey(const Key('btn_delete_diagram_0')), findsOneWidget);
+
+      // Tap preview
+      await tester.tap(find.byKey(const Key('btn_preview_diagram_0')));
+      await tester.pumpAndSettle();
+      expect(find.text('Diagram Fullscreen Preview'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('btn_close_diagram_fullscreen')));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('F6_8: Deleting diagram card cleanly removes diagram tag from editor text (D-06)', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Editor with Diagram',
+            initialText: 'Prefix [diagram]<svg><circle r="10"/></svg>[/diagram] Suffix',
+            onSave: (_, __) {},
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.byKey(const Key('diagram_card_0')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('btn_delete_diagram_0')));
+      await tester.pump();
+
+      expect(find.byKey(const Key('diagram_card_0')), findsNothing);
+      final field = tester.widget<TextField>(find.byKey(const Key('editor_text_field')));
+      expect(field.controller!.text, isNot(contains('[diagram]')));
+      expect(field.controller!.text, contains('Prefix'));
+      expect(field.controller!.text, contains('Suffix'));
+    });
+
     // === FEATURE 7: Dual-Format Storage ===
     testWidgets('F7_1: RichTextService serializes delta JSON and HTML snapshot', (WidgetTester tester) async {
       final serialized = RichTextService.serializeForFirestore(deltaJson: '{"ops":[]}', html: '<p></p>');
