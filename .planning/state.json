@@ -1,0 +1,38 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": null,
+  "phases": [
+    {
+      "number": "1",
+      "name": "Core Platform Verification",
+      "status": "complete"
+    },
+    {
+      "number": "2",
+      "name": "Rich Text & Office Suite Integration",
+      "status": "complete"
+    },
+    {
+      "number": "3",
+      "name": "Architecture Consolidation & Repository Migration",
+      "status": "complete"
+    },
+    {
+      "number": "4",
+      "name": "Admin Performance & Data Pagination",
+      "status": "pending"
+    },
+    {
+      "number": "5",
+      "name": "Code Hygiene & Linter Enforcement",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd-progress",
+    "label": "Show progress",
+    "reason": "Unsure of state — showing progress"
+  },
+  "updated_at": "2026-09-20T11:58:57.440Z"
+}

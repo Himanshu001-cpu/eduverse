@@ -57,7 +57,7 @@ Eduverse is a mature brownfield application with ~98k lines of Dart code, server
   1. Users screen (`lib/admin/screens/users_screen.dart`) loads data in paginated batches of 20 items using Firestore cursors
   2. Purchases screen (`lib/admin/screens/purchases_screen.dart`) supports date-range filtering and infinite scrolling
   3. Network data transfer and Firestore read operations drop by >60% on initial admin dashboard load
-**Plans**: TBD
+**Plans**: 2 plans (04-01, 04-02)
 
 ### Phase 5: Code Hygiene & Linter Enforcement
 **Goal**: Establish strict static analysis, eliminate dead scaffolding, and guarantee codebase maintainability.
