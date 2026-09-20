@@ -683,6 +683,7 @@ class StudyRepositoryImpl implements IStudyRepository {
     }
   }
 
+  @override
   Stream<List<TopicNodeModel>> getTopics() {
     return _firestore
         .collection('topics')
@@ -695,6 +696,7 @@ class StudyRepositoryImpl implements IStudyRepository {
         );
   }
 
+  @override
   Stream<List<StudyCourseModel>> getEnrolledCourses() {
     final userId = EduverseFirebase.auth.currentUser?.uid;
     if (userId == null) return Stream.value([]);
@@ -759,6 +761,7 @@ class StudyRepositoryImpl implements IStudyRepository {
     });
   }
 
+  @override
   Stream<List<WorkbookModel>> getWorkbooks() {
     final userId = EduverseFirebase.auth.currentUser?.uid;
     if (userId == null) return Stream.value([]);

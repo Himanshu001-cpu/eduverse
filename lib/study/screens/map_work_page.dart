@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:eduverse/study/study_repository.dart';
+import 'package:eduverse/study/domain/repositories/i_study_repository.dart';
+import 'package:eduverse/study/data/repositories/study_repository_impl.dart';
 import 'package:eduverse/study/models/study_models.dart';
 
 class MapWorkPage extends StatelessWidget {
-  const MapWorkPage({super.key});
+  final IStudyRepository? repository;
+  const MapWorkPage({super.key, this.repository});
 
   @override
   Widget build(BuildContext context) {
-    final repository = StudyRepository();
+    final repo = repository ?? StudyRepositoryImpl();
 
     return Scaffold(
       appBar: AppBar(
@@ -18,7 +20,7 @@ class MapWorkPage extends StatelessWidget {
       ),
       body: SafeArea(
         child: StreamBuilder<List<TopicNodeModel>>(
-          stream: repository.getTopics(),
+          stream: repo.getTopics(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());

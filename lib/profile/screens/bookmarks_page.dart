@@ -7,13 +7,15 @@ import 'package:eduverse/common/widgets/cards.dart';
 import 'package:eduverse/core/firebase/bookmark_service.dart';
 import 'package:eduverse/profile/models/bookmark_model.dart';
 import 'package:eduverse/feed/repository/feed_repository.dart';
-import 'package:eduverse/study/study_repository.dart';
+import 'package:eduverse/study/domain/repositories/i_study_repository.dart';
+import 'package:eduverse/study/data/repositories/study_repository_impl.dart';
 import 'package:eduverse/feed/screens/article_detail_page.dart';
 import 'package:eduverse/study/presentation/screens/batch_detail_screen.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart' show StudyBatch;
 
 class BookmarksPage extends StatefulWidget {
-  const BookmarksPage({super.key});
+  final IStudyRepository? studyRepository;
+  const BookmarksPage({super.key, this.studyRepository});
 
   @override
   State<BookmarksPage> createState() => _BookmarksPageState();
@@ -22,7 +24,13 @@ class BookmarksPage extends StatefulWidget {
 class _BookmarksPageState extends State<BookmarksPage> {
   final BookmarkService _bookmarkService = BookmarkService();
   final FeedRepository _feedRepository = FeedRepository();
-  final StudyRepository _studyRepository = StudyRepository();
+  late final IStudyRepository _studyRepository;
+
+  @override
+  void initState() {
+    super.initState();
+    _studyRepository = widget.studyRepository ?? StudyRepositoryImpl();
+  }
   
   bool _isSelectionMode = false;
   bool _isNavigating = false;

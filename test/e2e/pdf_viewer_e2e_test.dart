@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:eduverse/study/presentation/screens/secure_pdf_viewer_screen.dart';
 import 'package:eduverse/core/services/pdf_cache_service.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
+import 'package:eduverse/study/models/study_models.dart';
 import 'package:eduverse/study/domain/repositories/i_study_repository.dart';
 
 // Import screens we route from
@@ -80,6 +81,15 @@ class MockStudyRepository implements IStudyRepository {
 
   @override
   Future<List<StudyQuiz>> getRecordedBatchQuizzes(String courseId, String batchId) async => [];
+
+  @override
+  Stream<List<WorkbookModel>> getWorkbooks() => Stream.value([]);
+
+  @override
+  Stream<List<StudyCourseModel>> getEnrolledCourses() => Stream.value([]);
+
+  @override
+  Stream<List<TopicNodeModel>> getTopics() => Stream.value([]);
 }
 
 void main() {

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:eduverse/study/study_repository.dart';
+import 'package:eduverse/study/domain/repositories/i_study_repository.dart';
+import 'package:eduverse/study/data/repositories/study_repository_impl.dart';
 import 'package:eduverse/study/models/study_models.dart';
 import 'course_section_page.dart';
 
 class MyCoursesPage extends StatelessWidget {
-  const MyCoursesPage({super.key});
+  final IStudyRepository? repository;
+  const MyCoursesPage({super.key, this.repository});
 
   void _showCourseDetail(BuildContext context, StudyCourseModel course) {
     showModalBottomSheet(
@@ -114,7 +116,7 @@ class MyCoursesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repository = StudyRepository();
+    final repo = repository ?? StudyRepositoryImpl();
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -145,7 +147,7 @@ class MyCoursesPage extends StatelessWidget {
             ),
             Expanded(
               child: StreamBuilder<List<StudyCourseModel>>(
-                stream: repository.getEnrolledCourses(),
+                stream: repo.getEnrolledCourses(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());

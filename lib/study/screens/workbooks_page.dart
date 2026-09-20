@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:eduverse/study/study_repository.dart';
+import 'package:eduverse/study/domain/repositories/i_study_repository.dart';
+import 'package:eduverse/study/data/repositories/study_repository_impl.dart';
 import 'package:eduverse/study/models/study_models.dart';
 
 class WorkbooksPage extends StatefulWidget {
-  const WorkbooksPage({super.key});
+  final IStudyRepository? repository;
+  const WorkbooksPage({super.key, this.repository});
 
   @override
   State<WorkbooksPage> createState() => _WorkbooksPageState();
@@ -12,7 +14,13 @@ class WorkbooksPage extends StatefulWidget {
 
 class _WorkbooksPageState extends State<WorkbooksPage> {
   String _selectedFilter = 'All';
-  final StudyRepository _repository = StudyRepository();
+  late final IStudyRepository _repository;
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = widget.repository ?? StudyRepositoryImpl();
+  }
 
   @override
   Widget build(BuildContext context) {
