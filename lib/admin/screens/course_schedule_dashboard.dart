@@ -59,36 +59,34 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
     return conflicted;
   }
 
-  void _showGenerateDialog(BuildContext context) async {
+  void _showGenerateDialog() async {
     final service = context.read<FirebaseAdminService>();
     List<RecurringClassRule> rules = [];
     try {
       rules = await service.getRecurringRules(widget.courseId);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load rules: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load rules: $e')),
+      );
       return;
     }
 
     if (rules.isEmpty) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('No Rules Found'),
-            content: const Text('Please create a recurring class rule first before generating classes.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('No Rules Found'),
+          content: const Text('Please create a recurring class rule first before generating classes.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
       return;
     }
 
@@ -188,17 +186,15 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                     startDate,
                     endDate,
                   );
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Classes generated successfully')),
-                    );
-                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Classes generated successfully')),
+                  );
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error generating classes: $e')),
-                    );
-                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error generating classes: $e')),
+                  );
                 } finally {
                   if (mounted) {
                     setState(() => _isGenerating = false);
@@ -213,7 +209,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
     );
   }
 
-  void _rescheduleClass(BuildContext context, AdminLiveClass item) async {
+  void _rescheduleClass(AdminLiveClass item) async {
     final service = context.read<FirebaseAdminService>();
     final initialDate = item.startTime;
     final pickedDate = await showDatePicker(
@@ -245,21 +241,19 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
         item.id,
         newStartTime: newStartTime,
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Class rescheduled successfully')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Class rescheduled successfully')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to reschedule class: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to reschedule class: $e')),
+      );
     }
   }
 
-  void _cancelClass(BuildContext context, AdminLiveClass item) async {
+  void _cancelClass(AdminLiveClass item) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -280,6 +274,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
     );
 
     if (confirm != true) return;
+    if (!mounted) return;
 
     final service = context.read<FirebaseAdminService>();
     try {
@@ -288,21 +283,19 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
         item.id,
         status: 'cancelled',
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Class cancelled successfully')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Class cancelled successfully')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to cancel class: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to cancel class: $e')),
+      );
     }
   }
 
-  void _showGoLiveDialog(BuildContext context, AdminLiveClass item) async {
+  void _showGoLiveDialog(AdminLiveClass item) async {
     final formKey = GlobalKey<FormState>();
     final ytController = TextEditingController(text: item.youtubeUrl);
 
@@ -347,17 +340,15 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                   status: 'live',
                   youtubeUrl: ytController.text.trim(),
                 );
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Class is now LIVE!')),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Class is now LIVE!')),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to go live: $e')),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to go live: $e')),
+                );
               }
             },
             child: const Text('Go Live'),
@@ -367,7 +358,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
     );
   }
 
-  void _showCompleteClassDialog(BuildContext context, AdminLiveClass item) async {
+  void _showCompleteClassDialog(AdminLiveClass item) async {
     final formKey = GlobalKey<FormState>();
     final ytController = TextEditingController(text: item.youtubeUrl);
     final service = context.read<FirebaseAdminService>();
@@ -600,17 +591,15 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                     subject: selectedSubject,
                     chapter: selectedChapter,
                   );
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Class completed and moved to Lectures!')),
-                    );
-                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Class completed and moved to Lectures!')),
+                  );
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to complete class: $e')),
-                    );
-                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to complete class: $e')),
+                  );
                 }
               },
               child: const Text('Complete & Move'),
@@ -621,7 +610,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
     );
   }
 
-  void _confirmAndSyncLiveClass(BuildContext context, AdminLiveClass item) async {
+  void _confirmAndSyncLiveClass(AdminLiveClass item) async {
     final service = context.read<FirebaseAdminService>();
     final confirm = await showDialog<bool>(
       context: context,
@@ -645,27 +634,26 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
     );
 
     if (confirm != true) return;
+    if (!mounted) return;
 
     try {
       final updatedCount = await service.syncLiveClassToLinkedCourses(
         sourceCourseId: widget.courseId,
         liveClass: item,
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Successfully synced live class across $updatedCount location(s)')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Successfully synced live class across $updatedCount location(s)')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to sync live class: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to sync live class: $e')),
+      );
     }
   }
 
-  void _deleteClass(BuildContext context, AdminLiveClass item) async {
+  void _deleteClass(AdminLiveClass item) async {
     final service = context.read<FirebaseAdminService>();
     final isLinked = item.linkedFrom != null || item.linkedCourses.isNotEmpty;
 
@@ -690,20 +678,19 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
       );
 
       if (confirm != true) return;
+      if (!mounted) return;
 
       try {
         await service.deleteCourseLiveClass(widget.courseId, item.id);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Class deleted successfully')),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Class deleted successfully')),
+        );
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete class: $e')),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete class: $e')),
+        );
       }
       return;
     }
@@ -782,17 +769,15 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                 if (widget.courseId.isNotEmpty) {
                   await service.delinkLiveClass(widget.courseId, item.id);
                 }
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Live class delinked successfully (now independent)')),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Live class delinked successfully (now independent)')),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error delinking: $e')),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error delinking: $e')),
+                );
               }
             },
           ),
@@ -811,17 +796,15 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                 } else {
                   await service.deleteLiveClass(item.id, deleteAllLinked: false);
                 }
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Removed from this course successfully')),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Removed from this course successfully')),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
               }
             },
           ),
@@ -832,7 +815,6 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final rootContext = context; // Stable context from build method — survives StreamBuilder/ListView rebuilds
     final service = context.watch<FirebaseAdminService>();
 
     return AdminScaffold(
@@ -886,7 +868,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                 ElevatedButton.icon(
                   icon: const Icon(Icons.flash_on),
                   label: const Text('Generate Classes'),
-                  onPressed: _isGenerating ? null : () => _showGenerateDialog(context),
+                  onPressed: _isGenerating ? null : () => _showGenerateDialog(),
                 ),
               ],
             ),
@@ -1038,7 +1020,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                                   WidgetsBinding.instance.addPostFrameCallback((_) {
                                     if (!mounted) return;
                                     Navigator.pushNamed(
-                                      rootContext,
+                                      context,
                                       '/live_class_editor',
                                       arguments: {
                                         'item': item,
@@ -1064,7 +1046,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                                     WidgetsBinding.instance.addPostFrameCallback((_) {
                                       if (!mounted) return;
                                       showDialog(
-                                        context: rootContext,
+                                        context: context,
                                         builder: (_) => Provider<FirebaseAdminService>.value(
                                           value: service,
                                           child: ManageLinkedCoursesDialog(
@@ -1088,7 +1070,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                                   onTap: () {
                                     WidgetsBinding.instance.addPostFrameCallback((_) {
                                       if (!mounted) return;
-                                      _confirmAndSyncLiveClass(rootContext, item);
+                                      _confirmAndSyncLiveClass(item);
                                     });
                                   },
                                   child: const Row(
@@ -1104,7 +1086,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                                   onTap: () {
                                     WidgetsBinding.instance.addPostFrameCallback((_) {
                                       if (!mounted) return;
-                                      _showGoLiveDialog(rootContext, item);
+                                      _showGoLiveDialog(item);
                                     });
                                   },
                                   child: const Row(
@@ -1120,7 +1102,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                                   onTap: () {
                                     WidgetsBinding.instance.addPostFrameCallback((_) {
                                       if (!mounted) return;
-                                      _showCompleteClassDialog(rootContext, item);
+                                      _showCompleteClassDialog(item);
                                     });
                                   },
                                   child: const Row(
@@ -1136,7 +1118,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                                   onTap: () {
                                     WidgetsBinding.instance.addPostFrameCallback((_) {
                                       if (!mounted) return;
-                                      _rescheduleClass(rootContext, item);
+                                      _rescheduleClass(item);
                                     });
                                   },
                                   child: const Row(
@@ -1152,7 +1134,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                                   onTap: () {
                                     WidgetsBinding.instance.addPostFrameCallback((_) {
                                       if (!mounted) return;
-                                      _cancelClass(rootContext, item);
+                                      _cancelClass(item);
                                     });
                                   },
                                   child: const Row(
@@ -1168,7 +1150,7 @@ class _CourseScheduleDashboardState extends State<CourseScheduleDashboard> {
                                 onTap: () {
                                   WidgetsBinding.instance.addPostFrameCallback((_) {
                                     if (!mounted) return;
-                                    _deleteClass(rootContext, item);
+                                    _deleteClass(item);
                                   });
                                 },
                                 child: const Row(

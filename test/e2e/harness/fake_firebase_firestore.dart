@@ -268,6 +268,7 @@ class FakeDocumentReference<T extends Object?> extends Fake implements DocumentR
       },
       onCancel: () {
         _firestore._listeners.remove(listener);
+        controller.close();
       },
     );
     return controller.stream;
@@ -568,6 +569,7 @@ class FakeQuery<T extends Object?> extends Fake implements Query<T> {
       },
       onCancel: () {
         firestore._listeners.remove(listener);
+        controller.close();
       },
     );
     return controller.stream;

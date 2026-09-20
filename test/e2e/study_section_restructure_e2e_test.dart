@@ -2738,7 +2738,7 @@ class BrowseBatchesByExamWidget extends StatelessWidget {
 class AdminExamManagementWidget extends StatefulWidget {
   const AdminExamManagementWidget({super.key});
   @override
-  _AdminExamManagementWidgetState createState() => _AdminExamManagementWidgetState();
+  State<AdminExamManagementWidget> createState() => _AdminExamManagementWidgetState();
 }
 
 class _AdminExamManagementWidgetState extends State<AdminExamManagementWidget> {
@@ -2958,7 +2958,7 @@ class _AdminExamManagementWidgetState extends State<AdminExamManagementWidget> {
 class StudySectionMainPage extends StatefulWidget {
   const StudySectionMainPage({super.key});
   @override
-  _StudySectionMainPageState createState() => _StudySectionMainPageState();
+  State<StudySectionMainPage> createState() => _StudySectionMainPageState();
 }
 
 class _StudySectionMainPageState extends State<StudySectionMainPage> {

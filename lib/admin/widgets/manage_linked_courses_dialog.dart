@@ -121,6 +121,7 @@ class _ManageLinkedCoursesDialogState extends State<ManageLinkedCoursesDialog> {
       ),
     );
     if (confirm != true) return;
+    if (!mounted) return;
 
     setState(() => _isProcessing = true);
     try {
@@ -176,6 +177,7 @@ class _ManageLinkedCoursesDialogState extends State<ManageLinkedCoursesDialog> {
       ),
     );
     if (confirm != true) return;
+    if (!mounted) return;
 
     setState(() => _isProcessing = true);
     try {
@@ -259,6 +261,7 @@ class _ManageLinkedCoursesDialogState extends State<ManageLinkedCoursesDialog> {
       ),
     );
     if (confirm != true) return;
+    if (!mounted) return;
 
     setState(() => _isProcessing = true);
     try {

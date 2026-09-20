@@ -77,6 +77,7 @@ class _CourseScheduleRulesScreenState extends State<CourseScheduleRulesScreen> {
     );
 
     if (confirm != true) return;
+    if (!mounted) return;
 
     final service = context.read<FirebaseAdminService>();
     try {

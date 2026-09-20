@@ -827,9 +827,13 @@ class _PerformanceDashboardPageState extends State<PerformanceDashboardPage> {
           final tB = b['timestamp'] as Timestamp?;
           if (tA == null && tB == null) {
             compareResult = 0;
-          } else if (tA == null) compareResult = -1;
-          else if (tB == null) compareResult = 1;
-          else compareResult = tA.compareTo(tB);
+          } else if (tA == null) {
+            compareResult = -1;
+          } else if (tB == null) {
+            compareResult = 1;
+          } else {
+            compareResult = tA.compareTo(tB);
+          }
           break;
       }
       return _sortQuizAscending ? compareResult : -compareResult;
@@ -970,9 +974,13 @@ class _PerformanceDashboardPageState extends State<PerformanceDashboardPage> {
           final tB = b['timestamp'] as Timestamp?;
           if (tA == null && tB == null) {
             compareResult = 0;
-          } else if (tA == null) compareResult = -1;
-          else if (tB == null) compareResult = 1;
-          else compareResult = tA.compareTo(tB);
+          } else if (tA == null) {
+            compareResult = -1;
+          } else if (tB == null) {
+            compareResult = 1;
+          } else {
+            compareResult = tA.compareTo(tB);
+          }
           break;
       }
       return _sortWatchAscending ? compareResult : -compareResult;
@@ -1116,9 +1124,13 @@ class _PerformanceDashboardPageState extends State<PerformanceDashboardPage> {
           final tB = b['completedAt'] as Timestamp?;
           if (tA == null && tB == null) {
             compareResult = 0;
-          } else if (tA == null) compareResult = -1;
-          else if (tB == null) compareResult = 1;
-          else compareResult = tA.compareTo(tB);
+          } else if (tA == null) {
+            compareResult = -1;
+          } else if (tB == null) {
+            compareResult = 1;
+          } else {
+            compareResult = tA.compareTo(tB);
+          }
           break;
       }
       return _sortTestAscending ? compareResult : -compareResult;

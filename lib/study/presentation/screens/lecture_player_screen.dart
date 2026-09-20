@@ -532,6 +532,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
         _commentUploadedUrls = [];
       });
       _cancelReply();
+      if (!mounted) return;
       FocusScope.of(context).unfocus();
     } catch (e) {
       if (mounted) {
@@ -635,6 +636,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
           .collection('replies')
           .doc(replyId)
           .delete();
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Reply deleted')));

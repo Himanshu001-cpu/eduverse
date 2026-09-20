@@ -1093,8 +1093,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _user!.teacherSubjects.length,
-                  separatorBuilder: (context, index) => const Divider(height: 16),
-                  itemBuilder: (context, index) {
+                  separatorBuilder: (_, index) => const Divider(height: 16),
+                  itemBuilder: (_, index) {
                     final ts = _user!.teacherSubjects[index];
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

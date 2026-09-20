@@ -99,9 +99,11 @@ class _StudentPostDetailScreenState extends State<StudentPostDetailScreen> {
         }
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);

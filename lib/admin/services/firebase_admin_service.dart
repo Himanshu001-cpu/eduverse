@@ -2606,6 +2606,7 @@ class FirebaseAdminService {
       sub2.cancel();
       sub3.cancel();
       sub4.cancel();
+      controller.close();
     };
 
     return controller.stream;
@@ -2633,6 +2634,7 @@ class FirebaseAdminService {
 
     controller.onCancel = () {
       sub1.cancel();
+      controller.close();
     };
 
     return controller.stream;
@@ -2742,6 +2744,7 @@ class FirebaseAdminService {
       sub2.cancel();
       sub3.cancel();
       sub4.cancel();
+      controller.close();
     };
 
     return controller.stream;
@@ -2783,6 +2786,7 @@ class FirebaseAdminService {
 
     controller.onCancel = () {
       sub1.cancel();
+      controller.close();
     };
 
     return controller.stream;

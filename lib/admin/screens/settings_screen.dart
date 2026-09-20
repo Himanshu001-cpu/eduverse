@@ -57,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // Maintenance Mode Toggle
                   StreamBuilder<Map<String, dynamic>>(
                     stream: adminService.getGeneralConfig(),
-                    builder: (context, snapshot) {
+                    builder: (_, snapshot) {
                       final config = snapshot.data ?? {'maintenanceMode': false};
                       final isMaintenance = config['maintenanceMode'] == true;
 
@@ -77,7 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           try {
                             await adminService.updateMaintenanceMode(val);
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(this.context).showSnackBar(
                                 SnackBar(
                                   content: Text('Maintenance mode ${val ? 'enabled' : 'disabled'}'),
                                   backgroundColor: val ? Colors.orange : Colors.green,
@@ -86,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             }
                           } catch (e) {
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(this.context).showSnackBar(
                                 SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                               );
                             }

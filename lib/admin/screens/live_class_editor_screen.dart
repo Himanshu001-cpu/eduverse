@@ -120,6 +120,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
     );
     
     if (date != null) {
+      if (!mounted) return;
       final time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(_startTime),

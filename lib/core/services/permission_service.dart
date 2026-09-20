@@ -41,8 +41,11 @@ class PermissionService {
     // Check if already granted
     if (await permission.isGranted) return true;
 
+    if (!context.mounted) return false;
+
     // Check if permanently denied
     if (await permission.isPermanentlyDenied) {
+      if (!context.mounted) return false;
       final shouldOpenSettings = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -66,6 +69,8 @@ class PermissionService {
       }
       return await permission.isGranted;
     }
+
+    if (!context.mounted) return false;
 
     // Show rationale and request
     final shouldRequest = await showDialog<bool>(

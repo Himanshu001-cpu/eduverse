@@ -443,6 +443,7 @@ class _TestSeriesTestEditorScreenState
       await TestSeriesService().updateTestCount(widget.testSeriesId);
 
       if (_saveToLibrary) {
+        if (!mounted) return;
         final adminService = Provider.of<FirebaseAdminService>(context, listen: false);
         final poolQuiz = AdminQuiz(
           id: _currentTestId ?? const Uuid().v4(),
@@ -526,6 +527,7 @@ class _TestSeriesTestEditorScreenState
 
       // Optionally publish to the global quiz library
       if (_saveToLibrary) {
+        if (!mounted) return;
         final adminService = Provider.of<FirebaseAdminService>(
           context,
           listen: false,

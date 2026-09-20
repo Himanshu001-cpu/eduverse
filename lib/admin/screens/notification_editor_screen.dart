@@ -72,6 +72,7 @@ class _NotificationEditorScreenState extends State<NotificationEditorScreen> {
         }
 
         if (bytes != null) {
+          if (!mounted) return;
           // Upload to Firebase Storage
           final adminService = context.read<FirebaseAdminService>();
           final storagePath = 'notifications/images/${DateTime.now().millisecondsSinceEpoch}_${file.name}';
