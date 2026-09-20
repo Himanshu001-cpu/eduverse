@@ -8,8 +8,8 @@ Eduverse is a mature brownfield application with ~98k lines of Dart code, server
 
 - [x] **Phase 1: Core Platform Verification** - Verify baseline architecture across Auth, Store, Study, and Admin modules
 - [x] **Phase 2: Rich Text & Office Suite Integration** - Complete WYSIWYG editor, LaTeX equation builder, tables, and tldraw diagrams
-- [ ] **Phase 3: Architecture Consolidation & Repository Migration** - Deprecate legacy `StudyRepository` and migrate all screens to `StudyRepositoryImpl`
-- [ ] **Phase 4: Admin Performance & Data Pagination** - Implement server-side Firestore cursor pagination for high-volume admin tables
+- [x] **Phase 3: Architecture Consolidation & Repository Migration** - Deprecate legacy `StudyRepository` and migrate all screens to `StudyRepositoryImpl`
+- [x] **Phase 4: Admin Performance & Data Pagination** - Implement server-side Firestore cursor pagination for high-volume admin tables
 - [ ] **Phase 5: Code Hygiene & Linter Enforcement** - Configure root `analysis_options.yaml`, prune dead code, and resolve warnings
 
 ## Phase Details
@@ -36,7 +36,7 @@ Eduverse is a mature brownfield application with ~98k lines of Dart code, server
   3. Interactive table builder supports grid resizing and data entry up to 20x20 cells
   4. Embedded `tldraw` WebView exports whiteboard diagrams directly to Firebase Storage
   5. Content saves dual-format (Delta JSON for editing and pre-rendered HTML for student rendering)
-**Plans**: TBD (referenced in root `PROJECT.md`)
+**Plans**: 4 plans (02-01, 02-02, 02-03, 02-04) - All Complete
 
 ### Phase 3: Architecture Consolidation & Repository Migration
 **Goal**: Eliminate architectural duplication between legacy and modern study repositories across all student screens.
@@ -57,7 +57,7 @@ Eduverse is a mature brownfield application with ~98k lines of Dart code, server
   1. Users screen (`lib/admin/screens/users_screen.dart`) loads data in paginated batches of 20 items using Firestore cursors
   2. Purchases screen (`lib/admin/screens/purchases_screen.dart`) supports date-range filtering and infinite scrolling
   3. Network data transfer and Firestore read operations drop by >60% on initial admin dashboard load
-**Plans**: 2 plans (04-01, 04-02)
+**Plans**: 2 plans (04-01, 04-02) - All Complete
 
 ### Phase 5: Code Hygiene & Linter Enforcement
 **Goal**: Establish strict static analysis, eliminate dead scaffolding, and guarantee codebase maintainability.
@@ -79,5 +79,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Core Platform Verification | Verified | Complete | 2026-09-20 |
 | 2. Rich Text & Office Suite Integration | 4/4 | Complete | 2026-09-20 |
 | 3. Architecture Consolidation & Repository Migration | 2/2 | Complete | 2026-09-20 |
-| 4. Admin Performance & Data Pagination | 0/2 | Pending | - |
-| 5. Code Hygiene & Linter Enforcement | 0/2 | Pending | - |
+| 4. Admin Performance & Data Pagination | 2/2 | Complete | 2026-09-20 |
+| 5. Code Hygiene & Linter Enforcement | 0/TBD | Pending | - |
