@@ -52,7 +52,7 @@ class _FeedPageState extends State<FeedPage>
         ],
       ),
       body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
+        headerSliverBuilder: (_, _) => [
           const SliverToBoxAdapter(child: TrendingSection()),
           SliverAppBar(
             pinned: true,

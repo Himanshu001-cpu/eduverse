@@ -323,7 +323,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: widget.course.teachers.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final teacher = widget.course.teachers[index];
                 return ListTile(
@@ -470,7 +470,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _filteredUsers.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final user = _filteredUsers[index];
                 return ListTile(

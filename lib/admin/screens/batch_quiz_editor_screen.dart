@@ -901,8 +901,9 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                               ...List.generate(4, (optIndex) {
                                 final options = _questions[index].options;
                                 // Fix bounds if options are missing/corrupted
-                                if (options.length <= optIndex)
+                                if (options.length <= optIndex) {
                                   return const SizedBox();
+                                }
 
                                 final option = options[optIndex];
                                 return Padding(

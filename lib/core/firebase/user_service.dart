@@ -26,7 +26,7 @@ class UserService {
       await userDoc.set({
         'email': email,
         'name': name, // Update name if changed
-        if (phone != null) 'phone': phone,
+        'phone': ?phone,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     }

@@ -351,6 +351,7 @@ class FakeCollectionReference<T extends Object?> extends FakeQuery<T> implements
 
 class FakeQuery<T extends Object?> extends Fake implements Query<T> {
   final String path;
+  @override
   final FakeFirebaseFirestore firestore;
   final List<bool Function(String id, Map<String, dynamic> data)> _filters;
   final List<int Function(Map<String, dynamic> a, Map<String, dynamic> b)> _sorts;

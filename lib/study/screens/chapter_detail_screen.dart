@@ -235,7 +235,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _notes.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) => _buildNoteTile(_notes[index]),
       ),
     );
@@ -267,7 +267,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _dpps.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) => _buildDppTile(_dpps[index]),
       ),
     );

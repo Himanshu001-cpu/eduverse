@@ -382,7 +382,7 @@ class _LinkLiveClassDialogState extends State<LinkLiveClassDialog> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       itemCount: _filteredClasses.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final entry = _filteredClasses[index];
         final liveClass = entry['class'] as AdminLiveClass;

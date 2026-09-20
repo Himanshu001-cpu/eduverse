@@ -73,10 +73,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
 
     // Try standard converter first, then fall back to our custom extractor
     var videoId = YoutubePlayer.convertUrlToId(videoUrl);
-    if (videoId == null) {
-      // Fallback to custom extractor for /live/ URLs
-      videoId = YouTubeUtils.extractVideoId(videoUrl);
-    }
+    videoId ??= YouTubeUtils.extractVideoId(videoUrl);
 
     if (videoId != null && videoId.isNotEmpty) {
       final isLive = widget.item.videoContent?.isLive ?? false;

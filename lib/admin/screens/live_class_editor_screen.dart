@@ -653,7 +653,7 @@ class _LiveClassEditorScreenState extends State<LiveClassEditorScreen> {
                               height: 100,
                               width: 100,
                               fit: BoxFit.cover,
-                              errorBuilder: (_,__,___) => const Icon(Icons.error),
+                              errorBuilder: (_,_,_) => const Icon(Icons.error),
                             ),
                           ),
                         Expanded(

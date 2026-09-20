@@ -464,7 +464,7 @@ class FirebaseAdminService {
           await txDoc.reference.update({
             'status': 'refunded',
             'refundedAt': FieldValue.serverTimestamp(),
-            if (gatewayRefundId != null) 'gatewayRefundId': gatewayRefundId,
+            'gatewayRefundId': ?gatewayRefundId,
           });
         }
       }
@@ -1484,7 +1484,7 @@ class FirebaseAdminService {
 
         return; // Exit function as we've moved it
       } catch (e) {
-        print('Error migrating live class to lecture: $e');
+        debugPrint('Error migrating live class to lecture: $e');
         rethrow;
       }
     }

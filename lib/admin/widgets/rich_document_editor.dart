@@ -534,7 +534,7 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
         ..._buildVisualDiagramEditors(),
         
         // Debug output widget for testing auto-save triggering
-        Container(
+        SizedBox(
           height: 1,
           width: 1,
           key: Key('autosave_count_$_autoSaveCount'),

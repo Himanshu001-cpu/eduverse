@@ -106,7 +106,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                               'https://razorpay.com/favicon.png',
                               width: 40,
                               height: 40,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.payment, size: 40),
+                              errorBuilder: (_, _, _) => const Icon(Icons.payment, size: 40),
                             ),
                             const SizedBox(width: 16),
                             Column(

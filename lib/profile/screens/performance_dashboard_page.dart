@@ -825,8 +825,9 @@ class _PerformanceDashboardPageState extends State<PerformanceDashboardPage> {
         default:
           final tA = a['timestamp'] as Timestamp?;
           final tB = b['timestamp'] as Timestamp?;
-          if (tA == null && tB == null) compareResult = 0;
-          else if (tA == null) compareResult = -1;
+          if (tA == null && tB == null) {
+            compareResult = 0;
+          } else if (tA == null) compareResult = -1;
           else if (tB == null) compareResult = 1;
           else compareResult = tA.compareTo(tB);
           break;
@@ -967,8 +968,9 @@ class _PerformanceDashboardPageState extends State<PerformanceDashboardPage> {
         default:
           final tA = a['timestamp'] as Timestamp?;
           final tB = b['timestamp'] as Timestamp?;
-          if (tA == null && tB == null) compareResult = 0;
-          else if (tA == null) compareResult = -1;
+          if (tA == null && tB == null) {
+            compareResult = 0;
+          } else if (tA == null) compareResult = -1;
           else if (tB == null) compareResult = 1;
           else compareResult = tA.compareTo(tB);
           break;
@@ -1112,8 +1114,9 @@ class _PerformanceDashboardPageState extends State<PerformanceDashboardPage> {
         default:
           final tA = a['completedAt'] as Timestamp?;
           final tB = b['completedAt'] as Timestamp?;
-          if (tA == null && tB == null) compareResult = 0;
-          else if (tA == null) compareResult = -1;
+          if (tA == null && tB == null) {
+            compareResult = 0;
+          } else if (tA == null) compareResult = -1;
           else if (tB == null) compareResult = 1;
           else compareResult = tA.compareTo(tB);
           break;

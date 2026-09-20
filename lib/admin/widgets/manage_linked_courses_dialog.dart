@@ -465,7 +465,7 @@ class _ManageLinkedCoursesDialogState extends State<ManageLinkedCoursesDialog> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: _linkedCourses.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, _) => const Divider(height: 1),
                               itemBuilder: (context, idx) {
                                 final cid = _linkedCourses[idx];
                                 return ListTile(

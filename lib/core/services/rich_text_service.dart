@@ -30,16 +30,16 @@ class RichTextService {
     );
     // Remove inline event handlers like onload, onerror, onclick, etc.
     sanitized = sanitized.replaceAll(
-      RegExp(r'\s+on[a-zA-Z]+\s*=\s*(?:"[^"]*"|' + r"'[^']*'|[^\s>]+)", caseSensitive: false),
+      RegExp(r'\s+on[a-zA-Z]+\s*=\s*(?:"[^"]*"|' r"'[^']*'|[^\s>]+)", caseSensitive: false),
       '',
     );
     // Remove javascript: pseudo-protocols
     sanitized = sanitized.replaceAll(
-      RegExp(r'href\s*=\s*(?:"javascript:[^"]*"|' + r"'javascript:[^']*')", caseSensitive: false),
+      RegExp(r'href\s*=\s*(?:"javascript:[^"]*"|' r"'javascript:[^']*')", caseSensitive: false),
       'href="#"',
     );
     sanitized = sanitized.replaceAll(
-      RegExp(r'src\s*=\s*(?:"javascript:[^"]*"|' + r"'javascript:[^']*')", caseSensitive: false),
+      RegExp(r'src\s*=\s*(?:"javascript:[^"]*"|' r"'javascript:[^']*')", caseSensitive: false),
       'src=""',
     );
     return sanitized;

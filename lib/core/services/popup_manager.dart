@@ -255,7 +255,7 @@ class _PosterPopupContentState extends State<_PosterPopupContent> {
                         poster.thumbnailUrl,
                         fit: BoxFit.contain, // Fits entire poster without cutting top/bottom/edges!
                         alignment: Alignment.center,
-                        errorBuilder: (_, __, ___) => _buildFallbackBanner(theme),
+                        errorBuilder: (_, _, _) => _buildFallbackBanner(theme),
                       ),
                     )
                   else

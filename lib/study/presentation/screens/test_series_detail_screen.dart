@@ -333,7 +333,7 @@ class TestCard extends StatelessWidget {
   final int index;
   final String uid;
 
-  const TestCard({
+  const TestCard({super.key, 
     required this.testId,
     required this.testSeriesId,
     required this.testData,

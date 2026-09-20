@@ -44,21 +44,11 @@ class _QuizPageState extends State<QuizPage> {
   void initState() {
     super.initState();
     _userAnswers.addAll(List.filled(_questions.length, null));
-    // Debug: print timer values
-    print(
-      'DEBUG Quiz Timer - Minutes: $_timeLimitMinutes, Seconds: $_timeLimitSeconds',
-    );
     // Use seconds if available (more precise), otherwise use minutes
     if (_timeLimitSeconds != null && _timeLimitSeconds! > 0) {
       _remainingSeconds = _timeLimitSeconds!;
-      print('DEBUG: Using seconds value: $_remainingSeconds');
     } else if (_timeLimitMinutes != null && _timeLimitMinutes! > 0) {
       _remainingSeconds = _timeLimitMinutes! * 60;
-      print(
-        'DEBUG: Using minutes value converted to seconds: $_remainingSeconds',
-      );
-    } else {
-      print('DEBUG: No time limit set');
     }
   }
 

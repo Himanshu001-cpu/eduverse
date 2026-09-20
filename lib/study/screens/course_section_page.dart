@@ -316,7 +316,7 @@ class _CourseSectionPageState extends State<CourseSectionPage>
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: notes.length,
-              separatorBuilder: (_, __) => const Divider(),
+              separatorBuilder: (_, _) => const Divider(),
               itemBuilder: (context, index) {
                 final note = notes[index];
                 return ListTile(
@@ -381,7 +381,7 @@ class _CourseSectionPageState extends State<CourseSectionPage>
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: dpps.length,
-              separatorBuilder: (_, __) => const Divider(),
+              separatorBuilder: (_, _) => const Divider(),
               itemBuilder: (context, index) {
                 final dpp = dpps[index];
                 final metaParts = <String>[];
@@ -489,7 +489,7 @@ class _CourseSectionPageState extends State<CourseSectionPage>
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final item = items[index];
                 return Card(
@@ -588,7 +588,7 @@ class _CourseSectionPageState extends State<CourseSectionPage>
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: quizzes.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final quiz = quizzes[index];
                 return Card(

@@ -198,7 +198,7 @@ class _CourseCard extends StatelessWidget {
                   width: 50,
                   height: 50,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _buildEmojiPlaceholder(),
+                  errorBuilder: (_, _, _) => _buildEmojiPlaceholder(),
                 ),
               )
             : _buildEmojiPlaceholder(),

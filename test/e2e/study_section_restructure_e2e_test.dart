@@ -2261,7 +2261,7 @@ class StickyTabPillHeaderDelegate extends SliverPersistentHeaderDelegate {
 }
 
 class StickyTabPillWidget extends StatelessWidget {
-  const StickyTabPillWidget({Key? key}) : super(key: key);
+  const StickyTabPillWidget({super.key});
   @override
   Widget build(BuildContext context) {
     final state = Provider.of<MockStudyState>(context);
@@ -2303,7 +2303,7 @@ class StickyTabPillWidget extends StatelessWidget {
 }
 
 class BatchSelectorWidget extends StatelessWidget {
-  const BatchSelectorWidget({Key? key}) : super(key: key);
+  const BatchSelectorWidget({super.key});
   @override
   Widget build(BuildContext context) {
     final state = Provider.of<MockStudyState>(context);
@@ -2373,7 +2373,7 @@ class BatchSelectorWidget extends StatelessWidget {
 }
 
 class DynamicHomepageWidget extends StatelessWidget {
-  const DynamicHomepageWidget({Key? key}) : super(key: key);
+  const DynamicHomepageWidget({super.key});
   @override
   Widget build(BuildContext context) {
     final state = Provider.of<MockStudyState>(context);
@@ -2407,7 +2407,7 @@ class DynamicHomepageWidget extends StatelessWidget {
 }
 
 class FavouriteBatchesWidget extends StatelessWidget {
-  const FavouriteBatchesWidget({Key? key}) : super(key: key);
+  const FavouriteBatchesWidget({super.key});
   @override
   Widget build(BuildContext context) {
     final state = Provider.of<MockStudyState>(context);
@@ -2486,7 +2486,7 @@ class FavouriteBatchesWidget extends StatelessWidget {
 }
 
 class ContinueLearningWidget extends StatelessWidget {
-  const ContinueLearningWidget({Key? key}) : super(key: key);
+  const ContinueLearningWidget({super.key});
   @override
   Widget build(BuildContext context) {
     final state = Provider.of<MockStudyState>(context);
@@ -2590,7 +2590,7 @@ class ContinueLearningWidget extends StatelessWidget {
 }
 
 class BrowseBatchesByExamWidget extends StatelessWidget {
-  const BrowseBatchesByExamWidget({Key? key}) : super(key: key);
+  const BrowseBatchesByExamWidget({super.key});
   @override
   Widget build(BuildContext context) {
     final state = Provider.of<MockStudyState>(context);
@@ -2736,7 +2736,7 @@ class BrowseBatchesByExamWidget extends StatelessWidget {
 }
 
 class AdminExamManagementWidget extends StatefulWidget {
-  const AdminExamManagementWidget({Key? key}) : super(key: key);
+  const AdminExamManagementWidget({super.key});
   @override
   _AdminExamManagementWidgetState createState() => _AdminExamManagementWidgetState();
 }
@@ -2806,7 +2806,7 @@ class _AdminExamManagementWidgetState extends State<AdminExamManagementWidget> {
                         });
                       },
                     );
-                  }).toList(),
+                  }),
                   if (_errorMsg != null)
                     Text(
                       _errorMsg!,
@@ -2956,7 +2956,7 @@ class _AdminExamManagementWidgetState extends State<AdminExamManagementWidget> {
 }
 
 class StudySectionMainPage extends StatefulWidget {
-  const StudySectionMainPage({Key? key}) : super(key: key);
+  const StudySectionMainPage({super.key});
   @override
   _StudySectionMainPageState createState() => _StudySectionMainPageState();
 }

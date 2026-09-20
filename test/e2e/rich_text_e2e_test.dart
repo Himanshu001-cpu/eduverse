@@ -311,7 +311,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -330,7 +330,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -435,7 +435,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -453,7 +453,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -558,7 +558,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -592,7 +592,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -611,7 +611,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -650,7 +650,7 @@ void main() {
           body: RichDocumentEditor(
             labelText: 'Editor with Diagram',
             initialText: 'Here is a diagram: [diagram]<svg><rect width="50" height="50"/></svg>[/diagram]',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -675,7 +675,7 @@ void main() {
           body: RichDocumentEditor(
             labelText: 'Editor with Diagram',
             initialText: 'Prefix [diagram]<svg><circle r="10"/></svg>[/diagram] Suffix',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -707,7 +707,7 @@ void main() {
           body: RichDocumentEditor(
             labelText: 'Editor',
             autoSaveDebounceDuration: const Duration(milliseconds: 100),
-            onSave: (_, __) => saveCount++,
+            onSave: (_, _) => saveCount++,
           ),
         ),
       ));
@@ -741,7 +741,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) => saveCount++,
+            onSave: (_, _) => saveCount++,
           ),
         ),
       ));
@@ -813,7 +813,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Dual Format Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
             onSaveDualFormat: (payload) {
               dualPayload = payload;
             },
@@ -952,7 +952,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -970,7 +970,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -988,7 +988,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -1006,7 +1006,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -1024,7 +1024,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -1273,7 +1273,7 @@ void main() {
           body: RichDocumentEditor(
             labelText: 'Editor',
             autoSaveDebounceDuration: const Duration(milliseconds: 100),
-            onSave: (_, __) => saveCount++,
+            onSave: (_, _) => saveCount++,
           ),
         ),
       ));
@@ -1486,7 +1486,7 @@ void main() {
             body: RichDocumentEditor(
               labelText: 'Debounce Editor',
               autoSaveDebounceDuration: const Duration(milliseconds: 300),
-              onSave: (_, __) {
+              onSave: (_, _) {
                 saveCount++;
               },
             ),

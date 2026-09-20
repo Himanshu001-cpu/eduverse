@@ -226,7 +226,7 @@ class _TrendingCoursesSectionState extends State<TrendingCoursesSection> {
                       controller: _scrollController,
                       scrollDirection: Axis.horizontal,
                       itemCount: docs.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 24),
+                      separatorBuilder: (_, _) => const SizedBox(width: 24),
                       itemBuilder: (context, index) {
                         final data = docs[index].data() as Map<String, dynamic>;
                         final courseId = docs[index].id;
@@ -454,7 +454,7 @@ class _CourseCardState extends State<_CourseCard> {
                                 ? Image.network(
                                     widget.thumbnailUrl,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
+                                    errorBuilder: (_, _, _) =>
                                         _buildGradientFallback(),
                                   )
                                 : _buildGradientFallback(),

@@ -189,7 +189,7 @@ class _QuizLibraryDialogState extends State<QuizLibraryDialog> {
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 4),
+                    separatorBuilder: (_, _) => const SizedBox(height: 4),
                     itemBuilder: (context, index) {
                       final quiz = filtered[index];
                       final qCount = quiz.questions.length;

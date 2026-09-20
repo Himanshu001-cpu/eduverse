@@ -315,7 +315,7 @@ class TestSeriesDetailPage extends StatelessWidget {
                         Image.network(
                           testSeries.thumbnailUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,

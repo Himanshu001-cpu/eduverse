@@ -1,0 +1,28 @@
+# Eduverse Root Static Analysis & Linter Configuration
+# Extends standard Flutter recommended rules
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "build/**"
+    - ".dart_tool/**"
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+  errors:
+    avoid_print: error
+    unused_import: error
+    unused_local_variable: error
+    dead_code: error
+    missing_required_param: error
+    missing_return: error
+
+linter:
+  rules:
+    - cancel_subscriptions
+    - close_sinks
