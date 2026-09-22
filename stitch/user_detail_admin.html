@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"background":"#f9f9ff","surface-variant":"#d8e3fb","on-primary":"#ffffff","inverse-surface":"#263143","surface-container-highest":"#d8e3fb","tertiary-container":"#c9a900","on-tertiary":"#ffffff","on-secondary-container":"#00616d","outline-variant":"#bec9c6","tertiary":"#705d00","inverse-primary":"#86d5c8","primary-fixed-dim":"#86d5c8","surface-dim":"#cfdaf2","on-tertiary-container":"#4c3e00","on-surface":"#111c2d","surface-bright":"#f9f9ff","surface-container-high":"#dee8ff","on-primary-container":"#92e1d4","secondary-fixed-dim":"#00daf3","tertiary-fixed":"#ffe16d","error-container":"#ffdad6","on-tertiary-fixed-variant":"#544600","on-secondary-fixed-variant":"#004f58","surface-container":"#e7eeff","primary-fixed":"#a2f1e4","on-background":"#111c2d","surface-gray":"#F8F9FA","on-tertiary-fixed":"#221b00","on-primary-fixed-variant":"#005048","surface-container-lowest":"#ffffff","on-error-container":"#93000a","primary":"#004c44","on-surface-variant":"#3f4947","tertiary-fixed-dim":"#e9c400","primary-container":"#00665c","inverse-on-surface":"#ecf1ff","emerald-vivid":"#0E9272","on-secondary-fixed":"#001f24","deep-navy":"#040B14","surface":"#f9f9ff","surface-tint":"#0b6a60","on-error":"#ffffff","surface-container-low":"#f0f3ff","outline":"#6f7977","error":"#ba1a1a","secondary-container":"#00e3fd","secondary-fixed":"#9cf0ff","on-primary-fixed":"#00201c","secondary":"#006875","on-secondary":"#ffffff"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"gutter":"24px","margin-mobile":"16px","base":"8px","margin-desktop":"48px","container-max":"1280px","section-gap":"80px"},"fontFamily":{"label-sm":["Inter"],"headline-md":["Playfair Display"],"display-lg-mobile":["Playfair Display"],"body-lg":["Inter"],"headline-lg":["Playfair Display"],"display-lg":["Playfair Display"],"body-md":["Inter"],"label-lg":["Inter"]},"fontSize":{"label-sm":["12px",{"lineHeight":"1.2","letterSpacing":"0.02em","fontWeight":"500"}],"headline-md":["24px",{"lineHeight":"1.4","fontWeight":"600"}],"display-lg-mobile":["36px",{"lineHeight":"1.2","fontWeight":"700"}],"body-lg":["18px",{"lineHeight":"1.6","fontWeight":"400"}],"headline-lg":["32px",{"lineHeight":"1.3","fontWeight":"600"}],"display-lg":["56px",{"lineHeight":"1.1","fontWeight":"700"}],"body-md":["16px",{"lineHeight":"1.6","fontWeight":"400"}],"label-lg":["14px",{"lineHeight":"1.2","letterSpacing":"0.05em","fontWeight":"600"}]}}}}</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between overflow-y-auto"><div class="p-6"><div class="flex items-center gap-3 pb-6"><div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-on-primary"><span class="material-symbols-outlined text-[24px]">school</span></div><div><span class="font-headline-md text-headline-md text-primary tracking-tight block">Eduverse</span><span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Admin Console</span></div></div><nav class="space-y-6 pt-2" data-active-classes="bg-primary-container text-on-primary font-label-lg rounded-lg shadow-sm"><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Overview</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">space_dashboard</span><span>Dashboard</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Users &amp; Aspirants</div><a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 transition-all bg-primary-container text-on-primary font-label-lg rounded-lg shadow-sm" data-path="students" href="#"><span class="material-symbols-outlined text-[20px]">person_apron</span><span>Students</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="teachers" href="#"><span class="material-symbols-outlined text-[20px]">co_present</span><span>Teachers</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="access-control" href="#"><span class="material-symbols-outlined text-[20px]">verified_user</span><span>Access Control</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Academic &amp; Store</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="courses" href="#"><span class="material-symbols-outlined text-[20px]">auto_stories</span><span>Courses</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="batches" href="#"><span class="material-symbols-outlined text-[20px]">group_work</span><span>Batches</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="curriculum" href="#"><span class="material-symbols-outlined text-[20px]">menu_book</span><span>Curriculum</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="test-series" href="#"><span class="material-symbols-outlined text-[20px]">quiz</span><span>Test Series</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Financials</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="transactions" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span>Transactions</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="razorpay-payouts" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span>Razorpay Payouts</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="coupons" href="#"><span class="material-symbols-outlined text-[20px]">sell</span><span>Coupons</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Platform</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-[20px]">history</span><span>Audit Logs</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Settings</span></a></div></nav></div><div class="p-4 m-4 rounded-xl bg-surface-container-low flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-vivid animate-pulse"></span><span class="font-label-sm text-label-sm text-on-surface-variant">v4.2.0-core</span></div><span class="font-label-sm text-label-sm text-outline">Synced</span></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-6"><div class="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low"><span class="w-2 h-2 rounded-full bg-emerald-vivid"></span><span class="font-label-sm text-label-sm text-on-surface font-medium">Systems Normal</span></div><div class="relative flex items-center w-96"><span class="material-symbols-outlined absolute left-3 text-outline text-[20px]">search</span><input class="w-full pl-10 pr-4 py-2 rounded-lg bg-surface-container-low text-on-surface font-body-md text-label-lg placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search students, courses, transactions, faculty..." type="text"/></div></div><div class="flex items-center gap-4"><button class="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest"></span></button><div class="flex items-center gap-3 pl-2"><div class="text-right hidden sm:block"><span class="font-label-lg text-label-lg text-on-surface block leading-tight">Dr. Harrison Vance</span><span class="font-label-sm text-label-sm text-outline block leading-tight">Dean / Superadmin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-background min-h-screen"><div class="flex flex-col w-full">
+<div class="w-full px-gutter py-6 max-w-container-max mx-auto space-y-6">
+<!-- Dossier Header & Breadcrumbs -->
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-surface-container-lowest p-6 rounded-xl shadow-sm relative overflow-hidden">
+<div class="absolute -right-16 -top-16 w-64 h-64 bg-gradient-to-br from-primary/5 via-secondary/10 to-transparent rounded-full pointer-events-none blur-2xl"></div>
+<div class="space-y-2 relative z-10">
+<div class="flex flex-wrap items-center gap-2 font-label-sm text-label-sm text-outline">
+<a class="hover:text-primary transition-colors" href="#">Users</a>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">Aspirants</a>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-on-surface font-semibold tracking-wide">Ananya Sharma</span>
+<span class="bg-surface-container px-2 py-0.5 rounded text-on-surface-variant font-mono text-[11px]">UID: edu_usr_98241</span>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Student Inspection Dossier</h1>
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-vivid/10 text-primary font-label-sm text-label-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-emerald-vivid"></span>
+<span>Active • Verified Scholar • Single-Device Locked</span>
+</div>
+</div>
+</div>
+<!-- Header Administrative Actions -->
+<div class="flex flex-wrap items-center gap-2.5 relative z-10">
+<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface font-label-lg text-label-lg transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">key</span>
+<span>Reset Password Link</span>
+</button>
+<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface font-label-lg text-label-lg transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-secondary">phonelink_erase</span>
+<span>Revoke Device Session</span>
+</button>
+<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+<span>Edit Profile</span>
+</button>
+<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-error-container hover:bg-error/20 text-error font-label-lg text-label-lg transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">block</span>
+<span>Suspend</span>
+</button>
+</div>
+</div>
+<!-- Main Grid Workspace -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- LEFT COLUMN: Profile & Telemetry (4 Cols) -->
+<div class="lg:col-span-4 space-y-6">
+<!-- Student Profile Card -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-6 relative overflow-hidden">
+<div class="flex items-start gap-4">
+<div class="relative flex-shrink-0">
+<img class="w-20 h-20 rounded-2xl object-cover shadow-md" data-alt="Close-up professional portrait of a studious Indian female UPSC candidate with spectacles and high bun, calm focus, academic library background with soft lighting, natural teal and ivory atmospheric tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9kuOGkM9k9Ocg9ltGZv9mA7Djy5DBF_S8eOdb5s07G8RehJhc9VG15TTGT3CTh7dK3B-t8SkDbI5cVROqRxo-CvkjWBnTZFKKHvsDy6tHCwSMzqC8flB5mBXWUrMGG0q2-rZhcwl6SnlaQOoBjsPJr6t_bmkjvVN-F31tpxLexXY8_jyFGsNj3xS_pOadxwNBv-pGSesZCFWyo0h7iO7NCj8fGhURbyCxfXFNpE9jVWkfP1r0-7-e"/>
+<div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-vivid text-on-primary flex items-center justify-center shadow-sm" title="Identity KYC Verified">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+</div>
+</div>
+<div class="min-w-0 flex-1">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md text-on-surface truncate">Ananya Sharma</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider font-semibold block mt-0.5">Civil Services Aspirant</span>
+<div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-surface-container text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px] text-tertiary">flag</span>
+<span>UPSC CSE 2025</span>
+</div>
+</div>
+</div>
+<div class="space-y-3 pt-2">
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-[18px]">mail</span>
+<span class="font-label-sm text-label-sm text-outline">Email</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface truncate max-w-[170px]" title="ananya.s@upsc-aspirant.in">ananya.s@upsc-aspirant.in</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-[18px]">call</span>
+<span class="font-label-sm text-label-sm text-outline">Mobile</span>
+</div>
+<div class="text-right">
+<span class="font-label-lg text-label-lg text-on-surface block">+91 98765 43210</span>
+<span class="font-label-sm text-label-sm text-emerald-vivid font-medium flex items-center justify-end gap-0.5">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> OTP Verified
+                </span>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-[18px]">calendar_month</span>
+<span class="font-label-sm text-label-sm text-outline">Enrolled Date</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Aug 12, 2024</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-[18px]">account_tree</span>
+<span class="font-label-sm text-label-sm text-outline">Optional Subject</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface font-medium">PSIR (Pol. Science)</span>
+</div>
+</div>
+</div>
+<!-- Device & Session Integrity Card -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-5 relative overflow-hidden">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-secondary-container/30 text-on-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">security</span>
+</div>
+<span class="font-headline-md text-[18px] text-on-surface">Session &amp; DRM Guard</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-vivid/15 text-primary text-[11px] font-semibold tracking-wide uppercase">L1 Secured</span>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low space-y-3">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Enrolled Hardware</span>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1.5 mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-primary">smartphone</span>
+                  OnePlus 11 5G (Android 14)
+                </span>
+</div>
+<span class="font-label-sm text-label-sm text-outline bg-surface-container-highest px-2 py-0.5 rounded font-mono text-[10px]">HW-BOUND</span>
+</div>
+<div class="grid grid-cols-2 gap-2 pt-1 text-on-surface">
+<div class="bg-surface-container-lowest p-2.5 rounded-lg">
+<span class="font-label-sm text-label-sm text-outline block text-[11px]">Primary IP</span>
+<span class="font-label-sm text-label-sm font-mono text-on-surface block mt-0.5 truncate">49.37.12.188</span>
+<span class="font-label-sm text-[10px] text-outline truncate block">Bengaluru, IN</span>
+</div>
+<div class="bg-surface-container-lowest p-2.5 rounded-lg">
+<span class="font-label-sm text-label-sm text-outline block text-[11px]">Last Active</span>
+<span class="font-label-sm text-label-sm text-emerald-vivid font-medium block mt-0.5">14 mins ago</span>
+<span class="font-label-sm text-[10px] text-outline truncate block">Streaming GS-3</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-2.5 rounded-lg flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline block text-[11px]">DRM Dynamic Watermark ID</span>
+<span class="font-mono text-label-sm text-primary font-bold">STG-98241-BLR</span>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">verified_user</span>
+</div>
+</div>
+<button class="w-full py-2.5 px-4 rounded-lg bg-surface-container hover:bg-error/10 hover:text-error text-on-surface font-label-lg text-label-lg transition-colors flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined text-[18px]">lock_reset</span>
+<span>Force Logout &amp; Revoke JWT</span>
+</button>
+</div>
+<!-- Payment & Billing Summary -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-tertiary-fixed/40 text-on-tertiary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+</div>
+<span class="font-headline-md text-[18px] text-on-surface">Financial Ledger</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Razorpay Auto-Sync</span>
+</div>
+<div class="p-4 rounded-xl bg-gradient-to-br from-surface-container-low to-surface-container flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Student Lifetime Value (LTV)</span>
+<span class="font-headline-lg text-headline-lg text-primary font-bold mt-1 block leading-tight">₹24,999</span>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-outline block">Completed Orders</span>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold mt-1 block">2 Transactions</span>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between text-[13px] p-2 rounded hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-emerald-vivid text-[16px]">check_circle</span>
+<div>
+<span class="font-label-sm text-label-sm text-on-surface font-medium block">UPSC Prelims+Mains Full GS</span>
+<span class="font-label-sm text-[11px] text-outline font-mono">pay_NxL98104 • UPI</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">₹19,999</span>
+</div>
+<div class="flex items-center justify-between text-[13px] p-2 rounded hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-emerald-vivid text-[16px]">check_circle</span>
+<div>
+<span class="font-label-sm text-label-sm text-on-surface font-medium block">CSAT Quant Masterclass 2025</span>
+<span class="font-label-sm text-[11px] text-outline font-mono">pay_PbC43198 • UPI</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">₹5,000</span>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: Academic Activity & Telemetry Dossier (8 Cols) -->
+<div class="lg:col-span-8 space-y-6">
+<!-- Performance Metric Summary Ribbon -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex items-center gap-4">
+<div class="relative w-14 h-14 flex items-center justify-center flex-shrink-0">
+<svg class="w-14 h-14 -rotate-90 text-surface-container-high" viewbox="0 0 36 36">
+<path class="text-surface-container-high" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="94.2, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<span class="absolute font-label-sm text-label-sm font-bold text-primary">94.2</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Mock Percentile</span>
+<span class="font-headline-md text-[20px] text-on-surface font-semibold">Top 5.8%</span>
+<span class="font-label-sm text-[11px] text-emerald-vivid block">↑ 3.4% this month</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-tertiary-fixed/30 text-on-tertiary-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[26px]">assignment_turned_in</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Avg Quiz Score</span>
+<span class="font-headline-md text-[20px] text-on-surface font-semibold">82.5%</span>
+<span class="font-label-sm text-[11px] text-outline block">42 Daily Quizzes Done</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-secondary-fixed/40 text-on-secondary-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[26px]">pace</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Weekly Study Time</span>
+<span class="font-headline-md text-[20px] text-on-surface font-semibold">31.4 hrs</span>
+<span class="font-label-sm text-[11px] text-emerald-vivid block">Target: 28 hrs/wk</span>
+</div>
+</div>
+</div>
+<!-- Academic Dossier Tabs Panel -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<!-- Tab Navigation Bar -->
+<div class="flex items-center gap-1 px-6 pt-4 bg-surface-container-low/50 overflow-x-auto" id="academicTabs">
+<button class="dossier-tab-btn flex items-center gap-2 px-4 py-3 font-label-lg text-label-lg text-primary font-bold border-b-0 relative transition-colors" onclick="switchDossierTab('tab-enrolled', this)" type="button">
+<span class="material-symbols-outlined text-[18px]">auto_stories</span>
+<span>Enrolled Courses &amp; Batches</span>
+<span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold">2</span>
+<div class="tab-indicator absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+</button>
+<button class="dossier-tab-btn flex items-center gap-2 px-4 py-3 font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface relative transition-colors" onclick="switchDossierTab('tab-attendance', this)" type="button">
+<span class="material-symbols-outlined text-[18px]">video_library</span>
+<span>Lecture Attendance &amp; Watch Time</span>
+<div class="tab-indicator absolute bottom-0 left-0 right-0 h-0.5 bg-transparent"></div>
+</button>
+<button class="dossier-tab-btn flex items-center gap-2 px-4 py-3 font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface relative transition-colors" onclick="switchDossierTab('tab-submissions', this)" type="button">
+<span class="material-symbols-outlined text-[18px]">quiz</span>
+<span>Test &amp; Quiz Submissions</span>
+<div class="tab-indicator absolute bottom-0 left-0 right-0 h-0.5 bg-transparent"></div>
+</button>
+<button class="dossier-tab-btn flex items-center gap-2 px-4 py-3 font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface relative transition-colors" onclick="switchDossierTab('tab-audit', this)" type="button">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+<span>Audit Log &amp; Security History</span>
+<div class="tab-indicator absolute bottom-0 left-0 right-0 h-0.5 bg-transparent"></div>
+</button>
+</div>
+<!-- TAB CONTENT 1: Enrolled Courses & Batches -->
+<div class="dossier-tab-content p-6 space-y-6 block" id="tab-enrolled">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-headline-md text-headline-md text-on-surface block">Subscribed Cohorts</span>
+<span class="font-label-sm text-label-sm text-outline">Real-time completion telemetry and access validity</span>
+</div>
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container text-primary font-label-sm text-label-sm font-semibold transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">add_circle</span>
+<span>Assign New Batch</span>
+</button>
+</div>
+<div class="space-y-4">
+<!-- Course Card 1 -->
+<div class="p-5 rounded-xl bg-surface-container-low space-y-4 hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3">
+<img class="w-14 h-14 rounded-lg object-cover flex-shrink-0" data-alt="Cover artwork for UPSC Civil Services GS course showing classical constitution pillar motifs, map of India outline, and scholarly fountain pen in academic teal and gold." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-fuw3u3iCSa1VHbsOVe8fC39Yr4mex9EnEQDwwwCiiRC1NFFrFpy3RKAM2ZqLDVzLxmnuVcZY4H-OJwO66NFjgLOp0PAMTVMp--hOvLdnk-oaBe5NUZ7dLa_BgKdDr4jivmfEnGamqjFqmCZ3OcYJwJr_VskBKqFPSwJJlV34dC--_8k7kcmh_ryl7kpyBy0N6v22tXqSzkPW6BYGKXXDlwHvLnKF2dJ0PFo28nv9stcuipANQA-E"/>
+<div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-tertiary-fixed/30 text-on-tertiary-fixed-variant font-label-sm text-[11px] font-semibold uppercase">Flagship 2-Year Cohort</span>
+<span class="font-label-sm text-[11px] text-outline font-mono">ID: BATCH_GS_2025_A</span>
+</div>
+<h2 class="font-headline-md text-[18px] text-on-surface mt-1">UPSC Foundation Prelims + Mains (GS 1-4) 2025</h2>
+<span class="font-label-sm text-label-sm text-outline block mt-0.5">Faculty: Dr. Vance, Prof. A. Mehta, S. Roy</span>
+</div>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-sm text-label-sm font-semibold transition-colors shadow-sm" type="button">
+                      Inspect Syllabus Node
+                    </button>
+<button class="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-sm text-label-sm font-semibold transition-colors shadow-sm" type="button">
+                      Modify Cohort Access
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
+<div class="bg-surface-container-lowest p-3 rounded-lg">
+<span class="font-label-sm text-[11px] text-outline block">Course Completion</span>
+<div class="flex items-center justify-between mt-1">
+<span class="font-headline-md text-[16px] text-primary font-bold">64%</span>
+<span class="font-label-sm text-[11px] text-outline">142/220 Lectures</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full mt-2 overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 64%"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg">
+<span class="font-label-sm text-[11px] text-outline block">DPPs &amp; Answer Writing</span>
+<span class="font-headline-md text-[16px] text-on-surface font-bold mt-1 block">18 Submitted</span>
+<span class="font-label-sm text-[11px] text-emerald-vivid block mt-1">16 Evaluated by Mentor</span>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg">
+<span class="font-label-sm text-[11px] text-outline block">Active Access Window</span>
+<span class="font-headline-md text-[16px] text-on-surface font-bold mt-1 block">31 May 2026</span>
+<span class="font-label-sm text-[11px] text-outline block mt-1">622 days remaining</span>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg">
+<span class="font-label-sm text-[11px] text-outline block">Live Doubt Clearance</span>
+<span class="font-headline-md text-[16px] text-on-surface font-bold mt-1 block">91.4% Rate</span>
+<span class="font-label-sm text-[11px] text-outline block mt-1">28 Doubts Resolved</span>
+</div>
+</div>
+</div>
+<!-- Course Card 2 -->
+<div class="p-5 rounded-xl bg-surface-container-low space-y-4 hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3">
+<img class="w-14 h-14 rounded-lg object-cover flex-shrink-0" data-alt="Educational technical illustration representing numerical reasoning and aptitude analysis with geometric compass, paper graphs, and digital stylus on deep forest green surface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmvRqQ0mSBL1eV0bXPXem9cLdPtzKKiJOS6pWDykUhbVtO_gjIwSq_el5O-vmY2YAfagr-D2T_C2U29gIAdZwtTyCTHP4-UgOtzDsToP3vnac-L9bQ5ca85ihzkv5bsbz8rNrrNbUda8gB6yjxNhaDeMg86bsiQlQUd49I-17yAgw3k01HFdY-a6GkiVjpv3z_F9vqopKZb2NnpLOasHM71L-3QwfLc4c-VZxt1lX948UvtSgtWZ9B"/>
+<div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-secondary-container/50 text-on-secondary-container font-label-sm text-[11px] font-semibold uppercase">Skill Module</span>
+<span class="font-label-sm text-[11px] text-outline font-mono">ID: CSAT_QUANT_V4</span>
+</div>
+<h2 class="font-headline-md text-[18px] text-on-surface mt-1">CSAT Quantitative Aptitude Masterclass</h2>
+<span class="font-label-sm text-label-sm text-outline block mt-0.5">Faculty: Ramanathan Iyer (IIT-M)</span>
+</div>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-sm text-label-sm font-semibold transition-colors shadow-sm" type="button">
+                      Inspect Syllabus Node
+                    </button>
+<button class="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-sm text-label-sm font-semibold transition-colors shadow-sm" type="button">
+                      Modify Cohort Access
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
+<div class="bg-surface-container-lowest p-3 rounded-lg">
+<span class="font-label-sm text-[11px] text-outline block">Course Completion</span>
+<div class="flex items-center justify-between mt-1">
+<span class="font-headline-md text-[16px] text-secondary font-bold">41%</span>
+<span class="font-label-sm text-[11px] text-outline">26/64 Lectures</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 41%"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg">
+<span class="font-label-sm text-[11px] text-outline block">Speed Test Series</span>
+<span class="font-headline-md text-[16px] text-on-surface font-bold mt-1 block">8/12 Attempted</span>
+<span class="font-label-sm text-[11px] text-emerald-vivid block mt-1">Accuracy: 88.4%</span>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg">
+<span class="font-label-sm text-[11px] text-outline block">Active Access Window</span>
+<span class="font-headline-md text-[16px] text-on-surface font-bold mt-1 block">28 Feb 2025</span>
+<span class="font-label-sm text-[11px] text-outline block mt-1">165 days remaining</span>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg">
+<span class="font-label-sm text-[11px] text-outline block">Formula Sheets</span>
+<span class="font-headline-md text-[16px] text-on-surface font-bold mt-1 block">Downloaded</span>
+<span class="font-label-sm text-[11px] text-outline block mt-1">Watermarked: STG-98241</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- TAB CONTENT 2: Lecture Attendance & Watch Time (Hidden default) -->
+<div class="dossier-tab-content p-6 space-y-5 hidden" id="tab-attendance">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-headline-md text-headline-md text-on-surface block">Streaming Consumption Logs</span>
+<span class="font-label-sm text-label-sm text-outline">Heartbeat analytics, bitrate switching, and video completion ratio</span>
+</div>
+<span class="px-3 py-1 rounded bg-surface-container-low font-mono text-[12px] text-primary">DRM HLS Stream Tracker</span>
+</div>
+<div class="space-y-3">
+<div class="p-4 rounded-xl bg-surface-container-low flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-vivid"></span>
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">GS-3: Inflation Targeting &amp; Monetary Policy Framework</span>
+</div>
+<span class="font-label-sm text-[12px] text-outline block">Batch GS-2025 • Live Stream VOD • 1080p 60fps</span>
+</div>
+<div class="flex items-center gap-6 text-right">
+<div>
+<span class="font-label-sm text-[11px] text-outline block">Playback Watched</span>
+<span class="font-label-lg text-label-lg font-bold text-primary">1 hr 48m / 1 hr 52m (96%)</span>
+</div>
+<div>
+<span class="font-label-sm text-[11px] text-outline block">Streamed At</span>
+<span class="font-label-sm text-label-sm text-on-surface">Today, 09:12 AM</span>
+</div>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-vivid"></span>
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">GS-2: Judicial Review &amp; Basic Structure Doctrine Landmark Cases</span>
+</div>
+<span class="font-label-sm text-[12px] text-outline block">Batch GS-2025 • Archive Class • 720p Mobile</span>
+</div>
+<div class="flex items-center gap-6 text-right">
+<div>
+<span class="font-label-sm text-[11px] text-outline block">Playback Watched</span>
+<span class="font-label-lg text-label-lg font-bold text-primary">2 hr 10m / 2 hr 10m (100%)</span>
+</div>
+<div>
+<span class="font-label-sm text-[11px] text-outline block">Streamed At</span>
+<span class="font-label-sm text-label-sm text-on-surface">Yesterday, 04:30 PM</span>
+</div>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">CSAT: Permutations, Combinations &amp; Probability Shortcuts</span>
+</div>
+<span class="font-label-sm text-[12px] text-outline block">CSAT Quant • Archive Class • 1080p</span>
+</div>
+<div class="flex items-center gap-6 text-right">
+<div>
+<span class="font-label-sm text-[11px] text-outline block">Playback Watched</span>
+<span class="font-label-lg text-label-lg font-bold text-secondary">52m / 1 hr 15m (69%)</span>
+</div>
+<div>
+<span class="font-label-sm text-[11px] text-outline block">Streamed At</span>
+<span class="font-label-sm text-label-sm text-on-surface">Sep 28, 08:20 PM</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- TAB CONTENT 3: Test & Quiz Submissions (Hidden default) -->
+<div class="dossier-tab-content p-6 space-y-4 hidden" id="tab-submissions">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-headline-md text-headline-md text-on-surface block">Evaluated Test Papers</span>
+<span class="font-label-sm text-label-sm text-outline">All India Mock Tests &amp; Daily Prelims Practice (DPP)</span>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm font-semibold transition-colors" type="button">
+                Export Grade Report (PDF)
+              </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-md text-label-sm">
+<thead>
+<tr class="bg-surface-container-low text-outline uppercase font-label-sm text-[11px]">
+<th class="p-3 rounded-l-lg">Test Title</th>
+<th class="p-3">Cohort</th>
+<th class="p-3">Raw Marks</th>
+<th class="p-3">All-India Rank</th>
+<th class="p-3">Status</th>
+<th class="p-3 rounded-r-lg text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y-0 space-y-2">
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="p-3 font-semibold text-on-surface">Prelims All-India Open Mock #04 (General Studies)</td>
+<td class="p-3 text-outline">UPSC 2025</td>
+<td class="p-3 font-bold text-primary">124.66 / 200</td>
+<td class="p-3 font-mono">AIR 412 / 18,490</td>
+<td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-vivid/10 text-emerald-vivid text-[11px] font-bold">Evaluated</span></td>
+<td class="p-3 text-right"><button class="text-primary hover:underline font-semibold text-[12px]" type="button">View OMR Sheet</button></td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="p-3 font-semibold text-on-surface">GS-1 Mains Sectional: Modern Indian Freedom Movement</td>
+<td class="p-3 text-outline">UPSC 2025</td>
+<td class="p-3 font-bold text-primary">112.5 / 250</td>
+<td class="p-3 font-mono">AIR 128 / 4,200</td>
+<td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-vivid/10 text-emerald-vivid text-[11px] font-bold">Evaluated</span></td>
+<td class="p-3 text-right"><button class="text-primary hover:underline font-semibold text-[12px]" type="button">Copy Dossier</button></td>
+</tr>
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="p-3 font-semibold text-on-surface">CSAT Speed Drill #12: Quantitative Aptitude Speed Test</td>
+<td class="p-3 text-outline">CSAT Master</td>
+<td class="p-3 font-bold text-primary">58.00 / 80</td>
+<td class="p-3 font-mono">AIR 89 / 3,110</td>
+<td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-vivid/10 text-emerald-vivid text-[11px] font-bold">Evaluated</span></td>
+<td class="p-3 text-right"><button class="text-primary hover:underline font-semibold text-[12px]" type="button">View Analysis</button></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- TAB CONTENT 4: Audit Log & Device History (Hidden default) -->
+<div class="dossier-tab-content p-6 space-y-4 hidden" id="tab-audit">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-headline-md text-headline-md text-on-surface block">Forensic Security Timeline</span>
+<span class="font-label-sm text-label-sm text-outline">Chronological immutable audit log of auth events, IP migrations &amp; tokens</span>
+</div>
+<span class="font-mono text-[11px] text-outline">Showing 4 Latest Events</span>
+</div>
+<div class="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-container-high">
+<div class="relative">
+<div class="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-emerald-vivid ring-4 ring-surface-container-lowest"></div>
+<div class="bg-surface-container-low p-3.5 rounded-xl space-y-1">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">Encrypted Video Session Token Minted</span>
+<span class="font-mono text-[11px] text-outline">14 mins ago</span>
+</div>
+<p class="font-body-md text-label-sm text-on-surface-variant">Client issued AES-128 HLS playback key with dynamic forensic watermark ID <code class="bg-surface-container px-1 py-0.5 rounded text-primary font-mono text-[11px]">STG-98241-BLR</code>.</p>
+<span class="font-mono text-[10px] text-outline block">IP: 49.37.12.188 • OnePlus 11 5G • Chrome Mobile WebView 128.0</span>
+</div>
+</div>
+<div class="relative">
+<div class="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface-container-lowest"></div>
+<div class="bg-surface-container-low p-3.5 rounded-xl space-y-1">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">2FA OTP Authentication Success</span>
+<span class="font-mono text-[11px] text-outline">Today, 08:58 AM</span>
+</div>
+<p class="font-body-md text-label-sm text-on-surface-variant">User completed mobile 6-digit challenge via MSG91 SMS gateway (+91 98765 ****0). Hardware signature validated.</p>
+<span class="font-mono text-[10px] text-outline block">Fingerprint: c83f9821a7 • ASN: AS55836 Reliance Jio Infocomm</span>
+</div>
+</div>
+<div class="relative">
+<div class="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-tertiary ring-4 ring-surface-container-lowest"></div>
+<div class="bg-surface-container-low p-3.5 rounded-xl space-y-1">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">Test Submission Uploaded &amp; Locked</span>
+<span class="font-mono text-[11px] text-outline">Sep 28, 2024 • 01:15 PM</span>
+</div>
+<p class="font-body-md text-label-sm text-on-surface-variant">Submitted scanned 12-page subjective answer booklet for GS Mains Test #03. SHA256 digest verified.</p>
+<span class="font-mono text-[10px] text-outline block">File: mains_subm_gs3_98241.pdf (14.2 MB) • Cloudflare R2</span>
+</div>
+</div>
+<div class="relative">
+<div class="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-outline ring-4 ring-surface-container-lowest"></div>
+<div class="bg-surface-container-low p-3.5 rounded-xl space-y-1">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">Account Onboarding &amp; Enrollment Confirmed</span>
+<span class="font-mono text-[11px] text-outline">Aug 12, 2024 • 10:14 AM</span>
+</div>
+<p class="font-body-md text-label-sm text-on-surface-variant">Razorpay webhook received for <span class="font-semibold">₹19,999</span>. Automatic enrollment in BATCH_GS_2025_A triggered.</p>
+<span class="font-mono text-[10px] text-outline block">Staff Approver: System Auto-Provisioner • Razorpay Payment ID: pay_NxL98104</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Inline Administrative Note Box -->
+<div class="p-5 rounded-xl bg-surface-container-low flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">policy</span>
+</div>
+<div>
+<span class="font-label-lg text-label-lg font-bold text-on-surface">Strict Single-Device Policy Active</span>
+<span class="font-label-sm text-label-sm text-outline block">Student's video encryption keys are tied to Android Hardware Keystore ID. Unrecognized logins prompt admin approval.</span>
+</div>
+</div>
+<button class="px-4 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-lg text-label-lg transition-colors whitespace-nowrap shadow-sm" type="button">
+            Modify Policy Exemption
+          </button>
+</div>
+</div>
+</div>
+</div>
+<script>
+    function switchDossierTab(tabId, btn) {
+      // Hide all tabs
+      document.querySelectorAll('.dossier-tab-content').forEach(function(content) {
+        content.classList.add('hidden');
+        content.classList.remove('block');
+      });
+
+      // Show selected tab
+      var activeTab = document.getElementById(tabId);
+      if (activeTab) {
+        activeTab.classList.remove('hidden');
+        activeTab.classList.add('block');
+      }
+
+      // Reset buttons style
+      document.querySelectorAll('.dossier-tab-btn').forEach(function(b) {
+        b.classList.remove('text-primary', 'font-bold');
+        b.classList.add('text-on-surface-variant');
+        var ind = b.querySelector('.tab-indicator');
+        if (ind) {
+          ind.classList.remove('bg-primary');
+          ind.classList.add('bg-transparent');
+        }
+      });
+
+      // Activate clicked button
+      btn.classList.remove('text-on-surface-variant');
+      btn.classList.add('text-primary', 'font-bold');
+      var activeInd = btn.querySelector('.tab-indicator');
+      if (activeInd) {
+        activeInd.classList.remove('bg-transparent');
+        activeInd.classList.add('bg-primary');
+      }
+    }
+  </script>
+</div></main></div></body></html>

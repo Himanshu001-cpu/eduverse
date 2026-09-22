@@ -66,64 +66,96 @@ class AdminRouter {
           builder: (_) => CourseEditorScreen(course: course),
         );
       case '/course_detail':
-        final course = settings.arguments as AdminCourse;
+        final course = settings.arguments as AdminCourse? ??
+            AdminCourse(
+              id: 'demo_course',
+              title: 'UPSC CSE 2026 Foundation Batch',
+              slug: 'upsc-cse-2026',
+              subtitle: 'Target 2026 Prelims + Mains Foundation Program',
+              description:
+                  'Comprehensive civil services foundation program with live mentorship and DPPs.',
+              tags: const ['UPSC', 'IAS', 'Prelims', 'Mains'],
+              language: 'Hinglish',
+              level: 'Foundation',
+              thumbnailUrl: '',
+              gradientColors: const [0xFF1A1F36, 0xFF0D1117],
+              priceDefault: 49999.0,
+              visibility: 'published',
+              createdAt: DateTime(2026, 1, 1),
+            );
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => CourseDetailScreen(course: course),
         );
       case '/recorded_batches':
-        final args = settings.arguments as Map<String, dynamic>;
+        final args = settings.arguments is Map
+            ? Map<String, dynamic>.from(settings.arguments as Map)
+            : <String, dynamic>{};
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => RecordedBatchesListScreen(
-            courseId: args['courseId'] as String,
+            courseId: args['courseId']?.toString() ?? 'demo_course',
           ),
         );
       case '/batch_notes':
-        final args = settings.arguments as Map<String, String>;
+        final args = settings.arguments is Map
+            ? Map<String, dynamic>.from(settings.arguments as Map)
+            : <String, dynamic>{};
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => BatchNotesScreen(
-            courseId: args['courseId']!,
-            batchId: args['batchId'] ?? '',
+            courseId: args['courseId']?.toString() ?? 'demo_course',
+            batchId: args['batchId']?.toString() ?? 'demo_batch',
           ),
         );
       case '/batch_planner':
-        final args = settings.arguments as Map<String, String>;
+        final args = settings.arguments is Map
+            ? Map<String, dynamic>.from(settings.arguments as Map)
+            : <String, dynamic>{};
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => BatchPlannerScreen(
-            courseId: args['courseId']!,
-            batchId: args['batchId'] ?? '',
+            courseId: args['courseId']?.toString() ?? 'demo_course',
+            batchId: args['batchId']?.toString() ?? 'demo_batch',
           ),
         );
       case '/batch_quizzes':
-        final args = settings.arguments as Map<String, String>;
+        final args = settings.arguments is Map
+            ? Map<String, dynamic>.from(settings.arguments as Map)
+            : <String, dynamic>{};
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => BatchQuizScreen(
-            courseId: args['courseId']!,
-            batchId: args['batchId'] ?? '',
+            courseId: args['courseId']?.toString() ?? 'demo_course',
+            batchId: args['batchId']?.toString() ?? 'demo_batch',
           ),
         );
       case '/batch_dpps':
-        final args = settings.arguments as Map<String, String>;
+        final args = settings.arguments is Map
+            ? Map<String, dynamic>.from(settings.arguments as Map)
+            : <String, dynamic>{};
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => BatchDppScreen(
-            courseId: args['courseId']!,
-            batchId: args['batchId'] ?? '',
+            courseId: args['courseId']?.toString() ?? 'demo_course',
+            batchId: args['batchId']?.toString() ?? 'demo_batch',
           ),
         );
       case '/lecture_editor':
         final args = settings.arguments is Map
             ? Map<String, dynamic>.from(settings.arguments as Map)
             : <String, dynamic>{};
+        final rawCourseId = args['courseId']?.toString();
+        final rawBatchId = args['batchId']?.toString();
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => LectureEditorScreen(
-            courseId: args['courseId']?.toString() ?? '',
-            batchId: args['batchId']?.toString() ?? '',
+            courseId: (rawCourseId != null && rawCourseId.isNotEmpty)
+                ? rawCourseId
+                : 'demo_course',
+            batchId: (rawBatchId != null && rawBatchId.isNotEmpty)
+                ? rawBatchId
+                : 'demo_batch',
             initialResourceType: args['initialResourceType']?.toString(),
             isRecordedBatch: args['isRecordedBatch'] as bool? ?? false,
           ),
@@ -144,7 +176,7 @@ class AdminRouter {
           builder: (_) => const UsersScreen(),
         );
       case '/user_detail':
-        final userId = settings.arguments as String;
+        final userId = settings.arguments as String? ?? 'demo_user';
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => UserDetailScreen(userId: userId),

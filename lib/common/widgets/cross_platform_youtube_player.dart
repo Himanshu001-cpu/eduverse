@@ -128,16 +128,23 @@ class _CrossPlatformYoutubePlayerState
 
   @override
   Widget build(BuildContext context) {
-    // Calculate height based on 16:9 aspect ratio
-    final width = MediaQuery.of(context).size.width;
-    final height = width * 9 / 16;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.of(context).size.width;
+        final height = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : width * 9 / 16;
 
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Stack(
-        children: [
-          iframe.YoutubePlayer(controller: _controller, aspectRatio: 16 / 9),
+        return SizedBox(
+          width: width,
+          height: height,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: iframe.YoutubePlayer(controller: _controller, aspectRatio: 16 / 9),
+              ),
 
           // When paused, cover the entire iframe to hide YouTube's native
           // pause overlay (thumbnail / suggested-videos). The dark scrim lets
@@ -183,6 +190,8 @@ class _CrossPlatformYoutubePlayerState
             Positioned(top: 8, right: 8, child: widget.settingsButton!),
         ],
       ),
+    );
+      },
     );
   }
 }

@@ -1,395 +1,194 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../widgets/gradient_text.dart';
+import '../theme/academic_futurist_theme.dart';
 
-class TestimonialsSection extends StatefulWidget {
+class TestimonialsSection extends StatelessWidget {
   const TestimonialsSection({super.key});
 
-  @override
-  State<TestimonialsSection> createState() => _TestimonialsSectionState();
-}
-
-class _TestimonialsSectionState extends State<TestimonialsSection> {
-  int _activeIndex = 0;
+  static const List<_TestimonialData> _testimonials = [
+    _TestimonialData(
+      quote:
+          '"The UPSC Preparation program completely transformed my study routine. The secure notes and live classes were invaluable, leading directly to my success in the prelims."',
+      name: 'Sarah Jenkins',
+      role: 'Alumna, Class of 2023',
+      avatarUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuCoi7VbdfrBlQGMu7pLgtGEIDgmci4VEhy606U9hLrtItF4nqATB40OmkSi3D5YxhoVokhuBBvsu_pqSvzatm-zOfQC256pNN8qKlSVAtfexZB7ORowtRhseBhqy0YwOOgPxuBfeWtiFYpynzEPqdyxP5_EmKLK0SeUAOmKgucUou9dhvkh9TJUHa01m4K1VF6FAVGH1Ij8WIUHH93TzLcsp-JAJYgD7BHE6YxpbxUowrBZv4zGT-KU',
+      accentColor: EduverseTheme.primary,
+    ),
+    _TestimonialData(
+      quote:
+          '"I appreciated the detailed analytics in the SSC test series. The ability to identify my weak spots provided insights you simply cannot get from a textbook."',
+      name: 'David Chen',
+      role: 'SSC Aspirant',
+      avatarUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuATDLo6Z8Kji5WqBPkApgghQiO3R-xjDEF5Yh-tCQk-tl4VCRcwgNrSqhQlfFsHVsWv4tSUyY8Pry1x_EO2pwUXuHzIK9IGwGL6oPYbqF8yuvKTFNmeB5DXARpCZlporqmXRs8eyS0iadf8G2OgNDqBQ_BsSPZMLBnF-CMpVAta4Aq4JI3v5qHFAVxNyDCQNe7JAn2Ir_XNYcFHPPI4YgM_RTzEUckn2Aggv6S1ZvZPJOI0-t_TCP7f',
+      accentColor: EduverseTheme.tertiaryContainer,
+    ),
+    _TestimonialData(
+      quote:
+          '"The community discussions for State PSC were eye-opening. It gave me practical insights and peer support that kept me motivated throughout my preparation journey."',
+      name: 'Elena Rodriguez',
+      role: 'State PSC Candidate',
+      avatarUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuCpa49Xr3CTLJ68dQa-4vgbMRChA8Qz6JI2cqNhf4YoavO6CIELU-K_zT8eZ9ilZwz1yjD0ARP4mqiaLapr0DZWUFmcvvfOHb2G97YbzlLS_eaNs-mOi6cKT4R0xEsBVsC4CZaoZiY4eyyOiYjfLmJxt9u_ik281ojBlztGegKt3_W3wf9na8s9q06jp722p14vVdKwzkQX8x8wOkfkZAlxDlqo6io7TyksCAit2gzGdwqNe9l4yJLw',
+      accentColor: EduverseTheme.secondary,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 1024;
 
-    return Stack(
-      children: [
-        // Background blob
-        Positioned(
-          bottom: 0,
-          left: 0,
-          child: Container(
-            width: 600,
-            height: 600,
-            decoration: BoxDecoration(
-              color: const Color(0xFFecfdf5).withValues(alpha: 0.4),
-              shape: BoxShape.circle,
-            ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: EduverseTheme.sectionGap),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: EduverseTheme.containerMax),
+          padding: EdgeInsets.symmetric(
+            horizontal: isDesktop ? EduverseTheme.marginDesktop : EduverseTheme.marginMobile,
           ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 112, horizontal: 24),
-          color: const Color(0xFFf8fafc).withValues(alpha: 0.5),
-          child: Center(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 1280),
-              child: Column(
-                children: [
-                  // Header
-                  Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFfff1f2),
-                          borderRadius: BorderRadius.circular(100),
-                          border: Border.all(color: const Color(0xFFffe4e6)),
-                        ),
-                        child: Text(
-                          '⭐ Student Stories',
-                          style: GoogleFonts.inter(
-                            color: const Color(0xFFe11d48),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'Student Success Stories',
+                style: EduverseTheme.headlineLg(color: EduverseTheme.onSurface),
+              ),
+              const SizedBox(height: 48),
+
+              // Responsive Cards
+              if (isDesktop)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _testimonials.map((t) {
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: _TestimonialCard(testimonial: t),
                       ),
-                      const SizedBox(height: 24),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          style: GoogleFonts.outfit(
-                            fontSize: size.width > 768 ? 48 : 36,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0f172a),
-                            height: 1.1,
-                          ),
-                          children: [
-                            const TextSpan(text: 'Loved by '),
-                            WidgetSpan(
-                              child: GradientText(
-                                'thousands of',
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF059669),
-                                    Color(0xFF10b981),
-                                  ],
-                                ),
-                                style: GoogleFonts.outfit(
-                                  fontSize: size.width > 768 ? 48 : 36,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const TextSpan(text: ' students'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: 560,
-                        child: Text(
-                          'Hear from students who are preparing for their dream exams with Eduverse.',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(
-                            fontSize: 18,
-                            color: const Color(0xFF64748b),
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ).animate().fadeIn().slideY(begin: 0.2, end: 0),
-
-                  const SizedBox(height: 48),
-
-                  // Main testimonial card
-                  Center(
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 900),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 500),
-                        transitionBuilder: (child, animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.05),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: Container(
-                          key: ValueKey<int>(_activeIndex),
-                          padding: EdgeInsets.all(size.width > 768 ? 48 : 32),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: const Color(0xFFf1f5f9)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 30,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                LucideIcons.quote,
-                                size: 40,
-                                color: const Color(
-                                  0xFF10b981,
-                                ).withValues(alpha: 0.3),
-                              ),
-                              const SizedBox(height: 24),
-                              Text(
-                                '"${_testimonials[_activeIndex].text}"',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.inter(
-                                  fontSize: size.width > 768 ? 22 : 18,
-                                  color: const Color(0xFF334155),
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.6,
-                                ),
-                              ),
-                              const SizedBox(height: 32),
-                              // Author
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 28,
-                                    backgroundColor: const Color(0xFFe2e8f0),
-                                    backgroundImage: NetworkImage(
-                                      _testimonials[_activeIndex].avatar,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _testimonials[_activeIndex].name,
-                                        style: GoogleFonts.outfit(
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF0f172a),
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      Text(
-                                        _testimonials[_activeIndex].role,
-                                        style: GoogleFonts.inter(
-                                          fontSize: 14,
-                                          color: const Color(0xFF10b981),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Container(
-                                    width: 1,
-                                    height: 32,
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    color: const Color(0xFFe2e8f0),
-                                  ),
-                                  Row(
-                                    children: List.generate(
-                                      5,
-                                      (_) => const Icon(
-                                        LucideIcons.star,
-                                        size: 16,
-                                        color: Color(0xFFfbbf24),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  // Thumbnail selector
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    alignment: WrapAlignment.center,
-                    children: _testimonials.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final t = entry.value;
-                      final isActive = _activeIndex == index;
-
-                      return Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => setState(() => _activeIndex = index),
-                          borderRadius: BorderRadius.circular(16),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isActive
-                                    ? const Color(0xFF6ee7b7)
-                                    : Colors.transparent,
-                                width: 2,
-                              ),
-                              boxShadow: isActive
-                                  ? [
-                                      BoxShadow(
-                                        color: const Color(
-                                          0xFF10b981,
-                                        ).withValues(alpha: 0.15),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            transform: Matrix4.diagonal3Values(
-                              isActive ? 1.05 : 1.0,
-                              isActive ? 1.05 : 1.0,
-                              1.0,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundImage: NetworkImage(t.avatar),
-                                ),
-                                if (size.width > 600) ...[
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        t.name,
-                                        style: GoogleFonts.inter(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: isActive
-                                              ? const Color(0xFF059669)
-                                              : const Color(0xFF334155),
-                                        ),
-                                      ),
-                                      Text(
-                                        t.role.split('—')[0].trim(),
-                                        style: GoogleFonts.inter(
-                                          fontSize: 12,
-                                          color: const Color(0xFF94a3b8),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
+                    );
+                  }).toList(),
+                )
+              else
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: _testimonials.map((t) {
+                      return Container(
+                        width: (screenWidth * 0.85).clamp(280.0, 420.0),
+                        margin: const EdgeInsets.only(right: 16),
+                        child: _TestimonialCard(testimonial: t),
                       );
                     }).toList(),
                   ),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
 class _TestimonialData {
+  final String quote;
   final String name;
   final String role;
-  final String avatar;
-  final String text;
+  final String avatarUrl;
+  final Color accentColor;
 
-  _TestimonialData({
+  const _TestimonialData({
+    required this.quote,
     required this.name,
     required this.role,
-    required this.avatar,
-    required this.text,
+    required this.avatarUrl,
+    required this.accentColor,
   });
 }
 
-final _testimonials = [
-  _TestimonialData(
-    name: 'Ankit Sharma',
-    role: 'MPPSC Aspirant',
-    avatar:
-        'https://ui-avatars.com/api/?name=Ankit+Sharma&background=10b981&color=fff&size=150',
-    text:
-        'The video lectures are very well structured and the study notes save me so much time. Being able to download PDFs and study offline has been a game changer for my preparation.',
-  ),
-  _TestimonialData(
-    name: 'Priya Patel',
-    role: 'UPSC Aspirant',
-    avatar:
-        'https://ui-avatars.com/api/?name=Priya+Patel&background=3b82f6&color=fff&size=150',
-    text:
-        'The practice tests are really helpful for self-assessment. I can track my scores and see where I need to improve. The community feature also helps me get my doubts resolved quickly.',
-  ),
-  _TestimonialData(
-    name: 'Rohit Kumar',
-    role: 'SSC Aspirant',
-    avatar:
-        'https://ui-avatars.com/api/?name=Rohit+Kumar&background=8b5cf6&color=fff&size=150',
-    text:
-        'I love the daily quizzes and current affairs section. The app keeps me consistent with my preparation. The combo packs offer great value with all subjects covered.',
-  ),
-  _TestimonialData(
-    name: 'Sneha Reddy',
-    role: 'Banking Exam Aspirant',
-    avatar:
-        'https://ui-avatars.com/api/?name=Sneha+Reddy&background=f59e0b&color=fff&size=150',
-    text:
-        'The video lectures are excellent and the current affairs section is updated regularly. I can study on my phone anywhere. Really convenient compared to traditional coaching.',
-  ),
-  _TestimonialData(
-    name: 'Vikram Singh',
-    role: 'Defence Exam Aspirant',
-    avatar:
-        'https://ui-avatars.com/api/?name=Vikram+Singh&background=ef4444&color=fff&size=150',
-    text:
-        'The test series with instant results helps me understand my weak areas. The performance dashboard shows my progress over time which keeps me motivated.',
-  ),
-  _TestimonialData(
-    name: 'Meera Joshi',
-    role: 'State PSC Aspirant',
-    avatar:
-        'https://ui-avatars.com/api/?name=Meera+Joshi&background=06b6d4&color=fff&size=150',
-    text:
-        'Switched from physical coaching classes to Eduverse and I can study at my own pace now. The e-books and downloadable notes are very comprehensive.',
-  ),
-];
+class _TestimonialCard extends StatelessWidget {
+  final _TestimonialData testimonial;
+
+  const _TestimonialCard({required this.testimonial});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: EduverseTheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: EduverseTheme.outlineVariant.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Quote Mark Watermark
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Icon(
+              Icons.format_quote,
+              size: 56,
+              color: testimonial.accentColor.withValues(alpha: 0.15),
+            ),
+          ),
+
+          // Content
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                testimonial.quote,
+                style: EduverseTheme.bodyLg(color: EduverseTheme.onSurface).copyWith(
+                  fontStyle: FontStyle.italic,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  ClipOval(
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Image.network(
+                        testimonial.avatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: EduverseTheme.surfaceContainerLow,
+                          child: const Icon(Icons.person, color: EduverseTheme.primary),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        testimonial.name,
+                        style: EduverseTheme.labelLg(color: EduverseTheme.onSurface).copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        testimonial.role,
+                        style: EduverseTheme.labelSm(color: EduverseTheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

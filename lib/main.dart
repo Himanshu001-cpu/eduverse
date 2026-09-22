@@ -10,6 +10,9 @@ import 'package:eduverse/web/landing/landing_page.dart';
 import 'package:eduverse/profile/screens/performance_dashboard_page.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:eduverse/admin/admin_router.dart';
+import 'package:eduverse/admin/services/firebase_admin_service.dart';
 
 void main() async {
   // Use path URLs (no /#/) for web deep linking
@@ -117,87 +120,124 @@ class _LearningAppState extends State<LearningApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: _navigatorKey,
-      title: 'The Eduverse',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+    return Provider<FirebaseAdminService>(
+      create: (_) => FirebaseAdminService(),
+      child: MaterialApp(
+        navigatorKey: _navigatorKey,
+        title: 'The Eduverse',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        ),
+        // Route generator for deep link routes with parameters
+        onGenerateRoute: (settings) {
+          // Handle Admin routes
+          final routeName = settings.name;
+          if (routeName != null) {
+            if (routeName == '/admin' ||
+                routeName == '/dashboard' ||
+                routeName == '/courses' ||
+                routeName == '/course_editor' ||
+                routeName == '/course_detail' ||
+                routeName == '/recorded_batches' ||
+                routeName == '/batch_planner' ||
+                routeName == '/batch_quizzes' ||
+                routeName == '/batch_dpps' ||
+                routeName == '/batch_notes' ||
+                routeName == '/lecture_editor' ||
+                routeName == '/users' ||
+                routeName == '/user_detail' ||
+                routeName == '/enrollments' ||
+                routeName == '/purchases' ||
+                routeName == '/settings' ||
+                routeName == '/payment_settings' ||
+                routeName.startsWith('/admin/')) {
+              String adminRoute = routeName;
+              if (adminRoute == '/admin') {
+                adminRoute = '/dashboard';
+              } else if (adminRoute.startsWith('/admin/')) {
+                adminRoute = adminRoute.replaceFirst('/admin', '');
+              }
+              return AdminRouter.generateRoute(RouteSettings(
+                name: adminRoute,
+                arguments: settings.arguments,
+              ));
+            }
+          }
+
+          // Handle /course route
+          if (settings.name == '/course') {
+            final courseId = settings.arguments as String?;
+            if (courseId != null) {
+              return MaterialPageRoute(
+                builder: (_) => DeepLinkCourseScreen(courseId: courseId),
+              );
+            }
+          }
+
+          // Handle /batch route
+          if (settings.name == '/batch') {
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args != null) {
+              return MaterialPageRoute(
+                builder: (_) => DeepLinkBatchScreen(
+                  courseId: args['courseId'] as String,
+                  batchId: args['batchId'] as String,
+                ),
+              );
+            }
+          }
+
+          // Handle /feed route
+          if (settings.name == '/feed') {
+            final feedId = settings.arguments as String?;
+            if (feedId != null) {
+              return MaterialPageRoute(
+                builder: (_) => DeepLinkFeedScreen(feedId: feedId),
+              );
+            }
+          }
+
+          // Handle /comboPack or /app/comboPack/{id} route
+          if (settings.name == '/comboPack' || (settings.name != null && settings.name!.startsWith('/app/comboPack/'))) {
+            final id = settings.arguments as String? ?? (settings.name!.split('/').length >= 4 ? settings.name!.split('/')[3] : null);
+            if (id != null && id.isNotEmpty) {
+              return MaterialPageRoute(
+                builder: (_) => DeepLinkComboPackScreen(comboPackId: id),
+              );
+            }
+          }
+
+          // Handle /testSeries or /app/testSeries/{id} route
+          if (settings.name == '/testSeries' || (settings.name != null && settings.name!.startsWith('/app/testSeries/'))) {
+            final id = settings.arguments as String? ?? (settings.name!.split('/').length >= 4 ? settings.name!.split('/')[3] : null);
+            if (id != null && id.isNotEmpty) {
+              return MaterialPageRoute(
+                builder: (_) => DeepLinkTestSeriesScreen(testSeriesId: id),
+              );
+            }
+          }
+
+          // Handle /ebook or /app/ebook/{id} route
+          if (settings.name == '/ebook' || (settings.name != null && settings.name!.startsWith('/app/ebook/'))) {
+            final id = settings.arguments as String? ?? (settings.name!.split('/').length >= 4 ? settings.name!.split('/')[3] : null);
+            if (id != null && id.isNotEmpty) {
+              return MaterialPageRoute(
+                builder: (_) => DeepLinkEbookScreen(ebookId: id),
+              );
+            }
+          }
+
+          return null;
+        },
+        routes: {
+          '/delete-account': (context) => const DeleteAccountPage(),
+          '/landing': (context) => const LandingPage(),
+          '/performance_dashboard': (context) => const PerformanceDashboardPage(),
+        },
+        home: const AuthWrapper(),
       ),
-      // Route generator for deep link routes with parameters
-      onGenerateRoute: (settings) {
-        // Handle /course route
-        if (settings.name == '/course') {
-          final courseId = settings.arguments as String?;
-          if (courseId != null) {
-            return MaterialPageRoute(
-              builder: (_) => DeepLinkCourseScreen(courseId: courseId),
-            );
-          }
-        }
-
-        // Handle /batch route
-        if (settings.name == '/batch') {
-          final args = settings.arguments as Map<String, dynamic>?;
-          if (args != null) {
-            return MaterialPageRoute(
-              builder: (_) => DeepLinkBatchScreen(
-                courseId: args['courseId'] as String,
-                batchId: args['batchId'] as String,
-              ),
-            );
-          }
-        }
-
-        // Handle /feed route
-        if (settings.name == '/feed') {
-          final feedId = settings.arguments as String?;
-          if (feedId != null) {
-            return MaterialPageRoute(
-              builder: (_) => DeepLinkFeedScreen(feedId: feedId),
-            );
-          }
-        }
-
-        // Handle /comboPack or /app/comboPack/{id} route
-        if (settings.name == '/comboPack' || (settings.name != null && settings.name!.startsWith('/app/comboPack/'))) {
-          final id = settings.arguments as String? ?? (settings.name!.split('/').length >= 4 ? settings.name!.split('/')[3] : null);
-          if (id != null && id.isNotEmpty) {
-            return MaterialPageRoute(
-              builder: (_) => DeepLinkComboPackScreen(comboPackId: id),
-            );
-          }
-        }
-
-        // Handle /testSeries or /app/testSeries/{id} route
-        if (settings.name == '/testSeries' || (settings.name != null && settings.name!.startsWith('/app/testSeries/'))) {
-          final id = settings.arguments as String? ?? (settings.name!.split('/').length >= 4 ? settings.name!.split('/')[3] : null);
-          if (id != null && id.isNotEmpty) {
-            return MaterialPageRoute(
-              builder: (_) => DeepLinkTestSeriesScreen(testSeriesId: id),
-            );
-          }
-        }
-
-        // Handle /ebook or /app/ebook/{id} route
-        if (settings.name == '/ebook' || (settings.name != null && settings.name!.startsWith('/app/ebook/'))) {
-          final id = settings.arguments as String? ?? (settings.name!.split('/').length >= 4 ? settings.name!.split('/')[3] : null);
-          if (id != null && id.isNotEmpty) {
-            return MaterialPageRoute(
-              builder: (_) => DeepLinkEbookScreen(ebookId: id),
-            );
-          }
-        }
-
-        return null;
-      },
-      routes: {
-        '/delete-account': (context) => const DeleteAccountPage(),
-        '/landing': (context) => const LandingPage(),
-        '/performance_dashboard': (context) => const PerformanceDashboardPage(),
-      },
-      home: const AuthWrapper(),
     );
   }
 }
