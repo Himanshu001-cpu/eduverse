@@ -195,6 +195,14 @@ class AdminLecture {
   /// If this lecture is a linked copy, tracks where it is linked from.
   /// Format: { 'courseId': '...', 'originalId': '...' }
   final Map<String, String>? linkedFrom;
+  final List<Map<String, dynamic>> chapterMarkers;
+  final String? discipline;
+  final String? module;
+  final bool widevineL1;
+  final bool dynamicWatermark;
+  final double watermarkOpacity;
+  final String? deviceLimit;
+  final String? videoSource;
 
   AdminLecture({
     required this.id,
@@ -210,6 +218,14 @@ class AdminLecture {
     this.linkedNoteIds = const [],
     this.linkedCourses = const [],
     this.linkedFrom,
+    this.chapterMarkers = const [],
+    this.discipline,
+    this.module,
+    this.widevineL1 = true,
+    this.dynamicWatermark = true,
+    this.watermarkOpacity = 0.35,
+    this.deviceLimit = '1 Active Device',
+    this.videoSource = 'cloudflare',
   });
 
   factory AdminLecture.fromMap(Map<String, dynamic> data, String id) {
@@ -229,6 +245,18 @@ class AdminLecture {
       linkedFrom: data['linkedFrom'] != null
           ? Map<String, String>.from(data['linkedFrom'] as Map)
           : null,
+      chapterMarkers: data['chapterMarkers'] != null
+          ? (data['chapterMarkers'] as List)
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList()
+          : [],
+      discipline: data['discipline'] as String?,
+      module: data['module'] as String?,
+      widevineL1: data['widevineL1'] as bool? ?? true,
+      dynamicWatermark: data['dynamicWatermark'] as bool? ?? true,
+      watermarkOpacity: (data['watermarkOpacity'] as num?)?.toDouble() ?? 0.35,
+      deviceLimit: data['deviceLimit'] as String? ?? '1 Active Device',
+      videoSource: data['videoSource'] as String? ?? 'cloudflare',
     );
   }
 
@@ -246,6 +274,14 @@ class AdminLecture {
       'linkedNoteIds': linkedNoteIds,
       'linkedCourses': linkedCourses,
       'linkedFrom': linkedFrom,
+      'chapterMarkers': chapterMarkers,
+      if (discipline != null) 'discipline': discipline,
+      if (module != null) 'module': module,
+      'widevineL1': widevineL1,
+      'dynamicWatermark': dynamicWatermark,
+      'watermarkOpacity': watermarkOpacity,
+      'deviceLimit': deviceLimit,
+      if (videoSource != null) 'videoSource': videoSource,
     };
   }
 
@@ -259,6 +295,14 @@ class AdminLecture {
       'isLocked': isLocked,
       'lectureNo': lectureNo,
       'linkedNoteIds': linkedNoteIds,
+      'chapterMarkers': chapterMarkers,
+      if (discipline != null) 'discipline': discipline,
+      if (module != null) 'module': module,
+      'widevineL1': widevineL1,
+      'dynamicWatermark': dynamicWatermark,
+      'watermarkOpacity': watermarkOpacity,
+      'deviceLimit': deviceLimit,
+      if (videoSource != null) 'videoSource': videoSource,
     };
   }
 
@@ -275,6 +319,14 @@ class AdminLecture {
     List<String>? linkedNoteIds,
     List<String>? linkedCourses,
     Map<String, String>? linkedFrom,
+    List<Map<String, dynamic>>? chapterMarkers,
+    String? discipline,
+    String? module,
+    bool? widevineL1,
+    bool? dynamicWatermark,
+    double? watermarkOpacity,
+    String? deviceLimit,
+    String? videoSource,
   }) {
     return AdminLecture(
       id: id,
@@ -290,6 +342,14 @@ class AdminLecture {
       linkedNoteIds: linkedNoteIds ?? this.linkedNoteIds,
       linkedCourses: linkedCourses ?? this.linkedCourses,
       linkedFrom: linkedFrom ?? this.linkedFrom,
+      chapterMarkers: chapterMarkers ?? this.chapterMarkers,
+      discipline: discipline ?? this.discipline,
+      module: module ?? this.module,
+      widevineL1: widevineL1 ?? this.widevineL1,
+      dynamicWatermark: dynamicWatermark ?? this.dynamicWatermark,
+      watermarkOpacity: watermarkOpacity ?? this.watermarkOpacity,
+      deviceLimit: deviceLimit ?? this.deviceLimit,
+      videoSource: videoSource ?? this.videoSource,
     );
   }
 }
@@ -658,6 +718,12 @@ class AdminPlannerItem {
   final String subtitle;
   final String pdfUrl;
   final DateTime date;
+  final String? dayOfWeek;
+  final String? timeSlot;
+  final String? room;
+  final String? facultyName;
+  final String? lectureType;
+  final bool isLive;
 
   AdminPlannerItem({
     required this.id,
@@ -665,6 +731,12 @@ class AdminPlannerItem {
     required this.subtitle,
     required this.pdfUrl,
     required this.date,
+    this.dayOfWeek,
+    this.timeSlot,
+    this.room,
+    this.facultyName,
+    this.lectureType,
+    this.isLive = false,
   });
 
   factory AdminPlannerItem.fromMap(Map<String, dynamic> data, String id) {
@@ -674,6 +746,12 @@ class AdminPlannerItem {
       subtitle: data['subtitle'] ?? data['subject'] ?? '',
       pdfUrl: data['pdfUrl'] ?? '',
       date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      dayOfWeek: data['dayOfWeek'] as String?,
+      timeSlot: data['timeSlot'] as String?,
+      room: data['room'] as String?,
+      facultyName: data['facultyName'] as String?,
+      lectureType: data['lectureType'] as String?,
+      isLive: data['isLive'] as bool? ?? false,
     );
   }
 
@@ -683,6 +761,12 @@ class AdminPlannerItem {
       'subtitle': subtitle,
       'pdfUrl': pdfUrl,
       'date': Timestamp.fromDate(date),
+      if (dayOfWeek != null) 'dayOfWeek': dayOfWeek,
+      if (timeSlot != null) 'timeSlot': timeSlot,
+      if (room != null) 'room': room,
+      if (facultyName != null) 'facultyName': facultyName,
+      if (lectureType != null) 'lectureType': lectureType,
+      'isLive': isLive,
     };
   }
 }

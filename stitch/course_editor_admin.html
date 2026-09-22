@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"background":"#f9f9ff","surface-variant":"#d8e3fb","on-primary":"#ffffff","inverse-surface":"#263143","surface-container-highest":"#d8e3fb","tertiary-container":"#c9a900","on-tertiary":"#ffffff","on-secondary-container":"#00616d","outline-variant":"#bec9c6","tertiary":"#705d00","inverse-primary":"#86d5c8","primary-fixed-dim":"#86d5c8","surface-dim":"#cfdaf2","on-tertiary-container":"#4c3e00","on-surface":"#111c2d","surface-bright":"#f9f9ff","surface-container-high":"#dee8ff","on-primary-container":"#92e1d4","secondary-fixed-dim":"#00daf3","tertiary-fixed":"#ffe16d","error-container":"#ffdad6","on-tertiary-fixed-variant":"#544600","on-secondary-fixed-variant":"#004f58","surface-container":"#e7eeff","primary-fixed":"#a2f1e4","on-background":"#111c2d","surface-gray":"#F8F9FA","on-tertiary-fixed":"#221b00","on-primary-fixed-variant":"#005048","surface-container-lowest":"#ffffff","on-error-container":"#93000a","primary":"#004c44","on-surface-variant":"#3f4947","tertiary-fixed-dim":"#e9c400","primary-container":"#00665c","inverse-on-surface":"#ecf1ff","emerald-vivid":"#0E9272","on-secondary-fixed":"#001f24","deep-navy":"#040B14","surface":"#f9f9ff","surface-tint":"#0b6a60","on-error":"#ffffff","surface-container-low":"#f0f3ff","outline":"#6f7977","error":"#ba1a1a","secondary-container":"#00e3fd","secondary-fixed":"#9cf0ff","on-primary-fixed":"#00201c","secondary":"#006875","on-secondary":"#ffffff"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"gutter":"24px","margin-mobile":"16px","base":"8px","margin-desktop":"48px","container-max":"1280px","section-gap":"80px"},"fontFamily":{"label-sm":["Inter"],"headline-md":["Playfair Display"],"display-lg-mobile":["Playfair Display"],"body-lg":["Inter"],"headline-lg":["Playfair Display"],"display-lg":["Playfair Display"],"body-md":["Inter"],"label-lg":["Inter"]},"fontSize":{"label-sm":["12px",{"lineHeight":"1.2","letterSpacing":"0.02em","fontWeight":"500"}],"headline-md":["24px",{"lineHeight":"1.4","fontWeight":"600"}],"display-lg-mobile":["36px",{"lineHeight":"1.2","fontWeight":"700"}],"body-lg":["18px",{"lineHeight":"1.6","fontWeight":"400"}],"headline-lg":["32px",{"lineHeight":"1.3","fontWeight":"600"}],"display-lg":["56px",{"lineHeight":"1.1","fontWeight":"700"}],"body-md":["16px",{"lineHeight":"1.6","fontWeight":"400"}],"label-lg":["14px",{"lineHeight":"1.2","letterSpacing":"0.05em","fontWeight":"600"}]}}}}</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between overflow-y-auto"><div class="p-6"><div class="flex items-center gap-3 pb-6"><div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-on-primary"><span class="material-symbols-outlined text-[24px]">school</span></div><div><span class="font-headline-md text-headline-md text-primary tracking-tight block">Eduverse</span><span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Admin Console</span></div></div><nav class="space-y-6 pt-2" data-active-classes="bg-primary-container text-on-primary font-label-lg rounded-lg shadow-sm"><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Overview</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">space_dashboard</span><span>Dashboard</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Users &amp; Aspirants</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="students" href="#"><span class="material-symbols-outlined text-[20px]">person_apron</span><span>Students</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="teachers" href="#"><span class="material-symbols-outlined text-[20px]">co_present</span><span>Teachers</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="access-control" href="#"><span class="material-symbols-outlined text-[20px]">verified_user</span><span>Access Control</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Academic &amp; Store</div><a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 transition-all bg-primary-container text-on-primary font-label-lg rounded-lg shadow-sm" data-path="courses" href="#"><span class="material-symbols-outlined text-[20px]">auto_stories</span><span>Courses</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="batches" href="#"><span class="material-symbols-outlined text-[20px]">group_work</span><span>Batches</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="curriculum" href="#"><span class="material-symbols-outlined text-[20px]">menu_book</span><span>Curriculum</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="test-series" href="#"><span class="material-symbols-outlined text-[20px]">quiz</span><span>Test Series</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Financials</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="transactions" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span>Transactions</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="razorpay-payouts" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span>Razorpay Payouts</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="coupons" href="#"><span class="material-symbols-outlined text-[20px]">sell</span><span>Coupons</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Platform</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-[20px]">history</span><span>Audit Logs</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Settings</span></a></div></nav></div><div class="p-4 m-4 rounded-xl bg-surface-container-low flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-vivid animate-pulse"></span><span class="font-label-sm text-label-sm text-on-surface-variant">v4.2.0-core</span></div><span class="font-label-sm text-label-sm text-outline">Synced</span></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-6"><div class="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low"><span class="w-2 h-2 rounded-full bg-emerald-vivid"></span><span class="font-label-sm text-label-sm text-on-surface font-medium">Systems Normal</span></div><div class="relative flex items-center w-96"><span class="material-symbols-outlined absolute left-3 text-outline text-[20px]">search</span><input class="w-full pl-10 pr-4 py-2 rounded-lg bg-surface-container-low text-on-surface font-body-md text-label-lg placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search students, courses, transactions, faculty..." type="text"/></div></div><div class="flex items-center gap-4"><button class="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest"></span></button><div class="flex items-center gap-3 pl-2"><div class="text-right hidden sm:block"><span class="font-label-lg text-label-lg text-on-surface block leading-tight">Dr. Harrison Vance</span><span class="font-label-sm text-label-sm text-outline block leading-tight">Dean / Superadmin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-background min-h-screen"><div class="flex flex-col w-full px-gutter py-8 space-y-8">
+<!-- Top Wizard Header / Stepper & Actions -->
+<header class="flex flex-col xl:flex-row xl:items-center justify-between gap-6 pb-6">
+<div class="space-y-3">
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-vivid animate-ping"></span>
+          Draft Edition ID: CR-2025-992B
+        </span>
+<span class="font-label-sm text-label-sm text-outline">Last autosaved 42s ago</span>
+</div>
+<div>
+<h1 class="font-headline-lg text-headline-lg text-deep-navy tracking-tight">Course Studio: Edit Course</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5">Configure institutional pedigree, DRM encryption thresholds, and transactional monetization parameters.</p>
+</div>
+</div>
+<!-- Actions Toolbar -->
+<div class="flex flex-wrap items-center gap-3">
+<button class="px-4 py-2.5 rounded-lg bg-surface-container-high text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-variant transition-all flex items-center gap-2" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+<span>Discard Changes</span>
+</button>
+<button class="px-5 py-2.5 rounded-lg bg-surface-container-low text-primary font-label-lg text-label-lg hover:bg-surface-container-high transition-all flex items-center gap-2 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">save</span>
+<span>Save as Draft</span>
+</button>
+<button class="px-6 py-2.5 rounded-lg bg-primary-container text-on-primary font-label-lg text-label-lg shadow-md hover:bg-primary transition-all flex items-center gap-2 group" type="button">
+<span>Save &amp; Proceed to Faculty</span>
+<span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</header>
+<!-- Step Navigation Ribbon -->
+<nav aria-label="Course Configuration Steps" class="w-full bg-surface-container-lowest rounded-xl p-3 shadow-sm">
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
+<!-- Step 1 Done -->
+<a class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-low/60 hover:bg-surface-container-low transition-colors group" href="#step-1">
+<div class="w-7 h-7 rounded-full bg-emerald-vivid text-on-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-outline block uppercase tracking-wider">Step 01</span>
+<span class="font-label-lg text-label-lg text-on-surface truncate block font-medium">Basic Info &amp; SEO</span>
+</div>
+</a>
+<!-- Step 2 Active -->
+<a class="flex items-center gap-3 p-3 rounded-lg bg-primary text-on-primary shadow-md" href="#step-2">
+<div class="w-7 h-7 rounded-full bg-on-primary text-primary flex items-center justify-center shrink-0 font-label-lg text-label-lg">
+          2
+        </div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-primary-fixed block uppercase tracking-wider">Step 02 · Current</span>
+<span class="font-label-lg text-label-lg text-on-primary truncate block font-semibold">Pricing &amp; Bundles</span>
+</div>
+</a>
+<!-- Step 3 Inactive -->
+<a class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low transition-colors text-on-surface-variant" href="#step-3">
+<div class="w-7 h-7 rounded-full bg-surface-container-high text-outline flex items-center justify-center shrink-0 font-label-lg text-label-lg">
+          3
+        </div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-outline block uppercase tracking-wider">Step 03</span>
+<span class="font-label-lg text-label-lg text-on-surface-variant truncate block">Faculty &amp; Batches</span>
+</div>
+</a>
+<!-- Step 4 Inactive -->
+<a class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low transition-colors text-on-surface-variant" href="#step-4">
+<div class="w-7 h-7 rounded-full bg-surface-container-high text-outline flex items-center justify-center shrink-0 font-label-lg text-label-lg">
+          4
+        </div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-outline block uppercase tracking-wider">Step 04</span>
+<span class="font-label-lg text-label-lg text-on-surface-variant truncate block">DRM &amp; Protection</span>
+</div>
+</a>
+<!-- Step 5 Inactive -->
+<a class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low transition-colors text-on-surface-variant" href="#step-5">
+<div class="w-7 h-7 rounded-full bg-surface-container-high text-outline flex items-center justify-center shrink-0 font-label-lg text-label-lg">
+          5
+        </div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-outline block uppercase tracking-wider">Step 05</span>
+<span class="font-label-lg text-label-lg text-on-surface-variant truncate block">Review &amp; Publish</span>
+</div>
+</a>
+</div>
+</nav>
+<!-- Multi-column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- LEFT MAIN COLUMN (2/3 -> 8 Cols) -->
+<div class="lg:col-span-8 space-y-8">
+<!-- Section 1: Course Identity & Overview -->
+<div class="bg-surface-container-lowest rounded-xl p-8 shadow-sm space-y-6">
+<div class="flex items-center justify-between pb-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-4 bg-primary rounded-full"></span>
+<h2 class="font-headline-md text-headline-md text-deep-navy">Course Identity &amp; Overview</h2>
+</div>
+<p class="font-body-md text-body-md text-outline">Fundamental metadata ingested by the public portal search indexing pipeline.</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">
+            SEO Score: 94/100
+          </span>
+</div>
+<!-- Form Elements -->
+<div class="space-y-5">
+<!-- Course Title -->
+<div class="space-y-1.5">
+<label class="block font-label-lg text-label-lg text-deep-navy" for="course-title">
+              Course Title <span class="text-error">*</span>
+</label>
+<input class="w-full px-4 py-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none shadow-sm transition-all" id="course-title" type="text" value="UPSC Civil Services 2025: Prelims + Mains Complete Foundation"/>
+<p class="font-label-sm text-label-sm text-outline">Keep title under 75 characters for optimal Google SERP click-through rates.</p>
+</div>
+<!-- Course Slug / URL Key -->
+<div class="space-y-1.5">
+<label class="block font-label-lg text-label-lg text-deep-navy" for="course-slug">
+              Permanent URI Slug
+            </label>
+<div class="flex items-center rounded-lg bg-surface-container-low px-4 py-2.5 shadow-sm">
+<span class="font-label-sm text-label-sm text-outline select-none">https://eduverse.ac.in/courses/</span>
+<input class="w-full bg-transparent font-label-lg text-label-lg text-primary focus:outline-none ml-1 font-semibold" id="course-slug" type="text" value="upsc-civil-services-2025-foundation"/>
+<span class="material-symbols-outlined text-emerald-vivid text-[18px]">verified</span>
+</div>
+</div>
+<!-- Subtitle & Meta Description -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+<div class="space-y-1.5">
+<label class="block font-label-lg text-label-lg text-deep-navy" for="course-subtitle">Short Subtitle (Storefront)</label>
+<input class="w-full px-4 py-2.5 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none shadow-sm transition-all" id="course-subtitle" type="text" value="Holistic NCERT to Advanced GS I-IV + CSAT Masterclass"/>
+</div>
+<div class="space-y-1.5">
+<label class="block font-label-lg text-label-lg text-deep-navy" for="course-meta">Meta Tag Keywords</label>
+<input class="w-full px-4 py-2.5 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none shadow-sm transition-all" id="course-meta" type="text" value="upsc, prelims, mains, csat, answer writing 2025"/>
+</div>
+</div>
+<!-- Target Exam Pills -->
+<div class="space-y-2">
+<label class="block font-label-lg text-label-lg text-deep-navy">Target Segment &amp; Exam Classification</label>
+<div class="flex flex-wrap items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm shadow-sm">
+                UPSC CSE (Civil Services)
+                <button aria-label="Remove tag" class="hover:opacity-75" type="button"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm shadow-sm">
+                IAS / IPS Foundation
+                <button aria-label="Remove tag" class="hover:opacity-75" type="button"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm shadow-sm">
+                GS Papers 1-4 Complete
+                <button aria-label="Remove tag" class="hover:opacity-75" type="button"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<button class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-high text-primary hover:bg-surface-variant font-label-sm text-label-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span>Add Taxonomy</span>
+</button>
+</div>
+</div>
+<!-- Thumbnail & Promo Media -->
+<div class="space-y-2 pt-2">
+<label class="block font-label-lg text-label-lg text-deep-navy">Course Visual Asset &amp; Video Preview</label>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+<!-- Image uploader preview -->
+<div class="md:col-span-5 relative rounded-xl overflow-hidden bg-surface-container-high aspect-video group">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Scholarly study hall with books, globe, antique leather desk, and soft golden sunset illumination embodying academic excellence and modern governance studies in teal and deep navy color scheme" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXBCfpt7B9ChyBDmY9RnN7nUIWrQ4DUDtj2_6jOVUqsYfaFPWVQMVwKLHfVZh5gGjkrhmQi20501tK1JMaVflX2i_suyKD_YoVesGnYrQYNtRRUktHHQddvUFkFHtfoJBYqpR6aJrzNadGfxHpQl1YX-3zYcpGraGf3z0CBzg6hbX6DnHqx86j9-wCAmbv38fKCfTTb_Ny76V2OZQc4l-6IIRvnkTf1XIqCzHEInsEj7Awf7spWmfy"/>
+<div class="absolute inset-0 bg-deep-navy/40 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-xs">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-lowest text-deep-navy font-label-sm text-label-sm shadow-md" type="button">
+                    Replace Hero Still
+                  </button>
+<span class="font-label-sm text-label-sm text-on-primary">1920 x 1080 Recommended</span>
+</div>
+</div>
+<!-- Video Link Box -->
+<div class="md:col-span-7 flex flex-col justify-between p-4 rounded-xl bg-surface-container-low space-y-3">
+<div>
+<span class="font-label-lg text-label-lg text-deep-navy block font-semibold">Introductory Teaser Stream</span>
+<p class="font-label-sm text-label-sm text-outline mt-0.5">Streamed public asset with dynamic watermark deterrence off-hook.</p>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-secondary text-[20px]">smart_display</span>
+<input class="w-full font-label-sm text-label-sm text-on-surface bg-transparent focus:outline-none truncate" type="text" value="https://cdn.eduverse.ac.in/previews/upsc-2025-orient.mp4"/>
+<button class="text-primary hover:text-emerald-vivid text-label-sm font-label-sm font-medium" type="button">Verify</button>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-outline">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-vivid"></span> AWS CloudFront 4K Ready</span>
+<span>184.2 MB</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Commercial Pricing & Bundle Rules -->
+<div class="bg-surface-container-lowest rounded-xl p-8 shadow-sm space-y-6">
+<div class="flex items-center justify-between pb-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-4 bg-emerald-vivid rounded-full"></span>
+<h2 class="font-headline-md text-headline-md text-deep-navy">Commercial Pricing &amp; Bundle Rules</h2>
+</div>
+<p class="font-body-md text-body-md text-outline">Configure SKU tiering, automated tax breakdown, and PG gateway settlement pipeline.</p>
+</div>
+<span class="px-3 py-1 rounded-full bg-emerald-vivid/10 text-emerald-vivid font-label-sm text-label-sm font-semibold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+            Tier 1 High-Ticket
+          </span>
+</div>
+<!-- Mode Toggle: Single vs Combo Pack -->
+<div class="p-1.5 rounded-xl bg-surface-container-low flex gap-2">
+<button class="flex-1 py-2.5 px-4 rounded-lg bg-surface-container-lowest text-primary font-label-lg text-label-lg font-semibold shadow-sm flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined text-[18px]">school</span>
+<span>Single Course Standalone</span>
+</button>
+<button class="flex-1 py-2.5 px-4 rounded-lg hover:bg-surface-container-high/60 text-on-surface-variant font-label-lg text-label-lg transition-colors flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined text-[18px]">inventory_2</span>
+<span>Combo Pack Bundle (Multi-Program)</span>
+</button>
+</div>
+<!-- Numbers Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+<!-- MRP -->
+<div class="p-5 rounded-xl bg-surface-container-low space-y-2">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-outline" for="mrp-input">Base MRP (List Price)</label>
+<span class="material-symbols-outlined text-outline text-[18px]">sell</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-md text-headline-md text-outline">₹</span>
+<input class="w-full bg-transparent font-headline-md text-headline-md text-deep-navy font-bold focus:outline-none" id="mrp-input" type="text" value="24,999"/>
+</div>
+<span class="font-label-sm text-label-sm text-outline block">Inclusive of curriculum kits</span>
+</div>
+<!-- Selling Price -->
+<div class="p-5 rounded-xl bg-surface-container-low space-y-2">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-primary" for="sp-input">Offered Store Price</label>
+<span class="material-symbols-outlined text-primary text-[18px]">local_offer</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-md text-headline-md text-primary font-bold">₹</span>
+<input class="w-full bg-transparent font-headline-md text-headline-md text-primary font-bold focus:outline-none" id="sp-input" type="text" value="18,999"/>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded-full bg-emerald-vivid text-on-primary font-label-sm text-label-sm font-semibold">
+                -24% SAVINGS
+              </span>
+<span class="font-label-sm text-label-sm text-outline">Student discount</span>
+</div>
+</div>
+<!-- Net Margin & Tax Insight -->
+<div class="p-5 rounded-xl bg-surface-container-low space-y-2">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Net Payout per Unit</span>
+<span class="material-symbols-outlined text-outline text-[18px]">account_balance_wallet</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-md text-headline-md text-deep-navy font-bold">₹ 16,100</span>
+<span class="font-label-sm text-label-sm text-outline">.85</span>
+</div>
+<span class="font-label-sm text-label-sm text-emerald-vivid font-medium block">Razorpay Fee 2% Deducted</span>
+</div>
+</div>
+<!-- GST & Razorpay Gateway Banner -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- GST Compliance -->
+<div class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-low">
+<div class="w-9 h-9 rounded-lg bg-surface-container-highest text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">receipt</span>
+</div>
+<div class="space-y-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg text-deep-navy font-semibold">18% IGST Built-in</span>
+<span class="px-2 py-0.5 rounded-full bg-emerald-vivid/10 text-emerald-vivid font-label-sm text-label-sm font-semibold">HSN 9992</span>
+</div>
+<p class="font-label-sm text-label-sm text-outline">Dynamic e-invoicing issued via GST Portal with IRN signature upon enrollment.</p>
+</div>
+</div>
+<!-- Gateway Route -->
+<div class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-low">
+<div class="w-9 h-9 rounded-lg bg-surface-container-highest text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">hub</span>
+</div>
+<div class="space-y-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg text-deep-navy font-semibold">Razorpay Direct Route</span>
+<span class="w-2 h-2 rounded-full bg-emerald-vivid"></span>
+</div>
+<p class="font-label-sm text-label-sm text-outline truncate">Account: <span class="font-mono text-on-surface">rzp_live_9f023Edu</span> · T+1 Settlement</p>
+</div>
+</div>
+</div>
+<!-- Max Capacity & Waitlist Controls -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-6 pt-2 p-5 rounded-xl bg-surface-container-high/40">
+<div class="space-y-1">
+<label class="font-label-lg text-label-lg text-deep-navy font-semibold block" for="seat-capacity">Maximum Seat Capacity</label>
+<p class="font-label-sm text-label-sm text-outline">Limits active concurrent test takers &amp; mentorship cohort size.</p>
+</div>
+<div class="flex items-center gap-4 w-full sm:w-auto justify-end">
+<div class="w-32">
+<input class="w-full text-right px-3 py-2 rounded-lg bg-surface-container-lowest font-label-lg text-label-lg text-deep-navy font-bold shadow-sm focus:outline-none" id="seat-capacity" type="number" value="2000"/>
+</div>
+<label class="flex items-center gap-2 cursor-pointer select-none">
+<input checked="" class="w-4 h-4 rounded text-primary focus:ring-0 accent-primary" type="checkbox"/>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">Auto-enable Waitlist</span>
+</label>
+</div>
+</div>
+</div>
+<!-- Section: Enrollment Momentum Chart -->
+<div class="bg-surface-container-lowest rounded-xl p-8 shadow-sm space-y-4">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md text-deep-navy">Expected Cohort Velocity</h3>
+<p class="font-label-sm text-label-sm text-outline">Simulated student conversion against ₹18,999 price tag</p>
+</div>
+<div class="text-right">
+<span class="font-label-lg text-label-lg text-emerald-vivid font-bold">1,820 / 2,000 Target</span>
+<span class="font-label-sm text-label-sm text-outline block">91% Projected Capacity</span>
+</div>
+</div>
+<!-- Inline SVG Visualization -->
+<div class="pt-3">
+<svg class="w-full h-24 overflow-visible" fill="none" viewbox="0 0 700 120" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<lineargradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#00665c" stop-opacity="0.25"></stop>
+<stop offset="100%" stop-color="#00665c" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<!-- Grid Lines -->
+<line stroke="#bec9c6" stroke-dasharray="4 4" stroke-opacity="0.2" x1="0" x2="700" y1="20" y2="20"></line>
+<line stroke="#bec9c6" stroke-dasharray="4 4" stroke-opacity="0.2" x1="0" x2="700" y1="60" y2="60"></line>
+<line stroke="#bec9c6" stroke-dasharray="4 4" stroke-opacity="0.2" x1="0" x2="700" y1="100" y2="100"></line>
+<!-- Path Area -->
+<path d="M0 110 Q 90 90, 160 85 T 320 60 T 480 35 T 640 15 L 700 10 L 700 115 L 0 115 Z" fill="url(#areaGrad)"></path>
+<!-- Path Stroke -->
+<path d="M0 110 Q 90 90, 160 85 T 320 60 T 480 35 T 640 15 L 700 10" stroke="#004c44" stroke-linecap="round" stroke-width="3.5"></path>
+<!-- Nodes -->
+<circle cx="160" cy="85" fill="#ffffff" r="4.5" stroke="#004c44" stroke-width="2.5"></circle>
+<circle cx="320" cy="60" fill="#ffffff" r="4.5" stroke="#004c44" stroke-width="2.5"></circle>
+<circle cx="480" cy="35" fill="#ffffff" r="4.5" stroke="#004c44" stroke-width="2.5"></circle>
+<circle cx="640" cy="15" fill="#0E9272" r="5" stroke="#ffffff" stroke-width="2"></circle>
+</svg>
+<div class="flex justify-between text-outline font-label-sm text-label-sm pt-2">
+<span>Week 1 (Early Bird)</span>
+<span>Week 3 (General)</span>
+<span>Week 5 (Mock Cycle)</span>
+<span>Batch Close</span>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT HELPER COLUMN (1/3 -> 4 Cols) -->
+<div class="lg:col-span-4 space-y-8">
+<!-- Storefront Card Live Preview -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm space-y-4">
+<div class="flex items-center justify-between pb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">visibility</span>
+<h3 class="font-headline-md text-headline-md text-deep-navy">Storefront Live Preview</h3>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-vivid/10 text-emerald-vivid font-label-sm text-label-sm font-semibold">
+            Realtime
+          </span>
+</div>
+<p class="font-label-sm text-label-sm text-outline">How prospective aspirants see this package in the mobile app and desktop portal catalogue.</p>
+<!-- Mock Card Component -->
+<div class="rounded-xl overflow-hidden bg-surface-container-lowest shadow-md transition-all hover:shadow-xl group">
+<!-- Card Image Header -->
+<div class="relative h-44 w-full bg-surface-container-high overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Modern high tech academic seminar room with sleek desks, soft cyan glowing data dashboard in background, prestigious atmosphere with deep emerald undertones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0UuY3UQdD6AaPgGof8qcPa6eygfXCdZ49zPAdhoh-r_e6P1yu_Er29I16nYmyf-SL-V8H64_xb7ZiC_AQKssuSHH6kw6c5Kbl-mU-SiTfNgQBj3C4aFXBnTQdxVCLL_mn4_Z5iWczSJJKt7FE9bQUpNCWFbzLve8a1O0nieyhmdTaA19yrJgTexca7HGKOJUKEc52heNV3nn3cXluKTb1zBaja_UNcXDDBGGgdWYQ5KH8TYEsW1Go"/>
+<div class="absolute top-3 left-3 flex gap-2">
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-md text-deep-navy font-label-sm text-label-sm font-semibold shadow-sm">
+                UPSC CSE
+              </span>
+<span class="px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold shadow-sm">
+                FLAGSHIP
+              </span>
+</div>
+<div class="absolute bottom-3 right-3 px-2 py-1 rounded-md bg-deep-navy/80 text-on-primary font-label-sm text-label-sm flex items-center gap-1 backdrop-blur-xs">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>12 Months</span>
+</div>
+</div>
+<!-- Card Content -->
+<div class="p-5 space-y-3">
+<div class="flex items-center gap-1 text-tertiary-container">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star_half</span>
+<span class="font-label-sm text-label-sm text-deep-navy font-semibold ml-1">4.9</span>
+<span class="font-label-sm text-label-sm text-outline">(1,480)</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-deep-navy leading-snug line-clamp-2">
+              UPSC Civil Services 2025: Prelims + Mains Complete Foundation
+            </h4>
+<div class="flex items-center gap-2 pt-1 font-label-sm text-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-emerald-vivid text-[16px]">verified_user</span>
+<span>By Dr. Amartya Sen &amp; Faculty Team</span>
+</div>
+<div class="pt-3 flex items-center justify-between">
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-primary font-bold">₹18,999</span>
+<span class="font-label-sm text-label-sm text-outline line-through">₹24,999</span>
+</div>
+<span class="font-label-sm text-label-sm text-emerald-vivid font-medium">Save ₹6,000 (24%)</span>
+</div>
+<button class="p-2.5 rounded-lg bg-primary-container text-on-primary shadow-sm hover:bg-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">shopping_bag</span>
+</button>
+</div>
+</div>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low text-center">
+<span class="font-label-sm text-label-sm text-outline">Checkout Conversion Rate Target: <strong>4.8%</strong></span>
+</div>
+</div>
+<!-- Anti-Piracy & DRM Governance Settings -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm space-y-5">
+<div class="flex items-center justify-between pb-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">security</span>
+<h3 class="font-headline-md text-headline-md text-deep-navy">DRM &amp; Content Armor</h3>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-vivid"></span>
+</div>
+<p class="font-label-sm text-label-sm text-outline">Automated video watermarking and hardware cryptographic enforcement.</p>
+<div class="space-y-3.5">
+<!-- Toggle 1 -->
+<label class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-low/70 hover:bg-surface-container-low cursor-pointer transition-colors">
+<input checked="" class="mt-1 w-4 h-4 rounded text-primary focus:ring-0 accent-primary shrink-0" type="checkbox"/>
+<div class="space-y-0.5">
+<span class="font-label-lg text-label-lg text-deep-navy font-semibold block">Dynamic Steganography Watermarking</span>
+<p class="font-label-sm text-label-sm text-outline leading-tight">Hardcoded, floating student UID, Mobile &amp; IP stamped randomly across video frames.</p>
+</div>
+</label>
+<!-- Toggle 2 -->
+<label class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-low/70 hover:bg-surface-container-low cursor-pointer transition-colors">
+<input checked="" class="mt-1 w-4 h-4 rounded text-primary focus:ring-0 accent-primary shrink-0" type="checkbox"/>
+<div class="space-y-0.5">
+<span class="font-label-lg text-label-lg text-deep-navy font-semibold block">Hardware Widevine L1 Enforcement</span>
+<p class="font-label-sm text-label-sm text-outline leading-tight">Blocks decrypted video buffers on root/jailbroken devices and emulators.</p>
+</div>
+</label>
+<!-- Toggle 3 -->
+<label class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-low/70 hover:bg-surface-container-low cursor-pointer transition-colors">
+<input checked="" class="mt-1 w-4 h-4 rounded text-primary focus:ring-0 accent-primary shrink-0" type="checkbox"/>
+<div class="space-y-0.5">
+<span class="font-label-lg text-label-lg text-deep-navy font-semibold block">Single-Device Concurrent Session Lock</span>
+<p class="font-label-sm text-label-sm text-outline leading-tight">Instant termination of legacy tokens if login heartbeat is detected elsewhere.</p>
+</div>
+</label>
+<!-- Toggle 4 -->
+<label class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-low/70 hover:bg-surface-container-low cursor-pointer transition-colors">
+<input checked="" class="mt-1 w-4 h-4 rounded text-primary focus:ring-0 accent-primary shrink-0" type="checkbox"/>
+<div class="space-y-0.5">
+<span class="font-label-lg text-label-lg text-deep-navy font-semibold block">Screen Recording Deterrence</span>
+<p class="font-label-sm text-label-sm text-outline leading-tight">FLAG_SECURE API enabled to turn external capture and screen mirrors black.</p>
+</div>
+</label>
+</div>
+</div>
+<!-- Assigned Faculty & Mentors -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm space-y-4">
+<div class="flex items-center justify-between pb-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">groups</span>
+<h3 class="font-headline-md text-headline-md text-deep-navy">Assigned Faculty</h3>
+</div>
+<button class="text-primary hover:text-emerald-vivid font-label-sm text-label-sm font-semibold flex items-center gap-0.5" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span> Assign
+          </button>
+</div>
+<div class="space-y-3">
+<!-- Faculty 1 -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest shrink-0">
+<img class="w-full h-full object-cover" data-alt="Distinguished senior male academic historian professor with glasses, silver hair, wearing tweed suit in a prestigious university library" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDY4qz5wQTjXDmr_kE2YMB2aVsRB8DJdxxNpjAnEIYdyc1Hji8_ZYOFdo269kjpd022rQVXQWRj57WQGlWQwPXkYh5ZilzW6NPJcRLj4zzJSOb-YacGF8dkQAThFTH7JATCLvXKtFXL0BsxE_VD_bL8yV9y9hki6xl0AzgZYK58-n8HozIdJmaafLwVkPu8wq-h9lnGL9YEYirD2R-KbOGD2xGPeQsBNIFX6FErD7Y_R19RueWB0l2G"/>
+</div>
+<div>
+<span class="font-label-lg text-label-lg text-deep-navy font-semibold block leading-tight">Dr. Amartya Sen</span>
+<span class="font-label-sm text-label-sm text-outline block leading-tight">Chief Historian · GS Paper 1</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline hover:text-error cursor-pointer text-[18px]">more_vert</span>
+</div>
+<!-- Faculty 2 -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest shrink-0">
+<img class="w-full h-full object-cover" data-alt="Confident Indian male advocate law professor in sharp dark blazer, smiling warmly in modern academic office with legal volumes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0L34s1Cv0uYIMfw0PTvusa9aU1jq3ukT_AM-KLEsLR7-ksLn9H0ehyOwFcw1b8f69-tZqPT_45abNGpKX1kCcEWUYGJCujU78ssrwnemMw7r9VXEjvMJPG7WWbTB-0vYthwhIah7vEu-hXLCgKYrG1nfUlQ1q1_ECmEfzvtW-RY24HN-wFlecIsWSIloOrcEWCKdjLe1I45UPygGvq9U6YkeGv7a_P_LNgw1zhU1V2OY2wJLw1lNQ"/>
+</div>
+<div>
+<span class="font-label-lg text-label-lg text-deep-navy font-semibold block leading-tight">Adv. Ragav Nambiar</span>
+<span class="font-label-sm text-label-sm text-outline block leading-tight">Polity &amp; Constitution Lead</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline hover:text-error cursor-pointer text-[18px]">more_vert</span>
+</div>
+</div>
+<!-- Add Mentor Quick Action -->
+<button class="w-full py-2.5 rounded-lg bg-surface-container-high/60 hover:bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold flex items-center justify-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">person_add</span>
+<span>Assign Additional Co-Instructor</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bottom Floating Context Bar on Mobile/Sticky Action Confirmation -->
+<div class="sticky bottom-6 z-20 w-full p-4 rounded-xl bg-deep-navy/95 backdrop-blur-lg text-on-primary shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-emerald-vivid/20 text-emerald-vivid flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+</div>
+<div>
+<span class="font-label-lg text-label-lg text-on-primary font-semibold block leading-tight">Catalog Validation Clear</span>
+<span class="font-label-sm text-label-sm text-outline-variant block leading-tight">Pricing, HSN code, DRM keys, and syllabus manifest verified.</span>
+</div>
+</div>
+<div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+<button class="px-4 py-2 rounded-lg bg-surface-container-highest/10 text-on-primary font-label-lg text-label-lg hover:bg-surface-container-highest/20 transition-colors" type="button">
+        Preview In New Tab
+      </button>
+<button class="px-5 py-2 rounded-lg bg-emerald-vivid text-on-primary font-label-lg text-label-lg shadow-md hover:opacity-90 transition-opacity flex items-center gap-1.5" type="button">
+<span>Proceed to Step 3</span>
+<span class="material-symbols-outlined text-[18px]">east</span>
+</button>
+</div>
+</div>
+</div></main></div></body></html>

@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:ital,wght@0,600;0,700;1,600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface": "#f9f9ff", "surface-container-lowest": "#ffffff", "on-background": "#111c2d", "tertiary-fixed": "#ffe16d", "tertiary-container": "#c9a900", "on-secondary": "#ffffff", "outline-variant": "#bec9c6", "tertiary-fixed-dim": "#e9c400", "surface-container-low": "#f0f3ff", "on-tertiary-container": "#4c3e00", "secondary": "#006875", "emerald-vivid": "#0E9272", "on-secondary-container": "#00616d", "surface-tint": "#0b6a60", "on-tertiary": "#ffffff", "inverse-primary": "#86d5c8", "tertiary": "#705d00", "background": "#f9f9ff", "on-tertiary-fixed-variant": "#544600", "secondary-fixed": "#9cf0ff", "primary-fixed-dim": "#86d5c8", "surface-container-highest": "#d8e3fb", "primary": "#004c44", "on-error-container": "#93000a", "surface-bright": "#f9f9ff", "on-secondary-fixed": "#001f24", "on-error": "#ffffff", "error-container": "#ffdad6", "on-primary-container": "#92e1d4", "on-primary-fixed": "#00201c", "on-primary": "#ffffff", "inverse-surface": "#263143", "surface-dim": "#cfdaf2", "on-tertiary-fixed": "#221b00", "on-secondary-fixed-variant": "#004f58", "surface-container": "#e7eeff", "secondary-fixed-dim": "#00daf3", "surface-gray": "#F8F9FA", "on-surface-variant": "#3f4947", "outline": "#6f7977", "surface-container-high": "#dee8ff", "primary-fixed": "#a2f1e4", "on-surface": "#111c2d", "error": "#ba1a1a", "primary-container": "#00665c", "deep-navy": "#040B14", "surface-variant": "#d8e3fb", "on-primary-fixed-variant": "#005048", "secondary-container": "#00e3fd", "inverse-on-surface": "#ecf1ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "container-max": "1280px", "gutter": "24px", "section-gap": "80px", "margin-mobile": "16px", "base": "8px", "margin-desktop": "48px" }, "fontFamily": { "headline-lg": [ "Playfair Display" ], "headline-md": [ "Playfair Display" ], "label-sm": [ "Inter" ], "display-lg": [ "Playfair Display" ], "display-lg-mobile": [ "Playfair Display" ], "body-md": [ "Inter" ], "label-lg": [ "Inter" ], "body-lg": [ "Inter" ] }, "fontSize": { "headline-lg": [ "32px", { "lineHeight": "1.3", "fontWeight": "600" } ], "headline-md": [ "24px", { "lineHeight": "1.4", "fontWeight": "600" } ], "label-sm": [ "12px", { "lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500" } ], "display-lg": [ "56px", { "lineHeight": "1.1", "fontWeight": "700" } ], "display-lg-mobile": [ "36px", { "lineHeight": "1.2", "fontWeight": "700" } ], "body-md": [ "16px", { "lineHeight": "1.6", "fontWeight": "400" } ], "label-lg": [ "14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" } ], "body-lg": [ "18px", { "lineHeight": "1.6", "fontWeight": "400" } ] } } } };</script></head><body class="bg-surface font-body-md text-on-surface min-h-screen"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="p-6 pb-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-on-primary shadow-sm"><span class="material-symbols-outlined text-[24px]">school</span></div><div><span class="font-headline-md text-headline-md tracking-tight text-primary block leading-none">Eduverse</span><span class="font-label-sm text-label-sm tracking-wider uppercase text-outline text-[10px] block mt-1">Admin Console</span></div></div><div class="mt-4 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface-container-low"><span class="w-2 h-2 rounded-full bg-emerald-vivid animate-pulse"></span><span class="font-label-sm text-label-sm text-primary font-medium text-[11px]">Systems Normal</span></div></div><nav class="px-4 py-2 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-230px)]" data-active-classes="bg-primary-container text-on-primary font-bold rounded-xl"><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Overview</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span>Dashboard</a></div></div><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Users &amp; Aspirants</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="students" href="#"><span class="material-symbols-outlined text-[20px]">group</span>Students</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="teachers" href="#"><span class="material-symbols-outlined text-[20px]">co_present</span>Teachers</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="access-control" href="#"><span class="material-symbols-outlined text-[20px]">admin_panel_settings</span>Access Control</a></div></div><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Academic &amp; Store</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="courses" href="#"><span class="material-symbols-outlined text-[20px]">menu_book</span>Courses</a><a aria-current="page" class="flex items-center gap-3 px-3.5 py-2.5 transition-all bg-primary-container text-on-primary font-bold rounded-xl" data-path="batches" href="#"><span class="material-symbols-outlined text-[20px]">event_available</span>Batches</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="curriculum" href="#"><span class="material-symbols-outlined text-[20px]">account_tree</span>Curriculum</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="test-series" href="#"><span class="material-symbols-outlined text-[20px]">quiz</span>Test Series</a></div></div><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Financials</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="transactions" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span>Transactions</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="razorpay-payouts" href="#"><span class="material-symbols-outlined text-[20px]">payments</span>Razorpay Payouts</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="coupons" href="#"><span class="material-symbols-outlined text-[20px]">sell</span>Coupons</a></div></div><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Platform</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-[20px]">history</span>Audit Logs</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span>Settings</a></div></div></nav></div><div class="p-4 bg-surface-container-low mx-3 mb-4 rounded-xl"><div class="flex items-center justify-between text-[11px] font-label-sm text-outline"><span>Core Sync</span><span class="font-medium text-primary">v4.2.0-core Synced</span></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-8"><div class="flex items-center gap-4 flex-1 max-w-xl"><div class="relative w-full"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span><input class="w-full pl-10 pr-4 py-2 rounded-xl bg-surface-container-low text-on-surface placeholder:text-outline text-label-lg font-label-lg focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search students, courses, transactions, faculty..." type="text"/></div></div><div class="flex items-center gap-5"><button aria-label="Notifications" class="relative p-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-error ring-2 ring-surface"></span></button><div class="flex items-center gap-3 pl-3"><div class="flex flex-col text-right"><span class="font-label-lg text-label-lg text-on-surface font-semibold leading-tight">Dr. Harrison Vance</span><span class="font-label-sm text-label-sm text-outline text-[11px] leading-tight">Dean / Superadmin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-surface"><div class="flex flex-col w-full">
+<div class="px-8 py-8 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+<!-- Breadcrumb & Top Bar -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-2 font-label-lg text-label-lg text-on-surface-variant flex-wrap">
+<a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-[18px]">event_available</span>
+          Batches
+        </a>
+<span class="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
+<span class="hover:text-primary transition-colors cursor-pointer">UPSC Super-500 (Batch CR-2025)</span>
+<span class="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
+<span class="text-primary font-semibold">Study Notes &amp; Handouts Vault</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2.5 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md text-on-surface font-label-lg text-label-lg flex items-center gap-2 transition-all" type="button">
+<span class="material-symbols-outlined text-secondary text-[20px]">file_download</span>
+          Export Access Audit Log
+        </button>
+<button class="px-5 py-2.5 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center gap-2 hover:bg-primary shadow-sm hover:shadow-md transition-all" id="uploadModalTrigger" type="button">
+<span class="material-symbols-outlined text-[20px]">cloud_upload</span>
+          + Upload New Class Note
+        </button>
+</div>
+</div>
+<!-- Screen Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
+<div class="flex flex-col gap-2 max-w-3xl">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high w-fit">
+<span class="material-symbols-outlined text-primary text-[16px]">verified_user</span>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">AWS KMS S3 Multi-Region Protected</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">
+          Batch Notes &amp; Class Handouts Vault
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant">
+          Centralized repository for PDF annotates, faculty synopses, mind maps, and dynamic DRM watermarked reading materials for enrolled cohorts.
+        </p>
+</div>
+<!-- Quick Status Badge -->
+<div class="flex items-center gap-3 bg-surface-container-lowest p-3 px-4 rounded-xl shadow-sm">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">gavel</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase font-semibold">Cohort Strength</span>
+<span class="font-label-lg text-label-lg font-bold text-on-surface">1,842 Aspirants Enrolled</span>
+</div>
+</div>
+</div>
+<!-- Metrics Bar / Bento Counters -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+<!-- Metric 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">Total Documents</span>
+<span class="font-headline-md text-headline-md text-on-surface font-bold">148 PDFs</span>
+<span class="font-label-sm text-label-sm text-emerald-vivid flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +14 this curriculum week
+          </span>
+</div>
+<div class="w-12 h-12 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[26px]">library_books</span>
+</div>
+</div>
+<!-- Metric 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">Storage Used</span>
+<span class="font-headline-md text-headline-md text-on-surface font-bold">12.4 GB</span>
+<div class="w-32 bg-surface-container-high rounded-full h-1.5 mt-2 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full" style="width: 24.8%"></div>
+</div>
+<span class="font-label-sm text-label-sm text-outline mt-0.5">24.8% of 50 GB AWS S3</span>
+</div>
+<div class="w-12 h-12 rounded-xl bg-surface-container-high text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[26px]">cloud_sync</span>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">Total Downloads</span>
+<span class="font-headline-md text-headline-md text-on-surface font-bold">46,290</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px] text-primary">speed</span> 24.9 avg per reader
+          </span>
+</div>
+<div class="w-12 h-12 rounded-xl bg-surface-container-high text-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[26px]">download_done</span>
+</div>
+</div>
+<!-- Metric 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">DRM Watermarked</span>
+<span class="font-headline-md text-headline-md text-emerald-vivid font-bold">100.0%</span>
+<span class="font-label-sm text-label-sm text-primary flex items-center gap-1 mt-1 font-medium">
+<span class="material-symbols-outlined text-[14px]">format_image_left</span> Zero unencrypted files
+          </span>
+</div>
+<div class="w-12 h-12 rounded-xl bg-surface-container-high text-emerald-vivid flex items-center justify-center">
+<span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+</div>
+</div>
+<!-- Interactive Filter & Segment Bar -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+<!-- Search Input -->
+<div class="relative min-w-[260px] flex-1">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-container-low text-on-surface placeholder:text-outline font-label-lg text-label-lg focus:outline-none focus:bg-surface-container-lowest shadow-inner transition-all" id="searchInput" placeholder="Search document by title, tag, or faculty..." type="text"/>
+</div>
+<!-- Filter Dropdowns -->
+<div class="flex items-center gap-2 flex-wrap">
+<div class="relative">
+<select class="appearance-none bg-surface-container-low px-4 py-2.5 pr-9 rounded-xl font-label-lg text-label-lg text-on-surface focus:outline-none cursor-pointer">
+<option>All Modules</option>
+<option>Polity (Ch 1.x)</option>
+<option>Modern History (Ch 2.x)</option>
+<option>Indian Economy (Ch 3.x)</option>
+<option>Geography &amp; Ecology</option>
+<option>CSAT Quantitative</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-outline text-[18px]">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface-container-low px-4 py-2.5 pr-9 rounded-xl font-label-lg text-label-lg text-on-surface focus:outline-none cursor-pointer">
+<option>All Formats</option>
+<option>Lecture Summary</option>
+<option>Deep Dive Handout</option>
+<option>Mind Map</option>
+<option>Formula Sheet</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-outline text-[18px]">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface-container-low px-4 py-2.5 pr-9 rounded-xl font-label-lg text-label-lg text-on-surface focus:outline-none cursor-pointer">
+<option>Super-500 (Batch CR-2025)</option>
+<option>Evening Foundation 2025</option>
+<option>All Aspirant Batches</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-outline text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Segment Switcher -->
+<div class="flex items-center bg-surface-container-low p-1 rounded-xl self-start sm:self-auto">
+<button class="px-4 py-1.5 rounded-lg bg-surface-container-lowest text-primary font-label-lg text-label-lg font-bold shadow-sm transition-all flex items-center gap-1.5">
+<span>Active Documents</span>
+<span class="px-1.5 py-0.5 rounded-full bg-surface-container-high text-primary text-[11px] font-bold">142</span>
+</button>
+<button class="px-4 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface font-label-lg text-label-lg transition-all flex items-center gap-1.5">
+<span>Drafts / Queued</span>
+<span class="px-1.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant text-[11px]">6</span>
+</button>
+</div>
+</div>
+<!-- Main Content Area: Document Library Table & Side Panels -->
+<div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
+<!-- Table Section (3 Columns on XL) -->
+<div class="xl:col-span-3 flex flex-col gap-4">
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="px-6 py-4 flex items-center justify-between bg-surface-container-low/50">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">Curated Vault Library</span>
+<span class="text-outline text-label-sm font-label-sm">| Showing 4 priority modules for active sprint</span>
+</div>
+<div class="flex items-center gap-2 text-outline text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[16px] text-emerald-vivid">lock_clock</span>
+<span>Encrypted at rest (AES-256)</span>
+</div>
+</div>
+<!-- Table Container -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+<th class="py-3.5 px-6 font-semibold">Document Title &amp; Details</th>
+<th class="py-3.5 px-4 font-semibold">Module / Lecture</th>
+<th class="py-3.5 px-4 font-semibold">Assigned Faculty</th>
+<th class="py-3.5 px-4 font-semibold">Security &amp; DRM</th>
+<th class="py-3.5 px-4 font-semibold">Download Telemetry</th>
+<th class="py-3.5 px-6 text-right font-semibold">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container text-on-surface font-body-md text-body-md">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="py-4 px-6">
+<div class="flex items-start gap-3.5 max-w-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex-shrink-0 flex items-center justify-center mt-0.5">
+<span class="material-symbols-outlined text-[22px]">description</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg font-bold text-on-surface group-hover:text-primary transition-colors truncate block">
+                          Preamble &amp; Basic Structure Judgments Compendium
+                        </span>
+<div class="flex items-center gap-2 text-[12px] font-label-sm text-outline mt-0.5">
+<span class="px-1.5 py-0.2 rounded bg-surface-container-high text-primary font-semibold">PDF</span>
+<span>8.4 MB</span>
+<span>•</span>
+<span>48 Pages</span>
+<span>•</span>
+<span class="text-on-surface font-medium">v2.1 Final</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">Indian Polity</span>
+<span class="font-label-sm text-label-sm text-outline">Ch 1.2 • Landmark Cases</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary text-[11px]">
+                        RN
+                      </div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Adv. Ragav Nambiar</span>
+<span class="font-label-sm text-label-sm text-outline text-[11px]">Senior Constitutional Bench</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-vivid/10 text-emerald-vivid font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">branding_watermark</span>
+<span>Phone + UID Watermark</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col gap-1 w-36">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="font-bold text-on-surface">1,740 / 1,842</span>
+<span class="text-emerald-vivid font-semibold">94%</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-emerald-vivid h-1.5 rounded-full" style="width: 94%"></div>
+</div>
+</div>
+</td>
+<td class="py-4 px-6 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<button class="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-all" title="Preview PDF with DRM Scrim">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-all" title="Update File Version">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-all" title="Revoke Student Access">
+<span class="material-symbols-outlined text-[20px]">block</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="py-4 px-6">
+<div class="flex items-start gap-3.5 max-w-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex-shrink-0 flex items-center justify-center mt-0.5">
+<span class="material-symbols-outlined text-[22px]">map</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg font-bold text-on-surface group-hover:text-primary transition-colors truncate block">
+                          Modern Indian History 1857-1947 Chronology &amp; Battle Maps
+                        </span>
+<div class="flex items-center gap-2 text-[12px] font-label-sm text-outline mt-0.5">
+<span class="px-1.5 py-0.2 rounded bg-surface-container-high text-primary font-semibold">PDF</span>
+<span>14.2 MB</span>
+<span>•</span>
+<span>62 Pages</span>
+<span>•</span>
+<span class="text-on-surface font-medium">v1.4</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">Modern History</span>
+<span class="font-label-sm text-label-sm text-outline">Ch 2.1 • Freedom Movement</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary text-[11px]">
+                        AS
+                      </div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Dr. Amartya Sen</span>
+<span class="font-label-sm text-label-sm text-outline text-[11px]">National Archives Chair</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/10 text-secondary font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">screen_lock_portrait</span>
+<span>Strict Screenshot Guard</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col gap-1 w-36">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="font-bold text-on-surface">1,810 / 1,842</span>
+<span class="text-emerald-vivid font-semibold">98%</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-emerald-vivid h-1.5 rounded-full" style="width: 98%"></div>
+</div>
+</div>
+</td>
+<td class="py-4 px-6 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<button class="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-all" title="Preview PDF with DRM Scrim">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-all" title="Update File Version">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-all" title="Revoke Student Access">
+<span class="material-symbols-outlined text-[20px]">block</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="py-4 px-6">
+<div class="flex items-start gap-3.5 max-w-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex-shrink-0 flex items-center justify-center mt-0.5">
+<span class="material-symbols-outlined text-[22px]">query_stats</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg font-bold text-on-surface group-hover:text-primary transition-colors truncate block">
+                          Union Budget &amp; Economic Survey Key Terminology Glossary
+                        </span>
+<div class="flex items-center gap-2 text-[12px] font-label-sm text-outline mt-0.5">
+<span class="px-1.5 py-0.2 rounded bg-surface-container-high text-primary font-semibold">PDF</span>
+<span>3.8 MB</span>
+<span>•</span>
+<span>24 Pages</span>
+<span>•</span>
+<span class="text-on-surface font-medium">v3.0 Updated</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">Indian Economy</span>
+<span class="font-label-sm text-label-sm text-outline">Ch 3.4 • Macro Policy</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary text-[11px]">
+                        SM
+                      </div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Prof. S. Mukherjee</span>
+<span class="font-label-sm text-label-sm text-outline text-[11px]">Fiscal Policy Fellow</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-vivid/10 text-emerald-vivid font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+<span>Watermark Active</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col gap-1 w-36">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="font-bold text-on-surface">1,420 / 1,842</span>
+<span class="text-primary font-semibold">77%</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full" style="width: 77%"></div>
+</div>
+</div>
+</td>
+<td class="py-4 px-6 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<button class="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-all" title="Preview PDF with DRM Scrim">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-all" title="Update File Version">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-all" title="Revoke Student Access">
+<span class="material-symbols-outlined text-[20px]">block</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="py-4 px-6">
+<div class="flex items-start gap-3.5 max-w-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex-shrink-0 flex items-center justify-center mt-0.5">
+<span class="material-symbols-outlined text-[22px]">calculate</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg font-bold text-on-surface group-hover:text-primary transition-colors truncate block">
+                          CSAT Speed Arithmetic Formula &amp; Short-trick Handbook
+                        </span>
+<div class="flex items-center gap-2 text-[12px] font-label-sm text-outline mt-0.5">
+<span class="px-1.5 py-0.2 rounded bg-surface-container-high text-primary font-semibold">PDF</span>
+<span>6.1 MB</span>
+<span>•</span>
+<span>36 Pages</span>
+<span>•</span>
+<span class="text-on-surface font-medium">v1.0</span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-semibold text-on-surface">CSAT Quantitative</span>
+<span class="font-label-sm text-label-sm text-outline">Ch 5.1 • Number Systems</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary text-[11px]">
+                        KV
+                      </div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Prof. K. Venkatesh</span>
+<span class="font-label-sm text-label-sm text-outline text-[11px]">Aptitude Lead Mentor</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/10 text-secondary font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">offline_pin</span>
+<span>Offline Cache Encrypted</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col gap-1 w-36">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="font-bold text-on-surface">1,650 / 1,842</span>
+<span class="text-emerald-vivid font-semibold">89%</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-emerald-vivid h-1.5 rounded-full" style="width: 89%"></div>
+</div>
+</div>
+</td>
+<td class="py-4 px-6 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<button class="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-all" title="Preview PDF with DRM Scrim">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-all" title="Update File Version">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-all" title="Revoke Student Access">
+<span class="material-symbols-outlined text-[20px]">block</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Pagination -->
+<div class="px-6 py-4 bg-surface-container-low/30 flex flex-col sm:flex-row items-center justify-between gap-4 font-label-sm text-label-sm text-on-surface-variant">
+<span>Showing 1 to 4 of 142 Active Handouts</span>
+<div class="flex items-center gap-1">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-container transition-all">Previous</button>
+<button class="w-8 h-8 rounded-lg bg-primary text-on-primary font-bold flex items-center justify-center">1</button>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-all">2</button>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-all">3</button>
+<span class="px-2">...</span>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface flex items-center justify-center transition-all">36</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-semibold hover:bg-surface-container transition-all">Next</button>
+</div>
+</div>
+</div>
+<!-- Academic Resource Quick Highlights (Card Mosaic) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex items-start gap-4">
+<div class="w-20 h-24 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0 shadow-inner relative">
+<img class="w-full h-full object-cover" data-alt="Editorial close up of high quality UPSC study material with neat handwritten annotations, gold foil embossed emblem of Eduverse Academy, placed on a dark walnut executive desk with soft lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsOI_rvCrJH0WPFD4CSd47kKGqf-r4J6MHRzT2XWX8tHQUmwMIzWHYVuN6S2vtJ01S35JFmr1x1Yy17kFto_RVxGTzhBOTVaNF8XzSadg_NWTO60EagVYQ7egpTyAcNYEpcERCbWqJCBqpL7zhGO8osVkr4tlDiccPRbpAlCWQeywHxryojJO0e5f7B5jYemLYQKCpJlZdRJh6I6dtuRYORx5YgoRQskJSQ_LnUIXE_xuR63kMevcX"/>
+<span class="absolute bottom-1 right-1 px-1 rounded bg-deep-navy/80 text-[10px] text-surface font-semibold">DRM</span>
+</div>
+<div class="flex flex-col gap-1 min-w-0">
+<span class="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wider">Faculty Spotlight Document</span>
+<h2 class="font-headline-md text-[18px] text-on-surface font-bold truncate">Ethics Lexicon &amp; Quote Compendium</h2>
+<p class="font-body-md text-[13px] text-on-surface-variant line-clamp-2">Compiled by IAS topper faculty panel. Includes 120 case studies mapped with GS-IV previous year questions.</p>
+<div class="flex items-center gap-3 mt-2">
+<span class="font-label-sm text-label-sm text-outline">9.2 MB PDF</span>
+<button class="font-label-sm text-label-sm text-primary font-bold hover:underline flex items-center gap-0.5">
+                  Audit Access <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex items-start gap-4">
+<div class="w-20 h-24 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0 shadow-inner relative">
+<img class="w-full h-full object-cover" data-alt="Modern architectural classroom library with books, tablets showing digital diagrams, and atmospheric warm ambient lighting highlighting academic precision and focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfW-KGne7HWjkqOF8yFD5qYoMLszhDGA1eKdRAkOmfy2I96M7YBFWKNQD_VXrUH1QOHOu2j372yjmcVYXCkoo3WfBeEWsA6ziveiSGjZkd91Vue3SqODU269SOy2mRRLZpXaUD7CTHzeVCtlJRV50jaH_ktBJWgW5o3ogrG2pPy1ogCaQMDQnIufeSuy6UzFVP69n7xdjhAU4fhFknQhcNMSPCf5eAGHrrTbkACfrHIxJ92gOJx-IQ"/>
+<span class="absolute bottom-1 right-1 px-1 rounded bg-deep-navy/80 text-[10px] text-surface font-semibold">MINDMAP</span>
+</div>
+<div class="flex flex-col gap-1 min-w-0">
+<span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">Visual Knowledge Map</span>
+<h2 class="font-headline-md text-[18px] text-on-surface font-bold truncate">Global Treaties &amp; Climate Frameworks</h2>
+<p class="font-body-md text-[13px] text-on-surface-variant line-clamp-2">High-res multi-tier vector mind map linking UNFCCC COP28 decisions to GS Paper 3 Environment syllabus.</p>
+<div class="flex items-center gap-3 mt-2">
+<span class="font-label-sm text-label-sm text-outline">SVG + PDF • 22 MB</span>
+<button class="font-label-sm text-label-sm text-secondary font-bold hover:underline flex items-center gap-0.5">
+                  View Map Layers <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Utility Panel (Upload Queue, Telemetry, Security Alerts) -->
+<div class="xl:col-span-1 flex flex-col gap-6">
+<!-- Live Processing Queue Card -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between pb-3 border-b border-surface-container">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary-container animate-ping"></span>
+<span class="font-label-lg text-label-lg font-bold text-on-surface">Transcoding Pipeline</span>
+</div>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-bold">1 Active</span>
+</div>
+<!-- Active Task item -->
+<div class="flex flex-col gap-2.5 bg-surface-container-low p-3.5 rounded-xl">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2 min-w-0">
+<span class="material-symbols-outlined text-primary text-[20px]">sync</span>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface truncate">GS Paper 4 Ethics Case Studies Vol 3.pdf</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-primary">85%</span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden">
+<div class="bg-primary h-2 rounded-full transition-all duration-500" style="width: 85%"></div>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-outline text-[11px]">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-emerald-vivid">vpn_key</span>
+                Cloud KMS Key Gen
+              </span>
+<span>~12 sec left</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 text-[12px] font-label-sm text-on-surface-variant">
+<div class="flex items-center justify-between">
+<span>Dynamic UID Stamping:</span>
+<span class="text-emerald-vivid font-semibold">Complete</span>
+</div>
+<div class="flex items-center justify-between">
+<span>Raster Inversion Barrier:</span>
+<span class="text-emerald-vivid font-semibold">Applied</span>
+</div>
+<div class="flex items-center justify-between">
+<span>S3 Multi-part Distribution:</span>
+<span class="text-tertiary font-semibold">Queued (14/16 chunks)</span>
+</div>
+</div>
+</div>
+<!-- Download Spike & Security Deterrence Card -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between pb-3 border-b border-surface-container">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-emerald-vivid text-[20px]">verified_user</span>
+<span class="font-label-lg text-label-lg font-bold text-on-surface">Security &amp; Deterrence</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-vivid/10 text-emerald-vivid font-label-sm text-label-sm font-semibold">Protected</span>
+</div>
+<div class="p-3.5 rounded-xl bg-surface-container-low flex flex-col gap-2">
+<div class="flex items-center gap-2 text-on-surface font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-emerald-vivid text-[18px]">check_circle</span>
+<span>0 Scraping Violations Flagged</span>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant leading-relaxed">
+              Rate limiting enforces max 6 PDF downloads/hr per aspirant token. No bulk automated rip detected across UPSC Super-500.
+            </p>
+</div>
+<!-- DRM Diagnostic Telemetry Chart Mini -->
+<div class="flex flex-col gap-2 pt-1">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-semibold">Hourly Download Velocity</span>
+<div class="h-20 w-full flex items-end justify-between gap-1.5 px-1 pt-2">
+<div class="flex-1 bg-surface-container-high hover:bg-primary rounded-t transition-all" style="height: 35%" title="09:00 - 320 dl"></div>
+<div class="flex-1 bg-surface-container-high hover:bg-primary rounded-t transition-all" style="height: 55%" title="10:00 - 580 dl"></div>
+<div class="flex-1 bg-surface-container-high hover:bg-primary rounded-t transition-all" style="height: 90%" title="11:00 - 920 dl"></div>
+<div class="flex-1 bg-surface-container-high hover:bg-primary rounded-t transition-all" style="height: 70%" title="12:00 - 740 dl"></div>
+<div class="flex-1 bg-primary rounded-t transition-all" style="height: 85%" title="13:00 (Current) - 860 dl"></div>
+<div class="flex-1 bg-surface-container-high hover:bg-primary rounded-t transition-all" style="height: 40%" title="14:00 (Est)"></div>
+<div class="flex-1 bg-surface-container-high hover:bg-primary rounded-t transition-all" style="height: 25%" title="15:00 (Est)"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-outline text-[10px]">
+<span>09:00 AM</span>
+<span>Current Sprint</span>
+<span>03:00 PM</span>
+</div>
+</div>
+<button class="w-full py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container text-on-surface font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[18px]">policy</span>
+            Configure DRM Rules
+          </button>
+</div>
+<!-- Faculty Contribution Stats -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-3">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">Top Course Contributors</span>
+<div class="flex flex-col gap-3 pt-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-surface-container-high text-[10px] font-bold text-primary flex items-center justify-center">1</span>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">Adv. Ragav Nambiar</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">48 Handouts</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-surface-container-high text-[10px] font-bold text-primary flex items-center justify-center">2</span>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">Dr. Amartya Sen</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">42 Handouts</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-surface-container-high text-[10px] font-bold text-primary flex items-center justify-center">3</span>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">Prof. K. Venkatesh</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">34 Handouts</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Interactive Slide-Over Upload Modal (Accessible & Controlled via vanilla JS) -->
+<div class="fixed inset-0 z-50 bg-deep-navy/40 backdrop-blur-sm hidden flex justify-end transition-opacity" id="uploadDrawer">
+<div class="w-full max-w-xl bg-surface-container-lowest h-full shadow-2xl flex flex-col p-6 overflow-y-auto">
+<div class="flex items-center justify-between pb-4 border-b border-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary-container text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">upload_file</span>
+</div>
+<div>
+<h3 class="font-headline-md text-[20px] font-bold text-on-surface">Upload Batch Study Note</h3>
+<span class="font-label-sm text-label-sm text-outline">Batch: UPSC Super-500 (Batch CR-2025)</span>
+</div>
+</div>
+<button class="p-2 rounded-xl text-outline hover:bg-surface-container-high hover:text-on-surface transition-all" id="closeDrawer">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+</div>
+<form class="flex flex-col gap-5 mt-6 flex-1" onsubmit="event.preventDefault(); alert('Document submitted for secure DRM stamping &amp; KMS encryption.'); document.getElementById('uploadDrawer').classList.add('hidden');">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface">Document Title *</label>
+<input class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low text-on-surface font-label-lg text-label-lg focus:outline-none focus:ring-1 focus:ring-primary" placeholder="e.g., Comparative Analysis of Indian &amp; US Federalism" required="" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface">Module Segment *</label>
+<select class="w-full px-3 py-2.5 rounded-xl bg-surface-container-low text-on-surface font-label-lg text-label-lg focus:outline-none">
+<option>Indian Polity</option>
+<option>Modern History</option>
+<option>Indian Economy</option>
+<option>CSAT Quantitative</option>
+<option>Ethics &amp; Integrity (GS-IV)</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface">Handout Format *</label>
+<select class="w-full px-3 py-2.5 rounded-xl bg-surface-container-low text-on-surface font-label-lg text-label-lg focus:outline-none">
+<option>Lecture Summary &amp; Synopsis</option>
+<option>Deep Dive Handout</option>
+<option>Mind Map (Vector)</option>
+<option>Formula &amp; Terminology Sheet</option>
+</select>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface">Attributed Faculty Mentor</label>
+<select class="w-full px-3 py-2.5 rounded-xl bg-surface-container-low text-on-surface font-label-lg text-label-lg focus:outline-none">
+<option>Adv. Ragav Nambiar (Polity Lead)</option>
+<option>Dr. Amartya Sen (History Chair)</option>
+<option>Prof. S. Mukherjee (Macro Economy)</option>
+<option>Prof. K. Venkatesh (CSAT Quantitative)</option>
+</select>
+</div>
+<!-- Drag & Drop Zone -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg font-semibold text-on-surface">Source File (PDF Only)</label>
+<div class="border-2 border-dashed border-outline-variant hover:border-primary rounded-xl p-8 flex flex-col items-center justify-center gap-3 bg-surface-container-low/40 transition-colors cursor-pointer text-center">
+<div class="w-12 h-12 rounded-full bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[28px]">cloud_upload</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">Drag &amp; drop your PDF here or browse</span>
+<span class="font-label-sm text-label-sm text-outline mt-0.5">Maximum file size: 100 MB • Strict vector text preservation</span>
+</div>
+</div>
+</div>
+<!-- Security & DRM Toggle Controls -->
+<div class="bg-surface-container-low p-4 rounded-xl flex flex-col gap-3">
+<span class="font-label-sm text-label-sm uppercase tracking-wider font-bold text-primary">DRM Enforcement Policies</span>
+<label class="flex items-center justify-between cursor-pointer">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Aspirant Dynamic Watermark</span>
+<span class="font-label-sm text-label-sm text-outline">Overlays student registered phone, roll number &amp; IP timestamp</span>
+</div>
+<input checked="" class="w-4 h-4 text-primary rounded focus:ring-primary" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between cursor-pointer">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Screenshot &amp; Screen Recorder Deterrence</span>
+<span class="font-label-sm text-label-sm text-outline">Applies anti-screen capture blackout filter on reader clients</span>
+</div>
+<input checked="" class="w-4 h-4 text-primary rounded focus:ring-primary" type="checkbox"/>
+</label>
+</div>
+<div class="mt-auto pt-6 flex items-center justify-end gap-3 border-t border-surface-container">
+<button class="px-5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface hover:bg-surface-container-high transition-all" id="cancelDrawer" type="button">
+            Cancel
+          </button>
+<button class="px-6 py-2.5 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-md hover:bg-primary transition-all" type="submit">
+            Initiate DRM &amp; Deploy
+          </button>
+</div>
+</form>
+</div>
+</div>
+<!-- Interactive script to trigger Modal and Filter interactivity -->
+<script>
+    (function() {
+      const modal = document.getElementById('uploadDrawer');
+      const openBtn = document.getElementById('uploadModalTrigger');
+      const closeBtn = document.getElementById('closeDrawer');
+      const cancelBtn = document.getElementById('cancelDrawer');
+      const searchInput = document.getElementById('searchInput');
+
+      if(openBtn && modal) {
+        openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+      }
+      if(closeBtn && modal) {
+        closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+      }
+      if(cancelBtn && modal) {
+        cancelBtn.addEventListener('click', () => modal.classList.add('hidden'));
+      }
+
+      // Quick filter prototype interaction
+      if(searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase();
+          const rows = document.querySelectorAll('tbody tr');
+          rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+          });
+        });
+      }
+    })();
+  </script>
+</div></main></div></body></html>

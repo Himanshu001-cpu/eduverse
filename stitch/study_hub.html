@@ -1,0 +1,630 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={theme:{extend:{"colors":{"inverse-primary":"#86d5c8","emerald-vivid":"#0E9272","on-primary-container":"#92e1d4","on-tertiary-fixed":"#221b00","background":"#f9f9ff","on-surface":"#111c2d","on-tertiary":"#ffffff","secondary-fixed-dim":"#00daf3","on-tertiary-fixed-variant":"#544600","primary-fixed":"#a2f1e4","on-secondary-fixed":"#001f24","secondary-fixed":"#9cf0ff","inverse-surface":"#263143","tertiary":"#705d00","tertiary-container":"#c9a900","on-secondary-container":"#00616d","on-primary":"#ffffff","surface-variant":"#d8e3fb","on-secondary-fixed-variant":"#004f58","error":"#ba1a1a","on-primary-fixed-variant":"#005048","on-error":"#ffffff","surface-container-highest":"#d8e3fb","on-background":"#111c2d","surface-gray":"#F8F9FA","surface-container-low":"#f0f3ff","tertiary-fixed-dim":"#e9c400","deep-navy":"#040B14","tertiary-fixed":"#ffe16d","inverse-on-surface":"#ecf1ff","on-secondary":"#ffffff","on-error-container":"#93000a","error-container":"#ffdad6","primary":"#004c44","surface-container-lowest":"#ffffff","surface-bright":"#f9f9ff","on-tertiary-container":"#4c3e00","surface-dim":"#cfdaf2","primary-fixed-dim":"#86d5c8","on-primary-fixed":"#00201c","on-surface-variant":"#3f4947","secondary":"#006875","surface-container-high":"#dee8ff","surface":"#f9f9ff","outline":"#6f7977","surface-container":"#e7eeff","secondary-container":"#00e3fd","surface-tint":"#0b6a60","outline-variant":"#bec9c6","primary-container":"#00665c"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"container-max":"1280px","gutter":"24px","base":"8px","margin-desktop":"48px","margin-mobile":"16px","section-gap":"80px"},"fontFamily":{"body-lg":["Inter"],"headline-lg":["Playfair Display"],"label-lg":["Inter"],"display-lg":["Playfair Display"],"body-md":["Inter"],"label-sm":["Inter"],"display-lg-mobile":["Playfair Display"],"headline-md":["Playfair Display"]},"fontSize":{"body-lg":["18px",{"lineHeight":"1.6","fontWeight":"400"}],"headline-lg":["32px",{"lineHeight":"1.3","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"1.2","letterSpacing":"0.05em","fontWeight":"600"}],"display-lg":["56px",{"lineHeight":"1.1","fontWeight":"700"}],"body-md":["16px",{"lineHeight":"1.6","fontWeight":"400"}],"label-sm":["12px",{"lineHeight":"1.2","letterSpacing":"0.02em","fontWeight":"500"}],"display-lg-mobile":["36px",{"lineHeight":"1.2","fontWeight":"700"}],"headline-md":["24px",{"lineHeight":"1.4","fontWeight":"600"}]}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Playfair+Display:wght@100..900&amp;display=swap" rel="stylesheet"></head><body class="bg-surface font-body-md text-on-surface"><header class="fixed top-0 w-full z-50 bg-surface-bright/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 max-w-[1280px] mx-auto px-margin-mobile lg:px-margin-desktop flex items-center justify-between gap-gutter"><div class="flex items-center gap-4 flex-shrink-0"><img alt="The Eduverse Logo" class="h-10 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1Ub-X54G6CzNuc3vYGYR6fkBeoIsYteMaRzNjHMmFZPfl56qQ8hmRPUjoEijGjH0jXBtHJz3Kchcc98nfcJ0ucBJ82IihwZUZVueHTHMUYSGN-k2IQGeKtBjKd_wpYM5CE2x-_dMMFIdpFaacInX81MKiI5PVhuqnIW0etmglr2toPXsUKQKHy6oQ9g8I1KvANFJOZEOvs7jIRPVGHMDEX2-f4xITccSpJRfOmuVFBHhyT0DhxedfStF00"><span class="font-headline-md text-headline-md text-primary hidden sm:inline-block tracking-tight">The Eduverse</span></div><div class="flex-1 max-w-md hidden lg:block mx-gutter"><div class="relative group"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span><input class="w-full h-10 pl-10 pr-4 bg-surface-container-low border border-outline-variant/30 rounded-full text-label-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Search courses, certifications..." type="text"></div></div><nav class="hidden xl:flex items-center gap-8 flex-shrink-0" data-active-classes="text-primary font-bold"><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="courses" href="#">Courses</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="programs" href="#">Programs</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="admissions" href="#">Admissions</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="about-us" href="#">About Us</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="contact" href="#">Contact</a></nav><div class="flex items-center gap-4 flex-shrink-0"><button class="hidden sm:block font-label-lg text-label-lg text-primary px-4 py-2">Login</button><div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center cursor-pointer shadow-sm hover:bg-primary-container transition-colors"><span class="material-symbols-outlined text-on-primary text-[20px]">person</span></div></div></div></header><main class="w-full pt-20 min-h-screen"><div class="flex flex-col w-full">
+<div class="max-w-[1280px] mx-auto px-margin-mobile lg:px-margin-desktop py-base lg:py-gutter w-full">
+<!-- Top Cohort Switcher & Academic Command Bar -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-6 lg:p-8 mb-8 relative overflow-hidden">
+<div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-primary-fixed/30 blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+<div class="space-y-2">
+<div class="flex flex-wrap items-center gap-3">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm uppercase tracking-wider font-semibold">
+<span class="w-2 h-2 rounded-full bg-emerald-vivid animate-pulse"></span>
+              Active Enrollment • Valid till May 2025
+            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Batch Code: UPSC-GS-CSAT-25</span>
+</div>
+<div class="flex items-center gap-3">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">
+              UPSC Civil Services 2025
+            </h1>
+<button class="inline-flex items-center gap-1 text-primary font-label-lg text-label-lg px-2.5 py-1 rounded-lg hover:bg-surface-container transition-colors" id="batch-switcher-trigger">
+<span>(Foundation GS + CSAT Combo)</span>
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">
+            Targeting CSE Prelims &amp; Mains. Day 142 of your structured study plan.
+          </p>
+</div>
+<!-- In-Batch Quick Search & Actions -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+<div class="relative min-w-[280px]">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full h-11 pl-10 pr-4 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-on-surface-variant/60 focus:outline-none focus:bg-surface-container transition-all" placeholder="Search lectures, DPPs, tests..." type="text">
+</div>
+<div class="flex items-center gap-2">
+<button class="h-11 px-4 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-lg text-label-lg flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-primary text-[20px]">cloud_download</span>
+<span class="hidden sm:inline">Offline</span>
+</button>
+<button class="h-11 px-4 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg flex items-center gap-2 shadow-sm hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">alarm</span>
+<span>Study Planner</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Quick Operational Shortcuts Strip -->
+<div class="mt-6 pt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+<a class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors group" href="#dpp-center">
+<div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">quiz</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Assessment</p>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold">Test Series (3 Pending)</p>
+</div>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors group" href="#notes-library">
+<div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">menu_book</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Classroom Vault</p>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold">My Notes &amp; DPPs</p>
+</div>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors group" href="#daily-ca">
+<div class="w-9 h-9 rounded-lg bg-tertiary-fixed-dim/20 flex items-center justify-center text-tertiary group-hover:bg-tertiary-container group-hover:text-on-tertiary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">today</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Daily Habit</p>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold">Current Affairs Quiz</p>
+</div>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors group" href="#forum-desk">
+<div class="w-9 h-9 rounded-lg bg-secondary-fixed-dim/30 flex items-center justify-center text-secondary group-hover:bg-secondary-fixed-dim group-hover:text-on-secondary-fixed transition-colors">
+<span class="material-symbols-outlined text-[20px]">forum</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Peer Mentorship</p>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold">Doubt Clearing (34 Unread)</p>
+</div>
+</a>
+</div>
+</div>
+<!-- Active Live Session Priority Banner -->
+<div class="bg-gradient-to-r from-deep-navy via-inverse-surface to-deep-navy rounded-xl shadow-md p-6 lg:p-7 mb-8 text-on-tertiary relative overflow-hidden">
+<div class="absolute right-0 top-0 h-full w-1/3 bg-radial from-primary/30 to-transparent pointer-events-none"></div>
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+<div class="space-y-2">
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-error text-on-error font-label-sm text-label-sm font-semibold tracking-wide">
+<span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+              LIVE NOW
+            </span>
+<span class="font-label-sm text-label-sm text-on-tertiary/75 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">groups</span>
+              1,240 aspirants in hall
+            </span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-tertiary">
+            Polity &amp; Constitutional Framework — Preamble &amp; Fundamental Rights
+          </h2>
+<p class="font-body-md text-body-md text-on-tertiary/80 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary-fixed-dim text-[18px]">verified_user</span>
+<span>By Adv. Ragav Nambiar • Supreme Court Advocate &amp; Faculty Lead</span>
+</p>
+</div>
+<div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-shrink-0">
+<div class="text-left sm:text-right">
+<p class="font-label-sm text-label-sm text-tertiary-fixed uppercase tracking-wider font-semibold">Next Up at 02:30 PM</p>
+<p class="font-body-md text-body-md text-on-tertiary/90 font-medium">Geography &amp; Climatology AMA</p>
+</div>
+<div class="flex items-center gap-3 w-full sm:w-auto">
+<button class="flex-1 sm:flex-none h-12 px-6 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 hover:bg-emerald-vivid shadow-md transition-all">
+<span class="material-symbols-outlined text-[20px]">videocam</span>
+<span>Join Live Stream</span>
+</button>
+<button class="h-12 w-12 rounded-xl bg-on-tertiary/10 hover:bg-on-tertiary/20 text-on-tertiary flex items-center justify-center transition-colors" title="Class schedule">
+<span class="material-symbols-outlined text-[22px]">calendar_month</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Workspace 2-Column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Primary Academic Column (8 Cols) -->
+<div class="lg:col-span-8 space-y-8">
+<!-- Continue Learning (Hive Sync) -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-widest">Resume Session</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Continue Learning</h3>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Last synced 12 mins ago</span>
+</div>
+<!-- Hero Continue Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col md:flex-row group hover:shadow-md transition-all">
+<div class="md:w-5/12 relative h-52 md:h-auto overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A sophisticated academic lecture recording still showing an archival sepia map of 1857 British India, a podium, with modern studio lighting in deep emerald green and navy tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZ_lsduFiloFwcJfMlzMzi8Jy_yxduf_OlRX2ZIN_1leZuu-M8CkpQH8dF0sS3a5hSo1TO3Wk8LLvPiykE51XEZlk5eC6_p6o6lYa5Nlxl-zagsY50RziO_2D-nJYIFQmbnhI7xoEq7eX-kEvtMIPH-J_aSihCMMG3xoibGbA2RwZZiME3tGtUEtAzdEfETsoy5moEASFwCgunh7TSy4s_uQksP6fhkb1eMSdxeTNCWokb0lVu-E5R">
+<div class="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-deep-navy/80 via-deep-navy/40 to-transparent"></div>
+<div class="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded bg-deep-navy/80 backdrop-blur-md text-on-tertiary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary-fixed">play_circle</span>
+<span>Module 04 • Lecture 09</span>
+</div>
+</div>
+<div class="p-6 md:p-8 flex-1 flex flex-col justify-between space-y-4">
+<div class="space-y-2">
+<div class="flex items-center justify-between gap-2">
+<span class="font-label-sm text-label-sm text-primary font-semibold">Modern Indian History</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">GS Paper I</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface leading-snug">
+                  The Revolt of 1857 &amp; Early Resistance Movements
+                </h4>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                  Dr. Amartya Sen • Senior Historian &amp; Visiting Fellow
+                </p>
+</div>
+<!-- Progress bar -->
+<div class="space-y-1.5">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-on-surface font-semibold">42m watched of 1h 15m</span>
+<span class="text-primary font-bold">56% Complete</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container">
+<div class="h-2 rounded-full bg-emerald-vivid transition-all duration-300" style="width: 56%"></div>
+</div>
+</div>
+<!-- Action Toolbar -->
+<div class="pt-2 flex flex-wrap items-center gap-3">
+<button class="h-11 px-5 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg font-semibold flex items-center gap-2 hover:bg-primary-container shadow-sm transition-colors">
+<span class="material-symbols-outlined text-[20px]">play_arrow</span>
+<span>Resume Lecture</span>
+</button>
+<button class="h-11 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>DPP #28 PDF</span>
+</button>
+<button class="h-11 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[18px]">description</span>
+<span>Lecture Notes</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Secondary In-Progress Mini Card -->
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex items-center justify-between gap-4">
+<div class="flex items-center gap-4 min-w-0">
+<div class="w-12 h-12 rounded-xl bg-secondary-fixed/50 flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-[24px]">calculate</span>
+</div>
+<div class="min-w-0">
+<p class="font-label-sm text-label-sm text-secondary font-semibold">CSAT Quantitative Aptitude</p>
+<h5 class="font-label-lg text-label-lg text-on-surface font-semibold truncate">Permutations, Combinations &amp; Classical Probability</h5>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Prof. K. Venkatesh • 30% Completed</p>
+</div>
+</div>
+<button class="h-9 px-4 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-label-sm text-label-sm font-semibold flex items-center gap-1.5 flex-shrink-0 transition-colors">
+<span>Resume</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- Active Syllabus & Modules Grid -->
+<section class="space-y-6">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-widest">Enrolled Curriculum</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Batch Modules &amp; Syllabus Tracker</h3>
+</div>
+<a class="font-label-lg text-label-lg text-primary hover:underline flex items-center gap-1" href="#">
+<span>View Full Syllabus Plan</span>
+<span class="material-symbols-outlined text-[16px]">north_east</span>
+</a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<!-- Subject Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="w-10 h-10 rounded-xl bg-primary-fixed/40 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">gavel</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant font-semibold">GS-II</span>
+</div>
+<div>
+<h4 class="font-headline-md text-[20px] leading-tight text-on-surface">Indian Polity &amp; Governance</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Adv. Ragav Nambiar &amp; M. Tyagi</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">24 of 30 Lectures</span>
+<span class="text-primary font-bold">80%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container">
+<div class="h-1.5 rounded-full bg-primary" style="width: 80%"></div>
+</div>
+</div>
+</div>
+<div class="pt-3 flex items-center justify-between">
+<div class="flex items-center gap-3 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span> 12 DPPs</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">fact_check</span> 4 Tests</span>
+</div>
+<button class="h-8 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold transition-colors">
+                  Open Module
+                </button>
+</div>
+</div>
+<!-- Subject Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="w-10 h-10 rounded-xl bg-tertiary-fixed/40 text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">account_balance</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant font-semibold">GS-I</span>
+</div>
+<div>
+<h4 class="font-headline-md text-[20px] leading-tight text-on-surface">Modern &amp; Medieval History</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Dr. Amartya Sen</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">18 of 28 Lectures</span>
+<span class="text-primary font-bold">64%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container">
+<div class="h-1.5 rounded-full bg-primary" style="width: 64%"></div>
+</div>
+</div>
+</div>
+<div class="pt-3 flex items-center justify-between">
+<div class="flex items-center gap-3 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span> 10 DPPs</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">fact_check</span> 3 Tests</span>
+</div>
+<button class="h-8 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold transition-colors">
+                  Open Module
+                </button>
+</div>
+</div>
+<!-- Subject Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="w-10 h-10 rounded-xl bg-secondary-fixed/40 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">biotech</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant font-semibold">GS-III</span>
+</div>
+<div>
+<h4 class="font-headline-md text-[20px] leading-tight text-on-surface">General Science &amp; Technology</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Dr. Shalini Ramanathan</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">9 of 20 Lectures</span>
+<span class="text-primary font-bold">45%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container">
+<div class="h-1.5 rounded-full bg-primary" style="width: 45%"></div>
+</div>
+</div>
+</div>
+<div class="pt-3 flex items-center justify-between">
+<div class="flex items-center gap-3 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span> 8 DPPs</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">fact_check</span> 2 Tests</span>
+</div>
+<button class="h-8 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold transition-colors">
+                  Open Module
+                </button>
+</div>
+</div>
+<!-- Subject Card 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="w-10 h-10 rounded-xl bg-surface-container text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">psychology</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant font-semibold">GS-IV</span>
+</div>
+<div>
+<h4 class="font-headline-md text-[20px] leading-tight text-on-surface">Ethics, Integrity &amp; Aptitude</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Prof. Rajiv Malhotra (Retd. IAS)</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">5 of 15 Lectures</span>
+<span class="text-primary font-bold">33%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container">
+<div class="h-1.5 rounded-full bg-primary" style="width: 33%"></div>
+</div>
+</div>
+</div>
+<div class="pt-3 flex items-center justify-between">
+<div class="flex items-center gap-3 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span> 5 DPPs</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">fact_check</span> 1 Test</span>
+</div>
+<button class="h-8 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold transition-colors">
+                  Open Module
+                </button>
+</div>
+</div>
+<!-- Subject Card 5 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="w-10 h-10 rounded-xl bg-secondary-container/40 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">calculate</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant font-semibold">CSAT</span>
+</div>
+<div>
+<h4 class="font-headline-md text-[20px] leading-tight text-on-surface">CSAT (Reasoning &amp; Math)</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Prof. K. Venkatesh</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">14 of 22 Lectures</span>
+<span class="text-primary font-bold">63%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container">
+<div class="h-1.5 rounded-full bg-primary" style="width: 63%"></div>
+</div>
+</div>
+</div>
+<div class="pt-3 flex items-center justify-between">
+<div class="flex items-center gap-3 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span> 14 DPPs</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">fact_check</span> 5 Tests</span>
+</div>
+<button class="h-8 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold transition-colors">
+                  Open Module
+                </button>
+</div>
+</div>
+<!-- Subject Card 6 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="w-10 h-10 rounded-xl bg-emerald-vivid/20 text-emerald-vivid flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">newspaper</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-emerald-vivid/10 font-label-sm text-label-sm text-emerald-vivid font-semibold">Daily Live</span>
+</div>
+<div>
+<h4 class="font-headline-md text-[20px] leading-tight text-on-surface">Current Affairs &amp; Editorials</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">The Hindu + Indian Express Analysis</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">45 Editions Cataloged</span>
+<span class="text-emerald-vivid font-bold">Active Today</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container">
+<div class="h-1.5 rounded-full bg-emerald-vivid" style="width: 95%"></div>
+</div>
+</div>
+</div>
+<div class="pt-3 flex items-center justify-between">
+<div class="flex items-center gap-3 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span> Daily DPP</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">quiz</span> Daily Quiz</span>
+</div>
+<button class="h-8 px-3 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm font-semibold hover:bg-primary-container transition-colors">
+                  Read Digest
+                </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Weekly All India Mock Test Alert Banner -->
+<div class="rounded-xl bg-surface-container-high p-6 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+<div class="space-y-2 max-w-xl">
+<span class="inline-block px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold">
+              National Assessment Series
+            </span>
+<h4 class="font-headline-md text-headline-md text-on-surface">
+              Prelims Full-Length All India Mock Test Series #04
+            </h4>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Live this Sunday, 10:00 AM IST • Strict UPSC pattern simulation with All India Percentile, negative marking analytics &amp; AI answer evaluation.
+            </p>
+</div>
+<button class="h-12 px-6 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg font-semibold flex-shrink-0 hover:bg-primary-container shadow-sm transition-colors">
+            Register Exam Seat
+          </button>
+</div>
+</div>
+<!-- Right Sidebar: Practice Center, Stats & Companion Tools (4 Cols) -->
+<div class="lg:col-span-4 space-y-6">
+<!-- Daily Practice Paper (DPP) Drill Widget -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm space-y-5" id="dpp-center">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">assignment_turned_in</span>
+</span>
+<h4 class="font-headline-md text-[20px] text-on-surface">Daily Practice Paper</h4>
+</div>
+<span class="font-label-sm text-label-sm text-error font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">timer</span>
+              Closes 11:59 PM
+            </span>
+</div>
+<!-- Active Today's DPP -->
+<div class="p-4 rounded-xl bg-surface-container-low space-y-3">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary font-bold">DPP #48</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">GS Paper II Drill</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold">
+              Fundamental Duties &amp; Directive Principles of State Policy
+            </p>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">help_outline</span> 15 Questions</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">schedule</span> 20 Mins</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">military_tech</span> +30 Marks</span>
+</div>
+<button class="w-full h-10 rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-semibold flex items-center justify-center gap-1 hover:bg-primary-container shadow-sm transition-colors">
+<span>Start DPP #48</span>
+<span class="material-symbols-outlined text-[18px]">arrow_right_alt</span>
+</button>
+</div>
+<!-- Yesterday's Result Pill -->
+<div class="p-3.5 rounded-xl bg-surface-container flex items-center justify-between">
+<div class="space-y-0.5">
+<p class="font-label-sm text-label-sm text-on-surface-variant">Yesterday's DPP #47 Result</p>
+<p class="font-label-lg text-label-lg text-on-surface font-bold">13 / 15 Correct (86.6%)</p>
+</div>
+<div class="text-right">
+<span class="inline-block px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-bold">
+                Top 5% Rank #42
+              </span>
+<a class="block font-label-sm text-label-sm text-primary mt-1 hover:underline" href="#">Analysis →</a>
+</div>
+</div>
+</div>
+<!-- Weekly Study Cohort Momentum (Radial SVG Micro-Viz) -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm space-y-4">
+<h4 class="font-headline-md text-[20px] text-on-surface">Weekly Study Discipline</h4>
+<div class="flex items-center justify-around py-2">
+<!-- Inline SVG Gauge -->
+<div class="relative w-28 h-28 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+<path class="text-surface-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+<path class="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="78, 100" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+<div class="absolute flex flex-col items-center justify-center text-center">
+<span class="font-display-lg text-[22px] font-bold text-on-surface leading-none">28.5</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant uppercase">Hours logged</span>
+</div>
+</div>
+<div class="space-y-2">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Weekly Target</p>
+<p class="font-label-lg text-label-lg font-bold text-on-surface">36 Hours Goal</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Current Streak</p>
+<p class="font-label-lg text-label-lg font-bold text-emerald-vivid flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">local_fire_department</span>
+<span>14 Days Active</span>
+</p>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-1 pt-2 text-center">
+<div class="flex flex-col items-center gap-1">
+<span class="font-label-sm text-[11px] text-on-surface-variant">M</span>
+<div class="w-6 h-6 rounded-md bg-emerald-vivid text-on-primary flex items-center justify-center text-[10px] font-bold">✓</div>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="font-label-sm text-[11px] text-on-surface-variant">T</span>
+<div class="w-6 h-6 rounded-md bg-emerald-vivid text-on-primary flex items-center justify-center text-[10px] font-bold">✓</div>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="font-label-sm text-[11px] text-on-surface-variant">W</span>
+<div class="w-6 h-6 rounded-md bg-emerald-vivid text-on-primary flex items-center justify-center text-[10px] font-bold">✓</div>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="font-label-sm text-[11px] text-on-surface-variant">T</span>
+<div class="w-6 h-6 rounded-md bg-emerald-vivid text-on-primary flex items-center justify-center text-[10px] font-bold">✓</div>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="font-label-sm text-[11px] text-on-surface-variant font-bold text-primary">F</span>
+<div class="w-6 h-6 rounded-md bg-primary text-on-primary flex items-center justify-center text-[10px] font-bold">●</div>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="font-label-sm text-[11px] text-on-surface-variant">S</span>
+<div class="w-6 h-6 rounded-md bg-surface-container text-on-surface-variant flex items-center justify-center text-[10px]">—</div>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="font-label-sm text-[11px] text-on-surface-variant">S</span>
+<div class="w-6 h-6 rounded-md bg-surface-container text-on-surface-variant flex items-center justify-center text-[10px]">—</div>
+</div>
+</div>
+</div>
+<!-- Academic Companion Resources & Tools -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm space-y-4" id="notes-library">
+<h4 class="font-headline-md text-[20px] text-on-surface">Study Tools &amp; Repository</h4>
+<div class="space-y-2.5">
+<a class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors group" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-[22px]">import_contacts</span>
+<div>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold group-hover:text-primary transition-colors">E-Book &amp; Standard Text Library</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">NCERT Summaries, Laxmikanth, Spectrum</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors group" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary text-[22px]">hub</span>
+<div>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold group-hover:text-primary transition-colors">Visual Subject Mind Maps</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">120 Revision Mind Maps for GS I-IV</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors group" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-[22px]">bookmarks</span>
+<div>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold group-hover:text-primary transition-colors">Bookmarked Questions &amp; Notes</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">34 Saved MCQs &amp; Model Answers</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors group" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-emerald-vivid text-[22px]">record_voice_over</span>
+<div>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold group-hover:text-primary transition-colors">Doubt Clearing Desk</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Average mentor response time: 24 mins</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">chevron_right</span>
+</a>
+</div>
+</div>
+<!-- Academic Mentor Highlight Card -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm space-y-3">
+<div class="flex items-center gap-3">
+<img class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Close-up portrait of a thoughtful Indian academic mentor wearing spectacles, formal dark attire, with books and an academic library in the warm background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVTVbYYfKxcSc6EZmf6NfS-d9645WHLDviFt93kGdogTNGOI-ST5qtpjcyz6lVi3qToWnJOwbMqqdnnpkJzzJtZBZy7n48eTKt4CqA4shmp95EZT4sBp39PDfCSiDCjjt8kOAcTFQ7d9SiC6B2-LAkunTCFj6Q1kJT8GusSCwuj-HePLi4slQIApDtQRcduIGLFYIPfP75Xn2ieOzwzUnFecHjD9NO_ZYC6Gkox53QlmgrUg6D0dWv">
+<div>
+<p class="font-label-lg text-label-lg text-on-surface font-semibold">Assigned Batch Mentor</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Kiranmayee Rao • AIR 112 (CSE 2021)</p>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">
+            “Focus on the 1857 Revolt administrative transitions today; make two-page comparative notes for quick Mains revision.”
+          </p>
+<button class="w-full h-9 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold transition-colors">
+            Ask Mentor a Question
+          </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Interactive batch switcher client script for micro-interaction -->
+<script>
+    (function() {
+      const trigger = document.getElementById('batch-switcher-trigger');
+      if (trigger) {
+        trigger.addEventListener('click', () => {
+          const currentBatch = trigger.querySelector('span:first-child');
+          if (currentBatch.innerText.includes('GS + CSAT')) {
+            currentBatch.innerText = '(GS Mains Advance Cohort B)';
+          } else {
+            currentBatch.innerText = '(Foundation GS + CSAT Combo)';
+          }
+        });
+      }
+    })();
+  </script>
+</div></main><footer class="w-full bg-deep-navy py-section-gap text-on-tertiary"><div class="max-w-[1280px] mx-auto px-margin-mobile lg:px-margin-desktop"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-12"><div class="space-y-4"><div class="flex items-center gap-3"><img alt="Logo" class="h-8 brightness-0 invert" src="https://lh3.googleusercontent.com/aida/AEtjO1Ub-X54G6CzNuc3vYGYR6fkBeoIsYteMaRzNjHMmFZPfl56qQ8hmRPUjoEijGjH0jXBtHJz3Kchcc98nfcJ0ucBJ82IihwZUZVueHTHMUYSGN-k2IQGeKtBjKd_wpYM5CE2x-_dMMFIdpFaacInX81MKiI5PVhuqnIW0etmglr2toPXsUKQKHy6oQ9g8I1KvANFJOZEOvs7jIRPVGHMDEX2-f4xITccSpJRfOmuVFBHhyT0DhxedfStF00"><span class="font-headline-md text-headline-md">The Eduverse</span></div><p class="font-body-md text-body-md text-on-tertiary/70">Pioneering the future of education through technology and academic excellence.</p></div><div class="space-y-4"><h4 class="font-label-lg text-label-lg text-tertiary-fixed">Academic Links</h4><ul class="space-y-2 font-label-sm text-label-sm text-on-tertiary/80"><li class="hover:text-tertiary-fixed transition-colors cursor-pointer">Online Campus</li><li class="hover:text-tertiary-fixed transition-colors cursor-pointer">Student Research</li><li class="hover:text-tertiary-fixed transition-colors cursor-pointer">Alumni Network</li><li class="hover:text-tertiary-fixed transition-colors cursor-pointer">Faculty Directory</li></ul></div><div class="space-y-4"><h4 class="font-label-lg text-label-lg text-tertiary-fixed">Get in Touch</h4><ul class="space-y-2 font-label-sm text-label-sm text-on-tertiary/80"><li class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">mail</span> hello@theeduverse.edu</li><li class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">call</span> +1 (555) 000-1111</li><li class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">location_on</span> Silicon Valley, CA</li></ul></div><div class="space-y-4"><h4 class="font-label-lg text-label-lg text-tertiary-fixed">Follow Us</h4><div class="flex gap-4"><div class="w-8 h-8 rounded-full border border-on-tertiary/20 flex items-center justify-center hover:bg-tertiary-fixed hover:text-on-tertiary-fixed transition-all cursor-pointer"><span class="material-symbols-outlined text-[18px]">public</span></div><div class="w-8 h-8 rounded-full border border-on-tertiary/20 flex items-center justify-center hover:bg-tertiary-fixed hover:text-on-tertiary-fixed transition-all cursor-pointer"><span class="material-symbols-outlined text-[18px]">play_circle</span></div><div class="w-8 h-8 rounded-full border border-on-tertiary/20 flex items-center justify-center hover:bg-tertiary-fixed hover:text-on-tertiary-fixed transition-all cursor-pointer"><span class="material-symbols-outlined text-[18px]">hub</span></div></div></div></div><div class="pt-8 border-t border-on-tertiary/10 text-center font-label-sm text-label-sm text-on-tertiary/50">© 2024 The Eduverse. Built for the future of learning.</div></div></footer></body></html>

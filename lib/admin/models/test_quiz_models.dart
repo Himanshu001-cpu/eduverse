@@ -18,6 +18,9 @@ class QuizQuestion {
   String subject;
   String topic;
   String explanation;
+  String difficulty;
+  List<Map<String, String>> citations;
+  Map<String, String> distractorExplanations;
 
   QuizQuestion({
     this.questionText = '',
@@ -28,5 +31,46 @@ class QuizQuestion {
     this.subject = '',
     this.topic = '',
     this.explanation = '',
-  }) : options = options ?? ['', '', '', ''];
+    this.difficulty = 'Medium',
+    List<Map<String, String>>? citations,
+    Map<String, String>? distractorExplanations,
+  })  : options = options ?? ['', '', '', ''],
+        citations = citations ?? [],
+        distractorExplanations = distractorExplanations ?? {};
+
+  factory QuizQuestion.fromJson(Map<String, dynamic> json) {
+    return QuizQuestion(
+      questionText: json['questionText'] ?? json['question'] ?? '',
+      options: json['options'] != null ? List<String>.from(json['options']) : ['', '', '', ''],
+      correctOptionIndex: json['correctOptionIndex'] as int? ?? (json['correctIndex'] as int? ?? 0),
+      marks: (json['marks'] as num?)?.toDouble() ?? 4.0,
+      negativeMarks: (json['negativeMarks'] as num?)?.toDouble() ?? 1.0,
+      subject: json['subject'] ?? '',
+      topic: json['topic'] ?? '',
+      explanation: json['explanation'] ?? '',
+      difficulty: json['difficulty'] ?? 'Medium',
+      citations: json['citations'] != null
+          ? (json['citations'] as List).map((c) => Map<String, String>.from(c as Map)).toList()
+          : [],
+      distractorExplanations: json['distractorExplanations'] != null
+          ? Map<String, String>.from(json['distractorExplanations'] as Map)
+          : {},
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'questionText': questionText,
+      'options': options,
+      'correctOptionIndex': correctOptionIndex,
+      'marks': marks,
+      'negativeMarks': negativeMarks,
+      'subject': subject,
+      'topic': topic,
+      'explanation': explanation,
+      'difficulty': difficulty,
+      'citations': citations,
+      'distractorExplanations': distractorExplanations,
+    };
+  }
 }

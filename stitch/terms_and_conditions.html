@@ -1,0 +1,467 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={theme:{extend:{"colors":{"inverse-primary":"#86d5c8","emerald-vivid":"#0E9272","on-primary-container":"#92e1d4","on-tertiary-fixed":"#221b00","background":"#f9f9ff","on-surface":"#111c2d","on-tertiary":"#ffffff","secondary-fixed-dim":"#00daf3","on-tertiary-fixed-variant":"#544600","primary-fixed":"#a2f1e4","on-secondary-fixed":"#001f24","secondary-fixed":"#9cf0ff","inverse-surface":"#263143","tertiary":"#705d00","tertiary-container":"#c9a900","on-secondary-container":"#00616d","on-primary":"#ffffff","surface-variant":"#d8e3fb","on-secondary-fixed-variant":"#004f58","error":"#ba1a1a","on-primary-fixed-variant":"#005048","on-error":"#ffffff","surface-container-highest":"#d8e3fb","on-background":"#111c2d","surface-gray":"#F8F9FA","surface-container-low":"#f0f3ff","tertiary-fixed-dim":"#e9c400","deep-navy":"#040B14","tertiary-fixed":"#ffe16d","inverse-on-surface":"#ecf1ff","on-secondary":"#ffffff","on-error-container":"#93000a","error-container":"#ffdad6","primary":"#004c44","surface-container-lowest":"#ffffff","surface-bright":"#f9f9ff","on-tertiary-container":"#4c3e00","surface-dim":"#cfdaf2","primary-fixed-dim":"#86d5c8","on-primary-fixed":"#00201c","on-surface-variant":"#3f4947","secondary":"#006875","surface-container-high":"#dee8ff","surface":"#f9f9ff","outline":"#6f7977","surface-container":"#e7eeff","secondary-container":"#00e3fd","surface-tint":"#0b6a60","outline-variant":"#bec9c6","primary-container":"#00665c"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"container-max":"1280px","gutter":"24px","base":"8px","margin-desktop":"48px","margin-mobile":"16px","section-gap":"80px"},"fontFamily":{"body-lg":["Inter"],"headline-lg":["Playfair Display"],"label-lg":["Inter"],"display-lg":["Playfair Display"],"body-md":["Inter"],"label-sm":["Inter"],"display-lg-mobile":["Playfair Display"],"headline-md":["Playfair Display"]},"fontSize":{"body-lg":["18px",{"lineHeight":"1.6","fontWeight":"400"}],"headline-lg":["32px",{"lineHeight":"1.3","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"1.2","letterSpacing":"0.05em","fontWeight":"600"}],"display-lg":["56px",{"lineHeight":"1.1","fontWeight":"700"}],"body-md":["16px",{"lineHeight":"1.6","fontWeight":"400"}],"label-sm":["12px",{"lineHeight":"1.2","letterSpacing":"0.02em","fontWeight":"500"}],"display-lg-mobile":["36px",{"lineHeight":"1.2","fontWeight":"700"}],"headline-md":["24px",{"lineHeight":"1.4","fontWeight":"600"}]}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Playfair+Display:wght@100..900&amp;display=swap" rel="stylesheet"></head><body class="bg-surface font-body-md text-on-surface"><header class="fixed top-0 w-full z-50 bg-surface-bright/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 max-w-[1280px] mx-auto px-margin-mobile lg:px-margin-desktop flex items-center justify-between gap-gutter"><div class="flex items-center gap-4 flex-shrink-0"><img alt="The Eduverse Logo" class="h-10 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1Ub-X54G6CzNuc3vYGYR6fkBeoIsYteMaRzNjHMmFZPfl56qQ8hmRPUjoEijGjH0jXBtHJz3Kchcc98nfcJ0ucBJ82IihwZUZVueHTHMUYSGN-k2IQGeKtBjKd_wpYM5CE2x-_dMMFIdpFaacInX81MKiI5PVhuqnIW0etmglr2toPXsUKQKHy6oQ9g8I1KvANFJOZEOvs7jIRPVGHMDEX2-f4xITccSpJRfOmuVFBHhyT0DhxedfStF00"><span class="font-headline-md text-headline-md text-primary hidden sm:inline-block tracking-tight">The Eduverse</span></div><div class="flex-1 max-w-md hidden lg:block mx-gutter"><div class="relative group"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span><input class="w-full h-10 pl-10 pr-4 bg-surface-container-low border border-outline-variant/30 rounded-full text-label-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Search courses, certifications..." type="text"></div></div><nav class="hidden xl:flex items-center gap-8 flex-shrink-0" data-active-classes="text-primary font-bold"><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="courses" href="#">Courses</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="programs" href="#">Programs</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="admissions" href="#">Admissions</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="about-us" href="#">About Us</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" data-path="contact" href="#">Contact</a></nav><div class="flex items-center gap-4 flex-shrink-0"><button class="hidden sm:block font-label-lg text-label-lg text-primary px-4 py-2">Login</button><div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center cursor-pointer shadow-sm hover:bg-primary-container transition-colors"><span class="material-symbols-outlined text-on-primary text-[20px]">person</span></div></div></div></header><main class="w-full pt-20 min-h-screen"><div class="flex flex-col w-full">
+<!-- Subtle Ambient Glow Canvas -->
+<div class="relative w-full overflow-hidden bg-surface pb-section-gap">
+<div class="pointer-events-none absolute -top-40 right-1/4 h-96 w-96 rounded-full bg-primary-fixed/20 blur-3xl"></div>
+<div class="pointer-events-none absolute top-1/3 -left-32 h-[500px] w-[500px] rounded-full bg-surface-variant/40 blur-3xl"></div>
+<!-- Editorial Header Section -->
+<section class="max-w-[1280px] mx-auto px-margin-mobile lg:px-margin-desktop pt-12 pb-10">
+<div class="flex flex-col items-start gap-4">
+<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">verified_user</span>
+<span class="tracking-wide uppercase font-semibold">Legal Agreement</span>
+</div>
+<h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">
+          Terms &amp; Conditions
+        </h1>
+<div class="flex flex-wrap items-center gap-4 text-on-surface-variant font-label-lg text-label-lg">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">calendar_today</span>
+            Effective Date: October 24, 2023
+          </span>
+<span class="h-1 w-1 rounded-full bg-outline-variant"></span>
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-emerald-vivid text-[18px]">verified</span>
+            Version 1.4 (Active)
+          </span>
+<span class="h-1 w-1 rounded-full bg-outline-variant"></span>
+<span class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-tertiary-container text-[18px]">gavel</span>
+            Competitive Exam Regulatory Alignment
+          </span>
+</div>
+</div>
+</section>
+<!-- Main Content Layout (Sidebar TOC + Elevated Document Shell) -->
+<div class="max-w-[1280px] mx-auto px-margin-mobile lg:px-margin-desktop grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+<!-- Sticky Table of Contents Sidebar -->
+<aside class="hidden lg:block lg:col-span-4 sticky top-28 space-y-6">
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm">
+<div class="flex items-center justify-between pb-4">
+<h3 class="font-headline-md text-headline-md text-primary">Contents</h3>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">8 Clauses</span>
+</div>
+<nav class="space-y-1">
+<a class="toc-link group flex items-center justify-between px-3 py-2.5 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary transition-colors" href="#acceptance">
+<span class="font-label-lg text-label-lg flex items-center gap-3">
+<span class="text-on-surface-variant group-hover:text-primary font-normal">01.</span>
+                Acceptance of Terms
+              </span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant group-hover:text-primary">arrow_forward</span>
+</a>
+<a class="toc-link group flex items-center justify-between px-3 py-2.5 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary transition-colors" href="#user-accounts">
+<span class="font-label-lg text-label-lg flex items-center gap-3">
+<span class="text-on-surface-variant group-hover:text-primary font-normal">02.</span>
+                User Accounts &amp; Verification
+              </span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant group-hover:text-primary">arrow_forward</span>
+</a>
+<a class="toc-link group flex items-center justify-between px-3 py-2.5 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary transition-colors" href="#course-access">
+<span class="font-label-lg text-label-lg flex items-center gap-3">
+<span class="text-on-surface-variant group-hover:text-primary font-normal">03.</span>
+                Course Access &amp; Subscriptions
+              </span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant group-hover:text-primary">arrow_forward</span>
+</a>
+<a class="toc-link group flex items-center justify-between px-3 py-2.5 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary transition-colors" href="#intellectual-property">
+<span class="font-label-lg text-label-lg flex items-center gap-3">
+<span class="text-on-surface-variant group-hover:text-primary font-normal">04.</span>
+                Intellectual Property &amp; Protection
+              </span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant group-hover:text-primary">arrow_forward</span>
+</a>
+<a class="toc-link group flex items-center justify-between px-3 py-2.5 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary transition-colors" href="#payment-refund">
+<span class="font-label-lg text-label-lg flex items-center gap-3">
+<span class="text-on-surface-variant group-hover:text-primary font-normal">05.</span>
+                Payment &amp; Refund Policy
+              </span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant group-hover:text-primary">arrow_forward</span>
+</a>
+<a class="toc-link group flex items-center justify-between px-3 py-2.5 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary transition-colors" href="#code-of-conduct">
+<span class="font-label-lg text-label-lg flex items-center gap-3">
+<span class="text-on-surface-variant group-hover:text-primary font-normal">06.</span>
+                Community Code of Conduct
+              </span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant group-hover:text-primary">arrow_forward</span>
+</a>
+<a class="toc-link group flex items-center justify-between px-3 py-2.5 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary transition-colors" href="#limitation-liability">
+<span class="font-label-lg text-label-lg flex items-center gap-3">
+<span class="text-on-surface-variant group-hover:text-primary font-normal">07.</span>
+                Limitation of Liability
+              </span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant group-hover:text-primary">arrow_forward</span>
+</a>
+<a class="toc-link group flex items-center justify-between px-3 py-2.5 rounded-lg text-on-surface hover:bg-surface-container-low hover:text-primary transition-colors" href="#governing-law">
+<span class="font-label-lg text-label-lg flex items-center gap-3">
+<span class="text-on-surface-variant group-hover:text-primary font-normal">08.</span>
+                Governing Law &amp; Grievance
+              </span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant group-hover:text-primary">arrow_forward</span>
+</a>
+</nav>
+<!-- Assistance Mini Card -->
+<div class="mt-6 p-4 rounded-xl bg-surface-container-high/60 space-y-3">
+<div class="flex items-center gap-2 text-primary font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[20px]">help_center</span>
+<span>Need clarification?</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Our legal counsel and grievance representatives are available for queries regarding exam cohort agreements.
+            </p>
+<a class="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary font-bold hover:underline" href="#governing-law">
+              Contact Compliance Desk <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</a>
+</div>
+</div>
+<!-- System Verification Summary Badge -->
+<div class="p-4 rounded-xl bg-surface-container-lowest shadow-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-primary-fixed/30 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-[24px]">policy</span>
+</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">IT Act &amp; DPDP Compliant</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Updated to Indian Digital Rules 2023</div>
+</div>
+</div>
+</aside>
+<!-- Center Primary Document Card -->
+<main class="col-span-1 lg:col-span-8 bg-surface-container-lowest p-6 sm:p-10 lg:p-12 rounded-xl shadow-sm space-y-12">
+<!-- Summary Callout -->
+<div class="p-6 rounded-xl bg-surface-container-low space-y-3">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-[22px]">info</span>
+<h2 class="font-headline-md text-headline-md text-primary">Document Primer</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Please review these Terms &amp; Conditions thoroughly before utilizing the digital resources, live classes, Daily Practice Papers (DPPs), and mock examination test engines provided by <strong class="text-on-surface">The Eduverse</strong>. By proceeding, you commit to maintaining ethical examination practices and rigorous content integrity.
+          </p>
+</div>
+<!-- Section 1 -->
+<section class="space-y-4 pt-2" id="acceptance">
+<div class="flex items-baseline gap-3">
+<span class="font-label-lg text-label-lg text-primary">01.</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Acceptance of Terms</h2>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface-variant">
+            These Terms and Conditions constitute a legally binding agreement between you ("Student", "Aspirant", "User") and <strong class="text-on-surface">The Eduverse EdTech Pvt. Ltd.</strong> ("The Eduverse", "Platform", "We", "Us"). By creating an account, browsing curriculum materials, streaming live lectures, or attempting online mock assessments across our web interface or mobile client, you unconditionally accept these Terms.
+          </p>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            This agreement strictly complies with the <strong class="text-on-surface">Indian Information Technology Act, 2000</strong>, the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, and the provisions of the <strong class="text-on-surface">Digital Personal Data Protection Act (DPDPA), 2023</strong>. If you do not agree with any provision stated herein, you must immediately terminate platform access and contact our admissions team.
+          </p>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+<div class="p-4 rounded-xl bg-surface-container-low space-y-2">
+<div class="flex items-center gap-2 text-primary font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[20px]">devices</span>
+                Platform Interoperability
+              </div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">
+                Rules apply uniformly across iOS, Android, web browsers, and desktop lecture playback engines.
+              </p>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low space-y-2">
+<div class="flex items-center gap-2 text-primary font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[20px]">history_edu</span>
+                Periodic Amendments
+              </div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">
+                We reserve the right to revise curriculum terms. Substantial updates are communicated via verified push notifications.
+              </p>
+</div>
+</div>
+</section>
+<!-- Section 2 -->
+<section class="space-y-4 pt-6" id="user-accounts">
+<div class="flex items-baseline gap-3">
+<span class="font-label-lg text-label-lg text-primary">02.</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">User Accounts &amp; Verification</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            To register for civil service, engineering, medical, or administrative exam cohorts (e.g., UPSC CSE, State PSC, SSC CGL), you must complete two-factor registration.
+          </p>
+<div class="space-y-3">
+<div class="flex items-start gap-3 p-4 rounded-lg bg-surface-container">
+<span class="material-symbols-outlined text-emerald-vivid mt-0.5">check_circle</span>
+<div class="space-y-1">
+<div class="font-label-lg text-label-lg text-on-surface">OTP Telecommunication Verification</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                  Every account is tethered to a distinct primary mobile phone number authenticated via cryptographically signed One-Time Passwords (OTPs) alongside a verified institutional email.
+                </p>
+</div>
+</div>
+<div class="flex items-start gap-3 p-4 rounded-lg bg-surface-container">
+<span class="material-symbols-outlined text-emerald-vivid mt-0.5">lock</span>
+<div class="space-y-1">
+<div class="font-label-lg text-label-lg text-on-surface">Single-Device Active Session Policy</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                  To safeguard course equity and prevent unauthorized proxy attendance, each student profile is limited to <strong class="text-on-surface">one active web instance</strong> and <strong class="text-on-surface">one registered mobile device</strong>. Concurrent logins prompt instant termination of prior sessions.
+                </p>
+</div>
+</div>
+<div class="flex items-start gap-3 p-4 rounded-lg bg-surface-container">
+<span class="material-symbols-outlined text-emerald-vivid mt-0.5">shield</span>
+<div class="space-y-1">
+<div class="font-label-lg text-label-lg text-on-surface">Credential Confidentiality</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                  The enrolled candidate is entirely responsible for transactions and test attempts executed under their registered ID. Unauthorized delegation to peer aspirants constitutes a breach of honor code.
+                </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3 -->
+<section class="space-y-4 pt-6" id="course-access">
+<div class="flex items-baseline gap-3">
+<span class="font-label-lg text-label-lg text-primary">03.</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Course Access &amp; Content Licensing</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Upon successful enrollment and clearance of fee tranches, The Eduverse grants the student a revocable, non-exclusive, non-transferable, limited personal license to:
+          </p>
+<ul class="space-y-3 font-body-md text-body-md text-on-surface-variant pl-2">
+<li class="flex items-center gap-3">
+<span class="h-2 w-2 rounded-full bg-primary flex-shrink-0"></span>
+              Stream on-demand recorded syllabus lectures and join live doubt clearing sessions for the enrolled batch duration.
+            </li>
+<li class="flex items-center gap-3">
+<span class="h-2 w-2 rounded-full bg-primary flex-shrink-0"></span>
+              Download curated Daily Practice Papers (DPPs), faculty lecture transcripts, and mind-maps strictly for personal offline study.
+            </li>
+<li class="flex items-center gap-3">
+<span class="h-2 w-2 rounded-full bg-primary flex-shrink-0"></span>
+              Participate in national All-India Rank (AIR) test series, simulated time-bound prelims, and subjective answer-key evaluations.
+            </li>
+</ul>
+<div class="p-5 rounded-xl bg-error-container/20 text-on-error-container space-y-2">
+<div class="flex items-center gap-2 font-label-lg text-label-lg font-bold">
+<span class="material-symbols-outlined text-error">gpp_bad</span>
+              Commercial Resale &amp; Group Screening Prohibition
+            </div>
+<p class="font-label-sm text-label-sm">
+              Any institutional rebroadcast, community center group-viewing, public mirror hosting, or redistribution on Telegram/WhatsApp channels will result in permanent subscription cancellation without compensation, alongside immediate civil claim filing.
+            </p>
+</div>
+</section>
+<!-- Section 4 -->
+<section class="space-y-4 pt-6" id="intellectual-property">
+<div class="flex items-baseline gap-3">
+<span class="font-label-lg text-label-lg text-primary">04.</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Intellectual Property &amp; Anti-Piracy</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            All curriculum architectures, question banks, AI test analytics algorithms, live video transmissions, pedagogical illustrations, and analytical notes are proprietary assets protected under the <strong class="text-on-surface">Indian Copyright Act, 1957</strong> and international copyright treaties.
+          </p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+<div class="p-5 rounded-xl bg-surface-container space-y-2">
+<div class="flex items-center gap-2 text-primary font-headline-md text-headline-md">
+<span class="material-symbols-outlined">fingerprint</span>
+                Dynamic Steganography
+              </div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Streaming video playback utilizes invisible and dynamic semi-transparent watermarks embedding the user's User ID, Roll Number, and IP coordinates onto video frames.
+              </p>
+</div>
+<div class="p-5 rounded-xl bg-surface-container space-y-2">
+<div class="flex items-center gap-2 text-primary font-headline-md text-headline-md">
+<span class="material-symbols-outlined">screen_lock_portrait</span>
+                DRM Screen Protection
+              </div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Eduverse applications deploy Widevine / FairPlay DRM. Hardware screen capture, third-party screencasting, and HDMI splitting trigger immediate video blackouts and account suspension.
+              </p>
+</div>
+</div>
+</section>
+<!-- Section 5 -->
+<section class="space-y-4 pt-6" id="payment-refund">
+<div class="flex items-baseline gap-3">
+<span class="font-label-lg text-label-lg text-primary">05.</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Payment, Pricing &amp; Refund Policy</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Course access is granted upon clearing the tuition and resource fee. Payments are routed through PCI-DSS Level 1 certified gateways including Razorpay, facilitating UPI, Net Banking, and major debit/credit cards.
+          </p>
+<!-- Highlight Box -->
+<div class="p-6 rounded-xl bg-gradient-to-br from-primary-container to-primary text-on-primary shadow-md space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[24px]">price_check</span>
+<span class="font-headline-md text-headline-md">Financial Highlights &amp; 7-Day Guarantee</span>
+</div>
+<span class="px-3 py-1 rounded-full bg-on-primary/10 font-label-sm text-label-sm">Standard Exam Cohorts</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+<div class="space-y-1 bg-white/10 p-3 rounded-lg backdrop-blur-sm">
+<div class="font-label-sm text-label-sm text-primary-fixed">GST Compliance</div>
+<div class="font-label-lg text-label-lg font-bold">18% Integrated Tax</div>
+<div class="text-[11px] text-on-primary/70">System-generated GST invoices</div>
+</div>
+<div class="space-y-1 bg-white/10 p-3 rounded-lg backdrop-blur-sm">
+<div class="font-label-sm text-label-sm text-primary-fixed">Refund Window</div>
+<div class="font-label-lg text-label-lg font-bold">7 Calendar Days</div>
+<div class="text-[11px] text-on-primary/70">From the date of purchase</div>
+</div>
+<div class="space-y-1 bg-white/10 p-3 rounded-lg backdrop-blur-sm">
+<div class="font-label-sm text-label-sm text-primary-fixed">Dispute Timeline</div>
+<div class="font-label-lg text-label-lg font-bold">5-7 Business Days</div>
+<div class="text-[11px] text-on-primary/70">Direct source account reversal</div>
+</div>
+</div>
+</div>
+<div class="space-y-3 font-body-md text-body-md text-on-surface-variant pt-2">
+<p>
+<strong>Eligible Refund Criteria:</strong>
+</p>
+<div class="space-y-2 pl-2">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-vivid text-[20px]">check</span>
+<span>Erroneous double-debit due to network handoff timeouts during payment gateway checkout.</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-vivid text-[20px]">check</span>
+<span>Unresolved core platform incompatibility preventing video decryption within the first 7 days, verified by Eduverse Engineering.</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-error text-[20px]">close</span>
+<span class="text-on-surface">Change of mind, personal exam postponement, or schedule clashes with college/work are non-refundable once module materials have been unlocked.</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 6 -->
+<section class="space-y-4 pt-6" id="code-of-conduct">
+<div class="flex items-baseline gap-3">
+<span class="font-label-lg text-label-lg text-primary">06.</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Community &amp; Conduct Guidelines</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            The Eduverse community thrives on intellectual rigor, civility, and collaborative preparation. Live chat feeds, mentor AMA sessions, peer study forums, and test rank comment threads must uphold academic sanctity.
+          </p>
+<div class="p-4 rounded-xl bg-surface-container space-y-3">
+<h4 class="font-headline-md text-headline-md text-primary">Prohibited Conduct Categories:</h4>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 font-label-sm text-label-sm text-on-surface-variant">
+<div class="flex items-center gap-2 p-2 rounded bg-surface-container-lowest">
+<span class="material-symbols-outlined text-error text-[18px]">block</span>
+                Harassment or stalking of peers or faculty
+              </div>
+<div class="flex items-center gap-2 p-2 rounded bg-surface-container-lowest">
+<span class="material-symbols-outlined text-error text-[18px]">block</span>
+                Political campaign propagation &amp; communal rhetoric
+              </div>
+<div class="flex items-center gap-2 p-2 rounded bg-surface-container-lowest">
+<span class="material-symbols-outlined text-error text-[18px]">block</span>
+                Circulating mock test keys before test window ends
+              </div>
+<div class="flex items-center gap-2 p-2 rounded bg-surface-container-lowest">
+<span class="material-symbols-outlined text-error text-[18px]">block</span>
+                Spamming referral codes or competing institute promos
+              </div>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Violations grant faculty moderators the authority to impose progressive disciplinary measures: warning strikes, timed forum muting, or permanent debarment from batch rankings.
+          </p>
+</section>
+<!-- Section 7 -->
+<section class="space-y-4 pt-6" id="limitation-liability">
+<div class="flex items-baseline gap-3">
+<span class="font-label-lg text-label-lg text-primary">07.</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Disclaimers &amp; Limitation of Liability</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            While our faculty incorporates top-ranked officers, subject experts, and doctoral scholars, <strong class="text-on-surface">The Eduverse does not guarantee selection, qualifying rank, or government job appointments</strong> in any competitive examination. Final candidate performance depends on independent discipline, cognitive practice, and examiner criteria.
+          </p>
+<div class="p-4 rounded-xl bg-surface-container-low space-y-2">
+<div class="font-label-lg text-label-lg text-primary font-semibold">Service Availability SLA</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              The platform targets 99.8% server availability. Scheduled maintenance windows (typically 01:00 AM – 04:00 AM IST) will be pre-notified. Eduverse is not liable for ISP downfalls, AWS routing anomalies, or local device configurations disrupting time-bound tests.
+            </p>
+</div>
+</section>
+<!-- Section 8 -->
+<section class="space-y-4 pt-6" id="governing-law">
+<div class="flex items-baseline gap-3">
+<span class="font-label-lg text-label-lg text-primary">08.</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Governing Law &amp; Grievance Redressal</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            These terms are governed by and construed in accordance with the laws of the Republic of India. In the event of unresolved disputes arising under these Terms, parties submit to the exclusive jurisdiction of the competent courts located in <strong class="text-on-surface">New Delhi, India</strong>.
+          </p>
+<!-- Grievance Desk Box -->
+<div class="p-6 rounded-xl bg-surface-container space-y-4">
+<div class="flex items-center gap-3 text-primary">
+<div class="w-10 h-10 rounded-full bg-primary-fixed/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px] text-primary">contact_support</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md text-on-surface">Designated Grievance &amp; Legal Officer</h4>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Appointed under IT Rules, 2021</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-on-surface font-body-md text-body-md">
+<div class="space-y-1">
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Officer Name</div>
+<div class="font-semibold">Adv. Ragav Nambiar</div>
+<div class="text-on-surface-variant text-label-sm">Head of Compliance &amp; Legal Affairs</div>
+</div>
+<div class="space-y-1">
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Resolution SLA</div>
+<div class="font-semibold">Ack: 24h | Resolution: 15 days</div>
+<div class="text-on-surface-variant text-label-sm">Statutory working day timeline</div>
+</div>
+<div class="space-y-1">
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Email Channels</div>
+<a class="text-primary hover:underline font-semibold block" href="mailto:grievance@theeduverse.co.in">grievance@theeduverse.co.in</a>
+<a class="text-on-surface-variant hover:text-primary text-label-sm block" href="mailto:legal@theeduverse.co.in">legal@theeduverse.co.in</a>
+</div>
+<div class="space-y-1">
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Postal Address</div>
+<div class="text-label-sm text-on-surface-variant">
+                  Eduverse Academic Towers, 4th Floor, Tech Innovation Zone, Okhla Phase III, New Delhi 110020
+                </div>
+</div>
+</div>
+</div>
+</section>
+<!-- Closing Acceptance CTA Box -->
+<div class="pt-6 border-t border-outline-variant/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-emerald-vivid text-[28px]">mark_email_read</span>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">Require a countersigned copy?</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Institutional subscribers can request offline executed copies.</div>
+</div>
+</div>
+<button class="w-full sm:w-auto px-6 py-3 rounded-lg bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">download</span>
+            Download PDF Terms
+          </button>
+</div>
+</main>
+</div>
+</div>
+</div>
+<script>
+  // Simple scrollspy to highlight active link in sticky TOC
+  document.addEventListener('DOMContentLoaded', () => {
+    const sections = document.querySelectorAll('main section[id]');
+    const navLinks = document.querySelectorAll('.toc-link');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach((section) => {
+        const sectionTop = section.offsetTop - 160;
+        if (pageYOffset >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach((link) => {
+        link.classList.remove('bg-surface-container-low', 'text-primary', 'font-bold');
+        if (link.getAttribute('href') === `#${current}`) {
+          link.classList.add('bg-surface-container-low', 'text-primary', 'font-bold');
+        }
+      });
+    });
+  });
+</script></main><footer class="w-full bg-deep-navy py-section-gap text-on-tertiary"><div class="max-w-[1280px] mx-auto px-margin-mobile lg:px-margin-desktop"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-12"><div class="space-y-4"><div class="flex items-center gap-3"><img alt="Logo" class="h-8 brightness-0 invert" src="https://lh3.googleusercontent.com/aida/AEtjO1Ub-X54G6CzNuc3vYGYR6fkBeoIsYteMaRzNjHMmFZPfl56qQ8hmRPUjoEijGjH0jXBtHJz3Kchcc98nfcJ0ucBJ82IihwZUZVueHTHMUYSGN-k2IQGeKtBjKd_wpYM5CE2x-_dMMFIdpFaacInX81MKiI5PVhuqnIW0etmglr2toPXsUKQKHy6oQ9g8I1KvANFJOZEOvs7jIRPVGHMDEX2-f4xITccSpJRfOmuVFBHhyT0DhxedfStF00"><span class="font-headline-md text-headline-md">The Eduverse</span></div><p class="font-body-md text-body-md text-on-tertiary/70">Pioneering the future of education through technology and academic excellence.</p></div><div class="space-y-4"><h4 class="font-label-lg text-label-lg text-tertiary-fixed">Academic Links</h4><ul class="space-y-2 font-label-sm text-label-sm text-on-tertiary/80"><li class="hover:text-tertiary-fixed transition-colors cursor-pointer">Online Campus</li><li class="hover:text-tertiary-fixed transition-colors cursor-pointer">Student Research</li><li class="hover:text-tertiary-fixed transition-colors cursor-pointer">Alumni Network</li><li class="hover:text-tertiary-fixed transition-colors cursor-pointer">Faculty Directory</li></ul></div><div class="space-y-4"><h4 class="font-label-lg text-label-lg text-tertiary-fixed">Get in Touch</h4><ul class="space-y-2 font-label-sm text-label-sm text-on-tertiary/80"><li class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">mail</span> hello@theeduverse.edu</li><li class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">call</span> +1 (555) 000-1111</li><li class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">location_on</span> Silicon Valley, CA</li></ul></div><div class="space-y-4"><h4 class="font-label-lg text-label-lg text-tertiary-fixed">Follow Us</h4><div class="flex gap-4"><div class="w-8 h-8 rounded-full border border-on-tertiary/20 flex items-center justify-center hover:bg-tertiary-fixed hover:text-on-tertiary-fixed transition-all cursor-pointer"><span class="material-symbols-outlined text-[18px]">public</span></div><div class="w-8 h-8 rounded-full border border-on-tertiary/20 flex items-center justify-center hover:bg-tertiary-fixed hover:text-on-tertiary-fixed transition-all cursor-pointer"><span class="material-symbols-outlined text-[18px]">play_circle</span></div><div class="w-8 h-8 rounded-full border border-on-tertiary/20 flex items-center justify-center hover:bg-tertiary-fixed hover:text-on-tertiary-fixed transition-all cursor-pointer"><span class="material-symbols-outlined text-[18px]">hub</span></div></div></div></div><div class="pt-8 border-t border-on-tertiary/10 text-center font-label-sm text-label-sm text-on-tertiary/50">© 2024 The Eduverse. Built for the future of learning.</div></div></footer></body></html>

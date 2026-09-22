@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'sections/navbar.dart';
 import 'sections/hero_section.dart';
 import 'sections/stats_section.dart';
-import 'sections/features_section.dart';
-import 'sections/exam_categories_section.dart';
-import 'sections/content_section.dart';
-import 'sections/trending_courses_section.dart';
+import 'sections/featured_programs_section.dart';
+import 'sections/bento_advantage_section.dart';
 import 'sections/testimonials_section.dart';
-import 'sections/faq_section.dart';
-import 'sections/team_section.dart';
 import 'sections/cta_section.dart';
 import 'sections/footer_section.dart';
+import 'theme/academic_futurist_theme.dart';
+import '../../auth/login_page.dart';
 
+/// Official Eduverse Homescreen & Web Portal
+/// Designed with the Academic Futurist design system based on Stitch designs.
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
 
@@ -20,56 +21,87 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
-  // Section keys for scroll-to navigation
-  final _featuresKey = GlobalKey();
-  final _examsKey = GlobalKey();
-  final _contentKey = GlobalKey();
+  final _programsKey = GlobalKey();
+  final _advantageKey = GlobalKey();
   final _testimonialsKey = GlobalKey();
-  final _pricingKey = GlobalKey();
 
-  void _scrollToSection(GlobalKey key) {
+  void _scrollTo(GlobalKey key) {
     final ctx = key.currentContext;
     if (ctx != null) {
       Scrollable.ensureVisible(
         ctx,
         duration: const Duration(milliseconds: 600),
-        curve: Curves.easeInOut,
+        curve: Curves.easeInOutCubic,
       );
+    }
+  }
+
+  void _navigateToLogin() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
+  }
+
+  Future<void> _openDemoVideo() async {
+    const videoUrl = 'https://youtube.com/@theeduverse-01?si=ZmDDrkWQJPoXd8ua';
+    final uri = Uri.parse(videoUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFf8fafc),
+      backgroundColor: EduverseTheme.surface,
       body: Stack(
         children: [
+          // Scrollable Sections
           SingleChildScrollView(
             child: Column(
               children: [
-                const SizedBox(height: 80), // Spacer for fixed navbar
+                // Hero Section
                 HeroSection(
-                  onStartLearning: () => _scrollToSection(_featuresKey),
-                  onWatchDemo: () => _scrollToSection(_contentKey),
+                  onExploreCourses: () => _scrollTo(_programsKey),
+                  onWatchVideo: _openDemoVideo,
                 ),
+
+                // Statistics Strip (overlaps Hero with -mt-12 transform)
                 const StatsSection(),
-                FeaturesSection(key: _featuresKey),
-                ExamCategoriesSection(key: _examsKey),
-                ContentSection(key: _contentKey),
-                const TrendingCoursesSection(),
+
+                // Featured Programs
+                FeaturedProgramsSection(
+                  key: _programsKey,
+                  onViewAll: () => _scrollTo(_programsKey),
+                  onProgramSelected: (_) => _navigateToLogin(),
+                ),
+
+                // The Eduverse Advantage (Bento Grid)
+                BentoAdvantageSection(key: _advantageKey),
+
+                // Student Testimonials
                 TestimonialsSection(key: _testimonialsKey),
-                const FaqSection(),
-                const TeamSection(),
-                CtaSection(key: _pricingKey),
-                const FooterSection(),
+
+                // Final Call to Action
+                CtaSection(onJoin: _navigateToLogin),
+
+                // Footer
+                FooterSection(
+                  onStudy: () => _scrollTo(_programsKey),
+                  onFeed: _navigateToLogin,
+                  onStore: () => _scrollTo(_programsKey),
+                  onProfile: _navigateToLogin,
+                ),
               ],
             ),
           ),
+
+          // Glassmorphic Fixed Top Navigation Bar
           NavBar(
-            onFeatures: () => _scrollToSection(_featuresKey),
-            onExams: () => _scrollToSection(_examsKey),
-            onTestimonials: () => _scrollToSection(_testimonialsKey),
-            onPricing: () => _scrollToSection(_pricingKey),
+            onStudy: () => _scrollTo(_programsKey),
+            onFeed: _navigateToLogin,
+            onStore: () => _scrollTo(_programsKey),
+            onProfile: _navigateToLogin,
           ),
         ],
       ),

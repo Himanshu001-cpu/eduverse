@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:ital,wght@0,600;0,700;1,600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface": "#f9f9ff", "surface-container-lowest": "#ffffff", "on-background": "#111c2d", "tertiary-fixed": "#ffe16d", "tertiary-container": "#c9a900", "on-secondary": "#ffffff", "outline-variant": "#bec9c6", "tertiary-fixed-dim": "#e9c400", "surface-container-low": "#f0f3ff", "on-tertiary-container": "#4c3e00", "secondary": "#006875", "emerald-vivid": "#0E9272", "on-secondary-container": "#00616d", "surface-tint": "#0b6a60", "on-tertiary": "#ffffff", "inverse-primary": "#86d5c8", "tertiary": "#705d00", "background": "#f9f9ff", "on-tertiary-fixed-variant": "#544600", "secondary-fixed": "#9cf0ff", "primary-fixed-dim": "#86d5c8", "surface-container-highest": "#d8e3fb", "primary": "#004c44", "on-error-container": "#93000a", "surface-bright": "#f9f9ff", "on-secondary-fixed": "#001f24", "on-error": "#ffffff", "error-container": "#ffdad6", "on-primary-container": "#92e1d4", "on-primary-fixed": "#00201c", "on-primary": "#ffffff", "inverse-surface": "#263143", "surface-dim": "#cfdaf2", "on-tertiary-fixed": "#221b00", "on-secondary-fixed-variant": "#004f58", "surface-container": "#e7eeff", "secondary-fixed-dim": "#00daf3", "surface-gray": "#F8F9FA", "on-surface-variant": "#3f4947", "outline": "#6f7977", "surface-container-high": "#dee8ff", "primary-fixed": "#a2f1e4", "on-surface": "#111c2d", "error": "#ba1a1a", "primary-container": "#00665c", "deep-navy": "#040B14", "surface-variant": "#d8e3fb", "on-primary-fixed-variant": "#005048", "secondary-container": "#00e3fd", "inverse-on-surface": "#ecf1ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "container-max": "1280px", "gutter": "24px", "section-gap": "80px", "margin-mobile": "16px", "base": "8px", "margin-desktop": "48px" }, "fontFamily": { "headline-lg": [ "Playfair Display" ], "headline-md": [ "Playfair Display" ], "label-sm": [ "Inter" ], "display-lg": [ "Playfair Display" ], "display-lg-mobile": [ "Playfair Display" ], "body-md": [ "Inter" ], "label-lg": [ "Inter" ], "body-lg": [ "Inter" ] }, "fontSize": { "headline-lg": [ "32px", { "lineHeight": "1.3", "fontWeight": "600" } ], "headline-md": [ "24px", { "lineHeight": "1.4", "fontWeight": "600" } ], "label-sm": [ "12px", { "lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500" } ], "display-lg": [ "56px", { "lineHeight": "1.1", "fontWeight": "700" } ], "display-lg-mobile": [ "36px", { "lineHeight": "1.2", "fontWeight": "700" } ], "body-md": [ "16px", { "lineHeight": "1.6", "fontWeight": "400" } ], "label-lg": [ "14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" } ], "body-lg": [ "18px", { "lineHeight": "1.6", "fontWeight": "400" } ] } } } };</script></head><body class="bg-surface font-body-md text-on-surface min-h-screen"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="p-6 pb-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-on-primary shadow-sm"><span class="material-symbols-outlined text-[24px]">school</span></div><div><span class="font-headline-md text-headline-md tracking-tight text-primary block leading-none">Eduverse</span><span class="font-label-sm text-label-sm tracking-wider uppercase text-outline text-[10px] block mt-1">Admin Console</span></div></div><div class="mt-4 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface-container-low"><span class="w-2 h-2 rounded-full bg-emerald-vivid animate-pulse"></span><span class="font-label-sm text-label-sm text-primary font-medium text-[11px]">Systems Normal</span></div></div><nav class="px-4 py-2 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-230px)]" data-active-classes="bg-primary-container text-on-primary font-bold rounded-xl"><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Overview</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span>Dashboard</a></div></div><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Users &amp; Aspirants</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="students" href="#"><span class="material-symbols-outlined text-[20px]">group</span>Students</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="teachers" href="#"><span class="material-symbols-outlined text-[20px]">co_present</span>Teachers</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="access-control" href="#"><span class="material-symbols-outlined text-[20px]">admin_panel_settings</span>Access Control</a></div></div><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Academic &amp; Store</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="courses" href="#"><span class="material-symbols-outlined text-[20px]">menu_book</span>Courses</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="batches" href="#"><span class="material-symbols-outlined text-[20px]">event_available</span>Batches</a><a aria-current="page" class="flex items-center gap-3 px-3.5 py-2.5 transition-all bg-primary-container text-on-primary font-bold rounded-xl" data-path="curriculum" href="#"><span class="material-symbols-outlined text-[20px]">account_tree</span>Curriculum</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="test-series" href="#"><span class="material-symbols-outlined text-[20px]">quiz</span>Test Series</a></div></div><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Financials</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="transactions" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span>Transactions</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="razorpay-payouts" href="#"><span class="material-symbols-outlined text-[20px]">payments</span>Razorpay Payouts</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="coupons" href="#"><span class="material-symbols-outlined text-[20px]">sell</span>Coupons</a></div></div><div><div class="px-3 mb-2 font-label-sm text-label-sm uppercase tracking-wider text-outline text-[11px]">Platform</div><div class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-[20px]">history</span>Audit Logs</a><a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span>Settings</a></div></div></nav></div><div class="p-4 bg-surface-container-low mx-3 mb-4 rounded-xl"><div class="flex items-center justify-between text-[11px] font-label-sm text-outline"><span>Core Sync</span><span class="font-medium text-primary">v4.2.0-core Synced</span></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-8"><div class="flex items-center gap-4 flex-1 max-w-xl"><div class="relative w-full"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span><input class="w-full pl-10 pr-4 py-2 rounded-xl bg-surface-container-low text-on-surface placeholder:text-outline text-label-lg font-label-lg focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search students, courses, transactions, faculty..." type="text"/></div></div><div class="flex items-center gap-5"><button aria-label="Notifications" class="relative p-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-error ring-2 ring-surface"></span></button><div class="flex items-center gap-3 pl-3"><div class="flex flex-col text-right"><span class="font-label-lg text-label-lg text-on-surface font-semibold leading-tight">Dr. Harrison Vance</span><span class="font-label-sm text-label-sm text-outline text-[11px] leading-tight">Dean / Superadmin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-surface"><div class="flex flex-col w-full">
+<!-- Top Breadcrumb & Status Layer -->
+<div class="px-8 pt-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-2 font-label-sm text-label-sm text-outline">
+<span class="hover:text-primary transition-colors cursor-pointer">Curriculum</span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant">chevron_right</span>
+<span class="hover:text-primary transition-colors cursor-pointer">Daily Practice Papers (DPP)</span>
+<span class="material-symbols-outlined text-[16px] text-outline-variant">chevron_right</span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container-high text-primary font-semibold text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-vivid"></span>
+        Batch UPSC-GS-2025
+      </span>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm text-outline flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-emerald-vivid">cloud_done</span>
+        Engine Synchronized: 2m ago
+      </span>
+<button class="p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors" title="Reload Queue">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+</button>
+</div>
+</div>
+<!-- Operational Header Hero -->
+<div class="px-8 pb-8">
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+<div class="max-w-3xl">
+<div class="inline-flex items-center gap-2 mb-2 px-3 py-1 rounded-md bg-surface-container-low">
+<span class="material-symbols-outlined text-[16px] text-primary">psychology</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-semibold">Evaluation &amp; Assembly Engine</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">
+          Daily Practice Papers (DPP) Operations Hub
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 max-w-2xl">
+          Curate, schedule, and evaluate high-yield daily practice questions tied to lecture milestones with automated evaluation and AI answer keys.
+        </p>
+</div>
+<!-- Top Action Group -->
+<div class="flex flex-wrap items-center gap-3">
+<button class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-surface-container-lowest text-primary hover:bg-surface-container-high font-label-lg text-label-lg shadow-sm transition-all hover:shadow">
+<span class="material-symbols-outlined text-[20px] text-secondary">auto_awesome</span>
+<span>Generate DPP from Lecture AI</span>
+</button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg shadow-md hover:bg-primary-container hover:shadow-lg transition-all">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+<span>+ Create New DPP</span>
+</button>
+</div>
+</div>
+<!-- Live Performance Metrics Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+<div class="p-5 rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Total DPPs Published</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">84</span>
+<span class="font-label-sm text-label-sm text-emerald-vivid font-medium">+6 this week</span>
+</div>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">assignment</span>
+</div>
+</div>
+<div class="p-5 rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Avg Submission Rate</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">78.6%</span>
+<span class="font-label-sm text-label-sm text-emerald-vivid font-medium">↑ 3.2%</span>
+</div>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[22px]">query_stats</span>
+</div>
+</div>
+<div class="p-5 rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Pending Mains Review</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-md text-headline-md text-tertiary-container font-bold">18</span>
+<span class="font-label-sm text-label-sm text-outline">Prompts queued</span>
+</div>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-container-high flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[22px]">rate_review</span>
+</div>
+</div>
+<div class="p-5 rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Question Bank Reserve</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">2,450</span>
+<span class="font-label-sm text-label-sm text-primary font-medium">MCQs</span>
+</div>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[22px]">inventory_2</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Navigation Workflow Tabs -->
+<div class="px-8">
+<div class="flex items-center gap-2 overflow-x-auto pb-2">
+<button class="px-5 py-2.5 rounded-xl font-label-lg text-label-lg bg-primary text-on-primary font-semibold shadow-sm transition-all whitespace-nowrap">
+        All Scheduled &amp; Active DPPs
+      </button>
+<button class="px-5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-2 whitespace-nowrap">
+<span>Mains Answer Review Queue</span>
+<span class="px-2 py-0.5 rounded-full bg-error text-on-error font-label-sm text-label-sm text-[11px] font-bold leading-none">18</span>
+</button>
+<button class="px-5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high transition-all whitespace-nowrap">
+        Question Bank &amp; Tags
+      </button>
+<button class="px-5 py-2.5 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high transition-all whitespace-nowrap">
+        Batch Analytics &amp; Difficulty Matrix
+      </button>
+</div>
+</div>
+<!-- Filters & Query Bar -->
+<div class="px-8 mt-4">
+<div class="p-4 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
+<div class="flex flex-1 flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+<div class="relative w-full sm:w-72">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 rounded-xl bg-surface-container-low text-on-surface placeholder:text-outline text-label-lg font-label-lg focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search DPP code, topic, keywords..." type="text"/>
+</div>
+<div class="flex items-center gap-3 w-full sm:w-auto">
+<div class="relative flex-1 sm:flex-initial">
+<select class="w-full sm:w-44 px-3.5 py-2 rounded-xl bg-surface-container-low text-on-surface text-label-lg font-label-lg appearance-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer pr-9">
+<option>Track: UPSC Prelims</option>
+<option>Track: State PSC</option>
+<option>Track: CSAT Paper-II</option>
+<option>All Tracks</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none">expand_more</span>
+</div>
+<div class="relative flex-1 sm:flex-initial">
+<select class="w-full sm:w-48 px-3.5 py-2 rounded-xl bg-surface-container-low text-on-surface text-label-lg font-label-lg appearance-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer pr-9">
+<option>Target: All Lectures</option>
+<option>Lecture 01 - Polity</option>
+<option>Lecture 02 - Judiciary</option>
+<option>Lecture 04 - History</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Date Range & View Switcher -->
+<div class="flex items-center gap-3 w-full xl:w-auto justify-between xl:justify-end">
+<div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container-low text-label-lg font-label-lg text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-outline">calendar_month</span>
+<span>Oct 18 – Oct 25, 2024</span>
+</div>
+<div class="flex items-center p-1 rounded-xl bg-surface-container-low">
+<button class="p-1.5 rounded-lg bg-surface-container-lowest text-primary shadow-sm" title="List View">
+<span class="material-symbols-outlined text-[18px]">view_agenda</span>
+</button>
+<button class="p-1.5 rounded-lg text-outline hover:text-on-surface transition-colors" title="Compact Grid">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Primary Workspace Layout: Two-Column (Main Cards + Right Sidebar) -->
+<div class="px-8 py-6">
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+<!-- Center Main: DPP Cards Stream -->
+<div class="xl:col-span-8 flex flex-col gap-6">
+<!-- CARD 1: ACTIVE / EXPIRING SOON -->
+<article class="p-6 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col gap-5">
+<!-- Card Header & Status Ribbon -->
+<div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+<div>
+<div class="flex flex-wrap items-center gap-2.5 mb-2">
+<span class="px-2.5 py-1 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold tracking-wide">
+                  DPP #48
+                </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container text-secondary font-label-sm text-label-sm font-medium">
+<span class="material-symbols-outlined text-[15px]">flag</span>
+                  UPSC Prelims 2025
+                </span>
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm text-[11px]">
+                  Morning Super-500 + Evening Batch
+                </span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface">
+                Preamble, Fundamental Duties &amp; DPSP
+              </h2>
+<div class="flex items-center gap-2 text-primary font-label-sm text-label-sm mt-1">
+<span class="material-symbols-outlined text-[17px]">play_lesson</span>
+<span class="font-medium">Lecture 01 - Evolution of Preamble &amp; Basic Structure</span>
+</div>
+</div>
+<!-- Expiry countdown banner -->
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-semibold self-start shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">hourglass_top</span>
+<span>Closes in 4h 12m</span>
+</div>
+</div>
+<!-- Specs Row -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline">quiz</span>
+<span>15 MCQs + 1 Mains Subjective</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline">schedule</span>
+<span>25 mins limit</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-error">trending_down</span>
+<span>-0.66 Neg. Marking</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline">event</span>
+<span>Released Oct 24, 18:00 IST</span>
+</div>
+</div>
+<!-- Performance & Progress Metrics -->
+<div class="flex flex-col gap-3">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-label-sm text-label-sm">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-on-surface">1,420 / 1,842 Aspirants Submitted</span>
+<span class="text-emerald-vivid font-bold">(77% Completion)</span>
+</div>
+<div class="flex items-center gap-4 text-outline">
+<span>Avg Score: <strong class="text-on-surface">21.4 / 30</strong> (71.3%)</span>
+<span>•</span>
+<span class="text-tertiary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">warning</span>
+                  Hardest: Q9 (Kesavananda minority, 34% acc.)
+                </span>
+</div>
+</div>
+<!-- Visual Progress Bar -->
+<div class="w-full h-2 rounded-full bg-surface-container-high overflow-hidden flex">
+<div class="bg-emerald-vivid h-full" style="width: 77%"></div>
+<div class="bg-tertiary-fixed-dim h-full" style="width: 14%"></div>
+</div>
+</div>
+<!-- Actions Footer -->
+<div class="flex flex-wrap items-center justify-between gap-3 pt-3">
+<div class="flex flex-wrap items-center gap-2">
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg font-medium transition-all">
+<span class="material-symbols-outlined text-[18px] text-primary">leaderboard</span>
+<span>View Aspirant Rankings</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-tertiary-container text-on-tertiary-container font-label-lg text-label-lg font-semibold hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-[18px]">rate_review</span>
+<span>Review Mains Answers (14 Pending)</span>
+</button>
+<button class="p-2 rounded-xl hover:bg-surface-container text-on-surface-variant transition-colors" title="Edit Question Set">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+</button>
+</div>
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-primary hover:bg-surface-container font-label-lg text-label-lg font-semibold transition-all">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Download Report</span>
+</button>
+</div>
+</article>
+<!-- CARD 2: CLOSED & EVALUATED -->
+<article class="p-6 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col gap-5">
+<div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+<div>
+<div class="flex flex-wrap items-center gap-2.5 mb-2">
+<span class="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold tracking-wide">
+                  DPP #47
+                </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-low text-secondary font-label-sm text-label-sm font-medium">
+<span class="material-symbols-outlined text-[15px]">history_edu</span>
+                  Modern Indian History
+                </span>
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-emerald-vivid font-label-sm text-label-sm text-[11px] font-semibold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-vivid"></span>
+                  Closed &amp; Evaluated
+                </span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface">
+                1857 Revolt Socio-Religious Causes &amp; Tribal Uprisings
+              </h2>
+<div class="flex items-center gap-2 text-primary font-label-sm text-label-sm mt-1">
+<span class="material-symbols-outlined text-[17px]">play_lesson</span>
+<span class="font-medium">Lecture 04 - Revolt of 1857 (Modern Indian History)</span>
+</div>
+</div>
+<!-- Submission Stats Badge -->
+<div class="flex flex-col items-end">
+<span class="font-headline-md text-headline-md text-primary font-bold">95.8%</span>
+<span class="font-label-sm text-label-sm text-outline">1,765 / 1,842 Submitted</span>
+</div>
+</div>
+<!-- Specs Row -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline">quiz</span>
+<span>20 MCQs</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline">schedule</span>
+<span>30 mins limit</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline">analytics</span>
+<span>Class Avg: 28.2 / 40</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-emerald-vivid">verified</span>
+<span>AI Analysis Complete</span>
+</div>
+</div>
+<!-- Actions Footer -->
+<div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+<div class="flex flex-wrap items-center gap-2">
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg font-medium transition-all">
+<span class="material-symbols-outlined text-[18px] text-secondary">fact_check</span>
+<span>View Answer Key</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-primary font-label-lg text-label-lg font-semibold transition-all">
+<span class="material-symbols-outlined text-[18px]">insights</span>
+<span>Detailed Analytics</span>
+</button>
+</div>
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-outline hover:text-on-surface font-label-sm text-label-sm transition-all">
+<span class="material-symbols-outlined text-[16px]">sync_alt</span>
+<span>Rerun Score Normalization</span>
+</button>
+</div>
+</article>
+<!-- CARD 3: SCHEDULED / QUEUED -->
+<article class="p-6 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col gap-5 relative overflow-hidden">
+<!-- Subtle corner highlight -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none"></div>
+<div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+<div>
+<div class="flex flex-wrap items-center gap-2.5 mb-2">
+<span class="px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm font-semibold tracking-wide">
+                  DPP #49
+                </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[15px]">schedule_send</span>
+                  Scheduled: Tomorrow, 08:00 AM IST
+                </span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface">
+                Union Judiciary &amp; Judicial Review Powers
+              </h2>
+<div class="flex items-center gap-2 text-primary font-label-sm text-label-sm mt-1">
+<span class="material-symbols-outlined text-[17px]">play_lesson</span>
+<span class="font-medium">Lecture 02 - Supreme Court &amp; Judicial Overreach</span>
+</div>
+</div>
+<div class="px-3 py-1 rounded-lg bg-surface-container text-outline font-label-sm text-label-sm">
+              15 MCQs Queued
+            </div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Covers Articles 124 to 147, collegium transparency reforms, and landmark verdicts on Article 142 complete with bilingual Hindi-English automated prompts.
+          </p>
+<!-- Actions Footer -->
+<div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg font-medium transition-all">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+<span>Preview Student View</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-lg text-label-lg font-medium transition-all">
+<span class="material-symbols-outlined text-[18px]">edit_calendar</span>
+<span>Modify Schedule</span>
+</button>
+</div>
+<span class="font-label-sm text-label-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-emerald-vivid">lock_clock</span>
+              Auto-publishes to Aspirant App &amp; Web Portal
+            </span>
+</div>
+</article>
+</div>
+<!-- Right Column: Quick Injector & Subject Analytics Heatmap -->
+<div class="xl:col-span-4 flex flex-col gap-6">
+<!-- MODULE 1: Quick Question Injector -->
+<div class="p-6 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">add_box</span>
+<h3 class="font-headline-md text-headline-md text-on-surface text-[19px]">Quick MCQ Injector</h3>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-semibold cursor-pointer hover:underline">Full Editor</span>
+</div>
+<p class="font-label-sm text-label-sm text-outline">
+            Push single questions directly into active or upcoming batches with full TeX math support.
+          </p>
+<!-- Input Fields Form -->
+<div class="flex flex-col gap-3">
+<div>
+<label class="font-label-sm text-label-sm text-on-surface font-semibold block mb-1">Target DPP Target</label>
+<select class="w-full px-3 py-2 rounded-xl bg-surface-container-low text-on-surface font-label-lg text-label-lg appearance-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer">
+<option>DPP #49: Union Judiciary (Scheduled)</option>
+<option>DPP #48: Preamble &amp; DPSP (Active)</option>
+</select>
+</div>
+<div>
+<label class="font-label-sm text-label-sm text-on-surface font-semibold block mb-1">Question Prompt (Markdown / LaTeX)</label>
+<textarea class="w-full p-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md text-[14px] placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary resize-none" placeholder="e.g. Consider the following statements regarding the Curative Petition in India under Art. 142..." rows="3"></textarea>
+</div>
+<!-- Options Grid with Radio Selection -->
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface font-semibold">Options &amp; Correct Key</label>
+<!-- Option A -->
+<div class="flex items-center gap-2">
+<input checked="" class="accent-primary cursor-pointer" id="opt-a" name="quick-key" type="radio"/>
+<label class="font-label-sm text-label-sm font-bold text-primary w-4" for="opt-a">A</label>
+<input class="flex-1 px-2.5 py-1.5 rounded-lg bg-surface-container-low text-[13px] text-on-surface focus:outline-none focus:ring-1 focus:ring-primary" type="text" value="Originates from Rupa Ashok Hurra vs. Ashok Hurra (2002)"/>
+</div>
+<!-- Option B -->
+<div class="flex items-center gap-2">
+<input class="accent-primary cursor-pointer" id="opt-b" name="quick-key" type="radio"/>
+<label class="font-label-sm text-label-sm font-bold text-outline w-4" for="opt-b">B</label>
+<input class="flex-1 px-2.5 py-1.5 rounded-lg bg-surface-container-low text-[13px] text-on-surface focus:outline-none focus:ring-1 focus:ring-primary" type="text" value="Must be certified by a Senior Advocate"/>
+</div>
+<!-- Option C -->
+<div class="flex items-center gap-2">
+<input class="accent-primary cursor-pointer" id="opt-c" name="quick-key" type="radio"/>
+<label class="font-label-sm text-label-sm font-bold text-outline w-4" for="opt-c">C</label>
+<input class="flex-1 px-2.5 py-1.5 rounded-lg bg-surface-container-low text-[13px] text-on-surface focus:outline-none focus:ring-1 focus:ring-primary" type="text" value="Can be entertained even without review petition"/>
+</div>
+<!-- Option D -->
+<div class="flex items-center gap-2">
+<input class="accent-primary cursor-pointer" id="opt-d" name="quick-key" type="radio"/>
+<label class="font-label-sm text-label-sm font-bold text-outline w-4" for="opt-d">D</label>
+<input class="flex-1 px-2.5 py-1.5 rounded-lg bg-surface-container-low text-[13px] text-on-surface focus:outline-none focus:ring-1 focus:ring-primary" type="text" value="Both A and B are strictly correct"/>
+</div>
+</div>
+<div>
+<label class="font-label-sm text-label-sm text-on-surface font-semibold block mb-1">AI Explanation Note</label>
+<textarea class="w-full p-2.5 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md text-[13px] placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary resize-none" placeholder="Provide context citation and Constitution articles..." rows="2"></textarea>
+</div>
+<button class="w-full mt-1 py-2.5 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg font-semibold shadow-sm hover:bg-primary-container transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span>Inject into Selected DPP</span>
+</button>
+</div>
+</div>
+<!-- MODULE 2: Cohort Performance Heatmap -->
+<div class="p-6 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface text-[19px]">Cohort Subject Mastery</h3>
+<span class="font-label-sm text-label-sm text-outline">Weekly DPP Accuracy Matrix</span>
+</div>
+<span class="material-symbols-outlined text-[20px] text-outline">equalizer</span>
+</div>
+<!-- Subject Accuracy Bars -->
+<div class="flex flex-col gap-4 mt-2">
+<!-- Modern Indian History -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="font-semibold text-on-surface">Modern Indian History</span>
+<span class="font-bold text-emerald-vivid">84% Mastery</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-high overflow-hidden">
+<div class="bg-emerald-vivid h-full rounded-full" style="width: 84%"></div>
+</div>
+<span class="font-label-sm text-label-sm text-outline text-[11px]">Strong in 1857 Revolt &amp; Governor Generals</span>
+</div>
+<!-- Indian Polity & Governance -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="font-semibold text-on-surface">Polity &amp; Constitution</span>
+<span class="font-bold text-primary">72% Mastery</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-high overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 72%"></div>
+</div>
+<span class="font-label-sm text-label-sm text-outline text-[11px]">DPSP &amp; Fundamental Duties confusion observed</span>
+</div>
+<!-- Economy & Monetary Policy -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="font-semibold text-on-surface">Economy &amp; Banking</span>
+<span class="font-bold text-tertiary">63% (Needs Focus)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-high overflow-hidden">
+<div class="bg-tertiary-fixed-dim h-full rounded-full" style="width: 63%"></div>
+</div>
+<span class="font-label-sm text-label-sm text-outline text-[11px]">Deficit metrics &amp; RBI Repo Rate operations drop</span>
+</div>
+</div>
+<!-- Inline Visual Trend Curve (SVG Sparkline) -->
+<div class="p-3.5 rounded-xl bg-surface-container-low mt-2 flex flex-col gap-2">
+<span class="font-label-sm text-label-sm text-outline font-medium">Batch Retention Velocity (Last 7 Days)</span>
+<div class="w-full h-14 flex items-end">
+<svg class="w-full h-full text-primary" fill="none" preserveaspectratio="none" viewbox="0 0 300 60">
+<path d="M0 45 C 50 50, 70 20, 120 28 C 170 36, 200 10, 250 15 C 280 18, 290 5, 300 8" stroke="currentColor" stroke-linecap="round" stroke-width="2.5" vector-effect="non-scaling-stroke"></path>
+<path d="M0 45 C 50 50, 70 20, 120 28 C 170 36, 200 10, 250 15 C 280 18, 290 5, 300 8 L 300 60 L 0 60 Z" fill="currentColor" fill-opacity="0.08"></path>
+</svg>
+</div>
+<div class="flex items-center justify-between text-[11px] font-label-sm text-outline">
+<span>Day 1 (Mon)</span>
+<span>Midweek Peak</span>
+<span>Today (Fri)</span>
+</div>
+</div>
+<!-- Remedial Action CTA -->
+<button class="w-full py-2 rounded-xl bg-surface-container text-primary hover:bg-surface-container-high font-label-sm text-label-sm font-semibold transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">campaign</span>
+<span>Trigger Weak-Topic Revision DPP</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro-interaction JS for Interactive Tab Switching & Filter Feedback -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Light visual micro-interactions on radio buttons and inputs
+      const radioLabels = document.querySelectorAll('input[name="quick-key"]');
+      radioLabels.forEach(radio => {
+        radio.addEventListener('change', () => {
+          radioLabels.forEach(r => {
+            const lbl = document.querySelector(`label[for="${r.id}"]`);
+            if (lbl) {
+              if (r.checked) {
+                lbl.classList.remove('text-outline');
+                lbl.classList.add('text-primary');
+              } else {
+                lbl.classList.remove('text-primary');
+                lbl.classList.add('text-outline');
+              }
+            }
+          });
+        });
+      });
+    });
+  </script>
+</div></main></div></body></html>

@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"background":"#f9f9ff","surface-variant":"#d8e3fb","on-primary":"#ffffff","inverse-surface":"#263143","surface-container-highest":"#d8e3fb","tertiary-container":"#c9a900","on-tertiary":"#ffffff","on-secondary-container":"#00616d","outline-variant":"#bec9c6","tertiary":"#705d00","inverse-primary":"#86d5c8","primary-fixed-dim":"#86d5c8","surface-dim":"#cfdaf2","on-tertiary-container":"#4c3e00","on-surface":"#111c2d","surface-bright":"#f9f9ff","surface-container-high":"#dee8ff","on-primary-container":"#92e1d4","secondary-fixed-dim":"#00daf3","tertiary-fixed":"#ffe16d","error-container":"#ffdad6","on-tertiary-fixed-variant":"#544600","on-secondary-fixed-variant":"#004f58","surface-container":"#e7eeff","primary-fixed":"#a2f1e4","on-background":"#111c2d","surface-gray":"#F8F9FA","on-tertiary-fixed":"#221b00","on-primary-fixed-variant":"#005048","surface-container-lowest":"#ffffff","on-error-container":"#93000a","primary":"#004c44","on-surface-variant":"#3f4947","tertiary-fixed-dim":"#e9c400","primary-container":"#00665c","inverse-on-surface":"#ecf1ff","emerald-vivid":"#0E9272","on-secondary-fixed":"#001f24","deep-navy":"#040B14","surface":"#f9f9ff","surface-tint":"#0b6a60","on-error":"#ffffff","surface-container-low":"#f0f3ff","outline":"#6f7977","error":"#ba1a1a","secondary-container":"#00e3fd","secondary-fixed":"#9cf0ff","on-primary-fixed":"#00201c","secondary":"#006875","on-secondary":"#ffffff"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"gutter":"24px","margin-mobile":"16px","base":"8px","margin-desktop":"48px","container-max":"1280px","section-gap":"80px"},"fontFamily":{"label-sm":["Inter"],"headline-md":["Playfair Display"],"display-lg-mobile":["Playfair Display"],"body-lg":["Inter"],"headline-lg":["Playfair Display"],"display-lg":["Playfair Display"],"body-md":["Inter"],"label-lg":["Inter"]},"fontSize":{"label-sm":["12px",{"lineHeight":"1.2","letterSpacing":"0.02em","fontWeight":"500"}],"headline-md":["24px",{"lineHeight":"1.4","fontWeight":"600"}],"display-lg-mobile":["36px",{"lineHeight":"1.2","fontWeight":"700"}],"body-lg":["18px",{"lineHeight":"1.6","fontWeight":"400"}],"headline-lg":["32px",{"lineHeight":"1.3","fontWeight":"600"}],"display-lg":["56px",{"lineHeight":"1.1","fontWeight":"700"}],"body-md":["16px",{"lineHeight":"1.6","fontWeight":"400"}],"label-lg":["14px",{"lineHeight":"1.2","letterSpacing":"0.05em","fontWeight":"600"}]}}}}</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between overflow-y-auto"><div class="p-6"><div class="flex items-center gap-3 pb-6"><div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-on-primary"><span class="material-symbols-outlined text-[24px]">school</span></div><div><span class="font-headline-md text-headline-md text-primary tracking-tight block">Eduverse</span><span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Admin Console</span></div></div><nav class="space-y-6 pt-2" data-active-classes="bg-primary-container text-on-primary font-label-lg rounded-lg shadow-sm"><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Overview</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">space_dashboard</span><span>Dashboard</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Users &amp; Aspirants</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="students" href="#"><span class="material-symbols-outlined text-[20px]">person_apron</span><span>Students</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="teachers" href="#"><span class="material-symbols-outlined text-[20px]">co_present</span><span>Teachers</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="access-control" href="#"><span class="material-symbols-outlined text-[20px]">verified_user</span><span>Access Control</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Academic &amp; Store</div><a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 transition-all bg-primary-container text-on-primary font-label-lg rounded-lg shadow-sm" data-path="courses" href="#"><span class="material-symbols-outlined text-[20px]">auto_stories</span><span>Courses</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="batches" href="#"><span class="material-symbols-outlined text-[20px]">group_work</span><span>Batches</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="curriculum" href="#"><span class="material-symbols-outlined text-[20px]">menu_book</span><span>Curriculum</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="test-series" href="#"><span class="material-symbols-outlined text-[20px]">quiz</span><span>Test Series</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Financials</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="transactions" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span>Transactions</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="razorpay-payouts" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span>Razorpay Payouts</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="coupons" href="#"><span class="material-symbols-outlined text-[20px]">sell</span><span>Coupons</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Platform</div><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-[20px]">history</span><span>Audit Logs</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Settings</span></a></div></nav></div><div class="p-4 m-4 rounded-xl bg-surface-container-low flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-vivid animate-pulse"></span><span class="font-label-sm text-label-sm text-on-surface-variant">v4.2.0-core</span></div><span class="font-label-sm text-label-sm text-outline">Synced</span></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-6"><div class="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low"><span class="w-2 h-2 rounded-full bg-emerald-vivid"></span><span class="font-label-sm text-label-sm text-on-surface font-medium">Systems Normal</span></div><div class="relative flex items-center w-96"><span class="material-symbols-outlined absolute left-3 text-outline text-[20px]">search</span><input class="w-full pl-10 pr-4 py-2 rounded-lg bg-surface-container-low text-on-surface font-body-md text-label-lg placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search students, courses, transactions, faculty..." type="text"/></div></div><div class="flex items-center gap-4"><button class="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest"></span></button><div class="flex items-center gap-3 pl-2"><div class="text-right hidden sm:block"><span class="font-label-lg text-label-lg text-on-surface block leading-tight">Dr. Harrison Vance</span><span class="font-label-sm text-label-sm text-outline block leading-tight">Dean / Superadmin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-background min-h-screen"><div class="flex flex-col w-full">
+<div class="px-gutter py-8 space-y-8 max-w-container-max mx-auto w-full">
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+<div class="space-y-2">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container font-label-sm text-label-sm text-primary uppercase tracking-wider font-semibold">Store Operations</span>
+<span class="font-label-sm text-label-sm text-outline">• Academic Year 2025-26</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Course Catalog &amp; Programs</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">
+          Manage 34 published courses, combination bundles, batches, and live enrollment capacities across regional and national civil service programs.
+        </p>
+</div>
+<div class="flex items-center flex-wrap gap-3">
+<button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-container-lowest text-on-surface font-label-lg text-label-lg shadow-sm hover:bg-surface-container-low transition-all" type="button">
+<span class="material-symbols-outlined text-[18px] text-outline">tune</span>
+<span>Reorder Storefront</span>
+</button>
+<button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-container-lowest text-on-surface font-label-lg text-label-lg shadow-sm hover:bg-surface-container-low transition-all" type="button">
+<span class="material-symbols-outlined text-[18px] text-outline">file_download</span>
+<span>Export CSV</span>
+</button>
+<button class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg shadow-md hover:bg-primary-container transition-all" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>Create New Course</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+<div class="relative overflow-hidden p-6 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="space-y-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Total Catalog Value</span>
+<span class="font-headline-md text-headline-md text-on-surface block tabular-nums">₹1.40 Cr</span>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">account_balance_wallet</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-2 pt-2">
+<span class="inline-flex items-center gap-0.5 text-emerald-vivid font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[16px]">trending_up</span> +14.8%
+          </span>
+<span class="font-label-sm text-label-sm text-outline">vs past quarter</span>
+</div>
+<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-primary/5 pointer-events-none"></div>
+</div>
+<div class="relative overflow-hidden p-6 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="space-y-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Active Batches</span>
+<span class="font-headline-md text-headline-md text-on-surface block tabular-nums">46 Batches</span>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">groups</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-2 pt-2">
+<span class="w-2 h-2 rounded-full bg-emerald-vivid"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">9 Starting this week</span>
+</div>
+<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-primary/5 pointer-events-none"></div>
+</div>
+<div class="relative overflow-hidden p-6 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="space-y-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Total Enrolled Seats</span>
+<span class="font-headline-md text-headline-md text-on-surface block tabular-nums">18,450 / 22k</span>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">airline_seat_recline_normal</span>
+</div>
+</div>
+<div class="mt-4 space-y-1 pt-2">
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full" style="width: 83.8%;"></div>
+</div>
+<div class="flex justify-between items-center font-label-sm text-label-sm text-outline">
+<span>83.8% Overall Fill Rate</span>
+<span>3,550 Remaining</span>
+</div>
+</div>
+<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-primary/5 pointer-events-none"></div>
+</div>
+<div class="relative overflow-hidden p-6 rounded-2xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="space-y-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Average Rating</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-on-surface tabular-nums">4.82</span>
+<span class="font-label-sm text-label-sm text-outline">/ 5.0</span>
+</div>
+</div>
+<div class="w-11 h-11 rounded-xl bg-tertiary-container/20 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-2 pt-2">
+<div class="flex items-center text-tertiary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star_half</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline tabular-nums">6,420 reviews</span>
+</div>
+<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-tertiary/5 pointer-events-none"></div>
+</div>
+</div>
+<div class="p-4 rounded-2xl bg-surface-container-lowest shadow-sm space-y-4">
+<div class="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
+<div class="relative flex-1 min-w-[280px]">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-surface-container-low text-on-surface font-body-md text-label-lg placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:shadow-[0_0_0_2px_#004c44]" placeholder="Filter by course title, code (e.g. UPSC-GS-2025), faculty..." type="text"/>
+</div>
+<div class="flex flex-wrap items-center gap-2.5">
+<div class="relative">
+<select class="appearance-none pl-3.5 pr-9 py-2.5 rounded-xl bg-surface-container-low text-on-surface font-label-lg text-label-lg focus:outline-none cursor-pointer hover:bg-surface-container">
+<option>All Exams</option>
+<option>UPSC CSE</option>
+<option>State PSC</option>
+<option>SSC CGL</option>
+<option>Banking &amp; RBI</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none pl-3.5 pr-9 py-2.5 rounded-xl bg-surface-container-low text-on-surface font-label-lg text-label-lg focus:outline-none cursor-pointer hover:bg-surface-container">
+<option>All Types</option>
+<option>Single Course</option>
+<option>Combo Pack Bundle</option>
+<option>Test Series Only</option>
+<option>E-Book Package</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">expand_more</span>
+</div>
+<div class="flex items-center p-1 rounded-xl bg-surface-container-low">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-lowest font-label-sm text-label-sm text-on-surface font-semibold shadow-xs" type="button">Published (28)</button>
+<button class="px-3 py-1.5 rounded-lg text-outline font-label-sm text-label-sm hover:text-on-surface" type="button">Draft (4)</button>
+<button class="px-3 py-1.5 rounded-lg text-outline font-label-sm text-label-sm hover:text-on-surface" type="button">Archived (2)</button>
+</div>
+<button class="p-2.5 rounded-xl bg-surface-container-low text-on-surface-variant hover:bg-surface-container transition-colors" title="Reset Filters" type="button">
+<span class="material-symbols-outlined text-[20px]">filter_alt_off</span>
+</button>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/60 text-outline font-label-sm text-label-sm uppercase tracking-wider">
+<th class="py-4 pl-6 pr-4" scope="col">Course Program &amp; Code</th>
+<th class="py-4 px-4" scope="col">Format</th>
+<th class="py-4 px-4" scope="col">Lead Faculty</th>
+<th class="py-4 px-4" scope="col">Enrollment Ratio</th>
+<th class="py-4 px-4" scope="col">Pricing</th>
+<th class="py-4 px-4 text-center" scope="col">Status</th>
+<th class="py-4 pl-4 pr-6 text-right" scope="col">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y-0">
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="py-4 pl-6 pr-4">
+<div class="flex items-center gap-4 min-w-[280px]">
+<div class="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-surface-container shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Civil services student study room with constitution textbooks, golden fountain pen, and Indian flag lapel on mahogany table in cinematic warm morning library light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbJ63YE1kSxex1TjmPChmfujRHuteSim7awwHF74cprpH3_x61v-cP9Z_21mDs8J6LLLBHUQ2vDlljoczUQRW25v5Lj9ev7lgoW2gRmajrSDKcyRfbOGMiMhqmWUGbFnvVat-J2ZMOJ5hHQ7YsHnXtuZbVV2moBxMuAbdtTQRETolOdqJ6tZgKCROhOnG0wTW5789cd0DSwcE0s8VzXxkTqqsPVLrIO7M2PNgBf7V5tzkzAQ6UrQSb"/>
+<div class="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-deep-navy/80 text-[10px] text-on-primary font-mono font-medium">LIV-4K</div>
+</div>
+<div class="space-y-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container font-label-sm text-[11px] font-semibold text-primary uppercase">UPSC CSE</span>
+<span class="font-label-sm text-label-sm text-outline tabular-nums font-mono">UPSC-GS-2025</span>
+</div>
+<a class="font-headline-md text-base text-on-surface font-semibold hover:text-primary transition-colors block truncate" href="#">
+                      UPSC CSE 2025 Prelims + Mains Mega Bundle
+                    </a>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-2">
+<span>420 Lectures</span>
+<span class="text-outline">•</span>
+<span>18 Mentors</span>
+</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary-container/20 text-on-secondary-container font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">layers</span>
+<span>Combo Pack</span>
+</span>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3 min-w-[160px]">
+<div class="flex -space-x-2 overflow-hidden">
+<div class="w-8 h-8 rounded-full ring-2 ring-surface-container-lowest bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Portrait of senior academic professor with glasses wearing tweed coat in soft daylight academic office studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeT7MMcFmN72LlMlBg2AxKyYnXLhoRS-h81P0wBbNwYyfd-vJ4B1T4GLzObePqjdIjQ1zqTss_DyKYkbdZMB6rGBXiLddOx60o0KTpJfxh-BLIYvJZccox3gIDD5LomPmNN9ekDrOl8A4G_kW_c0Lxu8jvESOL-RZEsDId-Q1KT6whfd8gk-dVmmuoyZibHOIyTn6GDC7DnJbmjdRHRAomZI56M2yAp2LTJXeQ6VADckUdoQlcWRZx"/>
+</div>
+<div class="w-8 h-8 rounded-full ring-2 ring-surface-container-lowest bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Portrait of female economics lecturer smiling in front of university whiteboard" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmrp9rvy77YAAtwt14-K48uRPLHa2QY6O_1cQVEK-I3KGtAFvwlvQw5PME3y0P6OmUg8MNO0R9tjp9cEV2JGAVHwVwEb6s1k7fhuV3XQti5QRFkHe2MxmrfIFBnXGmHEkhdkR8muzQgxNqL4Z4MwdJQJCk3c01kWd4C7L9-DM7ymruSr4-tPW7ttSFLB6gvk1IvBd1m3vEFPlIBbw5T6eooBDp8tPxBFrQsZO5u1rXMSz4MGlruMRK"/>
+</div>
+</div>
+<div class="min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface block font-medium truncate">Dr. S. Mukherjee</span>
+<span class="font-label-sm text-label-sm text-outline block">+3 Guest Scholars</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="space-y-1.5 min-w-[150px]">
+<div class="flex justify-between items-center font-label-sm text-label-sm">
+<span class="font-semibold text-on-surface tabular-nums">1,840</span>
+<span class="text-outline tabular-nums">/ 2,000 Seats</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full" style="width: 92%;"></div>
+</div>
+<span class="font-label-sm text-[11px] text-error font-medium block">92% Filled (Filling Fast)</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="space-y-0.5">
+<div class="flex items-baseline gap-1.5">
+<span class="font-headline-md text-base text-on-surface font-semibold tabular-nums">₹28,999</span>
+<span class="font-label-sm text-label-sm text-outline line-through tabular-nums">₹39,999</span>
+</div>
+<span class="font-label-sm text-[11px] text-emerald-vivid font-semibold">27% OFF Storefront</span>
+</div>
+</td>
+<td class="py-4 px-4 text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+<span class="block font-label-sm text-[11px] text-emerald-vivid font-medium mt-1">Live</span>
+</td>
+<td class="py-4 pl-4 pr-6 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Edit Curriculum">
+<span class="material-symbols-outlined text-[19px]">edit_document</span>
+</a>
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Manage Batches">
+<span class="material-symbols-outlined text-[19px]">schedule</span>
+</a>
+<button class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" title="View Options" type="button">
+<span class="material-symbols-outlined text-[19px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="py-4 pl-6 pr-4">
+<div class="flex items-center gap-4 min-w-[280px]">
+<div class="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-surface-container shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Ancient archival manuscripts, vintage world globe, and magnifying glass under warm desk lamp in prestigious historical research archives" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpUFY15dEWyqJlJAjJgoAhwcR6DybG6AW2ZnUBEJbQypm-jaLVe11JLivTl9wRanSRf5-azoAEMtP6uJC610qeRfYRQDlVEfd54vQUUuGTgcP3U6dQUh6Ir_SYX-r2TeqTRQUSEI63CnR9Bbdgrxe3eN2DdSQj-isxHYihsA_9JnIALBYYAj0codoo3Uuv1v4xUA1mT4X7fpCmT1UALDtddazxFd_D8eAv5nz1JnO_7oYaD5zTC0aP"/>
+<div class="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-deep-navy/80 text-[10px] text-on-primary font-mono font-medium">MOD</div>
+</div>
+<div class="space-y-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container font-label-sm text-[11px] font-semibold text-primary uppercase">UPSC CSE</span>
+<span class="font-label-sm text-label-sm text-outline tabular-nums font-mono">HIST-MOD-04</span>
+</div>
+<a class="font-headline-md text-base text-on-surface font-semibold hover:text-primary transition-colors block truncate" href="#">
+                      Modern Indian History &amp; Freedom Struggle Special
+                    </a>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-2">
+<span>96 Lectures</span>
+<span class="text-outline">•</span>
+<span>Self Paced + Q&amp;A</span>
+</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">auto_stories</span>
+<span>Single Course</span>
+</span>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3 min-w-[160px]">
+<div class="w-8 h-8 rounded-full ring-2 ring-surface-container-lowest bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Historian author with spectacles and dark teal formal vest in warm seminar room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFe_wXCVFPuJ5TYIEMiBPldoY7PcqT5zyWojwYm7fcBpanGi-nxy3pFDusl5hF88YmztqyfKVUhU5c8-78crtZSwXcVlnTuJsIfTWYfYtxffd73t0B8rml9VV2o4D46l1OmbrMREBXqgPXVYgWwbwrz55WO3rXWnqHMXuRKE-39ZxhKfRmeO2wHV6bBqzvcQ_LHqJMLGV2yH_88ZDVV6tELmh6OHZC6fdrADh-KiA3wujiF2F47Jmn"/>
+</div>
+<div class="min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface block font-medium truncate">Prof. Arun K. Verma</span>
+<span class="font-label-sm text-label-sm text-outline block">History Chair</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="space-y-1.5 min-w-[150px]">
+<div class="flex justify-between items-center font-label-sm text-label-sm">
+<span class="font-semibold text-on-surface tabular-nums">940</span>
+<span class="text-outline tabular-nums">/ 1,200 Seats</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full" style="width: 78.3%;"></div>
+</div>
+<span class="font-label-sm text-[11px] text-outline font-medium block">78% Enrolled</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="space-y-0.5">
+<div class="flex items-baseline gap-1.5">
+<span class="font-headline-md text-base text-on-surface font-semibold tabular-nums">₹5,499</span>
+<span class="font-label-sm text-label-sm text-outline line-through tabular-nums">₹7,999</span>
+</div>
+<span class="font-label-sm text-[11px] text-emerald-vivid font-semibold">31% OFF Storefront</span>
+</div>
+</td>
+<td class="py-4 px-4 text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+<span class="block font-label-sm text-[11px] text-emerald-vivid font-medium mt-1">Live</span>
+</td>
+<td class="py-4 pl-4 pr-6 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Edit Curriculum">
+<span class="material-symbols-outlined text-[19px]">edit_document</span>
+</a>
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Manage Batches">
+<span class="material-symbols-outlined text-[19px]">schedule</span>
+</a>
+<button class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" title="View Options" type="button">
+<span class="material-symbols-outlined text-[19px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="py-4 pl-6 pr-4">
+<div class="flex items-center gap-4 min-w-[280px]">
+<div class="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-surface-container shadow-sm">
+<img class="w-full h-full object-cover" data-alt="High speed digital mathematical data diagrams, geometric compass, and analytical graphics on high resolution slate screen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCun5x7EIjPqLg9md7a7rsVeAI3HO4vbf2xm21SsWoaGQ0sUHiytlRUTn-d4IKpqwNYwdZb0i3MhqpjrJwZlfMt6XecPKDzTSe1z5pp9l8FodrUSVPZtZQg_33N5HYzTzV07e3brC50r_0VmkH1hSlwGYoMmEXbWFjqteBPQIXVXigEUZ-4dFba2alaYUxkPhGyJStY_k1RqwGBFwdLzcQo9vR8uHsLZ41nfiMtOTnQY5tBVUycFgdl"/>
+<div class="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-deep-navy/80 text-[10px] text-on-primary font-mono font-medium">TEST</div>
+</div>
+<div class="space-y-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container font-label-sm text-[11px] font-semibold text-primary uppercase">CSAT Paper II</span>
+<span class="font-label-sm text-label-sm text-outline tabular-nums font-mono">CSAT-QUANT-25</span>
+</div>
+<a class="font-headline-md text-base text-on-surface font-semibold hover:text-primary transition-colors block truncate" href="#">
+                      CSAT Speed Math, Analytical Reasoning &amp; Comprehension
+                    </a>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-2">
+<span>75 Practice Mock Tests</span>
+<span class="text-outline">•</span>
+<span>Live Doubt Clinics</span>
+</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">quiz</span>
+<span>Test Series</span>
+</span>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3 min-w-[160px]">
+<div class="w-8 h-8 rounded-full ring-2 ring-surface-container-lowest bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Professional quantitative aptitude trainer with laptop and smart pen in clean modern studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAocEIghNsizLGJsvlanY8XGuw-Ac-EP4yLO3Wl4IpqVgRQ7X3VJ1U-xsDEUqkesI8-5Ew50PsRqyLupvviaKhVVApxaN6Fzz5EDha11mMbpx86TbBi53WA7b1EgsxZbCcLdNmRUw4FUKLWccCKbc_I0i5gS5eiUNxqcmDFU-qA7c8UwHmTlRXKBbi3iTCpM009VKGV-Eg6SAknsQA6jjBrCgBCy-Zvfizy2q_V0uNmC23ygte681oQ"/>
+</div>
+<div class="min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface block font-medium truncate">Rohan Raghavan</span>
+<span class="font-label-sm text-label-sm text-outline block">Lead Aptitude Trainer</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="space-y-1.5 min-w-[150px]">
+<div class="flex justify-between items-center font-label-sm text-label-sm">
+<span class="font-semibold text-on-surface tabular-nums">3,120</span>
+<span class="text-outline tabular-nums">/ 3,500 Seats</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full" style="width: 89.1%;"></div>
+</div>
+<span class="font-label-sm text-[11px] text-outline font-medium block">89% Enrolled</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="space-y-0.5">
+<div class="flex items-baseline gap-1.5">
+<span class="font-headline-md text-base text-on-surface font-semibold tabular-nums">₹4,299</span>
+<span class="font-label-sm text-label-sm text-outline line-through tabular-nums">₹6,499</span>
+</div>
+<span class="font-label-sm text-[11px] text-emerald-vivid font-semibold">33% OFF Storefront</span>
+</div>
+</td>
+<td class="py-4 px-4 text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+<span class="block font-label-sm text-[11px] text-emerald-vivid font-medium mt-1">Live</span>
+</td>
+<td class="py-4 pl-4 pr-6 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Edit Curriculum">
+<span class="material-symbols-outlined text-[19px]">edit_document</span>
+</a>
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Manage Batches">
+<span class="material-symbols-outlined text-[19px]">schedule</span>
+</a>
+<button class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" title="View Options" type="button">
+<span class="material-symbols-outlined text-[19px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="py-4 pl-6 pr-4">
+<div class="flex items-center gap-4 min-w-[280px]">
+<div class="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-surface-container shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Preamble to the Constitution of India leather bound book with gold foil lettering in Supreme Court library atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDDJBk6NhtJ5HyksS2gM6UvB625KMk8Rrwap5b3Bs2zM-k2oeC71Ok8iRi3KdmFTaEom3THPjm9MBAfK0IV8mCfWxbAFQBiqPIMuU8fsHqCY6WnKFJCtM2urQPzl1wwmlqLZseyEayMNh-NOo55cgmyrHxfbs6OSHHVHXwPdwnSrhTTzWV3GY1ooivxAHriMr3dcdLeJ8SP9VhmAsF0baYfwvDv3uiMftSl-g2wUARGeMo1ns_PAbB"/>
+<div class="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-deep-navy/80 text-[10px] text-on-primary font-mono font-medium">MAST</div>
+</div>
+<div class="space-y-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container font-label-sm text-[11px] font-semibold text-primary uppercase">UPSC CSE</span>
+<span class="font-label-sm text-label-sm text-outline tabular-nums font-mono">POL-CONST-01</span>
+</div>
+<a class="font-headline-md text-base text-on-surface font-semibold hover:text-primary transition-colors block truncate" href="#">
+                      Indian Polity, Constitution &amp; Governance Masterclass
+                    </a>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-2">
+<span>130 Case Studies</span>
+<span class="text-outline">•</span>
+<span>Daily Answer Writing</span>
+</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">school</span>
+<span>Foundation</span>
+</span>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3 min-w-[160px]">
+<div class="w-8 h-8 rounded-full ring-2 ring-surface-container-lowest bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Distinguished legal scholar advocate in formal black lawyer blazer against architectural courtroom background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBn2-Y85MbGJh6afoUj6HoQaCY65iWLWd4eTllCPki54aAgKJeg5vBtHTPc6XqbjEqWOoWVzR4TJeIliiRnSgmNASFdaOG_tlPjOpIgu3NiAifXn9yl_hr-fZ9Eal4GpumRA-Z6F-kYLuO8UqUxnw6npAbHdnJM6uFa2mZvLum7_SOyq38wLLpXuSMJA9arRKXNvttIzoTdI-BFoL0DYhWtcycKu2G9CqfoCwYsx8PJMCHP6YhQHjeP"/>
+</div>
+<div class="min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface block font-medium truncate">Adv. Meenakshi Sundaram</span>
+<span class="font-label-sm text-label-sm text-outline block">Constitutional Law</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="space-y-1.5 min-w-[150px]">
+<div class="flex justify-between items-center font-label-sm text-label-sm">
+<span class="font-semibold text-on-surface tabular-nums">2,490</span>
+<span class="text-outline tabular-nums">/ 2,500 Seats</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-error h-1.5 rounded-full" style="width: 99.6%;"></div>
+</div>
+<span class="font-label-sm text-[11px] text-error font-semibold block">10 Seats Remaining</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="space-y-0.5">
+<div class="flex items-baseline gap-1.5">
+<span class="font-headline-md text-base text-on-surface font-semibold tabular-nums">₹12,499</span>
+<span class="font-label-sm text-label-sm text-outline line-through tabular-nums">₹16,999</span>
+</div>
+<span class="font-label-sm text-[11px] text-emerald-vivid font-semibold">26% OFF Storefront</span>
+</div>
+</td>
+<td class="py-4 px-4 text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+<span class="block font-label-sm text-[11px] text-emerald-vivid font-medium mt-1">Live</span>
+</td>
+<td class="py-4 pl-4 pr-6 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Edit Curriculum">
+<span class="material-symbols-outlined text-[19px]">edit_document</span>
+</a>
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Manage Batches">
+<span class="material-symbols-outlined text-[19px]">schedule</span>
+</a>
+<button class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" title="View Options" type="button">
+<span class="material-symbols-outlined text-[19px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="py-4 pl-6 pr-4">
+<div class="flex items-center gap-4 min-w-[280px]">
+<div class="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-surface-container shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Indian state administrative secretarial building with state emblem, pillars, and red carpet corridor in natural ambient sunshine" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiBVzQCBi-Uok-8aOM-iJl9RdvwmhZGLzSwTk30UUTW7JOfnlMPEOXDTkJkv9WDCce_TRJcg68eLSeZGcUSK6MJU3iTvkv64VJnksjOJh1p6xApwOl07en9TkMl2AN28Xry8U7DnUOX710uVzvMj-6TGL0VDi-j8SL_qlOPIAxRfxRWRku4K6ZiynjdWr2HbQXBzM7tGXKMLFQftZTfT6bGyZD0lOk2FYyALlha0Kt3ET2twj31a4P"/>
+<div class="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-deep-navy/80 text-[10px] text-on-primary font-mono font-medium">PSC</div>
+</div>
+<div class="space-y-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container font-label-sm text-[11px] font-semibold text-primary uppercase">State PSC</span>
+<span class="font-label-sm text-label-sm text-outline tabular-nums font-mono">PSC-FOUND-2025</span>
+</div>
+<a class="font-headline-md text-base text-on-surface font-semibold hover:text-primary transition-colors block truncate" href="#">
+                      State PSC General Studies Bilingual Foundation (Prelims+Mains)
+                    </a>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-2">
+<span>Hindi &amp; English</span>
+<span class="text-outline">•</span>
+<span>500+ PDFs Included</span>
+</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary-container/20 text-on-secondary-container font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">layers</span>
+<span>Combo Pack</span>
+</span>
+</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-3 min-w-[160px]">
+<div class="flex -space-x-2 overflow-hidden">
+<div class="w-8 h-8 rounded-full ring-2 ring-surface-container-lowest bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Middle-aged Indian male administrative coach in formal blue shirt" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7wiTQ0DKJFLTliGGlNEn-n-R1M1tozDwtyz-c15si8noBIuFXBvQHYIN7oDupmgYgjVTh4ghrYioa7KLtFu_MfoVCK1yI44R_yq7K1ry490oiE1lJNe0s1XB1qNjC2BE8GQyqhct3NoVmyTr6Ug7MyAvLuoXOgPcn4xsVLLGrfp_XTPwoM2N1-23XAz8PBBtW-BjWubgZBI6VrcQHxQ93WofLlmyIMn9yS2dU0nMlIuXuKuKsOWLA"/>
+</div>
+<div class="w-8 h-8 rounded-full ring-2 ring-surface-container-lowest bg-surface-container overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Young female civil service faculty member with warm smile in modern classroom" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQm_EVYgZRk3xFkhDqOxRG6uWbrlLZUS2mSyxNXe3hXs-xFVhFahd7GL8XQXFqfrUOTSzK4kfAzBprViXkdfeLTBwzgnPkAQERIU1IvQIJPraPDukXDhphdcdgWl9lAzC-id77RFwHagmyA3KpzSzLvY8BCOj0kspZHWDJwM0Try_P5Qn9bHrJ10lAsndSpXs61yjE9LLx9wm5PWVyOnD895IVFUXBUvYYjvu6eOste6oSldzUXp_L"/>
+</div>
+</div>
+<div class="min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface block font-medium truncate">Prof. Anand Trivedi</span>
+<span class="font-label-sm text-label-sm text-outline block">+5 Subject Mentors</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="space-y-1.5 min-w-[150px]">
+<div class="flex justify-between items-center font-label-sm text-label-sm">
+<span class="font-semibold text-on-surface tabular-nums">1,120</span>
+<span class="text-outline tabular-nums">/ 1,800 Seats</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full" style="width: 62.2%;"></div>
+</div>
+<span class="font-label-sm text-[11px] text-outline font-medium block">62.2% Enrolled</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="space-y-0.5">
+<div class="flex items-baseline gap-1.5">
+<span class="font-headline-md text-base text-on-surface font-semibold tabular-nums">₹14,999</span>
+<span class="font-label-sm text-label-sm text-outline line-through tabular-nums">₹22,000</span>
+</div>
+<span class="font-label-sm text-[11px] text-emerald-vivid font-semibold">31% OFF Storefront</span>
+</div>
+</td>
+<td class="py-4 px-4 text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+<span class="block font-label-sm text-[11px] text-emerald-vivid font-medium mt-1">Live</span>
+</td>
+<td class="py-4 pl-4 pr-6 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Edit Curriculum">
+<span class="material-symbols-outlined text-[19px]">edit_document</span>
+</a>
+<a class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#" title="Manage Batches">
+<span class="material-symbols-outlined text-[19px]">schedule</span>
+</a>
+<button class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" title="View Options" type="button">
+<span class="material-symbols-outlined text-[19px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 bg-surface-container-low/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<span class="font-label-sm text-label-sm text-outline">Showing</span>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold tabular-nums">1 - 5</span>
+<span class="font-label-sm text-label-sm text-outline">of 34 Courses</span>
+<span class="text-outline">•</span>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-outline">Per page</span>
+<div class="relative">
+<select class="appearance-none pl-2.5 pr-7 py-1 rounded-lg bg-surface-container-lowest text-on-surface font-label-sm text-label-sm focus:outline-none cursor-pointer">
+<option>5</option>
+<option>10</option>
+<option>25</option>
+<option>50</option>
+</select>
+<span class="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[16px]">expand_more</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-2 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container transition-colors disabled:opacity-40" disabled="" type="button">
+<span class="material-symbols-outlined text-[18px]">first_page</span>
+</button>
+<button class="p-2 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container transition-colors disabled:opacity-40" disabled="" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm font-semibold flex items-center justify-center" type="button">1</button>
+<button class="w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container font-label-sm text-label-sm font-medium flex items-center justify-center transition-colors" type="button">2</button>
+<button class="w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container font-label-sm text-label-sm font-medium flex items-center justify-center transition-colors" type="button">3</button>
+<span class="w-8 h-8 flex items-center justify-center text-outline font-label-sm text-label-sm">...</span>
+<button class="w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container font-label-sm text-label-sm font-medium flex items-center justify-center transition-colors" type="button">7</button>
+<button class="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+<button class="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">last_page</span>
+</button>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+<div class="p-5 rounded-2xl bg-surface-container-lowest shadow-sm flex items-start gap-4">
+<div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</div>
+<div class="space-y-1">
+<h4 class="font-headline-md text-sm font-semibold text-on-surface">Auto-Publish Next Batch</h4>
+<p class="font-body-md text-xs text-on-surface-variant leading-relaxed">
+            When enrollment reaches 95%, the system automatically opens subsequent intake batches with standard quota tiers.
+          </p>
+</div>
+</div>
+<div class="p-5 rounded-2xl bg-surface-container-lowest shadow-sm flex items-start gap-4">
+<div class="w-10 h-10 rounded-xl bg-secondary-container/20 text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">currency_rupee</span>
+</div>
+<div class="space-y-1">
+<h4 class="font-headline-md text-sm font-semibold text-on-surface">Razorpay Bulk Split</h4>
+<p class="font-body-md text-xs text-on-surface-variant leading-relaxed">
+            Faculty payouts for completed modules are scheduled on the 1st of each calendar month after student attendance verification.
+          </p>
+</div>
+</div>
+<div class="p-5 rounded-2xl bg-surface-container-lowest shadow-sm flex items-start gap-4">
+<div class="w-10 h-10 rounded-xl bg-tertiary-container/20 text-tertiary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">encrypted</span>
+</div>
+<div class="space-y-1">
+<h4 class="font-headline-md text-sm font-semibold text-on-surface">DRM Content Encryption</h4>
+<p class="font-body-md text-xs text-on-surface-variant leading-relaxed">
+            All video lectures and study PDFs utilize dynamic student-id watermarking to preserve proprietary test repository integrity.
+          </p>
+</div>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

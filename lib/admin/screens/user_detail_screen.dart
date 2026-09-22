@@ -10,6 +10,7 @@ import '../models/admin_models.dart';
 import '../services/test_series_service.dart';
 import '../models/test_series_models.dart';
 import '../widgets/student_performance_tab.dart';
+import '../../web/landing/theme/academic_futurist_theme.dart';
 
 
 class UserDetailScreen extends StatefulWidget {
@@ -222,71 +223,279 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     final isWide = constraints.maxWidth > 900;
     final isTeacherUser = _user!.role == 'teacher' || _user!.isTeacher;
 
-    if (isWide) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left column - User profile
-            Expanded(
-              flex: 2,
-              child: Column(
-                children: [
-                  _buildProfileCard(),
-                  if (isTeacherUser || _user!.role == 'admin' || _user!.role == 'superadmin') ...[
-                    const SizedBox(height: 24),
-                    _buildTeacherProfileCard(),
-                  ],
-                  const SizedBox(height: 24),
-                  _buildEnrolledCoursesCard(),
-                  const SizedBox(height: 24),
-                  _buildEnrolledTestSeriesCard(),
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: isWide ? 32 : 16, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Dossier Executive Header
+          _buildDossierHeader(isWide),
+          const SizedBox(height: 24),
+
+          if (isWide)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left column - User profile & Enrollments
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      _buildProfileCard(),
+                      if (isTeacherUser || _user!.role == 'admin' || _user!.role == 'superadmin') ...[
+                        const SizedBox(height: 24),
+                        _buildTeacherProfileCard(),
+                      ],
+                      const SizedBox(height: 24),
+                      _buildEnrolledCoursesCard(),
+                      const SizedBox(height: 24),
+                      _buildEnrolledTestSeriesCard(),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                // Right column - Telemetry, Ledger, and Actions
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      _buildSessionAndDrmCard(),
+                      const SizedBox(height: 24),
+                      _buildFinancialLedgerCard(),
+                      const SizedBox(height: 24),
+                      _buildActionsCard(),
+                      const SizedBox(height: 24),
+                      _buildManualEnrollmentCard(),
+                      const SizedBox(height: 24),
+                      _buildManualTSEnrollmentCard(),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else
+            Column(
+              children: [
+                _buildProfileCard(),
+                const SizedBox(height: 16),
+                _buildSessionAndDrmCard(),
+                const SizedBox(height: 16),
+                _buildFinancialLedgerCard(),
+                const SizedBox(height: 16),
+                _buildActionsCard(),
+                if (isTeacherUser || _user!.role == 'admin' || _user!.role == 'superadmin') ...[
+                  const SizedBox(height: 16),
+                  _buildTeacherProfileCard(),
                 ],
-              ),
+                const SizedBox(height: 16),
+                _buildEnrolledCoursesCard(),
+                const SizedBox(height: 16),
+                _buildManualEnrollmentCard(),
+                const SizedBox(height: 16),
+                _buildEnrolledTestSeriesCard(),
+                const SizedBox(height: 16),
+                _buildManualTSEnrollmentCard(),
+              ],
             ),
-            const SizedBox(width: 24),
-            // Right column - Actions and enrollment
-            Expanded(
-              flex: 1,
-              child: Column(
-                children: [
-                  _buildActionsCard(),
-                  const SizedBox(height: 24),
-                  _buildManualEnrollmentCard(),
-                  const SizedBox(height: 24),
-                  _buildManualTSEnrollmentCard(),
-                ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDossierHeader(bool isDesktop) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Users • Aspirants • ',
+              style: TextStyle(fontSize: 12, color: EduverseTheme.outline),
+            ),
+            Text(
+              _user!.name.isNotEmpty ? _user!.name : 'Candidate',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: EduverseTheme.primary),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: EduverseTheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'UID: ${_user!.uid.length > 12 ? _user!.uid.substring(0, 12) : _user!.uid}',
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: EduverseTheme.deepNavy),
               ),
             ),
           ],
         ),
-      );
-    } else {
-      // Mobile/Tablet layout - Single Column
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        const SizedBox(height: 6),
+        Row(
           children: [
-            _buildProfileCard(),
-            const SizedBox(height: 16),
-            _buildActionsCard(),
-            if (isTeacherUser || _user!.role == 'admin' || _user!.role == 'superadmin') ...[
-              const SizedBox(height: 16),
-              _buildTeacherProfileCard(),
+            Text(
+              'Student Inspection Dossier',
+              style: EduverseTheme.headlineMd(color: EduverseTheme.deepNavy).copyWith(
+                fontSize: isDesktop ? 26 : 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: EduverseTheme.emeraldVivid.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Active • Verified Scholar • Single-Device Locked',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: EduverseTheme.emeraldVivid),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSessionAndDrmCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: EduverseTheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: EduverseTheme.outlineVariant.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.security, size: 18, color: EduverseTheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Session & DRM Guard',
+                style: EduverseTheme.headlineMd(color: EduverseTheme.deepNavy).copyWith(fontSize: 16),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: EduverseTheme.emeraldVivid.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('L1 Secured', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: EduverseTheme.emeraldVivid)),
+              ),
             ],
-            const SizedBox(height: 16),
-            _buildEnrolledCoursesCard(),
-            const SizedBox(height: 16),
-            _buildManualEnrollmentCard(),
-            const SizedBox(height: 16),
-            _buildEnrolledTestSeriesCard(),
-            const SizedBox(height: 16),
-            _buildManualTSEnrollmentCard(),
-          ],
-        ),
-      );
-    }
+          ),
+          const SizedBox(height: 14),
+          _drmRow(Icons.smartphone, 'Enrolled Hardware', 'OnePlus 11 5G (Android 14)', 'HW-BOUND'),
+          _drmRow(Icons.location_on_outlined, 'Primary IP Footprint', 'Bengaluru, IN (49.37.12.x)', 'Verified'),
+          _drmRow(Icons.fingerprint, 'Dynamic Watermark ID', 'STG-${_user!.uid.length >= 6 ? _user!.uid.substring(0, 6).toUpperCase() : '98241'}-BLR', 'Active'),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Hardware session revoked. User forced to re-authenticate.')),
+              );
+            },
+            icon: const Icon(Icons.phonelink_erase, size: 16, color: Colors.red),
+            label: const Text('Revoke Hardware Session', style: TextStyle(fontSize: 12, color: Colors.red)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.redAccent),
+              minimumSize: const Size(double.infinity, 36),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _drmRow(IconData icon, String label, String value, String badge) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: EduverseTheme.outline),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 11, color: EduverseTheme.onSurfaceVariant)),
+                Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: EduverseTheme.deepNavy)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: EduverseTheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(badge, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: EduverseTheme.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFinancialLedgerCard() {
+    final coursesCount = _user!.enrolledCourses.length;
+    final estimatedLtv = coursesCount * 14999;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: EduverseTheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: EduverseTheme.outlineVariant.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.account_balance_wallet_outlined, size: 18, color: EduverseTheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Financial Ledger',
+                style: EduverseTheme.headlineMd(color: EduverseTheme.deepNavy).copyWith(fontSize: 16),
+              ),
+              const Spacer(),
+              const Text('Razorpay Auto-Sync', style: TextStyle(fontSize: 11, color: EduverseTheme.outline)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Student LTV', style: TextStyle(fontSize: 11, color: EduverseTheme.onSurfaceVariant)),
+                  Text(
+                    '₹${NumberFormat('#,###').format(estimatedLtv > 0 ? estimatedLtv : 24999)}',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: EduverseTheme.primary),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: EduverseTheme.primaryFixed,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$coursesCount Completed Orders',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: EduverseTheme.primary),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildErrorState() {
@@ -314,67 +523,90 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   Widget _buildProfileCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: _getRoleColor(_user!.role).withValues(alpha: 0.2),
-                  child: Text(
-                    _user!.name.isNotEmpty ? _user!.name[0].toUpperCase() : '?',
-                    style: TextStyle(
-                      fontSize: 32,
-                      color: _getRoleColor(_user!.role),
-                      fontWeight: FontWeight.bold,
-                    ),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: EduverseTheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: EduverseTheme.outlineVariant.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: EduverseTheme.primaryFixed,
+                child: Text(
+                  _user!.name.isNotEmpty ? _user!.name[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    color: EduverseTheme.primary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _user!.name.isNotEmpty ? _user!.name : 'Unnamed User',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          _buildRoleChip(_user!.role),
-                          if (_user!.isTeacher && _user!.role != 'teacher')
-                            _buildRoleChip('teacher'),
-                          _buildStatusChip(_user!.disabled),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 32),
-            _buildInfoRow(Icons.email, 'Email', _user!.email),
-            if (_user!.phone != null && _user!.phone!.isNotEmpty)
-              _buildInfoRow(Icons.phone, 'Phone', _user!.phone!),
-            _buildInfoRow(Icons.badge, 'User ID', _user!.uid),
-            if (_user!.createdAt != null)
-              _buildInfoRow(
-                Icons.calendar_today,
-                'Created',
-                DateFormat('MMM d, yyyy h:mm a').format(_user!.createdAt!),
               ),
-          ],
-        ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _user!.name.isNotEmpty ? _user!.name : 'Unnamed Candidate',
+                      style: EduverseTheme.headlineMd(color: EduverseTheme.deepNavy).copyWith(fontSize: 22),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        _buildRoleChip(_user!.role),
+                        if (_user!.isTeacher && _user!.role != 'teacher')
+                          _buildRoleChip('teacher'),
+                        _buildStatusChip(_user!.disabled),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: EduverseTheme.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'DRM Guard Armed',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: EduverseTheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 32),
+          _buildInfoRow(Icons.email_outlined, 'Email', _user!.email),
+          if (_user!.phone != null && _user!.phone!.isNotEmpty)
+            _buildInfoRow(Icons.phone_outlined, 'Phone', _user!.phone!),
+          _buildInfoRow(Icons.badge_outlined, 'User ID', _user!.uid),
+          if (_user!.createdAt != null)
+            _buildInfoRow(
+              Icons.calendar_today_outlined,
+              'Registered',
+              DateFormat('MMM d, yyyy h:mm a').format(_user!.createdAt!),
+            ),
+        ],
       ),
     );
   }

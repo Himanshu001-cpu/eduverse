@@ -10,6 +10,7 @@ import '../services/firebase_admin_service.dart';
 import '../widgets/admin_scaffold.dart';
 import '../widgets/thumbnail_upload_widget.dart';
 import '../utils/validators.dart';
+import '../../web/landing/theme/academic_futurist_theme.dart';
 
 class CourseEditorScreen extends StatefulWidget {
   final AdminCourse? course;
@@ -230,12 +231,45 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
     }
   }
 
+  Future<void> _saveWithVisibility(String visibility) async {
+    _visibility = visibility;
+    await _save();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: widget.course == null ? 'New Course' : 'Edit Course',
+      title: widget.course == null ? 'Course Studio: Create Course' : 'Course Studio: Edit Course',
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Discard', style: TextStyle(color: EduverseTheme.onSurfaceVariant)),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton(
+          onPressed: _isLoading ? null : () => _saveWithVisibility('draft'),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: EduverseTheme.outlineVariant),
+            foregroundColor: EduverseTheme.onSurface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: const Text('Save Draft'),
+        ),
+        const SizedBox(width: 8),
+        ElevatedButton.icon(
+          onPressed: _isLoading ? null : () => _saveWithVisibility('published'),
+          icon: const Icon(Icons.check, size: 16),
+          label: const Text('Publish Course'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: EduverseTheme.primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        const SizedBox(width: 16),
+      ],
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: EduverseTheme.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Form(
@@ -687,9 +721,12 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
   }
 
   Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+      child: Text(
+        title,
+        style: EduverseTheme.headlineMd(color: EduverseTheme.deepNavy).copyWith(fontSize: 18),
+      ),
     );
   }
 
