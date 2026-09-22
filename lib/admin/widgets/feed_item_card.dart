@@ -74,7 +74,7 @@ class FeedItemCard extends StatelessWidget {
           width: 50,
           height: 50,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildEmojiLeading(),
+          errorBuilder: (_, _, _) => _buildEmojiLeading(),
         ),
       );
     }

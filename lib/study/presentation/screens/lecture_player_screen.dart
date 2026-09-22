@@ -532,6 +532,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
         _commentUploadedUrls = [];
       });
       _cancelReply();
+      if (!mounted) return;
       FocusScope.of(context).unfocus();
     } catch (e) {
       if (mounted) {
@@ -635,6 +636,7 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
           .collection('replies')
           .doc(replyId)
           .delete();
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Reply deleted')));
@@ -1573,8 +1575,9 @@ class _LecturePlayerScreenState extends State<LecturePlayerScreen> {
 
   String _formatTimeAgo(DateTime dateTime) {
     final diff = DateTime.now().difference(dateTime);
-    if (diff.inDays > 7)
+    if (diff.inDays > 7) {
       return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
     if (diff.inDays > 0) return '${diff.inDays}d ago';
     if (diff.inHours > 0) return '${diff.inHours}h ago';
     if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';

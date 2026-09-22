@@ -1,0 +1,23 @@
+{
+  "source_path": "docs/data-models.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — Data Models & Entities Reference",
+  "summary": "Dart client-side model definitions, serializations, validation constraints, and entity relationships across Study, Store, Admin, Feed, and Profile.",
+  "scope": [
+    "Dart entities",
+    "StudyBatch",
+    "StudyCourse",
+    "StudyLecture",
+    "CartItem",
+    "AdminModels",
+    "TestSeries"
+  ],
+  "cross_refs": [
+    "docs/db-schema.md"
+  ],
+  "locked": false,
+  "precedence": 1,
+  "notes": "Entity-level type definitions, validation boundaries, and serialization mappings."
+}

@@ -377,7 +377,7 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: course.thumbnailUrl.isNotEmpty
-                    ? Image.network(course.thumbnailUrl, width: 44, height: 44, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _tablePlaceholder())
+                    ? Image.network(course.thumbnailUrl, width: 44, height: 44, fit: BoxFit.cover, errorBuilder: (_, _, _) => _tablePlaceholder())
                     : _tablePlaceholder(),
               ),
               const SizedBox(width: 12),
@@ -699,7 +699,7 @@ class _CourseCardAcademic extends StatelessWidget {
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _defaultImage(),
+                        errorBuilder: (_, _, _) => _defaultImage(),
                       )
                     : _defaultImage(),
               ),

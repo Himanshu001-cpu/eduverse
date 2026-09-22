@@ -996,6 +996,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
               child: RichDocumentEditor(
                 initialDeltaJson: _bodyDelta,
                 initialHtml: _bodyHtml,
+                initialText: _bodyController.text,
                 labelText: 'Article Body',
                 autoSaveDebounceDuration: const Duration(milliseconds: 300),
                 onSave: (delta, html) {
@@ -1130,6 +1131,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           child: RichDocumentEditor(
             initialDeltaJson: _whatHappenedDelta,
             initialHtml: _whatHappenedHtml,
+            initialText: _whatController.text,
             labelText: 'What Happened?',
             autoSaveDebounceDuration: const Duration(milliseconds: 300),
             onSave: (delta, html) {
@@ -1171,6 +1173,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           child: RichDocumentEditor(
             initialDeltaJson: _whyItMattersDelta,
             initialHtml: _whyItMattersHtml,
+            initialText: _whyController.text,
             labelText: 'Why It Matters?',
             autoSaveDebounceDuration: const Duration(milliseconds: 300),
             onSave: (delta, html) {
@@ -1197,6 +1200,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           child: RichDocumentEditor(
             initialDeltaJson: _examRelevanceDelta,
             initialHtml: _examRelevanceHtml,
+            initialText: _relevanceController.text,
             labelText: 'Exam Relevance',
             autoSaveDebounceDuration: const Duration(milliseconds: 300),
             onSave: (delta, html) {
@@ -1230,6 +1234,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           child: RichDocumentEditor(
             initialDeltaJson: _questionDelta,
             initialHtml: _questionHtml,
+            initialText: _questionController.text,
             labelText: 'Question',
             autoSaveDebounceDuration: const Duration(milliseconds: 300),
             onSave: (delta, html) {
@@ -1297,6 +1302,7 @@ class _FeedEditorScreenState extends State<FeedEditorScreen> {
           child: RichDocumentEditor(
             initialDeltaJson: _modelAnswerDelta,
             initialHtml: _modelAnswerHtml,
+            initialText: _modelAnswerController.text,
             labelText: 'Model Answer',
             autoSaveDebounceDuration: const Duration(milliseconds: 300),
             onSave: (delta, html) {

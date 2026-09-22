@@ -1,0 +1,21 @@
+{
+  "source_path": "docs/component-inventory.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — UI Component Inventory",
+  "summary": "Catalog of reusable UI widgets, dialogs, cards, player wrappers, and layout components across the Flutter app.",
+  "scope": [
+    "UI components",
+    "cards",
+    "players",
+    "dialogs",
+    "scaffolds"
+  ],
+  "cross_refs": [
+    "docs/screens-guide.md"
+  ],
+  "locked": false,
+  "precedence": 3,
+  "notes": "Component design inventory."
+}

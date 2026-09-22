@@ -309,8 +309,9 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                         );
                       }
                     } catch (e) {
-                      if (mounted)
+                      if (mounted) {
                         setState(() => _isBookmarked = !_isBookmarked);
+                      }
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -1137,7 +1138,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: quizzes.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final quiz = quizzes[index];
                 return Card(
@@ -1319,7 +1320,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: classesForSelectedDate.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  separatorBuilder: (_, _) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final lc = classesForSelectedDate[index];
                     final startTimeStr = '${lc.startTime.hour.toString().padLeft(2, '0')}:${lc.startTime.minute.toString().padLeft(2, '0')}';

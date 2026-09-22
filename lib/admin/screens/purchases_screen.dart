@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -15,22 +17,217 @@ class PurchasesScreen extends StatefulWidget {
 
 class _PurchasesScreenState extends State<PurchasesScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
   String _searchQuery = '';
   String _statusFilter = 'all'; // all, success, refunded, manual_enrollment, failed
   String _itemTypeFilter = 'all'; // all, courses, test_series
+  String _dateFilterPreset = 'All'; // All, Today, Last 7 Days, Last 30 Days, Custom
+  DateTime? _startDate;
+  DateTime? _endDate;
+
+  List<AdminPurchase> _purchases = [];
+  DocumentSnapshot? _lastDocument;
+  bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  String? _errorMessage;
+  Timer? _debounceTimer;
+
+  final Map<String, AdminUser> _userCache = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialPurchases();
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
-  List<AdminPurchase> _filterPurchases(List<AdminPurchase> purchases, List<AdminUser> users) {
-    return purchases.where((purchase) {
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMore &&
+        !_isLoading) {
+      _loadMorePurchases();
+    }
+  }
+
+  Future<void> _loadInitialPurchases() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _lastDocument = null;
+    });
+
+    try {
+      final adminService = context.read<FirebaseAdminService>();
+      final result = await adminService.getPurchasesPaginated(
+        limit: 20,
+        statusFilter: _statusFilter,
+        startDate: _startDate,
+        endDate: _endDate,
+      );
+      if (!mounted) return;
+      setState(() {
+        _purchases = result.items;
+        _lastDocument = result.lastDocument;
+        _hasMore = result.hasMore;
+        _isLoading = false;
+      });
+      _resolveUsersForPurchases(result.items);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadMorePurchases() async {
+    if (_isLoadingMore || !_hasMore || _isLoading || !mounted) return;
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final adminService = context.read<FirebaseAdminService>();
+      final result = await adminService.getPurchasesPaginated(
+        limit: 20,
+        startAfter: _lastDocument,
+        statusFilter: _statusFilter,
+        startDate: _startDate,
+        endDate: _endDate,
+      );
+      if (!mounted) return;
+      setState(() {
+        _purchases.addAll(result.items);
+        _lastDocument = result.lastDocument;
+        _hasMore = result.hasMore;
+        _isLoadingMore = false;
+      });
+      _resolveUsersForPurchases(result.items);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingMore = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load more transactions: $e')),
+      );
+    }
+  }
+
+  void _resetAndReload() {
+    _lastDocument = null;
+    _hasMore = true;
+    _loadInitialPurchases();
+  }
+
+  Future<void> _resolveUsersForPurchases(List<AdminPurchase> purchases) async {
+    final adminService = context.read<FirebaseAdminService>();
+    final missingUids = purchases
+        .map((p) => p.userId)
+        .where((uid) => uid.isNotEmpty && !_userCache.containsKey(uid))
+        .toSet();
+
+    if (missingUids.isEmpty) return;
+
+    final results = await Future.wait(
+      missingUids.map((uid) => adminService.getUserById(uid)),
+    );
+
+    for (final user in results) {
+      if (user != null) {
+        _userCache[user.uid] = user;
+      }
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _onSearchChanged(String val) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() {
+        _searchQuery = val;
+      });
+    });
+  }
+
+  void _setDatePreset(String preset) {
+    final now = DateTime.now();
+    setState(() {
+      _dateFilterPreset = preset;
+      switch (preset) {
+        case 'Today':
+          _startDate = DateTime(now.year, now.month, now.day);
+          _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+          break;
+        case 'Last 7 Days':
+          _startDate = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 7));
+          _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+          break;
+        case 'Last 30 Days':
+          _startDate = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 30));
+          _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+          break;
+        case 'All':
+        default:
+          _startDate = null;
+          _endDate = null;
+          _dateFilterPreset = 'All';
+          break;
+      }
+    });
+    _resetAndReload();
+  }
+
+  Future<void> _selectCustomDateRange() async {
+    final now = DateTime.now();
+    final initialRange = DateTimeRange(
+      start: _startDate ?? now.subtract(const Duration(days: 7)),
+      end: _endDate ?? now,
+    );
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 5),
+      initialDateRange: initialRange,
+    );
+
+    if (picked != null) {
+      setState(() {
+        _startDate = DateTime(picked.start.year, picked.start.month, picked.start.day);
+        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59, 999);
+        _dateFilterPreset = 'Custom';
+      });
+      _resetAndReload();
+    }
+  }
+
+  List<AdminPurchase> get _filteredPurchases {
+    return _purchases.where((purchase) {
       // 1. Search Query (Matches User Name, Email, or Purchase/Transaction ID)
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
-        final user = _findUser(users, purchase.userId);
+        final user = _findUser(purchase.userId);
         final matchesUser = user != null &&
             (user.name.toLowerCase().contains(query) ||
                 user.email.toLowerCase().contains(query));
@@ -38,18 +235,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         if (!matchesUser && !matchesId) return false;
       }
 
-      // 2. Status Filter
-      if (_statusFilter != 'all') {
-        if (_statusFilter == 'success' &&
-            purchase.status != 'success' &&
-            purchase.status != 'completed') {
-          return false;
-        } else if (_statusFilter != 'success' && purchase.status != _statusFilter) {
-          return false;
-        }
-      }
-
-      // 3. Item Type Filter
+      // 2. Item Type Filter
       if (_itemTypeFilter != 'all') {
         final hasCourse = purchase.items.any((item) => item.testSeriesId == null);
         final hasTestSeries = purchase.items.any((item) => item.testSeriesId != null);
@@ -61,13 +247,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     }).toList();
   }
 
-  AdminUser? _findUser(List<AdminUser> users, String userId) {
-    if (users.isEmpty || userId.isEmpty) return null;
-    try {
-      return users.firstWhere((u) => u.uid == userId);
-    } catch (_) {
-      return null;
-    }
+  AdminUser? _findUser(String userId) {
+    if (userId.isEmpty) return null;
+    return _userCache[userId];
   }
 
   Future<void> _runMigration(BuildContext context) async {
@@ -94,10 +276,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     );
 
     if (confirm != true) return;
-
     if (!context.mounted) return;
 
-    // Show loading indicator dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -128,10 +308,11 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
             duration: const Duration(seconds: 5),
           ),
         );
+        _resetAndReload();
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.pop(context); // Close loading dialog
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Migration failed: $e'),
@@ -144,8 +325,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final adminService = context.read<FirebaseAdminService>();
-
     return AdminScaffold(
       title: 'Payments & Purchases',
       actions: [
@@ -155,81 +334,80 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           onPressed: () => _runMigration(context),
         ),
       ],
-      body: StreamBuilder<List<AdminUser>>(
-        stream: adminService.getUsers(),
-        builder: (context, usersSnapshot) {
-          if (usersSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (usersSnapshot.hasError) {
-            return Center(child: Text('Error loading users: ${usersSnapshot.error}'));
-          }
+      body: _buildContent(context),
+    );
+  }
 
-          final users = usersSnapshot.data ?? [];
+  Widget _buildContent(BuildContext context) {
+    if (_isLoading && _purchases.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-          return StreamBuilder<List<AdminPurchase>>(
-            stream: adminService.getAllPurchases(),
-            builder: (context, purchasesSnapshot) {
-              if (purchasesSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (purchasesSnapshot.hasError) {
-                return Center(
-                  child: Text('Error loading purchases: ${purchasesSnapshot.error}'),
-                );
-              }
+    if (_errorMessage != null && _purchases.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+            const SizedBox(height: 16),
+            Text('Error loading purchases: $_errorMessage'),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _resetAndReload,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
 
-              final allPurchases = purchasesSnapshot.data ?? [];
-              final filteredPurchases = _filterPurchases(allPurchases, users);
+    final filteredPurchases = _filteredPurchases;
 
-              // Aggregate Metrics
-              double totalRevenue = 0.0;
-              int successCount = 0;
-              int refundCount = 0;
+    // Aggregate Metrics from loaded purchases
+    double totalRevenue = 0.0;
+    int successCount = 0;
+    int refundCount = 0;
 
-              for (final p in allPurchases) {
-                if (p.status == 'success' || p.status == 'completed') {
-                  totalRevenue += p.amount;
-                  successCount++;
-                } else if (p.status == 'refunded') {
-                  refundCount++;
-                }
-              }
+    for (final p in _purchases) {
+      if (p.status == 'success' || p.status == 'completed') {
+        totalRevenue += p.amount;
+        successCount++;
+      } else if (p.status == 'refunded') {
+        refundCount++;
+      }
+    }
 
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Metrics Row
-                          _buildMetricsDashboard(
-                            constraints,
-                            totalRevenue: totalRevenue,
-                            successCount: successCount,
-                            refundCount: refundCount,
-                            totalCount: allPurchases.length,
-                          ),
-                          const SizedBox(height: 32),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          controller: _scrollController,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Metrics Row
+                _buildMetricsDashboard(
+                  constraints,
+                  totalRevenue: totalRevenue,
+                  successCount: successCount,
+                  refundCount: refundCount,
+                  totalCount: _purchases.length,
+                ),
+                const SizedBox(height: 32),
 
-                          // Search and Filters Panel
-                          _buildSearchFiltersPanel(context),
-                          const SizedBox(height: 24),
+                // Search and Filters Panel
+                _buildSearchFiltersPanel(context),
+                const SizedBox(height: 24),
 
-                          // Data Table Card
-                          _buildTransactionsCard(context, filteredPurchases, users),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
+                // Data Table Card
+                _buildTransactionsCard(context, filteredPurchases),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -296,11 +474,37 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Filters & Search',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Filters & Search',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                if (_startDate != null ||
+                    _endDate != null ||
+                    _statusFilter != 'all' ||
+                    _itemTypeFilter != 'all' ||
+                    _searchQuery.isNotEmpty)
+                  TextButton.icon(
+                    icon: const Icon(Icons.clear_all, size: 18),
+                    label: const Text('Reset All'),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                        _statusFilter = 'all';
+                        _itemTypeFilter = 'all';
+                        _dateFilterPreset = 'All';
+                        _startDate = null;
+                        _endDate = null;
+                      });
+                      _resetAndReload();
+                    },
                   ),
+              ],
             ),
             const SizedBox(height: 16),
             Row(
@@ -318,6 +522,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                               icon: const Icon(Icons.clear),
                               onPressed: () {
                                 _searchController.clear();
+                                _debounceTimer?.cancel();
                                 setState(() => _searchQuery = '');
                               },
                             )
@@ -330,7 +535,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         vertical: 14,
                       ),
                     ),
-                    onChanged: (val) => setState(() => _searchQuery = val),
+                    onChanged: _onSearchChanged,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -338,9 +543,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                 // Status Dropdown
                 Expanded(
                   flex: 1,
-                  child: DropdownButtonFormField<String>(
-                    // ignore: deprecated_member_use
-                    value: _statusFilter,
+                  child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Status',
                       border: OutlineInputBorder(
@@ -348,17 +551,29 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 12,
+                        vertical: 4,
                       ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'all', child: Text('All Statuses')),
-                      DropdownMenuItem(value: 'success', child: Text('Success')),
-                      DropdownMenuItem(value: 'refunded', child: Text('Refunded')),
-                      DropdownMenuItem(value: 'manual_enrollment', child: Text('Manual')),
-                      DropdownMenuItem(value: 'failed', child: Text('Failed')),
-                    ],
-                    onChanged: (val) => setState(() => _statusFilter = val!),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _statusFilter,
+                        isDense: true,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('All Statuses')),
+                          DropdownMenuItem(value: 'success', child: Text('Success')),
+                          DropdownMenuItem(value: 'refunded', child: Text('Refunded')),
+                          DropdownMenuItem(value: 'manual_enrollment', child: Text('Manual')),
+                          DropdownMenuItem(value: 'failed', child: Text('Failed')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null && val != _statusFilter) {
+                            setState(() => _statusFilter = val);
+                            _resetAndReload();
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -366,9 +581,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                 // Item Type Dropdown
                 Expanded(
                   flex: 1,
-                  child: DropdownButtonFormField<String>(
-                    // ignore: deprecated_member_use
-                    value: _itemTypeFilter,
+                  child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Product Type',
                       border: OutlineInputBorder(
@@ -376,16 +589,74 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 12,
+                        vertical: 4,
                       ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'all', child: Text('All Products')),
-                      DropdownMenuItem(value: 'courses', child: Text('Courses / Batches')),
-                      DropdownMenuItem(value: 'test_series', child: Text('Test Series')),
-                    ],
-                    onChanged: (val) => setState(() => _itemTypeFilter = val!),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _itemTypeFilter,
+                        isDense: true,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('All Products')),
+                          DropdownMenuItem(value: 'courses', child: Text('Courses / Batches')),
+                          DropdownMenuItem(value: 'test_series', child: Text('Test Series')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null && val != _itemTypeFilter) {
+                            setState(() => _itemTypeFilter = val);
+                          }
+                        },
+                      ),
+                    ),
                   ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Date Range Presets Row
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const Text('Date Range:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                ChoiceChip(
+                  label: const Text('All Time'),
+                  selected: _dateFilterPreset == 'All',
+                  onSelected: (selected) {
+                    if (selected) _setDatePreset('All');
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Today'),
+                  selected: _dateFilterPreset == 'Today',
+                  onSelected: (selected) {
+                    if (selected) _setDatePreset('Today');
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Last 7 Days'),
+                  selected: _dateFilterPreset == 'Last 7 Days',
+                  onSelected: (selected) {
+                    if (selected) _setDatePreset('Last 7 Days');
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Last 30 Days'),
+                  selected: _dateFilterPreset == 'Last 30 Days',
+                  onSelected: (selected) {
+                    if (selected) _setDatePreset('Last 30 Days');
+                  },
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.date_range, size: 16),
+                  label: Text(
+                    _dateFilterPreset == 'Custom' && _startDate != null && _endDate != null
+                        ? '${DateFormat('d MMM').format(_startDate!)} - ${DateFormat('d MMM yyyy').format(_endDate!)}'
+                        : 'Custom Range',
+                  ),
+                  onPressed: _selectCustomDateRange,
                 ),
               ],
             ),
@@ -399,7 +670,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   Widget _buildTransactionsCard(
     BuildContext context,
     List<AdminPurchase> purchases,
-    List<AdminUser> users,
   ) {
     return Card(
       elevation: 2,
@@ -504,7 +774,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                   ),
                 ],
                 rows: purchases.map((purchase) {
-                  final user = _findUser(users, purchase.userId);
+                  final user = _findUser(purchase.userId);
                   final userDisplayName = user?.name ?? 'Unknown Customer';
                   final userEmail = user?.email ?? purchase.userId;
 
@@ -621,6 +891,22 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     ],
                   );
                 }).toList(),
+              ),
+            ),
+          if (_isLoadingMore)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_hasMore)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.arrow_downward),
+                  label: const Text('Load More Transactions'),
+                  onPressed: _loadMorePurchases,
+                ),
               ),
             ),
         ],
@@ -838,8 +1124,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                 ),
                                 subtitle: Text(
                                   item.testSeriesId != null
-                                      ? 'Test Series ID: ${item.testSeriesId}'
-                                      : 'Course ID: ${item.courseId}',
+                                  ? 'Test Series ID: ${item.testSeriesId}'
+                                  : 'Course ID: ${item.courseId}',
                                   style: const TextStyle(fontSize: 11),
                                 ),
                                 trailing: Text(
@@ -929,7 +1215,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
   // --- Interactive Process Refund Confirmation Dialog ---
   void _confirmRefundDialog(BuildContext context, AdminPurchase purchase) {
-    bool alsoUnenroll = true; // Enabled by default as it is standard admin intent
+    bool alsoUnenroll = true;
     bool isSubmitting = false;
 
     showDialog(
@@ -961,7 +1247,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Interactive toggle for auto-unenrollment (as requested by User)
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -994,8 +1279,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         ),
                         Switch(
                           value: alsoUnenroll,
-                          // ignore: deprecated_member_use
-                          activeColor: Colors.orange.shade800,
+                          activeThumbColor: Colors.orange.shade800,
                           onChanged: (val) {
                             setStateDialog(() => alsoUnenroll = val);
                           },
@@ -1032,6 +1316,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                   backgroundColor: Colors.green,
                                 ),
                               );
+                              _resetAndReload();
                             }
                           } catch (e) {
                             setStateDialog(() => isSubmitting = false);
@@ -1126,7 +1411,6 @@ class _HoverMetricCardState extends State<_HoverMetricCard> {
           ),
           child: Stack(
             children: [
-              // Subtle background design
               Positioned(
                 right: -20,
                 bottom: -20,

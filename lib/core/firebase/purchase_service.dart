@@ -355,7 +355,9 @@ class PurchaseService {
         final status = data['status'] as String?;
         if (userId == null || status == null) continue;
         if (!validStatuses.contains(status) &&
-            status != 'manual_enrollment') continue;
+            status != 'manual_enrollment') {
+          continue;
+        }
 
         final items = data['items'] as List<dynamic>? ?? [];
         for (final item in items) {

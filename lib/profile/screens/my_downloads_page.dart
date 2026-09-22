@@ -237,6 +237,7 @@ class _DownloadItemCard extends StatelessWidget {
     
     final file = File(item.filePath!);
     if (!await file.exists()) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('File not found on device')),
       );

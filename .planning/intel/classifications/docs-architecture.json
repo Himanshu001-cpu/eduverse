@@ -1,0 +1,23 @@
+{
+  "source_path": "docs/architecture.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse System Architecture",
+  "summary": "System architecture overview, multiplatform client design, state management, technology stack tables, and high-level component diagrams.",
+  "scope": [
+    "system architecture",
+    "Flutter multiplatform",
+    "Firebase BaaS",
+    "state management",
+    "Hive",
+    "Provider"
+  ],
+  "cross_refs": [
+    "docs/api-specs.md",
+    "docs/db-schema.md"
+  ],
+  "locked": false,
+  "precedence": 3,
+  "notes": "Architectural documentation providing high-level topology and component diagrams."
+}

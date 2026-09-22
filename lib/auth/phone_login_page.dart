@@ -128,6 +128,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> with SingleTickerProvid
         if (!mounted) return;
         if (result.isSuccess && result.user != null) {
           await _handleNewUserProfile(result.user!);
+          if (!mounted) return;
           Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
         } else {
           setState(() => _isLoading = false);
@@ -152,6 +153,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> with SingleTickerProvid
 
     if (result.isSuccess && result.user != null) {
       await _handleNewUserProfile(result.user!);
+      if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } else {
       setState(() => _isLoading = false);

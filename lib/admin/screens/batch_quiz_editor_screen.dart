@@ -834,6 +834,7 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                             RichDocumentEditor(
                               initialDeltaJson: _questions[index].questionDelta,
                               initialHtml: _questions[index].questionHtml,
+                              initialText: _questions[index].questionText,
                               labelText: 'Question Text',
                               autoSaveDebounceDuration: const Duration(milliseconds: 300),
                               onSave: (delta, html) {
@@ -900,8 +901,9 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                               ...List.generate(4, (optIndex) {
                                 final options = _questions[index].options;
                                 // Fix bounds if options are missing/corrupted
-                                if (options.length <= optIndex)
+                                if (options.length <= optIndex) {
                                   return const SizedBox();
+                                }
 
                                 final option = options[optIndex];
                                 return Padding(
@@ -935,6 +937,7 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                                         child: RichDocumentEditor(
                                           initialDeltaJson: option.textDelta,
                                           initialHtml: option.textHtml,
+                                          initialText: option.text,
                                           labelText: 'Option ${String.fromCharCode(65 + optIndex)}',
                                           autoSaveDebounceDuration: const Duration(milliseconds: 300),
                                           onSave: (delta, html) {
@@ -965,6 +968,7 @@ class _BatchQuizEditorScreenState extends State<BatchQuizEditorScreen> {
                             RichDocumentEditor(
                               initialDeltaJson: _questions[index].explanationDelta,
                               initialHtml: _questions[index].explanationHtml,
+                              initialText: _questions[index].explanation,
                               labelText: 'Explanation (Optional)',
                               autoSaveDebounceDuration: const Duration(milliseconds: 300),
                               onSave: (delta, html) {

@@ -311,7 +311,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -330,7 +330,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -384,13 +384,58 @@ void main() {
       expect(find.byKey(const Key('rich_content_html_widget')), findsOneWidget);
     });
 
+    testWidgets('F4_6: Table builder toggle header row generates header=true markdown and renders th elements in HTML', (WidgetTester tester) async {
+      String savedHtml = '';
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Editor',
+            onSave: (_, html) => savedHtml = html,
+          ),
+        ),
+      ));
+      await tester.tap(find.byKey(const Key('btn_insert_table')));
+      await tester.pump();
+      await tester.enterText(find.byKey(const Key('table_rows_input')), '2');
+      await tester.enterText(find.byKey(const Key('table_cols_input')), '2');
+      await tester.tap(find.byKey(const Key('table_header_toggle')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('btn_submit_table')));
+      await tester.pump();
+
+      final editorField = tester.widget<TextField>(find.byKey(const Key('editor_text_field')));
+      expect(editorField.controller!.text, contains('[table rows=2 cols=2 header=true]'));
+      expect(editorField.controller!.text, contains('Header 1'));
+
+      await tester.tap(find.byKey(const Key('btn_manual_save')));
+      await tester.pump();
+      expect(savedHtml, contains('<table class="rich-table"'));
+      expect(savedHtml, contains('<th style="padding: 8px; font-weight: bold; background-color: rgba(0,0,0,0.06); text-align: left;">Header 1</th>'));
+      expect(savedHtml, contains('<td style="padding: 8px;">Cell 3</td>'));
+    });
+
+    testWidgets('F4_7: Render table inside responsive scrollable card with horizontal scroll and gradient shadow cue', (WidgetTester tester) async {
+      const html = '<table class="rich-table"><tr><th>Header 1</th><th>Header 2</th></tr><tr><td>Data 1</td><td>Data 2</td></tr></table>';
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: RichContentViewer(htmlContent: html),
+        ),
+      ));
+      await tester.pump();
+      expect(find.byKey(const Key('responsive_table_card')), findsOneWidget);
+      expect(find.byKey(const Key('table_horizontal_scroll')), findsOneWidget);
+      final scrollFinder = find.byKey(const Key('table_horizontal_scroll'));
+      final SingleChildScrollView scrollView = tester.widget(scrollFinder);
+      expect(scrollView.scrollDirection, Axis.horizontal);
+    });
+
     // === FEATURE 5: Equation Builder ===
     testWidgets('F5_1: Show equation builder dialog and insert simple equation', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -408,7 +453,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -442,13 +487,78 @@ void main() {
       expect(parsed, contains('&theta;'));
     });
 
+    testWidgets('F5_6: EquationBuilder category selector filters symbols across Algebra, Calculus, Greek, Matrices, and Symbols (D-03)', (WidgetTester tester) async {
+      String savedLatex = '';
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: EquationBuilder(
+            onEquationSaved: (eq) => savedLatex = eq,
+          ),
+        ),
+      ));
+
+      // Verify category chips exist
+      expect(find.byKey(const Key('category_algebra')), findsOneWidget);
+      expect(find.byKey(const Key('category_calculus')), findsOneWidget);
+      expect(find.byKey(const Key('category_greek')), findsOneWidget);
+      expect(find.byKey(const Key('category_matrices')), findsOneWidget);
+      expect(find.byKey(const Key('category_symbols')), findsOneWidget);
+
+      // Select Matrices category and tap a matrix preset
+      await tester.tap(find.byKey(const Key('category_matrices')));
+      await tester.pump();
+
+      expect(find.text('Matrix ( )'), findsOneWidget);
+      await tester.tap(find.text('Matrix ( )'));
+      await tester.pump();
+
+      final input = tester.widget<TextField>(find.byKey(const Key('latex_input')));
+      expect(input.controller!.text, contains(r'\begin{pmatrix}'));
+
+      await tester.tap(find.byKey(const Key('save_equation_button')));
+      await tester.pump();
+      expect(savedLatex, contains(r'\begin{pmatrix}'));
+    });
+
+    testWidgets('F5_7: RichContentViewer renders block display math and inline math natively on canvas (D-04)', (WidgetTester tester) async {
+      const html = '<p>Solve inline <span class="math-latex math-inline" data-latex="x%5E2%20%2B%20y%5E2%20%3D%20r%5E2">x^2 + y^2 = r^2</span> '
+          'and block: <div class="math-latex math-block" data-latex="%5Cint_%7Ba%7D%5E%7Bb%7D%20f(x)%20dx">\\int_{a}^{b} f(x) dx</div></p>';
+
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: RichContentViewer(htmlContent: html),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.byType(Math), findsNWidgets(2));
+    });
+
+    testWidgets('F5_8: RichContentViewer adapts math formula color in Dark Theme (D-04)', (WidgetTester tester) async {
+      const html = '<span class="math-latex" data-latex="E%20%3D%20mc%5E2">E = mc^2</span>';
+
+      await tester.pumpWidget(MaterialApp(
+        theme: ThemeData.dark(),
+        home: const Scaffold(
+          body: RichContentViewer(htmlContent: html),
+        ),
+      ));
+      await tester.pump();
+
+      final mathWidget = tester.widget<Math>(find.byType(Math));
+      expect(mathWidget.textStyle?.color, isNotNull);
+      // Under dark theme, color should adapt to theme's body text color
+      final darkThemeColor = ThemeData.dark().textTheme.bodyMedium?.color;
+      expect(mathWidget.textStyle!.color, equals(darkThemeColor));
+    });
+
     // === FEATURE 6: Whiteboard Diagrams ===
     testWidgets('F6_1: Whiteboard inserts diagram block tags into editor', (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -482,7 +592,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -501,7 +611,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -526,6 +636,62 @@ void main() {
       expect(find.byKey(const Key('rich_diagram_widget')), findsOneWidget);
     });
 
+    testWidgets('F6_6: RichTextService.uploadDiagramToStorage uploads to /diagrams/ and returns CDN URL (D-05, T-02-04)', (WidgetTester tester) async {
+      final svgBytes = utf8.encode('<svg><circle cx="50" cy="50" r="20" /></svg>');
+      final url = await RichTextService.uploadDiagramToStorage('test_diagram.svg', svgBytes);
+
+      expect(url, contains('https://firebasestorage.googleapis.com'));
+      expect(url, contains('diagrams%2Ftest_diagram.svg'));
+    });
+
+    testWidgets('F6_7: Diagram visual card displays in editor with fullscreen preview, replace, and delete actions (D-06)', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Editor with Diagram',
+            initialText: 'Here is a diagram: [diagram]<svg><rect width="50" height="50"/></svg>[/diagram]',
+            onSave: (_, _) {},
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.byKey(const Key('diagram_card_0')), findsOneWidget);
+      expect(find.byKey(const Key('btn_preview_diagram_0')), findsOneWidget);
+      expect(find.byKey(const Key('btn_replace_diagram_0')), findsOneWidget);
+      expect(find.byKey(const Key('btn_delete_diagram_0')), findsOneWidget);
+
+      // Tap preview
+      await tester.tap(find.byKey(const Key('btn_preview_diagram_0')));
+      await tester.pumpAndSettle();
+      expect(find.text('Diagram Fullscreen Preview'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('btn_close_diagram_fullscreen')));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('F6_8: Deleting diagram card cleanly removes diagram tag from editor text (D-06)', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Editor with Diagram',
+            initialText: 'Prefix [diagram]<svg><circle r="10"/></svg>[/diagram] Suffix',
+            onSave: (_, _) {},
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.byKey(const Key('diagram_card_0')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('btn_delete_diagram_0')));
+      await tester.pump();
+
+      expect(find.byKey(const Key('diagram_card_0')), findsNothing);
+      final field = tester.widget<TextField>(find.byKey(const Key('editor_text_field')));
+      expect(field.controller!.text, isNot(contains('[diagram]')));
+      expect(field.controller!.text, contains('Prefix'));
+      expect(field.controller!.text, contains('Suffix'));
+    });
+
     // === FEATURE 7: Dual-Format Storage ===
     testWidgets('F7_1: RichTextService serializes delta JSON and HTML snapshot', (WidgetTester tester) async {
       final serialized = RichTextService.serializeForFirestore(deltaJson: '{"ops":[]}', html: '<p></p>');
@@ -541,7 +707,7 @@ void main() {
           body: RichDocumentEditor(
             labelText: 'Editor',
             autoSaveDebounceDuration: const Duration(milliseconds: 100),
-            onSave: (_, __) => saveCount++,
+            onSave: (_, _) => saveCount++,
           ),
         ),
       ));
@@ -575,7 +741,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) => saveCount++,
+            onSave: (_, _) => saveCount++,
           ),
         ),
       ));
@@ -588,6 +754,81 @@ void main() {
       final serialized = RichTextService.serializeForFirestore(deltaJson: '{}', html: '');
       final dateStr = serialized['updatedAt'] as String;
       expect(DateTime.tryParse(dateStr), isNotNull);
+    });
+
+    testWidgets('F7_6: RichTextService serializes dual format with contentDelta, contentHtml, content, plainText, and legacy aliases (D-01)', (WidgetTester tester) async {
+      const delta = '{"ops":[{"insert":"Hello Eduverse\\n"}]}';
+      const html = '<p>Hello Eduverse</p>';
+      final serialized = RichTextService.serializeForFirestore(deltaJson: delta, html: html);
+
+      expect(serialized['contentDelta'], equals(delta));
+      expect(serialized['contentHtml'], equals(html));
+      expect(serialized['deltaJson'], equals(delta));
+      expect(serialized['htmlSnapshot'], equals(html));
+      expect(serialized['content'], contains('Hello Eduverse'));
+      expect(serialized['plainText'], contains('Hello Eduverse'));
+      expect(serialized['updatedAt'], isNotNull);
+    });
+
+    testWidgets('F7_7: RichTextService sanitizes script tags and inline event handlers (T-02-01)', (WidgetTester tester) async {
+      const delta = '{"ops":[{"insert":"Malicious Test"}]}';
+      const maliciousHtml = '<p>Safe</p><script>alert("XSS")</script><img src="x" onerror="alert(1)" /><a href="javascript:steal()">Link</a>';
+      final serialized = RichTextService.serializeForFirestore(deltaJson: delta, html: maliciousHtml);
+
+      expect(serialized['contentHtml'], isNot(contains('<script>')));
+      expect(serialized['contentHtml'], isNot(contains('onerror')));
+      expect(serialized['contentHtml'], isNot(contains('javascript:steal()')));
+      expect(serialized['contentHtml'], contains('<p>Safe</p>'));
+    });
+
+    testWidgets('F7_8: RichDocumentEditor loads legacy plain text via initialText and emits dual format on save (D-02)', (WidgetTester tester) async {
+      String savedDelta = '';
+      String savedHtml = '';
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Legacy Document',
+            initialText: 'This is legacy plain text content',
+            onSave: (delta, html) {
+              savedDelta = delta;
+              savedHtml = html;
+            },
+          ),
+        ),
+      ));
+
+      final textField = tester.widget<TextField>(find.byKey(const Key('editor_text_field')));
+      expect(textField.controller!.text, equals('This is legacy plain text content'));
+
+      await tester.tap(find.byKey(const Key('btn_manual_save')));
+      await tester.pump();
+
+      expect(savedDelta, contains('This is legacy plain text content'));
+      expect(savedHtml, contains('This is legacy plain text content'));
+    });
+
+    testWidgets('F7_9: RichDocumentEditor triggers onSaveDualFormat callback with full payload', (WidgetTester tester) async {
+      Map<String, dynamic>? dualPayload;
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RichDocumentEditor(
+            labelText: 'Dual Format Editor',
+            onSave: (_, _) {},
+            onSaveDualFormat: (payload) {
+              dualPayload = payload;
+            },
+          ),
+        ),
+      ));
+
+      await tester.enterText(find.byKey(const Key('editor_text_field')), 'Testing dual save');
+      await tester.tap(find.byKey(const Key('btn_manual_save')));
+      await tester.pump();
+
+      expect(dualPayload, isNotNull);
+      expect(dualPayload!['contentDelta'], contains('Testing dual save'));
+      expect(dualPayload!['contentHtml'], contains('Testing dual save'));
+      expect(dualPayload!['content'], contains('Testing dual save'));
     });
 
     // === FEATURE 8: Student Viewer & Compatibility ===
@@ -711,7 +952,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -729,7 +970,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -747,7 +988,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -765,7 +1006,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -783,7 +1024,7 @@ void main() {
         home: Scaffold(
           body: RichDocumentEditor(
             labelText: 'Editor',
-            onSave: (_, __) {},
+            onSave: (_, _) {},
           ),
         ),
       ));
@@ -1032,7 +1273,7 @@ void main() {
           body: RichDocumentEditor(
             labelText: 'Editor',
             autoSaveDebounceDuration: const Duration(milliseconds: 100),
-            onSave: (_, __) => saveCount++,
+            onSave: (_, _) => saveCount++,
           ),
         ),
       ));
@@ -1245,7 +1486,7 @@ void main() {
             body: RichDocumentEditor(
               labelText: 'Debounce Editor',
               autoSaveDebounceDuration: const Duration(milliseconds: 300),
-              onSave: (_, __) {
+              onSave: (_, _) {
                 saveCount++;
               },
             ),

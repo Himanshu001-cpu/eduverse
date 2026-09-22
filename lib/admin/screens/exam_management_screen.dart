@@ -39,7 +39,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
     });
   }
 
-  Future<void> _saveExam(BuildContext context, StudyController controller) async {
+  Future<void> _saveExam(StudyController controller) async {
     setState(() {
       _errorMsg = null;
     });
@@ -89,6 +89,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
 
     try {
       await FirebaseFirestore.instance.collection('exams').doc(id).set(examData);
+      if (!mounted) return;
       _clearForm();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Exam saved successfully')),
@@ -100,7 +101,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
     }
   }
 
-  Future<void> _deleteExam(BuildContext context, String examId) async {
+  Future<void> _deleteExam(String examId) async {
     final confirm = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -123,17 +124,20 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
       ),
     );
 
-    if (confirm == true) {
-      try {
-        await FirebaseFirestore.instance.collection('exams').doc(examId).delete();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Exam deleted successfully')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting exam: $e')),
-        );
-      }
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('exams').doc(examId).delete();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Exam deleted successfully')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting exam: $e')),
+      );
     }
   }
 
@@ -285,7 +289,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            onPressed: () => _saveExam(context, controller),
+                            onPressed: () => _saveExam(controller),
                             child: const Text('Save Exam', style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ),
@@ -369,7 +373,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                           IconButton(
                             key: Key('admin_delete_exam_$examId'),
                             icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteExam(context, examId),
+                            onPressed: () => _deleteExam(examId),
                           ),
                         ],
                       ),

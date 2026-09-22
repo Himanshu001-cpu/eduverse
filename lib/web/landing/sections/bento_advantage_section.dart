@@ -210,7 +210,7 @@ class _LargeBentoCardState extends State<_LargeBentoCard> {
                         child: Image.network(
                           widget.imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
                         ),
                       ),
                     ),

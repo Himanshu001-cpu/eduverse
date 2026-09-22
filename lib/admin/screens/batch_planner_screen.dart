@@ -212,7 +212,7 @@ class _BatchPlannerScreenState extends State<BatchPlannerScreen> {
               Row(
                 children: [
                   OutlinedButton.icon(
-                    onPressed: _isSeeding ? null : () => _populateDefaultWeeklyTemplate(context, service, plannerItems),
+                    onPressed: _isSeeding ? null : () => _populateDefaultWeeklyTemplate(service, plannerItems),
                     icon: _isSeeding
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.auto_fix_high, size: 16),
@@ -872,7 +872,7 @@ class _BatchPlannerScreenState extends State<BatchPlannerScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = items[index];
               return ListTile(
@@ -1135,7 +1135,7 @@ class _BatchPlannerScreenState extends State<BatchPlannerScreen> {
               Text('Sprint Synchronization Tip', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: EduverseTheme.primary)),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             'Keep core GS lectures during Slot 1 (08:00 - 10:00) to maximize student retention. Schedule DPP reviews on Friday evening before weekend mock assessments.',
             style: TextStyle(fontSize: 11, color: EduverseTheme.deepNavy),
@@ -1146,7 +1146,6 @@ class _BatchPlannerScreenState extends State<BatchPlannerScreen> {
   }
 
   Future<void> _populateDefaultWeeklyTemplate(
-    BuildContext context,
     FirebaseAdminService service,
     List<AdminPlannerItem> currentItems,
   ) async {

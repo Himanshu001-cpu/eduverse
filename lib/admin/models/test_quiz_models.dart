@@ -1,5 +1,6 @@
 /// Models used by the test series test editor for subject-based quiz questions.
 /// These are simple mutable models for in-editor state management.
+library;
 
 class QuizSubject {
   String name;

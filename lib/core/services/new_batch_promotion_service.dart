@@ -26,11 +26,9 @@ class NewBatchPromotionService {
 
   NewBatchPromotionService({
     FirebaseFirestore? firestore,
-    FirebaseAuth? auth,
-    SharedPreferences? prefs,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth,
-        _prefs = prefs;
+    this._auth,
+    this._prefs,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Pure query logic that runs business rules to find the newest eligible promo.
   /// Decoupled from BuildContext, making it fully unit-testable!

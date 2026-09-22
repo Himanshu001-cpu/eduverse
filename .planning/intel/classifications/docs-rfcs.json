@@ -1,0 +1,27 @@
+{
+  "source_path": "docs/rfcs.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — Technical RFCs",
+  "summary": "Nine technical architecture decision records (RFC-001 through RFC-009) locking critical platform decisions: dual-format rich content, transactional purchase pipeline, protected e-book encryption, hybrid lecture progress, dual-storage RBAC, recurring scheduler, course-level content migration, hybrid RTDB presence, and push notification delivery.",
+  "scope": [
+    "rich content storage",
+    "purchase pipeline",
+    "e-book protection",
+    "lecture progress persistence",
+    "RBAC authorization",
+    "recurring class scheduling",
+    "batch migration",
+    "viewer presence",
+    "push notifications"
+  ],
+  "cross_refs": [
+    "docs/architecture.md",
+    "docs/api-specs.md",
+    "docs/db-schema.md"
+  ],
+  "locked": true,
+  "precedence": 0,
+  "notes": "Strong ADR signals with explicit Problem, Decision, Rationale, and File bindings across 9 locked architectural decisions."
+}

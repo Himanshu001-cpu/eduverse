@@ -253,7 +253,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     );
   }
 
-  void _showAssignFacultyDialog(BuildContext context, FirebaseAdminService service, String courseId) {
+  void _showAssignFacultyDialog(FirebaseAdminService service, String courseId) {
     String? selectedTeacherUid;
     String? selectedTeacherName;
     final subjectCtrl = TextEditingController(text: _studioDiscipline);
@@ -261,7 +261,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDlgState) {
+        builder: (dlgCtx, setDlgState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Row(
@@ -275,7 +275,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
               width: 440,
               child: StreamBuilder<List<AdminUser>>(
                 stream: service.getTeachers(),
-                builder: (context, snapshot) {
+                builder: (streamCtx, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox(
                       height: 120,
@@ -1316,7 +1316,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                   IconButton(
                     tooltip: 'Accredit Faculty Member',
                     icon: const Icon(Icons.person_add_outlined, size: 18, color: EduverseTheme.primary),
-                    onPressed: () => _showAssignFacultyDialog(context, service, courseId),
+                    onPressed: () => _showAssignFacultyDialog(service, courseId),
                   ),
                 ],
               ),
@@ -1731,7 +1731,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                       children: [
                         if (FolderClipboard.hasData && FolderClipboard.isSubjectOnly) ...[
                           ElevatedButton.icon(
-                            onPressed: () => _handlePasteSubject(context, service, lectures, notes, dpps),
+                            onPressed: () => _handlePasteSubject(service, lectures, notes, dpps),
                             icon: const Icon(Icons.content_paste, size: 16),
                             label: const Text('Paste Subject', style: TextStyle(fontSize: 12)),
                             style: ElevatedButton.styleFrom(
@@ -1826,7 +1826,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                                                         fit: BoxFit.cover,
                                                         width: 40,
                                                         height: 40,
-                                                        errorBuilder: (_, __, ___) => Image.asset(
+                                                        errorBuilder: (_, _, _) => Image.asset(
                                                           'assets/icon.png',
                                                           fit: BoxFit.cover,
                                                         ),
@@ -1871,11 +1871,11 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                                         constraints: const BoxConstraints(),
                                         onSelected: (val) async {
                                           if (val == 'upload_logo') {
-                                            await _pickAndUploadSubjectLogoForSubject(context, service, subject);
+                                            await _pickAndUploadSubjectLogoForSubject(service, subject);
                                           } else if (val == 'remove_logo') {
                                             await service.removeCourseSubjectLogo(widget.courseId, subject);
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(this.context).showSnackBar(
                                                 SnackBar(content: Text('Logo removed for $subject')),
                                               );
                                             }
@@ -2193,7 +2193,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                       const SizedBox(width: 8),
                       if (_isSelectMode && _selectedLectureIds.isNotEmpty) ...[
                         ElevatedButton.icon(
-                          onPressed: () => _bulkSyncSelectedLectures(context, service, filteredLectures),
+                          onPressed: () => _bulkSyncSelectedLectures(service, filteredLectures),
                           icon: const Icon(Icons.sync, size: 16),
                           label: const Text('Sync Selected', style: TextStyle(fontSize: 12)),
                           style: ElevatedButton.styleFrom(
@@ -2205,7 +2205,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton.icon(
-                          onPressed: () => _bulkDelinkSelectedLectures(context, service, filteredLectures),
+                          onPressed: () => _bulkDelinkSelectedLectures(service, filteredLectures),
                           icon: const Icon(Icons.link_off, size: 16),
                           label: const Text('Delink Selected', style: TextStyle(fontSize: 12)),
                           style: ElevatedButton.styleFrom(
@@ -2788,7 +2788,6 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
   // ================= DIALOGS & ACTIONS =================
 
   Future<void> _pickAndUploadSubjectLogoForSubject(
-    BuildContext context,
     FirebaseAdminService service,
     String subjectName,
   ) async {
@@ -2801,6 +2800,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     final file = result.files.first;
     final bytes = file.bytes;
     if (bytes == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not read image file bytes'), backgroundColor: Colors.red),
       );
@@ -2817,7 +2817,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
       );
       await service.updateCourseSubjectLogo(widget.courseId, subjectName, logoUrl);
 
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Logo updated for $subjectName!'),
@@ -2826,7 +2826,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error uploading logo: $e'),
@@ -3286,7 +3286,6 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
   }
 
   void _handlePasteSubject(
-    BuildContext context,
     FirebaseAdminService service,
     List<AdminLecture> lectures,
     List<AdminNote> notes,
@@ -3338,6 +3337,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     );
 
     if (targetSubjectName == null || targetSubjectName.isEmpty) return;
+    if (!mounted) return;
 
     // Check conflict (if a subject with this name already exists in current list)
     final Set<String> currentSubjects = {};
@@ -3375,7 +3375,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
       if (merge != true) return;
     }
 
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Pasting subject, please wait...')),
@@ -3389,13 +3389,13 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
         targetSubject: targetSubjectName,
       );
 
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Successfully pasted subject to "$targetSubjectName"')),
         );
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to paste subject: $e')),
         );
@@ -3501,7 +3501,6 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
   }
 
   Future<void> _bulkSyncSelectedLectures(
-    BuildContext context,
     FirebaseAdminService service,
     List<AdminLecture> allLectures,
   ) async {
@@ -3522,18 +3521,16 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
       }
     }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Successfully synced ${selectedLectures.length} selected lecture(s) across $totalSynced location(s) in one go!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Successfully synced ${selectedLectures.length} selected lecture(s) across $totalSynced location(s) in one go!'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   Future<void> _bulkDelinkSelectedLectures(
-    BuildContext context,
     FirebaseAdminService service,
     List<AdminLecture> allLectures,
   ) async {
@@ -3561,6 +3558,7 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
     );
 
     if (confirm != true) return;
+    if (!mounted) return;
 
     for (final lec in selectedLectures) {
       if (lec.linkedCourses.isNotEmpty) {
@@ -3573,18 +3571,17 @@ class _LectureEditorScreenState extends State<LectureEditorScreen> {
       }
     }
 
-    if (mounted) {
-      setState(() {
-        _selectedLectureIds.clear();
-        _isSelectMode = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selected lectures delinked in one go!'),
-          backgroundColor: Colors.blue,
-        ),
-      );
-    }
+    if (!mounted) return;
+    setState(() {
+      _selectedLectureIds.clear();
+      _isSelectMode = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Selected lectures delinked in one go!'),
+        backgroundColor: Colors.blue,
+      ),
+    );
   }
 
   Future<void> _confirmAndSyncLecture(BuildContext context, FirebaseAdminService service, AdminLecture lecture) async {

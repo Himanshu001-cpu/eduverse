@@ -94,9 +94,16 @@ dependencies:
   flutter_math_fork: any
   flutter_widget_from_html_core: any
 
+  # Direct dependencies previously imported transitively
+  path: ^1.9.0
+  webview_flutter: ^4.10.0
+  web: ^1.0.0
+  syncfusion_flutter_core: ^28.2.7
+  flutter_web_plugins:
+    sdk: flutter
+
 dev_dependencies:
   flutter_launcher_icons: "^0.14.4"
-
 
   flutter_test:
     sdk: flutter
@@ -107,6 +114,11 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # Platform interfaces required for test harness mocking
+  plugin_platform_interface: ^2.1.8
+  url_launcher_platform_interface: ^2.3.2
+  cloud_firestore_platform_interface: ^8.0.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

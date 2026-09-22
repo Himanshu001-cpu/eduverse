@@ -120,7 +120,7 @@ class BatchQuizListScreen extends StatelessWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(24),
             itemCount: quizzes.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final quiz = quizzes[index];
               return Container(

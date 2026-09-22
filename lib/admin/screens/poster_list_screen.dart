@@ -105,7 +105,7 @@ class _PosterCard extends StatelessWidget {
                       ? Image.network(
                           poster.thumbnailUrl,
                           fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => _buildFallback(),
+                          errorBuilder: (_, _, _) => _buildFallback(),
                         )
                       : _buildFallback(),
                 ),

@@ -1,8 +1,18 @@
 import 'package:eduverse/study/domain/models/study_entities.dart';
+import 'package:eduverse/study/models/study_models.dart';
 
 abstract class IStudyRepository {
   /// Stream of batches the user is enrolled in, including progress.
   Stream<List<StudyBatch>> getEnrolledBatches(String userId);
+
+  /// Stream of workbooks assigned to the current user.
+  Stream<List<WorkbookModel>> getWorkbooks();
+
+  /// Stream of enrolled courses for the current user.
+  Stream<List<StudyCourseModel>> getEnrolledCourses();
+
+  /// Stream of topic nodes for topic map view.
+  Stream<List<TopicNodeModel>> getTopics();
 
   /// Get list of lectures for a specific batch.
   Future<List<StudyLecture>> getBatchLectures(

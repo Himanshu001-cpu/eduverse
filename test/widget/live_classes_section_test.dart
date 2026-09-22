@@ -5,6 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eduverse/study/domain/models/study_entities.dart';
+import 'package:eduverse/study/models/study_models.dart';
 import 'package:eduverse/study/domain/repositories/i_study_repository.dart';
 import 'package:eduverse/study/presentation/providers/study_controller.dart';
 import 'package:eduverse/study/presentation/widgets/live_classes_section.dart';
@@ -98,6 +99,15 @@ class FakeStudyRepository implements IStudyRepository {
 
   @override
   Future<List<StudyQuiz>> getRecordedBatchQuizzes(String courseId, String batchId) async => [];
+
+  @override
+  Stream<List<WorkbookModel>> getWorkbooks() => Stream.value([]);
+
+  @override
+  Stream<List<StudyCourseModel>> getEnrolledCourses() => Stream.value([]);
+
+  @override
+  Stream<List<TopicNodeModel>> getTopics() => Stream.value([]);
 }
 
 void main() {

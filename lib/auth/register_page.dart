@@ -304,7 +304,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
             child: Image.asset(
               'assets/auth/eduverse_crest.png',
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 20, color: EduverseColors.primary),
+              errorBuilder: (_, _, _) => const Icon(Icons.school, size: 20, color: EduverseColors.primary),
             ),
           ),
         ),
@@ -410,7 +410,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
         child: Image.asset(
           assetPath,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
+          errorBuilder: (_, _, _) => Container(
             color: EduverseColors.surfaceContainerHigh,
             child: const Icon(Icons.person, size: 16, color: EduverseColors.primary),
           ),

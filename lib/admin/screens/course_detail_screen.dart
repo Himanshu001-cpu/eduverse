@@ -263,7 +263,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                       width: 140,
                       height: 140,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _defaultHeroImage(),
+                      errorBuilder: (_, _, _) => _defaultHeroImage(),
                     )
                   : _defaultHeroImage(),
             ),
@@ -821,7 +821,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: classes.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, i) {
                     final lc = classes[i];
                     return Container(
@@ -1142,7 +1142,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _filteredUsers.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: EduverseTheme.surfaceContainerHigh),
+              separatorBuilder: (_, _) => const Divider(height: 1, color: EduverseTheme.surfaceContainerHigh),
               itemBuilder: (context, index) {
                 final user = _filteredUsers[index];
                 return ListTile(

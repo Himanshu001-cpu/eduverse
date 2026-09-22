@@ -250,7 +250,7 @@ class _RecordedBatchDetailScreenState extends State<RecordedBatchDetailScreen>
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _notes.length,
-      separatorBuilder: (_, __) => const Divider(),
+      separatorBuilder: (_, _) => const Divider(),
       itemBuilder: (context, index) {
         final note = _notes[index];
         return ListTile(
@@ -294,7 +294,7 @@ class _RecordedBatchDetailScreenState extends State<RecordedBatchDetailScreen>
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _dpps.length,
-      separatorBuilder: (_, __) => const Divider(),
+      separatorBuilder: (_, _) => const Divider(),
       itemBuilder: (context, index) {
         final dpp = _dpps[index];
         return ListTile(
@@ -334,7 +334,7 @@ class _RecordedBatchDetailScreenState extends State<RecordedBatchDetailScreen>
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _quizzes.length,
-      separatorBuilder: (_, __) => const Divider(),
+      separatorBuilder: (_, _) => const Divider(),
       itemBuilder: (context, index) {
         final quiz = _quizzes[index];
         return ListTile(

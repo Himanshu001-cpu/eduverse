@@ -1086,7 +1086,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                                 _selectedTeacherUid = null;
                                 _isSavingTeacher = false;
                               });
-                              if (context.mounted) {
+                              if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Teacher assigned successfully!'),
@@ -1096,7 +1096,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                               }
                             } catch (e) {
                               setState(() => _isSavingTeacher = false);
-                              if (context.mounted) {
+                              if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Error assigning teacher: $e'),
@@ -1311,7 +1311,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: allSubjects.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final subjectName = allSubjects[index];
                       final logoUrl = _subjectLogos[subjectName];
@@ -1344,7 +1344,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                                               fit: BoxFit.cover,
                                               width: 50,
                                               height: 50,
-                                              errorBuilder: (_, __, ___) => Image.asset('assets/icon.png', fit: BoxFit.cover),
+                                              errorBuilder: (_, _, _) => Image.asset('assets/icon.png', fit: BoxFit.cover),
                                             ),
                                           )
                                         : ClipRRect(
@@ -1474,6 +1474,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
     }
 
     final mimeType = lookupMimeType(file.name) ?? 'image/jpeg';
+    if (!mounted) return;
     final service = context.read<FirebaseAdminService>();
 
     setState(() {

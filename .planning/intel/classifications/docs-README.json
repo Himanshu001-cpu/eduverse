@@ -1,0 +1,16 @@
+{
+  "source_path": "docs/README.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse Documentation Index",
+  "summary": "Documentation map, directory structure, and overview of all documentation files in docs/.",
+  "scope": [
+    "documentation index",
+    "overview"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": 3,
+  "notes": "Documentation directory README index."
+}

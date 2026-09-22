@@ -265,7 +265,7 @@ class SecurePdfViewerScreenState extends State<SecurePdfViewerScreen> {
     _searchResult?.removeListener(_onSearchResultChanged);
     _searchResult?.clear();
 
-    final result = await _pdfViewerController.searchText(query);
+    final result = _pdfViewerController.searchText(query);
     setState(() {
       _searchResult = result;
       _searchResult?.addListener(_onSearchResultChanged);

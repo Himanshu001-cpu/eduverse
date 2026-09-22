@@ -1,54 +1,76 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-/// Service to fetch and aggregate admin dashboard statistics from real Firestore collections
+/// Service to fetch and aggregate admin dashboard statistics
 class AdminStatsService {
   static final AdminStatsService _instance = AdminStatsService._internal();
-  factory AdminStatsService() => _instance;
-  AdminStatsService._internal();
-
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  /// Get dashboard stats as a stream with real-time updates
-  Stream<DashboardStats> getDashboardStatsStream() async* {
-    while (true) {
-      try {
-        final now = DateTime.now();
-        final startOfDay = DateTime(now.year, now.month, now.day);
-        final startOfDayTimestamp = Timestamp.fromDate(startOfDay);
-
-        // Fetch all stats in parallel
-        final results = await Future.wait([
-          _getTotalUsers(),
-          _getActiveCourses(),
-          _getDraftCourses(),
-          _getEnrollmentsToday(startOfDayTimestamp),
-          _getTotalEnrollments(),
-          _getRevenueToday(startOfDayTimestamp),
-          _getTotalRevenue(),
-          _getMonthlyRevenue(),
-          _getCohortSaturations(),
-        ]);
-
-        yield DashboardStats(
-          totalUsers: results[0] as int,
-          activeCourses: results[1] as int,
-          draftCourses: results[2] as int,
-          enrollmentsToday: results[3] as int,
-          totalEnrollments: results[4] as int,
-          revenueToday: results[5] as double,
-          totalRevenue: results[6] as double,
-          monthlyRevenue: results[7] as List<MonthlyRevenuePoint>,
-          cohortSaturations: results[8] as List<CohortSaturation>,
-        );
-      } catch (e) {
-        // Return baseline non-dummy stats on error
-        yield DashboardStats.empty();
-      }
-
-      // Refresh every 15 seconds
-      await Future.delayed(const Duration(seconds: 15));
+  factory AdminStatsService({FirebaseFirestore? firestore}) {
+    if (firestore != null) {
+      return AdminStatsService._withFirestore(firestore);
     }
+    return _instance;
+  }
+
+  AdminStatsService._internal() : _firestore = FirebaseFirestore.instance;
+  AdminStatsService._withFirestore(this._firestore);
+
+  final FirebaseFirestore _firestore;
+
+  /// Get dashboard stats as a stream from the cached stats document
+  Stream<DashboardStats> getDashboardStatsStream() {
+    return _firestore
+        .collection('admin_stats')
+        .doc('dashboard')
+        .snapshots()
+        .asyncMap((doc) async {
+      if (!doc.exists || doc.data() == null) {
+        // Initial setup or fallback: compute once, cache to admin_stats/dashboard, and emit
+        try {
+          await updateDashboardStats();
+          final updatedDoc =
+              await _firestore.collection('admin_stats').doc('dashboard').get();
+          if (updatedDoc.exists && updatedDoc.data() != null) {
+            return DashboardStats.fromJson(updatedDoc.data()!);
+          }
+        } catch (_) {}
+        return DashboardStats.empty();
+      }
+      return DashboardStats.fromJson(doc.data()!);
+    });
+  }
+
+  /// Save/update dashboard stats to a dedicated collection (for caching)
+  Future<void> updateDashboardStats() async {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final startOfDayTimestamp = Timestamp.fromDate(startOfDay);
+
+    final totalUsers = await _getTotalUsers();
+    final activeCourses = await _getActiveCourses();
+    final draftCourses = await _getDraftCourses();
+    final enrollmentsToday = await _getEnrollmentsToday(startOfDayTimestamp);
+    final totalEnrollments = await _getTotalEnrollments();
+    final revenueToday = await _getRevenueToday(startOfDayTimestamp);
+    final totalRevenue = await _getTotalRevenue();
+    final monthlyRevenue = await _getMonthlyRevenue();
+    final cohortSaturations = await _getCohortSaturations();
+
+    final stats = DashboardStats(
+      totalUsers: totalUsers,
+      activeCourses: activeCourses,
+      draftCourses: draftCourses,
+      enrollmentsToday: enrollmentsToday,
+      totalEnrollments: totalEnrollments,
+      revenueToday: revenueToday,
+      totalRevenue: totalRevenue,
+      monthlyRevenue: monthlyRevenue,
+      cohortSaturations: cohortSaturations,
+    );
+
+    await _firestore.collection('admin_stats').doc('dashboard').set({
+      ...stats.toJson(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   /// Get total number of registered users
@@ -75,7 +97,7 @@ class AdminStatsService {
     }
   }
 
-  /// Get number of draft/pending courses needing review
+  /// Get number of draft courses awaiting review
   Future<int> _getDraftCourses() async {
     try {
       final snapshot = await _firestore
@@ -103,7 +125,7 @@ class AdminStatsService {
     }
   }
 
-  /// Get total all-time purchases/enrollments
+  /// Get total all-time enrollments count
   Future<int> _getTotalEnrollments() async {
     try {
       final snapshot = await _firestore.collection('purchases').count().get();
@@ -113,7 +135,7 @@ class AdminStatsService {
     }
   }
 
-  /// Get total revenue from today's purchases
+  /// Get total gross revenue today from purchases
   Future<double> _getRevenueToday(Timestamp startOfDay) async {
     try {
       final snapshot = await _firestore
@@ -226,7 +248,7 @@ class AdminStatsService {
             .get();
 
         final enrolled = enrollCountSnap.count ?? 0;
-        final targetCapacity = 200; // Standard cohort baseline capacity
+        const targetCapacity = 200; // Standard cohort baseline capacity
         final ratio = (enrolled / targetCapacity).clamp(0.0, 1.0);
 
         saturations.add(
@@ -259,6 +281,20 @@ class MonthlyRevenuePoint {
     required this.ratio,
     required this.isActive,
   });
+
+  Map<String, dynamic> toJson() => {
+    'month': month,
+    'amount': amount,
+    'ratio': ratio,
+    'isActive': isActive,
+  };
+
+  factory MonthlyRevenuePoint.fromJson(Map<String, dynamic> json) => MonthlyRevenuePoint(
+    month: json['month'] as String? ?? '',
+    amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+    ratio: (json['ratio'] as num?)?.toDouble() ?? 0.0,
+    isActive: json['isActive'] as bool? ?? false,
+  );
 }
 
 /// Cohort saturation model
@@ -276,6 +312,20 @@ class CohortSaturation {
   });
 
   String get label => '${(ratio * 100).toStringAsFixed(0)}% filled ($enrolledCount/$capacity)';
+
+  Map<String, dynamic> toJson() => {
+    'courseTitle': courseTitle,
+    'enrolledCount': enrolledCount,
+    'capacity': capacity,
+    'ratio': ratio,
+  };
+
+  factory CohortSaturation.fromJson(Map<String, dynamic> json) => CohortSaturation(
+    courseTitle: json['courseTitle'] as String? ?? '',
+    enrolledCount: json['enrolledCount'] as int? ?? 0,
+    capacity: json['capacity'] as int? ?? 0,
+    ratio: (json['ratio'] as num?)?.toDouble() ?? 0.0,
+  );
 }
 
 /// Comprehensive Dashboard statistics model
@@ -293,13 +343,13 @@ class DashboardStats {
   DashboardStats({
     required this.totalUsers,
     required this.activeCourses,
-    required this.draftCourses,
+    this.draftCourses = 0,
     required this.enrollmentsToday,
-    required this.totalEnrollments,
+    this.totalEnrollments = 0,
     required this.revenueToday,
-    required this.totalRevenue,
-    required this.monthlyRevenue,
-    required this.cohortSaturations,
+    this.totalRevenue = 0.0,
+    this.monthlyRevenue = const [],
+    this.cohortSaturations = const [],
   });
 
   factory DashboardStats.empty() => DashboardStats(
@@ -310,7 +360,37 @@ class DashboardStats {
         totalEnrollments: 0,
         revenueToday: 0.0,
         totalRevenue: 0.0,
-        monthlyRevenue: [],
-        cohortSaturations: [],
+        monthlyRevenue: const [],
+        cohortSaturations: const [],
       );
+
+  Map<String, dynamic> toJson() => {
+    'totalUsers': totalUsers,
+    'activeCourses': activeCourses,
+    'draftCourses': draftCourses,
+    'enrollmentsToday': enrollmentsToday,
+    'totalEnrollments': totalEnrollments,
+    'revenueToday': revenueToday,
+    'totalRevenue': totalRevenue,
+    'monthlyRevenue': monthlyRevenue.map((e) => e.toJson()).toList(),
+    'cohortSaturations': cohortSaturations.map((e) => e.toJson()).toList(),
+  };
+
+  factory DashboardStats.fromJson(Map<String, dynamic> json) => DashboardStats(
+    totalUsers: json['totalUsers'] as int? ?? 0,
+    activeCourses: json['activeCourses'] as int? ?? 0,
+    draftCourses: json['draftCourses'] as int? ?? 0,
+    enrollmentsToday: json['enrollmentsToday'] as int? ?? 0,
+    totalEnrollments: json['totalEnrollments'] as int? ?? 0,
+    revenueToday: (json['revenueToday'] as num?)?.toDouble() ?? 0.0,
+    totalRevenue: (json['totalRevenue'] as num?)?.toDouble() ?? 0.0,
+    monthlyRevenue: (json['monthlyRevenue'] as List<dynamic>?)
+            ?.map((e) => MonthlyRevenuePoint.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        const [],
+    cohortSaturations: (json['cohortSaturations'] as List<dynamic>?)
+            ?.map((e) => CohortSaturation.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        const [],
+  );
 }

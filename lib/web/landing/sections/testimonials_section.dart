@@ -159,7 +159,7 @@ class _TestimonialCard extends StatelessWidget {
                       child: Image.network(
                         testimonial.avatarUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           color: EduverseTheme.surfaceContainerLow,
                           child: const Icon(Icons.person, color: EduverseTheme.primary),
                         ),

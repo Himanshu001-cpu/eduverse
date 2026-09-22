@@ -596,7 +596,7 @@ class _TestSeriesEditorScreenState extends State<TestSeriesEditorScreen> {
                                     .get();
                                 if (!mounted) return;
                                 Navigator.pushNamed(
-                                  context,
+                                  this.context,
                                   '/test_series_test_editor',
                                   arguments: {
                                     'testSeriesId': widget.testSeries!.id,

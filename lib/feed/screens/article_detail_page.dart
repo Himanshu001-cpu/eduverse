@@ -24,7 +24,7 @@ class ArticleDetailPage extends StatefulWidget {
 }
 
 class _ArticleDetailPageState extends State<ArticleDetailPage> {
-  bool _isMarkedAsRead = false;
+  final bool _isMarkedAsRead = false;
   bool _isBookmarked = false;
   final BookmarkService _bookmarkService = BookmarkService();
   final FeedRepository _feedRepo = FeedRepository();

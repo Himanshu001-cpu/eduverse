@@ -160,9 +160,13 @@ class _BatchQuizScreenState extends State<BatchQuizScreen> {
 
     final q = _questions[_currentQuestionIndex];
     int correctIdx = 0;
-    if (_correctOption == 'B') correctIdx = 1;
-    else if (_correctOption == 'C') correctIdx = 2;
-    else if (_correctOption == 'D') correctIdx = 3;
+    if (_correctOption == 'B') {
+      correctIdx = 1;
+    } else if (_correctOption == 'C') {
+      correctIdx = 2;
+    } else if (_correctOption == 'D') {
+      correctIdx = 3;
+    }
 
     final newOptions = [
       AnswerOption(
@@ -1015,7 +1019,7 @@ class _BatchQuizScreenState extends State<BatchQuizScreen> {
               ? () => _switchQuestion(_currentQuestionIndex - 1)
               : null,
           icon: const Icon(Icons.arrow_back, size: 16),
-          label: Text('Previous Q${_currentQuestionIndex}'),
+          label: Text('Previous Q$_currentQuestionIndex'),
         ),
         Text(
           'Showing question ${_currentQuestionIndex + 1} of ${_questions.length} in current sectional batch',

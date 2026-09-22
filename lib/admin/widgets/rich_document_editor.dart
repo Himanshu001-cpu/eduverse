@@ -12,18 +12,22 @@ import '../../core/services/rich_text_service.dart';
 class RichDocumentEditor extends StatefulWidget {
   final String? initialDeltaJson;
   final String? initialHtml;
+  final String? initialText;
   final String labelText;
   final String? hintText;
   final void Function(String deltaJson, String html) onSave;
+  final void Function(Map<String, dynamic> payload)? onSaveDualFormat;
   final Duration autoSaveDebounceDuration;
 
   const RichDocumentEditor({
     super.key,
     this.initialDeltaJson,
     this.initialHtml,
+    this.initialText,
     required this.labelText,
     this.hintText,
     required this.onSave,
+    this.onSaveDualFormat,
     this.autoSaveDebounceDuration = const Duration(minutes: 1),
   });
 
@@ -41,6 +45,7 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
 
   final TextEditingController _tableRowsController = TextEditingController();
   final TextEditingController _tableColsController = TextEditingController();
+  bool _tableHasHeader = false;
   String? _tableError;
 
   Timer? _autoSaveTimer;
@@ -52,7 +57,7 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
   void initState() {
     super.initState();
     String initialText = '';
-    if (widget.initialDeltaJson != null) {
+    if (widget.initialDeltaJson != null && widget.initialDeltaJson!.trim().isNotEmpty) {
       try {
         final decoded = json.decode(widget.initialDeltaJson!);
         if (decoded is Map && decoded.containsKey('ops')) {
@@ -60,14 +65,17 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
           initialText = ops.map((op) => op['insert']?.toString() ?? '').join();
         }
       } catch (_) {
-        // Fallback to initialHtml parsing or empty
+        // Fallback to initialHtml parsing or initialText
       }
     }
-    if (initialText.isEmpty && widget.initialHtml != null) {
+    if (initialText.trim().isEmpty && widget.initialHtml != null && widget.initialHtml!.trim().isNotEmpty) {
       // Very simple extraction of text from html tags for editing
       initialText = widget.initialHtml!
           .replaceAll(RegExp(r'<[^>]*>'), '')
           .trim();
+    }
+    if (initialText.trim().isEmpty && widget.initialText != null && widget.initialText!.isNotEmpty) {
+      initialText = widget.initialText!;
     }
 
     _textController = TextEditingController(text: initialText);
@@ -95,6 +103,12 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
     final delta = _generateDeltaJson();
     final html = _generateHtml();
     widget.onSave(delta, html);
+    final payload = RichTextService.serializeForFirestore(
+      deltaJson: delta,
+      html: html,
+      plainText: _textController.text,
+    );
+    widget.onSaveDualFormat?.call(payload);
   }
 
   void _forceSave() {
@@ -102,6 +116,12 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
     final delta = _generateDeltaJson();
     final html = _generateHtml();
     widget.onSave(delta, html);
+    final payload = RichTextService.serializeForFirestore(
+      deltaJson: delta,
+      html: html,
+      plainText: _textController.text,
+    );
+    widget.onSaveDualFormat?.call(payload);
   }
 
   String _generateDeltaJson() {
@@ -128,6 +148,20 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
       return RichTextService.parseLatexToHtml(match.group(1) ?? '');
     });
 
+    // Parse block display math $$...$$
+    final blockMathRegex = RegExp(r'\$\$(.*?)\$\$', dotAll: true);
+    html = html.replaceAllMapped(blockMathRegex, (match) {
+      final math = match.group(1)?.trim() ?? '';
+      return '<div class="math-latex math-block" data-latex="${Uri.encodeComponent(math)}">$math</div>';
+    });
+
+    // Parse inline math $...$
+    final inlineMathRegex = RegExp(r'(?<!\$)\$(?!\$)([^\$\n]+?)(?<!\$)\$(?!\$)');
+    html = html.replaceAllMapped(inlineMathRegex, (match) {
+      final math = match.group(1)?.trim() ?? '';
+      return '<span class="math-latex math-inline" data-latex="${Uri.encodeComponent(math)}">$math</span>';
+    });
+
     // Parse custom whiteboard diagram blocks
     final diagRegex = RegExp(r'\[diagram\](.*?)\[/diagram\]');
     html = html.replaceAllMapped(diagRegex, (match) {
@@ -135,11 +169,12 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
     });
 
     // Parse custom table blocks
-    final tableRegex = RegExp(r'\[table rows=(\d+) cols=(\d+)\](.*?)\[/table\]');
+    final tableRegex = RegExp(r'\[table rows=(\d+) cols=(\d+)(?:\s+header=(true|false))?\](.*?)\[/table\]', dotAll: true);
     html = html.replaceAllMapped(tableRegex, (match) {
       final rows = int.tryParse(match.group(1) ?? '1') ?? 1;
       final cols = int.tryParse(match.group(2) ?? '1') ?? 1;
-      final content = match.group(3) ?? '';
+      final hasHeader = match.group(3) == 'true';
+      final content = match.group(4) ?? '';
       
       final cells = content.split('|');
       var cellIndex = 0;
@@ -148,9 +183,15 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
       sb.writeln('<table class="rich-table" border="1" style="border-collapse: collapse; width: 100%;">');
       for (int r = 0; r < rows; r++) {
         sb.writeln('  <tr>');
+        final isHeaderRow = hasHeader && r == 0;
         for (int c = 0; c < cols; c++) {
           final cellText = cellIndex < cells.length ? cells[cellIndex].trim() : '';
-          sb.writeln('    <td style="padding: 8px;">${RichTextService.convertMarkdownToHtml(cellText)}</td>');
+          final formatted = RichTextService.convertMarkdownToHtml(cellText);
+          if (isHeaderRow) {
+            sb.writeln('    <th style="padding: 8px; font-weight: bold; background-color: rgba(0,0,0,0.06); text-align: left;">$formatted</th>');
+          } else {
+            sb.writeln('    <td style="padding: 8px;">$formatted</td>');
+          }
           cellIndex++;
         }
         sb.writeln('  </tr>');
@@ -220,17 +261,26 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
 
     // Create empty cells content string
     final cellCount = rows * cols;
-    final cells = List.generate(cellCount, (i) => 'Cell ${i + 1}').join(' | ');
-    final tableTag = '\n[table rows=$rows cols=$cols]$cells[/table]\n';
+    final cells = List.generate(cellCount, (i) {
+      if (_tableHasHeader && i < cols) {
+        return 'Header ${i + 1}';
+      }
+      return 'Cell ${i + 1}';
+    }).join(' | ');
+    final headerAttr = _tableHasHeader ? ' header=true' : '';
+    final tableTag = '\n[table rows=$rows cols=$cols$headerAttr]$cells[/table]\n';
     
     final text = _textController.text;
     final selection = _textController.selection;
     int index = selection.isValid ? selection.start : text.length;
     
     final newText = text.substring(0, index) + tableTag + text.substring(index);
-    _textController.text = newText;
+    setState(() {
+      _textController.text = newText;
+    });
     _tableRowsController.clear();
     _tableColsController.clear();
+    _onTextChanged();
   }
 
   @override
@@ -266,7 +316,7 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
           },
           onHighlightChanged: (color) {
             if (color != null) {
-              _applyFormatting('<mark style="background-color: $color">', '</mark>', requireSelection: true);
+              _applyFormatting('<mark style="background-color: $color">', '</mark>');
             }
           },
           onInsertTablePressed: () {
@@ -357,6 +407,19 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8.0),
+                  CheckboxListTile(
+                    key: const Key('table_header_toggle'),
+                    title: const Text('Format first row as table header'),
+                    value: _tableHasHeader,
+                    onChanged: (val) {
+                      setState(() {
+                        _tableHasHeader = val ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
                   ),
                   if (_tableError != null) ...[
                     const SizedBox(height: 8.0),
@@ -466,9 +529,12 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
         
         // Render any visual tables detected in the text
         ..._buildVisualTableEditors(),
+
+        // Render any visual diagrams detected in the text (D-06)
+        ..._buildVisualDiagramEditors(),
         
         // Debug output widget for testing auto-save triggering
-        Container(
+        SizedBox(
           height: 1,
           width: 1,
           key: Key('autosave_count_$_autoSaveCount'),
@@ -480,14 +546,15 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
 
   List<_ParsedTable> _parseTablesFromText(String text) {
     final List<_ParsedTable> list = [];
-    final regex = RegExp(r'\[table rows=(\d+) cols=(\d+)\](.*?)\[/table\]', dotAll: true);
+    final regex = RegExp(r'\[table rows=(\d+) cols=(\d+)(?:\s+header=(true|false))?\](.*?)\[/table\]', dotAll: true);
     final matches = regex.allMatches(text).toList();
     
     for (int i = 0; i < matches.length; i++) {
       final match = matches[i];
       final rows = int.tryParse(match.group(1) ?? '1') ?? 1;
       final cols = int.tryParse(match.group(2) ?? '1') ?? 1;
-      final content = match.group(3) ?? '';
+      final hasHeader = match.group(3) == 'true';
+      final content = match.group(4) ?? '';
       
       final cellStrings = content.split('|');
       final cells = List.generate(
@@ -507,6 +574,7 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
         cols: cols,
         cells: cells,
         rawText: match.group(0)!,
+        hasHeader: hasHeader,
       ));
     }
     return list;
@@ -525,7 +593,8 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
       return (r < newCells.length && c < newCells[r].length) ? newCells[r][c] : '';
     });
     
-    final newTableMarkdown = '[table rows=$newRows cols=$newCols]${cellStrings.join(' | ')}[/table]';
+    final headerAttr = target.hasHeader ? ' header=true' : '';
+    final newTableMarkdown = '[table rows=$newRows cols=$newCols$headerAttr]${cellStrings.join(' | ')}[/table]';
     final newText = text.replaceFirst(target.rawText, newTableMarkdown);
     
     final selection = _textController.selection;
@@ -551,6 +620,189 @@ class _RichDocumentEditorState extends State<RichDocumentEditor> {
       );
     });
   }
+
+  List<_ParsedDiagram> _parseDiagramsFromText(String text) {
+    final List<_ParsedDiagram> list = [];
+    final regex = RegExp(r'\[diagram\](.*?)\[/diagram\]', dotAll: true);
+    final matches = regex.allMatches(text).toList();
+    for (int i = 0; i < matches.length; i++) {
+      final match = matches[i];
+      list.add(_ParsedDiagram(
+        index: i,
+        content: match.group(1) ?? '',
+        rawText: match.group(0)!,
+      ));
+    }
+    return list;
+  }
+
+  void _deleteDiagram(int index) {
+    final text = _textController.text;
+    final parsed = _parseDiagramsFromText(text);
+    if (index >= parsed.length) return;
+    final target = parsed[index];
+    final newText = text.replaceFirst(target.rawText, '').trim();
+    setState(() {
+      _textController.text = newText;
+    });
+    _onTextChanged();
+  }
+
+  void _showFullscreenDiagram(String content) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog.fullscreen(
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Diagram Fullscreen Preview'),
+            actions: [
+              IconButton(
+                key: const Key('btn_close_diagram_fullscreen'),
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ],
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                alignment: Alignment.center,
+                child: content.contains('<svg')
+                    ? SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Text(
+                          content,
+                          style: const TextStyle(fontFamily: 'monospace'),
+                        ),
+                      )
+                    : Text(content),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _replaceDiagram(int index) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: SizedBox(
+          width: 500,
+          height: 400,
+          child: Column(
+            children: [
+              AppBar(
+                title: const Text('Replace Diagram'),
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: TldrawWebview(
+                  key: Key('replace_whiteboard_$index'),
+                  onDiagramExported: (newSvg) {
+                    Navigator.of(ctx).pop();
+                    final text = _textController.text;
+                    final parsed = _parseDiagramsFromText(text);
+                    if (index < parsed.length) {
+                      final target = parsed[index];
+                      final newBlock = '[diagram]$newSvg[/diagram]';
+                      setState(() {
+                        _textController.text = text.replaceFirst(target.rawText, newBlock);
+                      });
+                      _onTextChanged();
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildVisualDiagramEditors() {
+    final parsed = _parseDiagramsFromText(_textController.text);
+    if (parsed.isEmpty) return [];
+
+    return [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        child: Text(
+          'Diagrams (${parsed.length}):',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      ...List.generate(parsed.length, (index) {
+        final diagram = parsed[index];
+        final snippet = diagram.content.length > 60
+            ? '${diagram.content.substring(0, 60)}...'
+            : diagram.content;
+
+        return Card(
+          key: Key('diagram_card_$index'),
+          margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          child: ListTile(
+            leading: const Icon(Icons.draw, color: Colors.blue),
+            title: Text('Diagram #${index + 1}'),
+            subtitle: Text(
+              snippet,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  key: Key('btn_preview_diagram_$index'),
+                  icon: const Icon(Icons.fullscreen),
+                  tooltip: 'Fullscreen Preview',
+                  onPressed: () => _showFullscreenDiagram(diagram.content),
+                ),
+                IconButton(
+                  key: Key('btn_replace_diagram_$index'),
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Replace Diagram',
+                  onPressed: () => _replaceDiagram(index),
+                ),
+                IconButton(
+                  key: Key('btn_delete_diagram_$index'),
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  tooltip: 'Delete Diagram',
+                  onPressed: () => _deleteDiagram(index),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    ];
+  }
+}
+
+class _ParsedDiagram {
+  final int index;
+  final String content;
+  final String rawText;
+
+  _ParsedDiagram({
+    required this.index,
+    required this.content,
+    required this.rawText,
+  });
 }
 
 class _ParsedTable {
@@ -559,6 +811,7 @@ class _ParsedTable {
   final int cols;
   final List<List<String>> cells;
   final String rawText;
+  final bool hasHeader;
 
   _ParsedTable({
     required this.index,
@@ -566,6 +819,7 @@ class _ParsedTable {
     required this.cols,
     required this.cells,
     required this.rawText,
+    this.hasHeader = false,
   });
 }
 

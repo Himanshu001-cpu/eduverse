@@ -21,10 +21,9 @@ class StudyController extends ChangeNotifier {
   final StudyLocalStorage _localStorage = StudyLocalStorage();
 
   StudyController({
-    required IStudyRepository repository,
-    required String userId,
-  }) : _repository = repository,
-       _userId = userId {
+    required this._repository,
+    required this._userId,
+  }) {
     _init();
   }
 

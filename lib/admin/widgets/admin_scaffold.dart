@@ -147,7 +147,7 @@ class AdminScaffold extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Image.asset('assets/icon.png', height: 32, width: 32, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                          Image.asset('assets/icon.png', height: 32, width: 32, errorBuilder: (_, _, _) => const SizedBox.shrink()),
                           const SizedBox(width: 8),
                           const Text(
                             'The Eduverse',
@@ -231,7 +231,7 @@ class AdminScaffold extends StatelessWidget {
                   'assets/icon.png',
                   height: 34,
                   width: 34,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
@@ -529,7 +529,7 @@ class AdminScaffold extends StatelessWidget {
           const SizedBox(width: 8),
 
           // Custom Actions
-          if (actions != null) ...actions!,
+          ...?actions,
 
           // Quick Action button
           ElevatedButton.icon(

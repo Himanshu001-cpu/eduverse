@@ -125,7 +125,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _chips.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, i) {
                     final isSelected = _activeChip == i;
                     return GestureDetector(
@@ -477,7 +477,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
             Image.asset(
               'assets/auth/privacy_banner.png',
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (_, _, _) => Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [EduverseColors.deepNavy, EduverseColors.primary],

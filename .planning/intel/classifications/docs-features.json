@@ -1,0 +1,23 @@
+{
+  "source_path": "docs/features.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Eduverse — Feature Specifications & Capabilities",
+  "summary": "Detailed functional breakdown of each platform feature including live streaming, video-on-demand playback, mock quizzes, test series, e-books, and admin controls.",
+  "scope": [
+    "live classes",
+    "VOD player",
+    "quizzes",
+    "test series",
+    "e-books",
+    "admin control center"
+  ],
+  "cross_refs": [
+    "docs/PRD.md",
+    "docs/screens-guide.md"
+  ],
+  "locked": false,
+  "precedence": 3,
+  "notes": "Feature capabilities narrative and functional guide."
+}

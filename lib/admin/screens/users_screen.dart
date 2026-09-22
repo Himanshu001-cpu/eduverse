@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -15,51 +17,133 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
   String _searchQuery = '';
-  String _roleFilter = 'all'; // all, student, admin
+  String _roleFilter = 'all'; // all, student, admin, teacher
   bool _showDisabledOnly = false;
+
+  List<AdminUser> _users = [];
+  DocumentSnapshot? _lastDocument;
+  bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  String? _errorMessage;
+  Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialUsers();
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
-  List<AdminUser> _filterUsers(List<AdminUser> users) {
-    return users.where((user) {
-      // Search filter
-      if (_searchQuery.isNotEmpty) {
-        final query = _searchQuery.toLowerCase();
-        if (!user.email.toLowerCase().contains(query) &&
-            !user.name.toLowerCase().contains(query)) {
-          return false;
-        }
-      }
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMore &&
+        !_isLoading) {
+      _loadMoreUsers();
+    }
+  }
 
-      // Role filter
-      if (_roleFilter != 'all') {
-        if (_roleFilter == 'teacher') {
-          if (user.role != 'teacher' && !user.isTeacher) {
-            return false;
-          }
-        } else if (user.role != _roleFilter) {
-          return false;
-        }
-      }
+  Future<void> _loadInitialUsers() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _lastDocument = null;
+    });
 
-      // Disabled filter
-      if (_showDisabledOnly && !user.disabled) {
-        return false;
-      }
+    try {
+      final adminService = context.read<FirebaseAdminService>();
+      final result = await adminService.getUsersPaginated(
+        limit: 20,
+        roleFilter: _roleFilter,
+        showDisabledOnly: _showDisabledOnly,
+        searchQuery: _searchQuery,
+      );
+      if (!mounted) return;
+      setState(() {
+        _users = result.items;
+        _lastDocument = result.lastDocument;
+        _hasMore = result.hasMore;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
-      return true;
-    }).toList();
+  Future<void> _loadMoreUsers() async {
+    if (_isLoadingMore || !_hasMore || _isLoading || !mounted) return;
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final adminService = context.read<FirebaseAdminService>();
+      final result = await adminService.getUsersPaginated(
+        limit: 20,
+        startAfter: _lastDocument,
+        roleFilter: _roleFilter,
+        showDisabledOnly: _showDisabledOnly,
+        searchQuery: _searchQuery,
+      );
+      if (!mounted) return;
+      setState(() {
+        _users.addAll(result.items);
+        _lastDocument = result.lastDocument;
+        _hasMore = result.hasMore;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingMore = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load more users: $e')),
+      );
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      setState(() {
+        _searchQuery = value;
+      });
+      _resetAndReload();
+    });
+  }
+
+  void _resetAndReload() {
+    _lastDocument = null;
+    _hasMore = true;
+    _loadInitialUsers();
   }
 
   @override
   Widget build(BuildContext context) {
-    final adminService = context.read<FirebaseAdminService>();
-
     return AdminScaffold(
       title: 'Users',
       body: Column(
@@ -90,7 +174,9 @@ class _UsersScreenState extends State<UsersScreen> {
                               icon: const Icon(Icons.clear),
                               onPressed: () {
                                 _searchController.clear();
+                                _debounceTimer?.cancel();
                                 setState(() => _searchQuery = '');
+                                _resetAndReload();
                               },
                             )
                           : null,
@@ -100,9 +186,7 @@ class _UsersScreenState extends State<UsersScreen> {
                         vertical: 12,
                       ),
                     ),
-                    onChanged: (value) {
-                      setState(() => _searchQuery = value);
-                    },
+                    onChanged: _onSearchChanged,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -117,7 +201,10 @@ class _UsersScreenState extends State<UsersScreen> {
                     DropdownMenuItem(value: 'teacher', child: Text('Teachers')),
                   ],
                   onChanged: (value) {
-                    setState(() => _roleFilter = value!);
+                    if (value != null && value != _roleFilter) {
+                      setState(() => _roleFilter = value);
+                      _resetAndReload();
+                    }
                   },
                 ),
                 const SizedBox(width: 16),
@@ -128,202 +215,227 @@ class _UsersScreenState extends State<UsersScreen> {
                   selected: _showDisabledOnly,
                   onSelected: (selected) {
                     setState(() => _showDisabledOnly = selected);
+                    _resetAndReload();
                   },
                 ),
               ],
             ),
           ),
 
-          // Users table
+          // Users table area
           Expanded(
-            child: StreamBuilder<List<AdminUser>>(
-              stream: adminService.getUsers(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            child: _buildContent(context),
+          ),
+        ],
+      ),
+    );
+  }
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-                        const SizedBox(height: 16),
-                        Text('Error loading users: ${snapshot.error}'),
-                      ],
-                    ),
-                  );
-                }
+  Widget _buildContent(BuildContext context) {
+    if (_isLoading && _users.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-                final allUsers = snapshot.data ?? [];
-                final users = _filterUsers(allUsers);
+    if (_errorMessage != null && _users.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+            const SizedBox(height: 16),
+            Text('Error loading users: $_errorMessage'),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _resetAndReload,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
 
-                if (users.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchQuery.isNotEmpty || _roleFilter != 'all' || _showDisabledOnly
-                              ? 'No users match your filters'
-                              : 'No users found',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade600,
+    if (_users.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              _searchQuery.isNotEmpty || _roleFilter != 'all' || _showDisabledOnly
+                  ? 'No users match your filters'
+                  : 'No users found',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      controller: _scrollController,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              showCheckboxColumn: false,
+              headingRowColor: WidgetStateProperty.all(
+                Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+              ),
+              columns: const [
+                DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Enrolled', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Created', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
+              rows: _users.map((user) {
+                return DataRow(
+                  onSelectChanged: (_) => _navigateToDetail(user),
+                  cells: [
+                    DataCell(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.2),
+                            child: Text(
+                              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                color: _getRoleColor(user.role),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SingleChildScrollView(
-                    child: DataTable(
-                      showCheckboxColumn: false,
-                      headingRowColor: WidgetStateProperty.all(
-                        Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                          const SizedBox(width: 8),
+                          Text(user.name.isNotEmpty ? user.name : 'Unnamed'),
+                        ],
                       ),
-                      columns: const [
-                        DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Enrolled', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Created', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-                      ],
-                      rows: users.map((user) {
-                        return DataRow(
-                          onSelectChanged: (_) => _navigateToDetail(user),
-                          cells: [
-                            DataCell(
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 16,
-                                    backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.2),
-                                    child: Text(
-                                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                                      style: TextStyle(
-                                        color: _getRoleColor(user.role),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(user.name.isNotEmpty ? user.name : 'Unnamed'),
-                                ],
-                              ),
-                            ),
-                            DataCell(Text(user.email)),
-                            DataCell(
-                              Wrap(
-                                spacing: 4,
-                                children: [
-                                  _buildRoleChip(user.role),
-                                  if (user.isTeacher && user.role != 'teacher')
-                                    _buildRoleChip('teacher'),
-                                ],
-                              ),
-                            ),
-                            DataCell(_buildStatusChip(user.disabled)),
-                            DataCell(Text('${user.enrolledCourses.length}')),
-                            DataCell(Text(
-                              user.createdAt != null
-                                  ? DateFormat('MMM d, yyyy').format(user.createdAt!)
-                                  : '-',
-                            )),
-                            DataCell(
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.visibility),
-                                    tooltip: 'View Details',
-                                    onPressed: () => _navigateToDetail(user),
-                                  ),
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert),
-                                    onSelected: (action) => _handleAction(action, user),
-                                    itemBuilder: (context) => [
-                                      if (user.role != 'student')
-                                        const PopupMenuItem(
-                                          value: 'make_student',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.person, size: 20),
-                                              SizedBox(width: 8),
-                                              Text('Make Student'),
-                                            ],
-                                          ),
-                                        ),
-                                      if (user.role != 'admin' && user.role != 'superadmin')
-                                        const PopupMenuItem(
-                                          value: 'make_admin',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.admin_panel_settings, size: 20),
-                                              SizedBox(width: 8),
-                                              Text('Make Admin'),
-                                            ],
-                                          ),
-                                        ),
-                                       if (!user.isTeacher)
-                                         const PopupMenuItem(
-                                           value: 'make_teacher',
-                                           child: Row(
-                                             children: [
-                                               Icon(Icons.school, size: 20),
-                                               SizedBox(width: 8),
-                                               Text('Make Teacher'),
-                                             ],
-                                           ),
-                                         ),
-                                       if (user.isTeacher)
-                                         const PopupMenuItem(
-                                           value: 'remove_teacher',
-                                           child: Row(
-                                             children: [
-                                               Icon(Icons.school_outlined, size: 20),
-                                               SizedBox(width: 8),
-                                               Text('Remove Teacher'),
-                                             ],
-                                           ),
-                                         ),
-                                      PopupMenuItem(
-                                        value: user.disabled ? 'enable' : 'disable',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              user.disabled ? Icons.check_circle : Icons.block,
-                                              size: 20,
-                                              color: user.disabled ? Colors.green : Colors.red,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(user.disabled ? 'Enable User' : 'Disable User'),
-                                          ],
-                                        ),
-                                      ),
+                    ),
+                    DataCell(Text(user.email)),
+                    DataCell(
+                      Wrap(
+                        spacing: 4,
+                        children: [
+                          _buildRoleChip(user.role),
+                          if (user.isTeacher && user.role != 'teacher')
+                            _buildRoleChip('teacher'),
+                        ],
+                      ),
+                    ),
+                    DataCell(_buildStatusChip(user.disabled)),
+                    DataCell(Text('${user.enrolledCourses.length}')),
+                    DataCell(Text(
+                      user.createdAt != null
+                          ? DateFormat('MMM d, yyyy').format(user.createdAt!)
+                          : '-',
+                    )),
+                    DataCell(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.visibility),
+                            tooltip: 'View Details',
+                            onPressed: () => _navigateToDetail(user),
+                          ),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert),
+                            onSelected: (action) => _handleAction(action, user),
+                            itemBuilder: (context) => [
+                              if (user.role != 'student')
+                                const PopupMenuItem(
+                                  value: 'make_student',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.person, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Make Student'),
                                     ],
                                   ),
-                                ],
+                                ),
+                              if (user.role != 'admin' && user.role != 'superadmin')
+                                const PopupMenuItem(
+                                  value: 'make_admin',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.admin_panel_settings, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Make Admin'),
+                                    ],
+                                  ),
+                                ),
+                              if (!user.isTeacher)
+                                const PopupMenuItem(
+                                  value: 'make_teacher',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.school, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Make Teacher'),
+                                    ],
+                                  ),
+                                ),
+                              if (user.isTeacher)
+                                const PopupMenuItem(
+                                  value: 'remove_teacher',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.school_outlined, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Remove Teacher'),
+                                    ],
+                                  ),
+                                ),
+                              PopupMenuItem(
+                                value: user.disabled ? 'enable' : 'disable',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      user.disabled ? Icons.check_circle : Icons.block,
+                                      size: 20,
+                                      color: user.disabled ? Colors.green : Colors.red,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(user.disabled ? 'Enable User' : 'Disable User'),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 );
-              },
+              }).toList(),
             ),
           ),
+          if (_isLoadingMore)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_hasMore)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.arrow_downward),
+                  label: const Text('Load More'),
+                  onPressed: _loadMoreUsers,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -447,6 +559,7 @@ class _UsersScreenState extends State<UsersScreen> {
           }
           break;
       }
+      _resetAndReload();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

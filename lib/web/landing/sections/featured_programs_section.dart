@@ -247,7 +247,7 @@ class _ProgramCardState extends State<_ProgramCard> {
                       child: Image.network(
                         p.imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           color: EduverseTheme.surfaceContainerLow,
                           child: const Icon(Icons.school, size: 48, color: EduverseTheme.primary),
                         ),

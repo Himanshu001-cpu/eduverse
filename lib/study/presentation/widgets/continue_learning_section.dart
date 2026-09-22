@@ -16,7 +16,7 @@ class ContinueLearningSection extends StatelessWidget {
 
     return ValueListenableBuilder<Box<Map>>(
       valueListenable: box.listenable(),
-      builder: (context, _, __) => _buildContent(context, controller, box),
+      builder: (context, _, _) => _buildContent(context, controller, box),
     );
   }
 
