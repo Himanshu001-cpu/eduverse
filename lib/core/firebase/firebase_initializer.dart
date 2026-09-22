@@ -16,14 +16,16 @@ class FirebaseInitializer {
       );
       debugPrint('Firebase initialized successfully');
 
-      try {
-        await FirebaseAppCheck.instance.activate(
-          providerAndroid: kDebugMode ? const AndroidDebugProvider() : AndroidPlayIntegrityProvider(),
-          providerApple: kDebugMode ? const AppleDebugProvider() : AppleAppAttestProvider(),
-        );
-        debugPrint('Firebase App Check activated successfully (${kDebugMode ? "Debug Mode" : "Production Mode"})');
-      } catch (appCheckError) {
-        debugPrint('Warning: Failed to activate Firebase App Check: $appCheckError');
+      if (!kDebugMode) {
+        try {
+          await FirebaseAppCheck.instance.activate(
+            providerAndroid: const AndroidPlayIntegrityProvider(),
+            providerApple: const AppleAppAttestProvider(),
+          );
+          debugPrint('Firebase App Check activated successfully (Production Mode)');
+        } catch (appCheckError) {
+          debugPrint('Warning: Failed to activate Firebase App Check: $appCheckError');
+        }
       }
     } on FirebaseException catch (e) {
       if (e.code == 'duplicate-app') {

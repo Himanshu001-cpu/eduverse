@@ -1,498 +1,843 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:eduverse/core/theme/eduverse_theme.dart';
 
-class PrivacyPolicyPage extends StatelessWidget {
+class PrivacyPolicyPage extends StatefulWidget {
   const PrivacyPolicyPage({super.key});
+
+  @override
+  State<PrivacyPolicyPage> createState() => _PrivacyPolicyPageState();
+}
+
+class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
+  final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _sectionKeys = {
+    0: GlobalKey(),
+    1: GlobalKey(),
+    2: GlobalKey(),
+    3: GlobalKey(),
+    4: GlobalKey(),
+    5: GlobalKey(),
+    6: GlobalKey(),
+  };
+
+  int _activeChip = 0;
+
+  final List<String> _chips = [
+    '1. Intro',
+    '2. Data Collected',
+    '3. Usage',
+    '4. Third Parties',
+    '5. Security',
+    '6. Rights',
+    '7. Grievance',
+  ];
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSection(int index) {
+    setState(() => _activeChip = index);
+    final key = _sectionKeys[index];
+    if (key != null && key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
+        alignment: 0.08,
+      );
+    }
+  }
+
+  void _sharePolicy() {
+    SharePlus.instance.share(
+      ShareParams(
+        text: 'The Eduverse Privacy Policy & Trust Protocol: https://theeduverse.org/privacy-policy',
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-              Color(0xFF6B73FF),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header with back button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back_ios_rounded,
-                        color: Colors.white,
-                      ),
+      backgroundColor: EduverseColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top App Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_rounded, color: EduverseColors.primary),
+                    tooltip: 'Back',
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: EduverseColors.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    const Expanded(
-                      child: Text(
-                        'Privacy Policy',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.shield_outlined, size: 14, color: EduverseColors.secondary),
+                        const SizedBox(width: 5),
+                        Text(
+                          'TRUST & PRIVACY',
+                          style: EduverseTypography.labelSm(color: EduverseColors.secondary).copyWith(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Content
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(28),
+                      ],
                     ),
                   ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                  IconButton(
+                    onPressed: _sharePolicy,
+                    icon: const Icon(Icons.share_outlined, color: EduverseColors.primary),
+                    tooltip: 'Share Document',
+                  ),
+                ],
+              ),
+            ),
+
+            // Sticky Quick-Jump Navigation Chips
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: EduverseColors.surface.withValues(alpha: 0.95),
+                border: Border(
+                  bottom: BorderSide(
+                    color: EduverseColors.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+              child: SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _chips.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) {
+                    final isSelected = _activeChip == i;
+                    return GestureDetector(
+                      onTap: () => _scrollToSection(i),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? EduverseColors.primary
+                              : EduverseColors.surfaceContainer,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: EduverseColors.primary.withValues(alpha: 0.25),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            _chips[i],
+                            style: EduverseTypography.labelSm(
+                              color: isSelected ? EduverseColors.onPrimary : EduverseColors.onSurfaceVariant,
+                            ).copyWith(
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Scrollable Sections
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 680),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildSectionHeader(
-                          icon: Icons.update_rounded,
-                          title: 'Last Updated',
-                          subtitle: 'December 14, 2025',
-                        ),
+                        // Header Banner & Emblem Showcase
+                        _buildHeroBanner(),
+                        const SizedBox(height: 20),
+
+                        // Section 1: Introduction
+                        _buildSection1(key: _sectionKeys[0]!),
+                        const SizedBox(height: 16),
+
+                        // Section 2: Information We Collect
+                        _buildSection2(key: _sectionKeys[1]!),
+                        const SizedBox(height: 16),
+
+                        // Visual Divider Image
+                        _buildImageBanner(),
+                        const SizedBox(height: 16),
+
+                        // Section 3: How We Use Your Data
+                        _buildSection3(key: _sectionKeys[2]!),
+                        const SizedBox(height: 16),
+
+                        // Section 4: Third Parties
+                        _buildSection4(key: _sectionKeys[3]!),
+                        const SizedBox(height: 16),
+
+                        // Section 5: Data Security & DRM
+                        _buildSection5(key: _sectionKeys[4]!),
+                        const SizedBox(height: 16),
+
+                        // Section 6: Student Rights
+                        _buildSection6(key: _sectionKeys[5]!),
+                        const SizedBox(height: 16),
+
+                        // Section 7: Grievance Officer
+                        _buildSection7(key: _sectionKeys[6]!),
                         const SizedBox(height: 24),
-                        
-                        _buildIntroText(),
-                        const SizedBox(height: 28),
-                        
-                        _buildSection(
-                          number: '1',
-                          title: 'Information We Collect',
-                          content: '''
-When you use The Eduverse, we may collect the following types of information:
 
-• **Personal Information**: Name, email address, phone number, and profile picture that you provide during registration.
-
-• **Educational Data**: Course progress, quiz scores, study materials accessed, and learning preferences.
-
-• **Device Information**: Device type, operating system, unique device identifiers, and mobile network information.
-
-• **Usage Data**: How you interact with our app, including pages visited, features used, and time spent learning.
-
-• **Payment Information**: Payment details are processed securely through third-party payment processors (like Razorpay). We do not store your complete payment card details.''',
+                        // Bottom Copyright & Certification
+                        Center(
+                          child: Text(
+                            '© 2026 The Eduverse Academic Platform. All Rights Reserved.',
+                            style: EduverseTypography.labelSm(color: EduverseColors.outline).copyWith(
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
-                        
-                        _buildSection(
-                          number: '2',
-                          title: 'How We Use Your Information',
-                          content: '''
-We use the collected information for the following purposes:
-
-• **Personalized Learning**: To customize your educational experience and recommend relevant courses.
-
-• **Account Management**: To create and maintain your account, and communicate with you about your account.
-
-• **Service Improvement**: To analyze usage patterns and improve our educational content and platform features.
-
-• **Customer Support**: To respond to your inquiries and provide technical assistance.
-
-• **Notifications**: To send you important updates about courses, new features, and promotional offers (with your consent).
-
-• **Security**: To detect, prevent, and address technical issues and fraudulent activities.''',
-                        ),
-                        
-                        _buildSection(
-                          number: '3',
-                          title: 'Data Sharing & Disclosure',
-                          content: '''
-We do not sell your personal information. We may share your data only in these circumstances:
-
-• **Service Providers**: With trusted third-party services (cloud storage, analytics, payment processors) that help us operate our platform.
-
-• **Instructors**: Enrolled course instructors may access your name and progress data to provide better educational support.
-
-• **Legal Requirements**: When required by law, court order, or governmental authority.
-
-• **Business Transfers**: In connection with any merger, acquisition, or sale of company assets.
-
-• **With Your Consent**: When you explicitly agree to share your information with third parties.''',
-                        ),
-                        
-                        _buildSection(
-                          number: '4',
-                          title: 'Data Security',
-                          content: '''
-We implement industry-standard security measures to protect your information:
-
-• **Encryption**: All data transmitted between your device and our servers is encrypted using SSL/TLS protocols.
-
-• **Secure Storage**: Your data is stored on secure servers provided by Google Cloud Platform/Firebase.
-
-• **Access Controls**: Only authorized personnel have access to user data, and all access is logged and monitored.
-
-• **Regular Audits**: We conduct periodic security assessments to identify and address vulnerabilities.
-
-While we strive to protect your information, no method of transmission over the internet is 100% secure. We cannot guarantee absolute security.''',
-                        ),
-                        
-                        _buildSection(
-                          number: '5',
-                          title: 'Your Rights & Choices',
-                          content: '''
-You have the following rights regarding your personal data:
-
-• **Access**: You can request a copy of your personal data that we hold.
-
-• **Correction**: You can update or correct your profile information at any time through the app settings.
-
-• **Deletion**: You can request deletion of your account and associated data by contacting our support team.
-
-• **Opt-Out**: You can opt out of promotional communications through notification settings.
-
-• **Data Portability**: You can request your data in a commonly used, machine-readable format.
-
-To exercise any of these rights, please contact us using the information provided below.''',
-                        ),
-                        
-                        _buildSection(
-                          number: '6',
-                          title: 'Children\'s Privacy',
-                          content: '''
-The Eduverse is intended for users of all ages with appropriate parental/guardian supervision for minors.
-
-• If you are under 18, please use our services only with the involvement of a parent or guardian.
-
-• We do not knowingly collect personal information from children under 13 without parental consent.
-
-• If we learn that we have collected information from a child under 13 without parental consent, we will delete that information promptly.
-
-Parents/guardians can contact us to review, update, or delete their child's information.''',
-                        ),
-                        
-                        _buildSection(
-                          number: '7',
-                          title: 'Cookies & Tracking Technologies',
-                          content: '''
-We use cookies and similar technologies to enhance your experience:
-
-• **Essential Cookies**: Required for the app to function properly (authentication, preferences).
-
-• **Analytics**: To understand how users interact with our app and improve our services.
-
-• **Performance**: To monitor app performance and identify issues.
-
-You can manage cookie preferences through your device settings, though some features may not work properly if cookies are disabled.''',
-                        ),
-                        
-                        _buildSection(
-                          number: '8',
-                          title: 'Changes to This Policy',
-                          content: '''
-We may update this Privacy Policy from time to time. We will notify you of any significant changes by:
-
-• Posting the new policy on our app
-• Sending you an email notification (if applicable)
-• Displaying an in-app notification
-
-We encourage you to review this policy periodically. Continued use of our services after changes constitutes acceptance of the updated policy.''',
-                        ),
-                        
-                        _buildSection(
-                          number: '9',
-                          title: 'Contact Us',
-                          content: '''
-If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
-
-📧 **Email**: support@theeduverse.com
-📱 **In-App Support**: Profile → Help & Support
-📍 **Address**: The Eduverse, India
-
-We will respond to your inquiry within 48 hours during business days.''',
-                        ),
-                        
-                        const SizedBox(height: 24),
-                        _buildFooterNote(),
-                        const SizedBox(height: 40),
                       ],
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
+  Widget _buildHeroBanner() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF667eea).withValues(alpha: 0.1),
-            const Color(0xFF764ba2).withValues(alpha: 0.1),
+            EduverseColors.primary,
+            EduverseColors.primaryContainer,
+            EduverseColors.secondary,
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF667eea).withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF667eea).withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF667eea),
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF667eea),
-                ),
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: EduverseColors.primary.withValues(alpha: 0.22),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildIntroText() {
-    return Text(
-      'At The Eduverse, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, share, and safeguard your data when you use our educational platform.',
-      style: TextStyle(
-        fontSize: 15,
-        height: 1.6,
-        color: Colors.grey.shade700,
-      ),
-    );
-  }
-
-  Widget _buildSection({
-    required String number,
-    required String title,
-    required String content,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    number,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
+              const Icon(
+                Icons.verified_user_rounded,
+                size: 20,
+                color: EduverseColors.secondaryFixed,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2D3748),
-                  ),
+              const SizedBox(width: 6),
+              Text(
+                'THE EDUVERSE TRUST PROTOCOL',
+                style: EduverseTypography.labelSm(color: EduverseColors.secondaryFixed).copyWith(
+                  letterSpacing: 1.0,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+          const SizedBox(height: 10),
+          Text(
+            'Privacy Policy',
+            style: EduverseTypography.headlineLg(color: EduverseColors.onPrimary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Safeguarding the learning journey, scholarly privacy, and digital rights of our global student community.',
+            style: EduverseTypography.bodyMd(color: EduverseColors.primaryFixed).copyWith(
+              fontSize: 14.5,
+              height: 1.45,
             ),
-            child: _buildFormattedContent(content),
+          ),
+          const SizedBox(height: 14),
+          const Divider(color: Colors.white24, height: 1),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'v2.1',
+                  style: EduverseTypography.labelSm(color: EduverseColors.primaryFixed),
+                ),
+              ),
+              const Text('•', style: TextStyle(color: Colors.white70)),
+              Text(
+                'Effective: Oct 2024',
+                style: EduverseTypography.labelSm(color: Colors.white70),
+              ),
+              const Text('•', style: TextStyle(color: Colors.white70)),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.shield_rounded, size: 13, color: EduverseColors.secondaryFixed),
+                  const SizedBox(width: 4),
+                  Text(
+                    'India DPDPA Compliant',
+                    style: EduverseTypography.labelSm(color: EduverseColors.secondaryFixed),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFormattedContent(String content) {
-    final lines = content.trim().split('\n');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: lines.map((line) {
-        final trimmedLine = line.trim();
-        if (trimmedLine.isEmpty) {
-          return const SizedBox(height: 8);
-        }
-        
-        // Check if line is a bullet point
-        if (trimmedLine.startsWith('•')) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+  Widget _buildSection1({required GlobalKey key}) {
+    return Container(
+      key: key,
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            sectionNumber: '01',
+            title: 'Commitment to Privacy',
+            icon: Icons.menu_book_rounded,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'The Eduverse values your academic trust. We architect our learning environments with privacy-by-design standards, prioritizing student anonymity wherever public forums operate and preserving the integrity of academic metrics without invasive commercial telemetry.',
+            style: EduverseTypography.bodyMd().copyWith(height: 1.55),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: EduverseColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF667eea),
-                    shape: BoxShape.circle,
-                  ),
+                const Icon(
+                  Icons.verified_rounded,
+                  color: EduverseColors.emeraldVivid,
+                  size: 20,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _buildRichText(trimmedLine.substring(1).trim()),
+                  child: Text(
+                    'We never monetize or trade aspirant test performance, biometric study telemetry, or notes to third-party ad networks.',
+                    style: EduverseTypography.bodyMd(color: EduverseColors.onSurfaceVariant).copyWith(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),
-          );
-        }
-        
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: _buildRichText(trimmedLine),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildRichText(String text) {
-    // Simple bold text parsing for **text** format
-    final RegExp boldPattern = RegExp(r'\*\*(.+?)\*\*');
-    final List<InlineSpan> spans = [];
-    int lastEnd = 0;
-
-    for (final match in boldPattern.allMatches(text)) {
-      if (match.start > lastEnd) {
-        spans.add(TextSpan(
-          text: text.substring(lastEnd, match.start),
-          style: TextStyle(
-            fontSize: 14,
-            height: 1.6,
-            color: Colors.grey.shade700,
           ),
-        ));
-      }
-      spans.add(TextSpan(
-        text: match.group(1),
-        style: TextStyle(
-          fontSize: 14,
-          height: 1.6,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey.shade800,
-        ),
-      ));
-      lastEnd = match.end;
-    }
-
-    if (lastEnd < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastEnd),
-        style: TextStyle(
-          fontSize: 14,
-          height: 1.6,
-          color: Colors.grey.shade700,
-        ),
-      ));
-    }
-
-    if (spans.isEmpty) {
-      return Text(
-        text,
-        style: TextStyle(
-          fontSize: 14,
-          height: 1.6,
-          color: Colors.grey.shade700,
-        ),
-      );
-    }
-
-    return RichText(
-      text: TextSpan(children: spans),
+        ],
+      ),
     );
   }
 
-  Widget _buildFooterNote() {
+  Widget _buildSection2({required GlobalKey key}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      key: key,
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            sectionNumber: '02',
+            title: 'Information We Collect',
+            icon: Icons.fact_check_rounded,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'We collect only data pertinent to pedagogical improvement, certification verifiability, and syllabus pacing.',
+            style: EduverseTypography.bodyMd().copyWith(height: 1.55),
+          ),
+          const SizedBox(height: 14),
+          _buildCollectionItem(
+            icon: Icons.badge_outlined,
+            title: 'Identity & Profile Data',
+            desc: 'Name, educational level, phone, verified email, and profile avatar.',
+          ),
+          const SizedBox(height: 10),
+          _buildCollectionItem(
+            icon: Icons.insights_rounded,
+            title: 'Academic Telemetry',
+            desc: 'Quiz scores, mock percentile trends, video playback retention, notes authored.',
+          ),
+          const SizedBox(height: 10),
+          _buildCollectionItem(
+            icon: Icons.devices_rounded,
+            title: 'Hardware & DRM Diagnostics',
+            desc: 'OS version, device UUID, IP address, and screen resolution for DRM compliance.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollectionItem({required IconData icon, required String title, required String desc}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: EduverseColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade100),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline_rounded,
-            color: Colors.blue.shade700,
-            size: 22,
-          ),
+          Icon(icon, color: EduverseColors.secondary, size: 22),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'By using The Eduverse, you agree to the collection and use of information in accordance with this Privacy Policy.',
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.5,
-                color: Colors.blue.shade800,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: EduverseTypography.labelLg()),
+                const SizedBox(height: 2),
+                Text(
+                  desc,
+                  style: EduverseTypography.bodyMd(color: EduverseColors.onSurfaceVariant).copyWith(
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildImageBanner() {
+    return Container(
+      height: 120,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/auth/privacy_banner.png',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [EduverseColors.deepNavy, EduverseColors.primary],
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    EduverseColors.deepNavy.withValues(alpha: 0.92),
+                    EduverseColors.primary.withValues(alpha: 0.80),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ACADEMIC EXCELLENCE',
+                    style: EduverseTypography.labelSm(color: EduverseColors.tertiaryFixed).copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Knowledge Protected',
+                    style: EduverseTypography.headlineMd(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection3({required GlobalKey key}) {
+    return Container(
+      key: key,
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            sectionNumber: '03',
+            title: 'How We Use Your Data',
+            icon: Icons.psychology_rounded,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'All telemetry processes feed our adaptive learning algorithms to tailor your study sessions:',
+            style: EduverseTypography.bodyMd(),
+          ),
+          const SizedBox(height: 14),
+          _buildBulletItem(
+            icon: Icons.auto_graph_rounded,
+            boldText: 'Custom Study Pacing: ',
+            normalText: 'Recalibrating module target dates when mock exam scores fall below targets.',
+          ),
+          const SizedBox(height: 10),
+          _buildBulletItem(
+            icon: Icons.smart_display_rounded,
+            boldText: 'Predictive Lecture Prompts: ',
+            normalText: 'Suggesting prerequisite remedial videos before live doubt-clearing sessions.',
+          ),
+          const SizedBox(height: 10),
+          _buildBulletItem(
+            icon: Icons.school_rounded,
+            boldText: 'Scholarship Qualification: ',
+            normalText: 'Evaluating merit indicators for fee reduction and grant endowments.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection4({required GlobalKey key}) {
+    return Container(
+      key: key,
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            sectionNumber: '04',
+            title: 'Third-Party Disclosures',
+            icon: Icons.hub_outlined,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'We strictly restrict integrations to certified enterprise infrastructure providers under strict Data Protection Agreements:',
+            style: EduverseTypography.bodyMd(),
+          ),
+          const SizedBox(height: 12),
+          _buildBulletItem(
+            icon: Icons.cloud_done_outlined,
+            boldText: 'Firebase & Google Cloud: ',
+            normalText: 'Encrypted databases, serverless functions, and secure hosting with ISO 27001 certification.',
+          ),
+          const SizedBox(height: 10),
+          _buildBulletItem(
+            icon: Icons.payment_rounded,
+            boldText: 'Payment Gateways (Razorpay): ',
+            normalText: 'PCI-DSS Level 1 certified handling of course fees. We never store debit/credit card CVV or pins.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection5({required GlobalKey key}) {
+    return Container(
+      key: key,
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            sectionNumber: '05',
+            title: 'Security & DRM Protections',
+            icon: Icons.enhanced_encryption_rounded,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'To prevent academic piracy and protect intellectual property:',
+            style: EduverseTypography.bodyMd(),
+          ),
+          const SizedBox(height: 12),
+          _buildBulletItem(
+            icon: Icons.screen_lock_portrait_rounded,
+            boldText: 'Screen Leak Protection: ',
+            normalText: 'Dynamic watermark and screen recording detection on mobile devices to prevent leaks.',
+          ),
+          const SizedBox(height: 10),
+          _buildBulletItem(
+            icon: Icons.lock_outline_rounded,
+            boldText: '256-Bit SSL/TLS Encryption: ',
+            normalText: 'All communications between your client device and our server cluster are encrypted in transit and at rest.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection6({required GlobalKey key}) {
+    return Container(
+      key: key,
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            sectionNumber: '06',
+            title: 'Student Rights Under DPDPA',
+            icon: Icons.policy_rounded,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'In full accordance with the Digital Personal Data Protection Act (DPDPA), you retain the following rights:',
+            style: EduverseTypography.bodyMd(),
+          ),
+          const SizedBox(height: 12),
+          _buildBulletItem(
+            icon: Icons.visibility_outlined,
+            boldText: 'Right to Access: ',
+            normalText: 'Request a comprehensive machine-readable dossier of all personal records.',
+          ),
+          const SizedBox(height: 10),
+          _buildBulletItem(
+            icon: Icons.edit_note_rounded,
+            boldText: 'Right to Correction: ',
+            normalText: 'Update inaccurate names, phone contacts, or academic category profiles at any time.',
+          ),
+          const SizedBox(height: 10),
+          _buildBulletItem(
+            icon: Icons.delete_forever_outlined,
+            boldText: 'Right to Erasure: ',
+            normalText: 'Request permanent deletion of your account and related telemetry via the Account Settings panel.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection7({required GlobalKey key}) {
+    return Container(
+      key: key,
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            sectionNumber: '07',
+            title: 'Grievance Redressal',
+            icon: Icons.gavel_rounded,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'For any questions, compliance verification, or grievance redressal regarding personal data protection, contact our designated Data Protection Officer:',
+            style: EduverseTypography.bodyMd(),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: EduverseColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.person_outline_rounded, size: 18, color: EduverseColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text('Data Protection Officer: ', style: EduverseTypography.labelLg()),
+                          Text('Adv. Rajesh Kumar', style: EduverseTypography.bodyMd(color: EduverseColors.onSurface)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.email_outlined, size: 18, color: EduverseColors.secondary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text('Email: ', style: EduverseTypography.labelLg()),
+                          Text('privacy@eduverse.org', style: EduverseTypography.bodyMd(color: EduverseColors.primary)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.timer_outlined, size: 18, color: EduverseColors.tertiary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text('Turnaround: ', style: EduverseTypography.labelLg()),
+                          Text('Within 48 academic working hours', style: EduverseTypography.bodyMd(color: EduverseColors.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String sectionNumber,
+    required String title,
+    required IconData icon,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: EduverseColors.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: EduverseColors.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'SECTION $sectionNumber',
+              style: EduverseTypography.labelSm(color: EduverseColors.secondary).copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.0,
+              ),
+            ),
+            Text(
+              title,
+              style: EduverseTypography.headlineMd().copyWith(fontSize: 18),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBulletItem({
+    required IconData icon,
+    required String boldText,
+    required String normalText,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: EduverseColors.emeraldVivid),
+        const SizedBox(width: 10),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: EduverseTypography.bodyMd().copyWith(fontSize: 13.5),
+              children: [
+                TextSpan(
+                  text: boldText,
+                  style: EduverseTypography.labelLg().copyWith(fontSize: 13.5),
+                ),
+                TextSpan(text: normalText),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      color: EduverseColors.surfaceContainerLowest,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: EduverseColors.outlineVariant.withValues(alpha: 0.3)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.03),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
+        ),
+      ],
     );
   }
 }

@@ -40,4 +40,16 @@ class UserService {
     final snapshot = await _firestore.collection(FirestorePaths.users).doc(uid).get();
     return snapshot.data();
   }
+
+  Future<QuerySnapshot<Map<String, dynamic>>?> getUserByPhone(String phone) async {
+    try {
+      return await _firestore
+          .collection(FirestorePaths.users)
+          .where('phone', isEqualTo: phone)
+          .limit(1)
+          .get();
+    } catch (e) {
+      return null;
+    }
+  }
 }
