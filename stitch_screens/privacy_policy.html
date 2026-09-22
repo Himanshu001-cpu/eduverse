@@ -1,0 +1,363 @@
+<!DOCTYPE html><html class="h-full" lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 1.5rem);}.pt-safe{padding-top:calc(env(safe-area-inset-top, 0px) + 1.5rem);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "primary-fixed": "#a2f1e4", "outline": "#6f7977", "secondary": "#006875", "surface-tint": "#0b6a60", "surface-container": "#e7eeff", "on-background": "#111c2d", "secondary-fixed-dim": "#00daf3", "tertiary-fixed": "#ffe16d", "inverse-surface": "#263143", "outline-variant": "#bec9c6", "surface-bright": "#f9f9ff", "on-tertiary-container": "#4c3e00", "tertiary-fixed-dim": "#e9c400", "on-error": "#ffffff", "on-tertiary-fixed": "#221b00", "surface-container-high": "#dee8ff", "surface-dim": "#cfdaf2", "on-secondary-fixed": "#001f24", "surface-variant": "#d8e3fb", "surface-container-highest": "#d8e3fb", "on-primary-fixed-variant": "#005048", "secondary-fixed": "#9cf0ff", "tertiary": "#705d00", "surface": "#f9f9ff", "on-tertiary-fixed-variant": "#544600", "on-secondary-fixed-variant": "#004f58", "error-container": "#ffdad6", "on-primary": "#ffffff", "on-primary-container": "#92e1d4", "surface-gray": "#F8F9FA", "primary-fixed-dim": "#86d5c8", "primary": "#004c44", "on-secondary": "#ffffff", "surface-container-low": "#f0f3ff", "error": "#ba1a1a", "emerald-vivid": "#0E9272", "on-tertiary": "#ffffff", "on-surface": "#111c2d", "on-secondary-container": "#00616d", "on-error-container": "#93000a", "surface-container-lowest": "#ffffff", "secondary-container": "#00e3fd", "inverse-on-surface": "#ecf1ff", "on-primary-fixed": "#00201c", "deep-navy": "#040B14", "on-surface-variant": "#3f4947", "background": "#f9f9ff", "inverse-primary": "#86d5c8", "tertiary-container": "#c9a900", "primary-container": "#00665c" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin-desktop": "48px", "container-max": "1280px", "base": "8px", "gutter": "24px", "section-gap": "80px", "margin-mobile": "16px" }, "fontFamily": { "headline-md": ["Playfair Display"], "label-lg": ["Inter"], "body-lg": ["Inter"], "display-lg-mobile": ["Playfair Display"], "label-sm": ["Inter"], "headline-lg": ["Playfair Display"], "body-md": ["Inter"], "display-lg": ["Playfair Display"] }, "fontSize": { "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}], "label-lg": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}], "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}], "display-lg-mobile": ["36px", {"lineHeight": "1.2", "fontWeight": "700"}], "label-sm": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500"}], "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "600"}], "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}], "display-lg": ["56px", {"lineHeight": "1.1", "fontWeight": "700"}] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-full"><main class="flex-1 flex flex-col relative w-full pt-safe pb-safe bg-surface"><div class="flex flex-col w-full text-on-surface">
+<!-- Top App Bar & Context -->
+<div class="px-margin-mobile pt-2 pb-4 flex items-center justify-between">
+<button aria-label="Go Back" class="w-10 h-10 rounded-full bg-surface-container-low text-primary flex items-center justify-center shadow-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</button>
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-secondary">
+
+
+</div>
+<button aria-label="Share Document" class="w-10 h-10 rounded-full bg-surface-container-low text-primary flex items-center justify-center shadow-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]">share</span>
+</button>
+</div>
+<!-- Header Banner & Emblem Showcase -->
+<div class="px-margin-mobile pb-5">
+<div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary-container to-secondary p-5 text-on-primary shadow-md">
+<!-- Watermark Crest Decoration -->
+<div class="absolute -right-6 -bottom-6 w-36 h-36 opacity-15 pointer-events-none">
+<svg class="w-full h-full" fill="currentColor" viewBox="0 0 100 100">
+<circle cx="50" cy="50" fill="none" opacity="0.6" r="42" stroke="currentColor" stroke-width="3"></circle>
+<path d="M50 15 L58 35 L80 35 L62 48 L68 70 L50 56 L32 70 L38 48 L20 35 L42 35 Z" opacity="0.4"></path>
+<path d="M22 65 C 28 80, 72 80, 78 65" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"></path>
+</svg>
+</div>
+<div class="flex items-center gap-2 mb-2.5">
+<span class="material-symbols-outlined text-secondary-fixed text-[22px]">verified_user</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary-fixed">The Eduverse Trust Protocol</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-primary leading-tight mb-2">Privacy Policy</h1>
+<p class="font-body-md text-body-md text-primary-fixed opacity-90 leading-relaxed mb-4">
+        Safeguarding the learning journey, scholarly privacy, and digital rights of our global student community.
+      </p>
+<div class="flex flex-wrap items-center gap-2 pt-2 border-t border-primary-fixed/20 text-on-primary font-label-sm text-label-sm">
+<span class="bg-primary/50 backdrop-blur-sm px-2.5 py-1 rounded-full text-primary-fixed">v2.1</span>
+<span class="">•</span>
+<span class="">Effective: Oct 2024</span>
+<span class="">•</span>
+<span class="inline-flex items-center gap-1 text-secondary-fixed">
+<span class="material-symbols-outlined text-[13px]">shield</span> India DPDPA Compliant
+        </span>
+</div>
+</div>
+</div>
+<!-- Sticky Quick-Jump Navigation -->
+<div class="sticky top-0 z-20 bg-surface/95 backdrop-blur-md py-2.5 shadow-sm px-margin-mobile">
+<div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth" id="chipContainer">
+<button class="chip-item whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-sm text-label-sm bg-primary text-on-primary shadow-sm transition-colors" onclick="scrollToSection('sec-intro')">1. Intro</button>
+<button class="chip-item whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant transition-colors" onclick="scrollToSection('sec-data')">2. Data Collected</button>
+<button class="chip-item whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant transition-colors" onclick="scrollToSection('sec-usage')">3. Usage</button>
+<button class="chip-item whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant transition-colors" onclick="scrollToSection('sec-thirdparty')">4. Third Parties</button>
+<button class="chip-item whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant transition-colors" onclick="scrollToSection('sec-security')">5. Security</button>
+<button class="chip-item whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant transition-colors" onclick="scrollToSection('sec-rights')">6. Rights</button>
+<button class="chip-item whitespace-nowrap px-3.5 py-1.5 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant transition-colors" onclick="scrollToSection('sec-grievance')">7. Grievance</button>
+</div>
+</div>
+<!-- Content Sections Container -->
+<div class="px-margin-mobile flex flex-col gap-4 py-4">
+<!-- Section 1: Introduction -->
+<section class="scroll-mt-16 rounded-xl bg-surface-container-lowest p-5 shadow-sm" id="sec-intro">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">menu_book</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold uppercase tracking-wide">Section 01</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Commitment to Privacy</h2>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+        The Eduverse values your academic trust. We architect our learning environments with privacy-by-design standards, prioritizing student anonymity wherever public forums operate and preserving the integrity of academic metrics without invasive commercial telemetry.
+      </p>
+<div class="mt-4 p-3.5 rounded-lg bg-surface-container-low flex items-start gap-3">
+<span class="material-symbols-outlined text-emerald-vivid text-[20px] mt-0.5">verified</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant leading-normal">
+          We never monetize or trade aspirant test performance, biometric study telemetry, or notes to third-party ad networks.
+        </p>
+</div>
+</section>
+<!-- Section 2: Information We Collect -->
+<section class="scroll-mt-16 rounded-xl bg-surface-container-lowest p-5 shadow-sm" id="sec-data">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">fact_check</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold uppercase tracking-wide">Section 02</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Information We Collect</h2>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">
+        We collect only data pertinent to pedagogical improvement, certification verifiability, and syllabus pacing.
+      </p>
+<div class="flex flex-col gap-2.5">
+<div class="p-3.5 rounded-lg bg-surface-container-low flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-[22px]">badge</span>
+<div class="min-w-0">
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">Identity &amp; Profile Data</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Name, educational level, phone, verified email, and profile avatar.</p>
+</div>
+</div>
+<div class="p-3.5 rounded-lg bg-surface-container-low flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-[22px]">insights</span>
+<div class="min-w-0">
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">Academic Telemetry</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Quiz scores, mock percentile trends, video playback retention, notes authored.</p>
+</div>
+</div>
+<div class="p-3.5 rounded-lg bg-surface-container-low flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-[22px]">devices</span>
+<div class="min-w-0">
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">Hardware &amp; DRM Diagnostics</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">OS version, device UUID, IP address, and screen resolution for DRM compliance.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Visual Divider Image -->
+<div class="relative overflow-hidden rounded-xl h-28 shadow-sm">
+<div class="w-full h-full bg-cover bg-center" data-alt="A modern university library architectural interior bathed in warm ambient natural sunlight with students studying quietly on laptops, surrounded by classical arched bookshelves and subtle futuristic holographic motifs in emerald green and gold." style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuD16zK_DruP7dwrZcoJeZDw7837w3OHAI6GZo8lxCdDoL9SqykWmgcGrVLoGsXbjx8Dfo5sErdD0cnHXFE0vFzCQkMIyX8nKBCMuwMkseOJvOoGo2gNo5uhF-gXt_Pjp85LL-G3A1SeU0-XaYLER_OsdkTzFsYL1OIYdiaoQu4XdZqkiDCKmYNplj0Wyg5hpGWY7fY2r_bz5KgwQ7TrGzzvPTdON3x09BIJHjKSnzMKB8pEe-RbxLQH&quot;);">
+<div class="w-full h-full bg-gradient-to-r from-deep-navy/90 via-primary/80 to-transparent p-4 flex flex-col justify-center">
+<span class="font-label-sm text-label-sm text-tertiary-fixed font-semibold">ACADEMIC EXCELLENCE</span>
+<p class="font-headline-md text-headline-md text-on-primary">Knowledge Protected</p>
+</div>
+</div>
+</div>
+<!-- Section 3: How We Use Your Data -->
+<section class="scroll-mt-16 rounded-xl bg-surface-container-lowest p-5 shadow-sm" id="sec-usage">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">psychology</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold uppercase tracking-wide">Section 03</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">How We Use Your Data</h2>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-3">
+        All telemetry processes feed our adaptive learning algorithms to tailor your study sessions:
+      </p>
+<ul class="space-y-2.5">
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-emerald-vivid text-[18px] mt-1">auto_graph</span>
+<span class="font-body-md text-body-md text-on-surface-variant"><strong class="text-on-surface font-semibold">Custom Study Pacing:</strong> Recalibrating module target dates when mock exam scores fall below targets.</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-emerald-vivid text-[18px] mt-1">smart_display</span>
+<span class="font-body-md text-body-md text-on-surface-variant"><strong class="text-on-surface font-semibold">Predictive Lecture Prompts:</strong> Suggesting prerequisite remedial videos before live doubt-clearing sessions.</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-emerald-vivid text-[18px] mt-1">school</span>
+<span class="font-body-md text-body-md text-on-surface-variant"><strong class="text-on-surface font-semibold">Scholarship Qualification:</strong> Evaluating merit indicators for fee reduction and grant endowments.</span>
+</li>
+</ul>
+</section>
+<!-- Section 4: Third-Party Processors -->
+<section class="scroll-mt-16 rounded-xl bg-surface-container-lowest p-5 shadow-sm" id="sec-thirdparty">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">hub</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold uppercase tracking-wide">Section 04</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Third-Party Processors</h2>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">
+        We partner exclusively with enterprise-grade providers adhering to ISO/IEC 27001 and strict sub-processing contracts:
+      </p>
+<div class="space-y-3">
+<div class="p-3.5 rounded-lg bg-surface-container-high flex items-start gap-3">
+<div class="p-2 rounded-md bg-surface-container-lowest text-secondary">
+<span class="material-symbols-outlined text-[22px]">cloud_sync</span>
+</div>
+<div>
+<div class="flex items-center justify-between">
+<h3 class="font-label-lg text-label-lg font-semibold text-on-surface">Firebase &amp; GCP India</h3>
+<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-surface-variant text-on-surface-variant">Mumbai Region</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Handles encrypted tokenized authentication, crash metrics, and real-time class chat sync.</p>
+</div>
+</div>
+<div class="p-3.5 rounded-lg bg-surface-container-high flex items-start gap-3">
+<div class="p-2 rounded-md bg-surface-container-lowest text-emerald-vivid">
+<span class="material-symbols-outlined text-[22px]">credit_card</span>
+</div>
+<div>
+<div class="flex items-center justify-between">
+<h3 class="font-label-lg text-label-lg font-semibold text-on-surface">Razorpay Payment Gateway</h3>
+<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-primary-fixed text-on-primary-fixed-variant">PCI-DSS L1</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Processes UPI, card transactions, and EMIs. The Eduverse never views or retains raw card numbers.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 5: Security & DRM -->
+<section class="scroll-mt-16 rounded-xl bg-surface-container-lowest p-5 shadow-sm" id="sec-security">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">enhanced_encryption</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold uppercase tracking-wide">Section 05</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Data Security &amp; DRM</h2>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">
+        To safeguard proprietary faculty research and prevent unauthorized redistribution, rigorous safeguards are deployed:
+      </p>
+<div class="space-y-2.5">
+<div class="p-3 rounded-lg bg-surface-container-low flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">lock</span>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">AES-256 Transport &amp; At-Rest</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">All mock tests and personal records are encrypted with rotating keys managed by Cloud KMS.</p>
+</div>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">waterfall_chart</span>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Dynamic Anti-Piracy Watermarking</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Live video feeds display an imperceptible student ID overlay to prevent unlawful digital mirroring.</p>
+</div>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">screen_lock_portrait</span>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Screen-Capture Deterrence</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">FLAG_SECURE protocol active during mock test viewports to inhibit unapproved record sessions.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 6: Rights under DPDPA 2023 -->
+<section class="scroll-mt-16 rounded-xl bg-surface-container-lowest p-5 shadow-sm" id="sec-rights">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">balance</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold uppercase tracking-wide">Section 06</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Aspirant Rights (DPDPA 2023)</h2>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4 leading-relaxed">
+        Under the Digital Personal Data Protection Act (2023) of India, you hold irrevocable governance rights regarding your educational persona:
+      </p>
+<div class="grid grid-cols-2 gap-2.5">
+<div class="p-3 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-secondary text-[20px]">download</span>
+<h3 class="font-label-lg text-label-lg font-semibold text-on-surface mt-1">Data Portability</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">Export notes, test histories, and transcripts in open JSON formats.</p>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-secondary text-[20px]">edit_note</span>
+<h3 class="font-label-lg text-label-lg font-semibold text-on-surface mt-1">Right to Correct</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">Update erroneous academic identities, names, and contact parameters.</p>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-secondary text-[20px]">delete_forever</span>
+<h3 class="font-label-lg text-label-lg font-semibold text-on-surface mt-1">Right to Erasure</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">Request purge of account traces following course cycle completion.</p>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-secondary text-[20px]">block</span>
+<h3 class="font-label-lg text-label-lg font-semibold text-on-surface mt-1">Consent Revocation</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">Withdraw permission for optional analytical study prompts instantly.</p>
+</div>
+</div>
+</section>
+<!-- Section 7: Grievance Redressal -->
+<section class="scroll-mt-16 rounded-xl bg-surface-container-lowest p-5 shadow-sm" id="sec-grievance">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">contact_support</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold uppercase tracking-wide">Section 07</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Grievance Redressal</h2>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4 leading-relaxed">
+        For inquiries regarding compliance, rights invocation, or data clarification, reach out to our appointed Legal Ombudsman:
+      </p>
+<div class="p-4 rounded-xl bg-surface-container-high">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Close up professional portrait of Adv. Ragav Nambiar, Indian legal officer wearing formal executive blazer with an approachable and authoritative demeanor, soft warm background lighting in a modern educational institute." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC83K9fvCv5A3q2ftQ4PU23vs8G8Kna50ZX5I7v8kLMYFn1UOTaDQP94XSOtwnkoKcZN6DwMQf7XiHTzlAdmwMUQkXKLKoTOmc3qyRyRVsN1oZWDZP34kk-WIF2JBuf6rJI5KYi5jcxjnskdzrsENHs0D5RhokToKPjX-fCcWptW5on4IQVNxSsge6WkZp9rqUueSmQh7uI9bcV7atBJ0zAHuzcQ3dR3EZApI9xgrVnLqsnA9b3MqOP">
+</div>
+<div>
+<h3 class="font-label-lg text-label-lg font-bold text-on-surface">Adv. Ragav Nambiar</h3>
+<p class="font-label-sm text-label-sm text-secondary font-medium">Chief Privacy &amp; Data Grievance Officer</p>
+</div>
+</div>
+<div class="space-y-2 pt-2 border-t border-outline-variant/30 text-on-surface-variant">
+<a class="flex items-center gap-2.5 text-primary active:opacity-75" href="mailto:legal@theeduverse.co.in">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+<span class="font-label-sm text-label-sm font-semibold">legal@theeduverse.co.in</span>
+</a>
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+<span class="font-label-sm text-label-sm">Resolution window: Within 72 Business Hours</span>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[18px] mt-0.5">location_on</span>
+<span class="font-label-sm text-label-sm leading-normal">The Eduverse Legal Secretariat, Tech Park IV, Outer Ring Road, Bengaluru, KA 560103</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Actions & Download CTA -->
+<div class="pt-2 pb-6 flex flex-col gap-3">
+<button class="w-full py-3.5 px-5 rounded-full bg-primary text-on-primary font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 shadow-md hover:bg-primary-container active:scale-[0.98] transition-all" id="downloadPdfBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+<span class="">Download Official PDF Copy</span>
+</button>
+<div class="text-center font-label-sm text-label-sm text-on-surface-variant opacity-70">
+        The Eduverse Learning Systems Private Limited © 2024. All rights reserved.
+      </div>
+</div>
+</div>
+</div>
+<script>
+  function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Update chip styling
+    const chips = document.querySelectorAll('.chip-item');
+    chips.forEach(chip => {
+      chip.classList.remove('bg-primary', 'text-on-primary');
+      chip.classList.add('bg-surface-container', 'text-on-surface-variant');
+    });
+
+    const activeBtn = event?.currentTarget;
+    if (activeBtn) {
+      activeBtn.classList.remove('bg-surface-container', 'text-on-surface-variant');
+      activeBtn.classList.add('bg-primary', 'text-on-primary');
+    }
+  }
+
+  // PDF toast simulation
+  document.getElementById('downloadPdfBtn')?.addEventListener('click', function() {
+    const originalText = this.innerHTML;
+    this.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-spin">sync</span><span>Preparing Encrypted PDF...</span>';
+    setTimeout(() => {
+      this.innerHTML = '<span class="material-symbols-outlined text-[20px]">check_circle</span><span>PDF Download Initiated</span>';
+      setTimeout(() => {
+        this.innerHTML = originalText;
+      }, 2500);
+    }, 1200);
+  });
+</script></main>
+
+</body></html>

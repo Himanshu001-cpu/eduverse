@@ -85,6 +85,65 @@ class AuthService {
     }
   }
 
+  Future<AuthResult> signInWithEmailOrPhone({
+    required String identifier,
+    required String password,
+  }) async {
+    final trimmed = identifier.trim();
+    final cleanDigits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    final isPhone = cleanDigits.length >= 10 && !trimmed.contains('@');
+
+    if (!isPhone) {
+      return signInWithEmail(email: trimmed, password: password);
+    }
+
+    try {
+      final last10 = cleanDigits.substring(cleanDigits.length - 10);
+      final possiblePhones = [
+        '+91$last10',
+        last10,
+        '+$cleanDigits',
+        cleanDigits,
+      ];
+
+      QuerySnapshot<Map<String, dynamic>>? query;
+      for (final p in possiblePhones) {
+        final res = await _userService.getUserByPhone(p);
+        if (res != null && res.docs.isNotEmpty) {
+          query = res;
+          break;
+        }
+      }
+
+      if (query != null && query.docs.isNotEmpty) {
+        final data = query.docs.first.data();
+        final email = data['email'] as String?;
+        if (email != null && email.isNotEmpty) {
+          return await signInWithEmail(email: email, password: password);
+        }
+      }
+
+      // Try synthetic email formats if account was created via phone OTP
+      final synthetic1 = await signInWithEmail(
+        email: '+91$last10@eduverse.app',
+        password: password,
+      );
+      if (synthetic1.isSuccess) return synthetic1;
+
+      final synthetic2 = await signInWithEmail(
+        email: '$last10@eduverse.app',
+        password: password,
+      );
+      if (synthetic2.isSuccess) return synthetic2;
+
+      return AuthResult.failure(
+        'No scholar account found for mobile number $trimmed. Please verify your number or register.',
+      );
+    } catch (e) {
+      return AuthResult.failure('Failed to sign in with phone: $e');
+    }
+  }
+
   Future<AuthResult> signUpWithEmail({
     required String email,
     required String password,
@@ -372,6 +431,15 @@ class AuthService {
         return 'This credential is already linked to another account';
       case 'requires-recent-login':
         return 'Please re-login and try again';
+      case 'invalid-phone-number':
+        return 'The phone number format is invalid. Please enter a valid 10-digit number.';
+      case 'quota-exceeded':
+        return 'SMS quota exceeded for today. You can log in using your phone and password on the Login page.';
+      case 'app-not-authorized':
+      case '17093':
+        return 'SMS verification not authorized for this debug build. You can log in using your mobile number and password on the Login page!';
+      case 'too-many-requests':
+        return 'Too many SMS requests. Please wait a few minutes or log in with your password.';
       default:
         return 'Authentication error: $code';
     }

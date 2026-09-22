@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
+import 'package:eduverse/core/theme/eduverse_theme.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
 import 'phone_login_page.dart';
-import 'privacy_policy_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,7 +20,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   bool _isLoading = false;
   bool _obscurePassword = true;
-  bool _rememberMe = false;
+  bool _rememberMe = true;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -31,13 +31,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 900),
     );
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.08),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
     _animationController.forward();
@@ -56,22 +56,17 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
     setState(() => _isLoading = true);
 
-    final result = await _authService.signInWithEmail(
-      email: _emailController.text,
+    final result = await _authService.signInWithEmailOrPhone(
+      identifier: _emailController.text,
       password: _passwordController.text,
     );
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (!mounted) return;
-
     if (!result.isSuccess) {
-      _showError(result.errorMessage!);
-    }
-    // On success, AuthWrapper will automatically navigate to main app
-    // However, on web/deep links, sometimes we need to clear the stack manually
-    // to ensure the UI updates immediately without a refresh.
-    if (mounted) {
+      _showError(result.errorMessage ?? 'Authentication failed');
+    } else {
       Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     }
   }
@@ -81,12 +76,35 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.white),
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: EduverseColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showInfo(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
             const SizedBox(width: 12),
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.red.shade600,
+        backgroundColor: EduverseColors.secondary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -97,264 +115,495 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-              Color(0xFF6B73FF),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Logo & Brand
-                      _buildHeader(),
-                      const SizedBox(height: 40),
-
-                      // Login Card
-                      _buildLoginCard(),
-                      const SizedBox(height: 24),
-
-                      // Register Link
-                      _buildRegisterLink(),
-                      const SizedBox(height: 16),
-
-                      // Privacy Policy Link
-                      _buildPrivacyPolicyLink(),
+      backgroundColor: EduverseColors.background,
+      body: Stack(
+        children: [
+          // Subtle Ambient Academic Glow Backdrop
+          Positioned(
+            top: -60,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                width: 340,
+                height: 340,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      EduverseColors.primaryFixed.withValues(alpha: 0.35),
+                      EduverseColors.secondaryFixed.withValues(alpha: 0.15),
+                      Colors.transparent,
                     ],
                   ),
                 ),
               ),
             ),
           ),
-        ),
+
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 440),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildBrandHeader(),
+                          const SizedBox(height: 24),
+                          _buildFormCard(),
+                          const SizedBox(height: 24),
+                          _buildFooter(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildBrandHeader() {
     return Column(
       children: [
-        // Animated Logo Container
+        // Crest Emblem with glow & auto_awesome badge
+        Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 86,
+              height: 86,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: EduverseColors.primary.withValues(alpha: 0.15),
+                    blurRadius: 28,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 80,
+              height: 80,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: EduverseColors.surfaceContainerLowest,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: EduverseColors.outlineVariant.withValues(alpha: 0.4),
+                  width: 1.5,
+                ),
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/auth/eduverse_crest.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: EduverseColors.surfaceContainerLow,
+                    child: const Icon(
+                      Icons.school_rounded,
+                      color: EduverseColors.primary,
+                      size: 38,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: const BoxDecoration(
+                  color: EduverseColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: EduverseColors.onPrimary,
+                  size: 15,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // Aspirant Portal Pill Badge
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
+            color: EduverseColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 30,
-                spreadRadius: 5,
+                color: EduverseColors.secondary.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/icon.png',
-              width: 80,
-              height: 80,
-              fit: BoxFit.cover,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.school_rounded,
+                size: 15,
+                color: EduverseColors.secondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'ASPIRANT PORTAL',
+                style: EduverseTypography.labelSm(color: EduverseColors.secondary).copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 24),
-        const Text(
-          'The Eduverse',
-          style: TextStyle(
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 2,
-          ),
-        ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
+
+        // Headline & Subtitle
         Text(
-          'Welcome Back!',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.white.withValues(alpha: 0.9),
-            letterSpacing: 0.5,
-          ),
+          'Welcome Back',
+          style: EduverseTypography.headlineLg(),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Enter your credentials to continue your academic journey',
+          style: EduverseTypography.bodyMd(),
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
-  Widget _buildLoginCard() {
+  Widget _buildFormCard() {
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
+        color: EduverseColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: EduverseColors.outlineVariant.withValues(alpha: 0.3),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
+            color: EduverseColors.deepNavy.withValues(alpha: 0.06),
+            blurRadius: 32,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Email Field
-            _buildTextField(
-              controller: _emailController,
-              label: 'Email',
-              hint: 'Enter your email',
-              prefixIcon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your email';
-                }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                  return 'Please enter a valid email';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Password Field
-            _buildTextField(
-              controller: _passwordController,
-              label: 'Password',
-              hint: 'Enter your password',
-              prefixIcon: Icons.lock_outline,
-              obscureText: _obscurePassword,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey.shade600,
-                ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your password';
-                }
-                if (value.length < 6) {
-                  return 'Password must be at least 6 characters';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Remember Me & Forgot Password
+            // Field 1: Email or Academic ID
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: Checkbox(
-                        value: _rememberMe,
-                        onChanged: (v) => setState(() => _rememberMe = v ?? false),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Remember me',
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-                    ),
-                  ],
-                ),
-                TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+                Expanded(
+                  child: Text(
+                    'Email or Mobile Number',
+                    style: EduverseTypography.labelLg(),
                   ),
+                ),
+                Text(
+                  'Academic ID',
+                  style: EduverseTypography.labelSm(color: EduverseColors.onSurfaceVariant),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              style: EduverseTypography.bodyMd(color: EduverseColors.onSurface),
+              decoration: InputDecoration(
+                hintText: 'scholar@eduverse.edu or +91',
+                hintStyle: EduverseTypography.bodyMd(
+                  color: EduverseColors.outline.withValues(alpha: 0.7),
+                ),
+                prefixIcon: const Icon(
+                  Icons.alternate_email_rounded,
+                  color: EduverseColors.outline,
+                  size: 20,
+                ),
+                filled: true,
+                fillColor: EduverseColors.surfaceContainerLow,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: EduverseColors.primaryContainer,
+                    width: 1.8,
+                  ),
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your email or phone number';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 18),
+
+            // Field 2: Password
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Master Password',
+                    style: EduverseTypography.labelLg(),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+                    );
+                  },
                   child: Text(
                     'Forgot Password?',
-                    style: TextStyle(
-                      color: const Color(0xFF667eea),
+                    style: EduverseTypography.labelSm(color: EduverseColors.secondary).copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // Login Button
-            _buildGradientButton(
-              onPressed: _isLoading ? null : _handleLogin,
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation(Colors.white),
-                      ),
-                    )
-                  : const Text(
-                      'Sign In',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1,
-                      ),
-                    ),
-            ),
-            const SizedBox(height: 24),
-
-            // Divider
-            Row(
-              children: [
-                Expanded(child: Divider(color: Colors.grey.shade300)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'Or continue with',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              style: EduverseTypography.bodyMd(color: EduverseColors.onSurface),
+              decoration: InputDecoration(
+                hintText: 'Enter institutional cipher',
+                hintStyle: EduverseTypography.bodyMd(
+                  color: EduverseColors.outline.withValues(alpha: 0.7),
+                ),
+                prefixIcon: const Icon(
+                  Icons.key_rounded,
+                  color: EduverseColors.outline,
+                  size: 20,
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    color: EduverseColors.outline,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+                filled: true,
+                fillColor: EduverseColors.surfaceContainerLow,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: EduverseColors.primaryContainer,
+                    width: 1.8,
                   ),
                 ),
-                Expanded(child: Divider(color: Colors.grey.shade300)),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your password';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 14),
+
+            // Remember Me
+            Row(
+              children: [
+                SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: Checkbox(
+                    value: _rememberMe,
+                    activeColor: EduverseColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    onChanged: (val) => setState(() => _rememberMe = val ?? false),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Remember this Device',
+                  style: EduverseTypography.bodyMd(color: EduverseColors.onSurfaceVariant).copyWith(
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
 
-            // Phone Login Button
-            OutlinedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PhoneLoginPage()),
-              ),
-              icon: const Icon(Icons.phone_android),
-              label: const Text('Continue with Phone'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+            // Primary Action Button
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EduverseColors.primaryContainer,
+                  foregroundColor: EduverseColors.onPrimary,
+                  elevation: 0,
+                  shadowColor: EduverseColors.primary.withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                foregroundColor: Colors.grey.shade700,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Sign In to Portal',
+                            style: EduverseTypography.labelLg(color: EduverseColors.onPrimary).copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_rounded, size: 19),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: 22),
+
+            // Divider: OR CONTINUE WITH
+            Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: EduverseColors.outlineVariant.withValues(alpha: 0.4),
+                    thickness: 1,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'OR CONTINUE WITH',
+                    style: EduverseTypography.labelSm(
+                      color: EduverseColors.outline,
+                    ).copyWith(letterSpacing: 1.2, fontSize: 11),
+                  ),
+                ),
+                Expanded(
+                  child: Divider(
+                    color: EduverseColors.outlineVariant.withValues(alpha: 0.4),
+                    thickness: 1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // Secondary Option 1: Phone OTP
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  final currentText = _emailController.text.trim();
+                  final isPhoneLike = RegExp(r'^[0-9+ ]{4,}$').hasMatch(currentText);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PhoneLoginPage(
+                        initialPhone: isPhoneLike ? currentText : null,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.smartphone_rounded,
+                  color: EduverseColors.secondary,
+                  size: 19,
+                ),
+                label: Text(
+                  'Login with OTP / Phone Number',
+                  style: EduverseTypography.labelLg().copyWith(fontSize: 13.5),
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: EduverseColors.surfaceContainerLow,
+                  side: BorderSide(
+                    color: EduverseColors.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Secondary Option 2: Google SSO
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton(
+                onPressed: () {
+                  _showInfo('Connecting to Institutional Single Sign-On...');
+                },
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: EduverseColors.surfaceContainerLow,
+                  side: BorderSide(
+                    color: EduverseColors.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildGoogleLogo(),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Continue with Google',
+                      style: EduverseTypography.labelLg().copyWith(fontSize: 13.5),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -363,129 +612,127 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData prefixIcon,
-    TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
-    Widget? suffixIcon,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      validator: validator,
-      style: const TextStyle(fontSize: 16),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(prefixIcon, color: Colors.grey.shade600),
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade200),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade200),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.red.shade400),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+  Widget _buildGoogleLogo() {
+    return SizedBox(
+      width: 18,
+      height: 18,
+      child: CustomPaint(
+        painter: _GoogleLogoPainter(),
       ),
     );
   }
 
-  Widget _buildGradientButton({
-    required VoidCallback? onPressed,
-    required Widget child,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF667eea).withValues(alpha: 0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: child,
-      ),
-    );
-  }
-
-  Widget _buildRegisterLink() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildFooter() {
+    return Column(
       children: [
-        Text(
-          "Don't have an account? ",
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.9),
-            fontSize: 15,
-          ),
-        ),
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RegisterPage()),
-          ),
-          child: const Text(
-            'Register',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              decoration: TextDecoration.underline,
-              decorationColor: Colors.white,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'New aspirant? ',
+              style: EduverseTypography.bodyMd(),
             ),
-          ),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RegisterPage()),
+                );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Register Now',
+                    style: EduverseTypography.labelLg(color: EduverseColors.primary).copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.north_east_rounded,
+                    size: 14,
+                    color: EduverseColors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.verified_user_outlined,
+              size: 13,
+              color: EduverseColors.outline,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '256-bit Encrypted Academic Protocol',
+              style: EduverseTypography.labelSm(color: EduverseColors.outline).copyWith(
+                fontSize: 11,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
+}
 
-  Widget _buildPrivacyPolicyLink() {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
-      ),
-      child: Text(
-        'Privacy Policy',
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.9),
-          fontSize: 14,
-          decoration: TextDecoration.underline,
-          decorationColor: Colors.white.withValues(alpha: 0.9),
-        ),
-      ),
-    );
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double w = size.width;
+    final double h = size.height;
+
+    // Paint blue right curve
+    final paintBlue = Paint()..color = const Color(0xFF4285F4)..style = PaintingStyle.fill;
+    final pathBlue = Path()
+      ..moveTo(w, h * 0.5)
+      ..arcToPoint(Offset(w * 0.85, h * 0.8), radius: Radius.circular(w * 0.45))
+      ..lineTo(w * 0.5, h * 0.5)
+      ..close();
+    canvas.drawPath(pathBlue, paintBlue);
+
+    // Paint green bottom
+    final paintGreen = Paint()..color = const Color(0xFF34A853)..style = PaintingStyle.fill;
+    final pathGreen = Path()
+      ..moveTo(w * 0.85, h * 0.8)
+      ..arcToPoint(Offset(w * 0.2, h * 0.8), radius: Radius.circular(w * 0.45))
+      ..lineTo(w * 0.5, h * 0.5)
+      ..close();
+    canvas.drawPath(pathGreen, paintGreen);
+
+    // Paint yellow left
+    final paintYellow = Paint()..color = const Color(0xFFFBBC05)..style = PaintingStyle.fill;
+    final pathYellow = Path()
+      ..moveTo(w * 0.2, h * 0.8)
+      ..arcToPoint(Offset(w * 0.2, h * 0.2), radius: Radius.circular(w * 0.45))
+      ..lineTo(w * 0.5, h * 0.5)
+      ..close();
+    canvas.drawPath(pathYellow, paintYellow);
+
+    // Paint red top
+    final paintRed = Paint()..color = const Color(0xFFEA4335)..style = PaintingStyle.fill;
+    final pathRed = Path()
+      ..moveTo(w * 0.2, h * 0.2)
+      ..arcToPoint(Offset(w * 0.85, h * 0.2), radius: Radius.circular(w * 0.45))
+      ..lineTo(w * 0.5, h * 0.5)
+      ..close();
+    canvas.drawPath(pathRed, paintRed);
+
+    // Cutout center
+    final paintWhite = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.28, paintWhite);
+
+    // Right arm bar of Google 'G'
+    final paintBar = Paint()..color = const Color(0xFF4285F4)..style = PaintingStyle.fill;
+    canvas.drawRect(Rect.fromLTWH(w * 0.48, h * 0.38, w * 0.5, h * 0.24), paintBar);
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
