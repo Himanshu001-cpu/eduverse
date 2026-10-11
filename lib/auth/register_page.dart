@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:eduverse/core/firebase/auth_service.dart';
+import 'package:eduverse/core/firebase/user_service.dart';
 import 'package:eduverse/core/theme/eduverse_theme.dart';
 import 'phone_verify_dialog.dart';
 import 'privacy_policy_page.dart';
+import 'widgets/google_logo.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -21,6 +23,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
 
   String? _selectedExam;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
   bool _acceptedTerms = false;
 
@@ -152,6 +155,39 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
     setState(() => _isLoading = false);
 
     if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
+
+  Future<void> _handleGoogleSignUp() async {
+    setState(() => _isGoogleLoading = true);
+
+    final result = await _authService.signInWithGoogle();
+
+    if (!mounted) return;
+    setState(() => _isGoogleLoading = false);
+
+    if (!result.isSuccess) {
+      if (result.errorMessage != null && !result.errorMessage!.toLowerCase().contains('cancel')) {
+        _showError(result.errorMessage!);
+      }
+    } else {
+      final user = result.user;
+      if (user != null) {
+        final phone = _phoneController.text.trim();
+        final selectedExam = _selectedExam;
+        if ((phone.isNotEmpty && phone.length >= 10) || selectedExam != null) {
+          final updates = <String, dynamic>{};
+          if (phone.isNotEmpty && phone.length >= 10) {
+            updates['phone'] = '+91$phone';
+          }
+          if (selectedExam != null) {
+            updates['targetExam'] = selectedExam;
+          }
+          await UserService().updateUserProfile(user.uid, updates);
+        }
+      }
+      if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     }
   }
@@ -652,7 +688,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleRegister,
+                onPressed: (_isLoading || _isGoogleLoading) ? null : _handleRegister,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EduverseColors.primaryContainer,
                   foregroundColor: EduverseColors.onPrimary,
@@ -677,6 +713,73 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           ),
                           const SizedBox(width: 8),
                           const Icon(Icons.arrow_forward_rounded, size: 19),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Divider: OR CONTINUE WITH
+            Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: EduverseColors.outlineVariant.withValues(alpha: 0.4),
+                    thickness: 1,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'OR CONTINUE WITH',
+                    style: EduverseTypography.labelSm(
+                      color: EduverseColors.outline,
+                    ).copyWith(letterSpacing: 1.2, fontSize: 11),
+                  ),
+                ),
+                Expanded(
+                  child: Divider(
+                    color: EduverseColors.outlineVariant.withValues(alpha: 0.4),
+                    thickness: 1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Google Sign-Up Button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton(
+                onPressed: (_isLoading || _isGoogleLoading) ? null : _handleGoogleSignUp,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: EduverseColors.surfaceContainerLow,
+                  side: BorderSide(
+                    color: EduverseColors.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _isGoogleLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: EduverseColors.primary,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const GoogleLogo(),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Sign Up with Google',
+                            style: EduverseTypography.labelLg().copyWith(fontSize: 13.5),
+                          ),
                         ],
                       ),
               ),

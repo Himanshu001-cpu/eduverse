@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../widgets/admin_scaffold.dart';
 import '../services/admin_stats_service.dart';
+import '../models/admin_models.dart';
 import '../../web/landing/theme/academic_futurist_theme.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -489,152 +490,7 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-
-          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: FirebaseFirestore.instance
-                .collection('purchases')
-                .orderBy('timestamp', descending: true)
-                .limit(5)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                final isPermissionDenied = snapshot.error.toString().contains('permission-denied');
-                return Container(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  alignment: Alignment.center,
-                  child: Column(
-                    children: [
-                      Icon(
-                        isPermissionDenied ? Icons.lock_outline : Icons.error_outline,
-                        size: 32,
-                        color: EduverseTheme.onSurfaceVariant.withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        isPermissionDenied
-                            ? 'Admin session authentication required'
-                            : 'Unable to synchronize transaction records',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: EduverseTheme.deepNavy),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isPermissionDenied
-                            ? 'Sign in with institutional Dean/Admin credentials to view live transactional streams.'
-                            : '${snapshot.error}',
-                        style: const TextStyle(fontSize: 12, color: EduverseTheme.onSurfaceVariant),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  alignment: Alignment.center,
-                  child: Column(
-                    children: [
-                      Icon(Icons.receipt_long_outlined, size: 36, color: EduverseTheme.onSurfaceVariant.withValues(alpha: 0.4)),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'No transactions recorded yet',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: EduverseTheme.deepNavy),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'New student enrollments and fee payments will appear here in real-time.',
-                        style: TextStyle(fontSize: 12, color: EduverseTheme.onSurfaceVariant),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return Column(
-                children: snapshot.data!.docs.map((doc) {
-                  final data = doc.data();
-                  final name = data['userName'] ?? data['userEmail'] ?? 'Scholar Candidate';
-                  final course = data['courseTitle'] ?? data['courseName'] ?? 'Eduverse Cohort Program';
-                  final amount = data['amount'] != null ? '₹${data['amount']}' : '₹0';
-                  final time = data['timestamp'] != null
-                      ? DateFormat('hh:mm a').format((data['timestamp'] as Timestamp).toDate())
-                      : 'Recent';
-
-                  return _txRow(name.toString(), course.toString(), amount, time, 'Settled');
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _txRow(String user, String course, String amount, String time, String status) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: EduverseTheme.outlineVariant.withValues(alpha: 0.15),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: EduverseTheme.primaryFixed,
-            child: Text(
-              user.isNotEmpty ? user[0].toUpperCase() : 'U',
-              style: const TextStyle(color: EduverseTheme.primary, fontWeight: FontWeight.w700, fontSize: 12),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: EduverseTheme.deepNavy),
-                ),
-                Text(
-                  course,
-                  style: const TextStyle(fontSize: 12, color: EduverseTheme.onSurfaceVariant),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                amount,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: EduverseTheme.deepNavy),
-              ),
-              Text(
-                time,
-                style: const TextStyle(fontSize: 11, color: EduverseTheme.outline),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: EduverseTheme.emeraldVivid.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              status,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: EduverseTheme.emeraldVivid),
-            ),
-          ),
+          const _RecentTransactionsContent(),
         ],
       ),
     );
@@ -852,6 +708,279 @@ class DashboardScreen extends StatelessWidget {
               backgroundColor: EduverseTheme.surfaceContainerHigh,
               color: EduverseTheme.primary,
               minHeight: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentTransactionsContent extends StatefulWidget {
+  const _RecentTransactionsContent();
+
+  @override
+  State<_RecentTransactionsContent> createState() =>
+      _RecentTransactionsContentState();
+}
+
+class _RecentTransactionsContentState
+    extends State<_RecentTransactionsContent> {
+  final Map<String, String> _userDisplayNames = {};
+  final Set<String> _requestedUserIds = {};
+
+  void _resolveUser(String userId) {
+    if (userId.isEmpty || _requestedUserIds.contains(userId)) return;
+    _requestedUserIds.add(userId);
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .get()
+        .then((doc) {
+      if (!mounted) return;
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final name = (data['name'] as String?)?.trim();
+        final email = (data['email'] as String?)?.trim();
+        final displayName = (name != null && name.isNotEmpty)
+            ? name
+            : ((email != null && email.isNotEmpty)
+                ? email
+                : 'User ${userId.substring(0, userId.length > 5 ? 5 : userId.length)}');
+        setState(() {
+          _userDisplayNames[userId] = displayName;
+        });
+      }
+    }).catchError((_) {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('purchases').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          final isPermissionDenied =
+              snapshot.error.toString().contains('permission-denied');
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            alignment: Alignment.center,
+            child: Column(
+              children: [
+                Icon(
+                  isPermissionDenied ? Icons.lock_outline : Icons.error_outline,
+                  size: 32,
+                  color: EduverseTheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isPermissionDenied
+                      ? 'Admin session authentication required'
+                      : 'Unable to synchronize transaction records',
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: EduverseTheme.deepNavy),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isPermissionDenied
+                      ? 'Sign in with institutional Dean/Admin credentials to view live transactional streams.'
+                      : '${snapshot.error}',
+                  style: const TextStyle(
+                      fontSize: 12, color: EduverseTheme.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            alignment: Alignment.center,
+            child: Column(
+              children: [
+                Icon(Icons.receipt_long_outlined,
+                    size: 36,
+                    color:
+                        EduverseTheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                const SizedBox(height: 8),
+                const Text(
+                  'No transactions recorded yet',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: EduverseTheme.deepNavy),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'New student enrollments and fee payments will appear here in real-time.',
+                  style: TextStyle(
+                      fontSize: 12, color: EduverseTheme.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        final purchases = snapshot.data!.docs
+            .map((doc) => AdminPurchase.fromMap(doc.data(), doc.id))
+            .toList();
+
+        purchases.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        final recentPurchases = purchases.take(5).toList();
+
+        for (final p in recentPurchases) {
+          if (p.userId.isNotEmpty && !_userDisplayNames.containsKey(p.userId)) {
+            _resolveUser(p.userId);
+          }
+        }
+
+        return Column(
+          children: recentPurchases.map((purchase) {
+            final userName = _userDisplayNames[purchase.userId] ??
+                (purchase.userId.isNotEmpty
+                    ? 'Student (${purchase.userId.substring(0, purchase.userId.length > 6 ? 6 : purchase.userId.length)})'
+                    : 'Scholar Candidate');
+
+            final itemTitle = purchase.items.isNotEmpty
+                ? purchase.items.map((e) => e.title).join(', ')
+                : 'Eduverse Program Enrollment';
+
+            final amount = '₹${purchase.amount.toStringAsFixed(0)}';
+            final time =
+                DateFormat('dd MMM, hh:mm a').format(purchase.createdAt);
+
+            Color statusColor;
+            Color statusBg;
+            String statusLabel;
+            final s = purchase.status.toLowerCase();
+            if (s == 'completed' || s == 'paid' || s == 'success') {
+              statusColor = EduverseTheme.emeraldVivid;
+              statusBg = EduverseTheme.emeraldVivid.withValues(alpha: 0.12);
+              statusLabel = 'Settled';
+            } else if (s == 'manual') {
+              statusColor = EduverseTheme.primary;
+              statusBg = EduverseTheme.primary.withValues(alpha: 0.12);
+              statusLabel = 'Manual';
+            } else if (s == 'refunded') {
+              statusColor = Colors.orange.shade800;
+              statusBg = Colors.orange.shade50;
+              statusLabel = 'Refunded';
+            } else if (s == 'failed') {
+              statusColor = Colors.red.shade700;
+              statusBg = Colors.red.shade50;
+              statusLabel = 'Failed';
+            } else {
+              statusColor = EduverseTheme.onSurfaceVariant;
+              statusBg = EduverseTheme.outlineVariant.withValues(alpha: 0.2);
+              statusLabel = purchase.status.isNotEmpty
+                  ? '${purchase.status[0].toUpperCase()}${purchase.status.substring(1)}'
+                  : 'Pending';
+            }
+
+            return _txRow(
+              userName,
+              itemTitle,
+              amount,
+              time,
+              statusLabel,
+              statusColor,
+              statusBg,
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _txRow(
+    String user,
+    String course,
+    String amount,
+    String time,
+    String status,
+    Color statusColor,
+    Color statusBg,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: EduverseTheme.outlineVariant.withValues(alpha: 0.15),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: EduverseTheme.primaryFixed,
+            child: Text(
+              user.isNotEmpty ? user[0].toUpperCase() : 'U',
+              style: const TextStyle(
+                  color: EduverseTheme.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: EduverseTheme.deepNavy),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  course,
+                  style: const TextStyle(
+                      fontSize: 12, color: EduverseTheme.onSurfaceVariant),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                amount,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: EduverseTheme.deepNavy),
+              ),
+              Text(
+                time,
+                style:
+                    const TextStyle(fontSize: 11, color: EduverseTheme.outline),
+              ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: statusColor),
             ),
           ),
         ],

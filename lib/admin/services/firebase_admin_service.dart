@@ -568,16 +568,60 @@ class FirebaseAdminService {
 
     query = query.limit(limit);
 
-    final snapshot = await query.get();
-    final purchases = snapshot.docs
-        .map((doc) => AdminPurchase.fromMap(doc.data(), doc.id))
-        .toList();
+    try {
+      final snapshot = await query.get();
+      final purchases = snapshot.docs
+          .map((doc) => AdminPurchase.fromMap(doc.data(), doc.id))
+          .toList();
 
-    return PaginatedResult<AdminPurchase>(
-      items: purchases,
-      lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
-      hasMore: snapshot.docs.length == limit,
-    );
+      return PaginatedResult<AdminPurchase>(
+        items: purchases,
+        lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+        hasMore: snapshot.docs.length == limit,
+      );
+    } catch (e) {
+      // In case of failed-precondition, load and filter in-memory
+      final allSnap = await _db.collection('purchases').get();
+      var purchases = allSnap.docs
+          .map((doc) => AdminPurchase.fromMap(doc.data(), doc.id))
+          .toList();
+      purchases.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (startDate != null) {
+        purchases = purchases.where((p) => !p.createdAt.isBefore(startDate)).toList();
+      }
+      if (endDate != null) {
+        purchases = purchases.where((p) => !p.createdAt.isAfter(endDate)).toList();
+      }
+      if (statusFilter != null &&
+          statusFilter.isNotEmpty &&
+          statusFilter.toLowerCase() != 'all') {
+        purchases = purchases
+            .where((p) => p.status.toLowerCase() == statusFilter.toLowerCase())
+            .toList();
+      }
+
+      int startIndex = 0;
+      if (startAfter != null) {
+        final idx = purchases.indexWhere((p) => p.id == startAfter.id);
+        if (idx != -1) startIndex = idx + 1;
+      }
+      final endIndex = (startIndex + limit).clamp(0, purchases.length);
+      final paged = purchases.sublist(
+        startIndex.clamp(0, purchases.length),
+        endIndex,
+      );
+      DocumentSnapshot? lastDoc;
+      if (paged.isNotEmpty) {
+        final lastId = paged.last.id;
+        final match = allSnap.docs.where((d) => d.id == lastId);
+        lastDoc = match.isNotEmpty ? match.first : null;
+      }
+      return PaginatedResult<AdminPurchase>(
+        items: paged,
+        lastDocument: lastDoc,
+        hasMore: endIndex < purchases.length,
+      );
+    }
   }
 
   // Migrate older user-specific transactions to top-level purchases collection
@@ -733,44 +777,121 @@ class FirebaseAdminService {
       );
     }
 
-    Query<Map<String, dynamic>> query = _db.collection('users');
-
-    if (roleFilter != null &&
-        roleFilter.isNotEmpty &&
-        roleFilter.toLowerCase() != 'all') {
-      query = query.where('role', isEqualTo: roleFilter);
-    }
-    if (showDisabledOnly) {
-      query = query.where('disabled', isEqualTo: true);
-    }
-
-    query = query.orderBy('createdAt', descending: true);
-
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-
-    query = query.limit(limit);
-
-    final snapshot = await query.get();
-    var users = snapshot.docs
-        .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
-        .toList();
-
-    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
-      final lower = searchQuery.trim().toLowerCase();
-      users = users.where((u) =>
-          u.name.toLowerCase().contains(lower) ||
-          u.email.toLowerCase().contains(lower) ||
-          (u.phone ?? '').toLowerCase().contains(lower)
-      ).toList();
+    bool matchesFilters(AdminUser u) {
+      if (showDisabledOnly && !u.disabled) return false;
+      if (roleFilter != null &&
+          roleFilter.isNotEmpty &&
+          roleFilter.toLowerCase() != 'all') {
+        final r = roleFilter.toLowerCase();
+        if (r == 'teacher') {
+          if (u.role != 'teacher' && !u.isTeacher) return false;
+        } else if (r == 'student') {
+          if (u.isTeacher) return false;
+          if (u.role != 'student' && u.role.isNotEmpty && u.role != 'user') return false;
+        } else if (r == 'admin') {
+          if (u.role != 'admin' && u.role != 'superadmin') return false;
+        } else {
+          if (u.role.toLowerCase() != r) return false;
+        }
+      }
+      if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+        final lower = searchQuery.trim().toLowerCase();
+        final nameMatches = u.name.toLowerCase().contains(lower);
+        final emailMatches = u.email.toLowerCase().contains(lower);
+        final phoneMatches = (u.phone ?? '').toLowerCase().contains(lower);
+        if (!nameMatches && !emailMatches && !phoneMatches) return false;
+      }
+      return true;
     }
 
-    return PaginatedResult<AdminUser>(
-      items: users,
-      lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
-      hasMore: snapshot.docs.length == limit,
-    );
+    try {
+      Query<Map<String, dynamic>> query = _db.collection('users');
+
+      if (roleFilter != null &&
+          roleFilter.isNotEmpty &&
+          roleFilter.toLowerCase() != 'all') {
+        final r = roleFilter.toLowerCase();
+        if (r == 'admin') {
+          query = query.where('role', isEqualTo: 'admin');
+        } else if (r == 'teacher') {
+          query = query.where(
+            Filter.or(
+              Filter('role', isEqualTo: 'teacher'),
+              Filter('isTeacher', isEqualTo: true),
+            ),
+          );
+        } else if (r == 'student') {
+          query = query.where('role', isEqualTo: 'student');
+        } else {
+          query = query.where('role', isEqualTo: roleFilter);
+        }
+      }
+      if (showDisabledOnly) {
+        query = query.where('disabled', isEqualTo: true);
+      }
+
+      query = query.orderBy('createdAt', descending: true);
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      query = query.limit(limit);
+
+      final snapshot = await query.get();
+      final users = snapshot.docs
+          .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
+          .where(matchesFilters)
+          .toList();
+
+      return PaginatedResult<AdminUser>(
+        items: users,
+        lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+        hasMore: snapshot.docs.length == limit,
+      );
+    } catch (e) {
+      // Resilient fallback: If composite index is missing in live Firestore or complex query fails,
+      // load users, apply filters and sort in-memory to prevent breaking the admin UI.
+      final allSnap = await _db.collection('users').get();
+      final allUsers = allSnap.docs
+          .map((doc) => AdminUser.fromMap(doc.data(), doc.id))
+          .where(matchesFilters)
+          .toList();
+
+      allUsers.sort((a, b) {
+        final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+
+      int startIndex = 0;
+      if (startAfter != null) {
+        final idx = allUsers.indexWhere((u) => u.uid == startAfter.id);
+        if (idx != -1) {
+          startIndex = idx + 1;
+        }
+      }
+
+      final endIndex = (startIndex + limit).clamp(0, allUsers.length);
+      final pagedUsers = allUsers.sublist(
+        startIndex.clamp(0, allUsers.length),
+        endIndex,
+      );
+      final hasMore = endIndex < allUsers.length;
+
+      DocumentSnapshot? lastDoc;
+      if (pagedUsers.isNotEmpty) {
+        final lastUid = pagedUsers.last.uid;
+        final match = allSnap.docs.where((d) => d.id == lastUid);
+        lastDoc = match.isNotEmpty ? match.first : null;
+      }
+
+      return PaginatedResult<AdminUser>(
+        items: pagedUsers,
+        lastDocument: lastDoc,
+        hasMore: hasMore,
+      );
+    }
   }
 
   // Get single user by ID
@@ -1282,9 +1403,13 @@ class FirebaseAdminService {
 
   // Course Resources: Quizzes
   Stream<List<AdminQuiz>> getCourseQuizzes(String courseId) {
+    final trimmed = courseId.trim();
+    if (trimmed.isEmpty) {
+      return Stream.value([]);
+    }
     return _db
         .collection('courses')
-        .doc(courseId)
+        .doc(trimmed)
         .collection('quizzes')
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -1293,33 +1418,36 @@ class FirebaseAdminService {
         );
   }
 
-  Future<void> saveCourseQuiz(
+  Future<String> saveCourseQuiz(
     String courseId,
     AdminQuiz quiz, {
     bool isNew = false,
   }) async {
+    final effectiveCourseId = courseId.trim().isNotEmpty ? courseId.trim() : 'default_course';
+    final effectiveQuizId = quiz.id.trim().isNotEmpty ? quiz.id.trim() : const Uuid().v4();
     final data = quiz.toMap();
-    final ref = _db
+    final colRef = _db
         .collection('courses')
-        .doc(courseId)
-        .collection('quizzes')
-        .doc(quiz.id);
-    if (isNew) {
-      await ref.set(data);
-    } else {
-      await ref.update(data);
-    }
+        .doc(effectiveCourseId)
+        .collection('quizzes');
+
+    final docRef = colRef.doc(effectiveQuizId);
+    await docRef.set(data, SetOptions(merge: true));
+    return docRef.id;
   }
 
   Future<void> deleteCourseQuiz(
     String courseId,
     String quizId,
   ) async {
+    final trimmedCourseId = courseId.trim();
+    final trimmedQuizId = quizId.trim();
+    if (trimmedCourseId.isEmpty || trimmedQuizId.isEmpty) return;
     await _db
         .collection('courses')
-        .doc(courseId)
+        .doc(trimmedCourseId)
         .collection('quizzes')
-        .doc(quizId)
+        .doc(trimmedQuizId)
         .delete();
   }
 
@@ -3958,11 +4086,16 @@ class FirebaseAdminService {
 
   // Recorded Batch Content: Quizzes
   Stream<List<AdminQuiz>> getRecordedBatchQuizzes(String courseId, String batchId) {
+    final trimmedCourseId = courseId.trim();
+    final trimmedBatchId = batchId.trim();
+    if (trimmedCourseId.isEmpty || trimmedBatchId.isEmpty) {
+      return Stream.value([]);
+    }
     return _db
         .collection('courses')
-        .doc(courseId)
+        .doc(trimmedCourseId)
         .collection('recorded_batches')
-        .doc(batchId)
+        .doc(trimmedBatchId)
         .collection('quizzes')
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -3975,22 +4108,20 @@ class FirebaseAdminService {
     AdminQuiz quiz, {
     bool isNew = false,
   }) async {
+    final effectiveCourseId = courseId.trim().isNotEmpty ? courseId.trim() : 'default_course';
+    final effectiveBatchId = batchId.trim().isNotEmpty ? batchId.trim() : 'default_batch';
+    final effectiveQuizId = quiz.id.trim().isNotEmpty ? quiz.id.trim() : const Uuid().v4();
     final data = quiz.toMap();
     final colRef = _db
         .collection('courses')
-        .doc(courseId)
+        .doc(effectiveCourseId)
         .collection('recorded_batches')
-        .doc(batchId)
+        .doc(effectiveBatchId)
         .collection('quizzes');
 
-    if (isNew) {
-      final docRef = colRef.doc();
-      await docRef.set(data);
-      return docRef.id;
-    } else {
-      await colRef.doc(quiz.id).update(data);
-      return quiz.id;
-    }
+    final docRef = colRef.doc(effectiveQuizId);
+    await docRef.set(data, SetOptions(merge: true));
+    return docRef.id;
   }
 
   Future<void> deleteRecordedBatchQuiz(
@@ -3998,13 +4129,17 @@ class FirebaseAdminService {
     String batchId,
     String quizId,
   ) async {
+    final trimmedCourseId = courseId.trim();
+    final trimmedBatchId = batchId.trim();
+    final trimmedQuizId = quizId.trim();
+    if (trimmedCourseId.isEmpty || trimmedBatchId.isEmpty || trimmedQuizId.isEmpty) return;
     await _db
         .collection('courses')
-        .doc(courseId)
+        .doc(trimmedCourseId)
         .collection('recorded_batches')
-        .doc(batchId)
+        .doc(trimmedBatchId)
         .collection('quizzes')
-        .doc(quizId)
+        .doc(trimmedQuizId)
         .delete();
   }
 }

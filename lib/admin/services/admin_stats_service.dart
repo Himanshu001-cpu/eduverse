@@ -39,20 +39,87 @@ class AdminStatsService {
     });
   }
 
+  DateTime? _extractDate(Map<String, dynamic> data) {
+    final ca = data['createdAt'];
+    if (ca is Timestamp) return ca.toDate();
+    if (ca is String) {
+      final parsed = DateTime.tryParse(ca);
+      if (parsed != null) return parsed;
+    }
+    final ts = data['timestamp'];
+    if (ts is Timestamp) return ts.toDate();
+    if (ts is String) {
+      final parsed = DateTime.tryParse(ts);
+      if (parsed != null) return parsed;
+    }
+    return null;
+  }
+
   /// Save/update dashboard stats to a dedicated collection (for caching)
   Future<void> updateDashboardStats() async {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
-    final startOfDayTimestamp = Timestamp.fromDate(startOfDay);
 
     final totalUsers = await _getTotalUsers();
     final activeCourses = await _getActiveCourses();
     final draftCourses = await _getDraftCourses();
-    final enrollmentsToday = await _getEnrollmentsToday(startOfDayTimestamp);
-    final totalEnrollments = await _getTotalEnrollments();
-    final revenueToday = await _getRevenueToday(startOfDayTimestamp);
-    final totalRevenue = await _getTotalRevenue();
-    final monthlyRevenue = await _getMonthlyRevenue();
+
+    // Resilient aggregation of purchases supporting heterogeneous timestamp & createdAt
+    int totalEnrollments = 0;
+    int enrollmentsToday = 0;
+    double revenueToday = 0.0;
+    double totalRevenue = 0.0;
+
+    final Map<String, double> monthMap = {};
+    final List<DateTime> months = [];
+    for (int i = 5; i >= 0; i--) {
+      final d = DateTime(now.year, now.month - i, 1);
+      final key = DateFormat('MMM').format(d);
+      monthMap[key] = 0.0;
+      months.add(d);
+    }
+    final sixMonthsAgo = months.first;
+
+    try {
+      final purchasesSnap = await _firestore.collection('purchases').get();
+      totalEnrollments = purchasesSnap.docs.length;
+
+      for (final doc in purchasesSnap.docs) {
+        final data = doc.data();
+        final amt = (data['amount'] as num?)?.toDouble() ?? 0.0;
+        totalRevenue += amt;
+
+        final date = _extractDate(data);
+        if (date != null) {
+          if (!date.isBefore(startOfDay)) {
+            enrollmentsToday++;
+            revenueToday += amt;
+          }
+          if (!date.isBefore(sixMonthsAgo)) {
+            final monthKey = DateFormat('MMM').format(date);
+            if (monthMap.containsKey(monthKey)) {
+              monthMap[monthKey] = (monthMap[monthKey] ?? 0.0) + amt;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    double maxAmt = 1.0;
+    monthMap.forEach((_, val) {
+      if (val > maxAmt) maxAmt = val;
+    });
+
+    final monthlyRevenue = monthMap.entries.map((e) {
+      final isCurrent = e.key == DateFormat('MMM').format(now);
+      return MonthlyRevenuePoint(
+        month: isCurrent ? '${e.key} (Cur)' : e.key,
+        amount: e.value,
+        ratio: maxAmt > 0 ? (e.value / maxAmt).clamp(0.08, 1.0) : 0.08,
+        isActive: isCurrent,
+      );
+    }).toList();
+
     final cohortSaturations = await _getCohortSaturations();
 
     final stats = DashboardStats(
@@ -108,120 +175,6 @@ class AdminStatsService {
       return snapshot.count ?? 0;
     } catch (_) {
       return 0;
-    }
-  }
-
-  /// Get number of purchases/enrollments made today
-  Future<int> _getEnrollmentsToday(Timestamp startOfDay) async {
-    try {
-      final snapshot = await _firestore
-          .collection('purchases')
-          .where('timestamp', isGreaterThanOrEqualTo: startOfDay)
-          .count()
-          .get();
-      return snapshot.count ?? 0;
-    } catch (_) {
-      return 0;
-    }
-  }
-
-  /// Get total all-time enrollments count
-  Future<int> _getTotalEnrollments() async {
-    try {
-      final snapshot = await _firestore.collection('purchases').count().get();
-      return snapshot.count ?? 0;
-    } catch (_) {
-      return 0;
-    }
-  }
-
-  /// Get total gross revenue today from purchases
-  Future<double> _getRevenueToday(Timestamp startOfDay) async {
-    try {
-      final snapshot = await _firestore
-          .collection('purchases')
-          .where('timestamp', isGreaterThanOrEqualTo: startOfDay)
-          .get();
-
-      double total = 0;
-      for (final doc in snapshot.docs) {
-        final amount = doc.data()['amount'];
-        if (amount != null) {
-          total += (amount as num).toDouble();
-        }
-      }
-      return total;
-    } catch (_) {
-      return 0.0;
-    }
-  }
-
-  /// Get total all-time gross revenue
-  Future<double> _getTotalRevenue() async {
-    try {
-      final snapshot = await _firestore.collection('purchases').get();
-      double total = 0;
-      for (final doc in snapshot.docs) {
-        final amount = doc.data()['amount'];
-        if (amount != null) {
-          total += (amount as num).toDouble();
-        }
-      }
-      return total;
-    } catch (_) {
-      return 0.0;
-    }
-  }
-
-  /// Aggregate last 6 calendar months of revenue from real purchases
-  Future<List<MonthlyRevenuePoint>> _getMonthlyRevenue() async {
-    try {
-      final now = DateTime.now();
-      // Initialize map for the last 6 months
-      final Map<String, double> monthMap = {};
-      final List<DateTime> months = [];
-
-      for (int i = 5; i >= 0; i--) {
-        final d = DateTime(now.year, now.month - i, 1);
-        final key = DateFormat('MMM').format(d);
-        monthMap[key] = 0.0;
-        months.add(d);
-      }
-
-      final sixMonthsAgo = months.first;
-      final snapshot = await _firestore
-          .collection('purchases')
-          .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(sixMonthsAgo))
-          .get();
-
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        final ts = data['timestamp'] as Timestamp?;
-        final amt = (data['amount'] as num?)?.toDouble() ?? 0.0;
-        if (ts != null) {
-          final monthKey = DateFormat('MMM').format(ts.toDate());
-          if (monthMap.containsKey(monthKey)) {
-            monthMap[monthKey] = (monthMap[monthKey] ?? 0.0) + amt;
-          }
-        }
-      }
-
-      double maxAmt = 1.0;
-      monthMap.forEach((_, val) {
-        if (val > maxAmt) maxAmt = val;
-      });
-
-      return monthMap.entries.map((e) {
-        final isCurrent = e.key == DateFormat('MMM').format(now);
-        return MonthlyRevenuePoint(
-          month: isCurrent ? '${e.key} (Cur)' : e.key,
-          amount: e.value,
-          ratio: maxAmt > 0 ? (e.value / maxAmt).clamp(0.08, 1.0) : 0.08,
-          isActive: isCurrent,
-        );
-      }).toList();
-    } catch (_) {
-      return [];
     }
   }
 

@@ -9,7 +9,12 @@ import '../models/admin_models.dart';
 import 'user_detail_screen.dart';
 
 class UsersScreen extends StatefulWidget {
-  const UsersScreen({super.key});
+  final String initialRole;
+
+  const UsersScreen({
+    super.key,
+    this.initialRole = 'all',
+  });
 
   @override
   State<UsersScreen> createState() => _UsersScreenState();
@@ -20,7 +25,7 @@ class _UsersScreenState extends State<UsersScreen> {
   final ScrollController _scrollController = ScrollController();
 
   String _searchQuery = '';
-  String _roleFilter = 'all'; // all, student, admin, teacher
+  late String _roleFilter; // all, student, admin, teacher
   bool _showDisabledOnly = false;
 
   List<AdminUser> _users = [];
@@ -34,10 +39,22 @@ class _UsersScreenState extends State<UsersScreen> {
   @override
   void initState() {
     super.initState();
+    _roleFilter = widget.initialRole;
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialUsers();
     });
+  }
+
+  @override
+  void didUpdateWidget(UsersScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialRole != oldWidget.initialRole) {
+      setState(() {
+        _roleFilter = widget.initialRole;
+      });
+      _resetAndReload();
+    }
   }
 
   @override
@@ -142,10 +159,23 @@ class _UsersScreenState extends State<UsersScreen> {
     _loadInitialUsers();
   }
 
+  String _getPageTitle() {
+    switch (_roleFilter) {
+      case 'student':
+        return 'Students';
+      case 'teacher':
+        return 'Teachers & Faculty';
+      case 'admin':
+        return 'Administrators';
+      default:
+        return 'Users & Aspirants';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'Users',
+      title: _getPageTitle(),
       body: Column(
         children: [
           // Search and filters bar
@@ -167,7 +197,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search by name or email...',
+                      hintText: 'Search by name, email, or phone...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(

@@ -170,10 +170,20 @@ class AdminRouter {
           settings: settings,
           builder: (_) => const EbooksScreen(),
         );
+      case '/students':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const UsersScreen(initialRole: 'student'),
+        );
+      case '/teachers':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const UsersScreen(initialRole: 'teacher'),
+        );
       case '/users':
         return MaterialPageRoute(
           settings: settings,
-          builder: (_) => const UsersScreen(),
+          builder: (_) => const UsersScreen(initialRole: 'all'),
         );
       case '/user_detail':
         final userId = settings.arguments as String? ?? 'demo_user';

@@ -149,6 +149,30 @@ class RichTextService {
     if (markdown.isEmpty) return '';
     var html = markdown;
 
+    // Parse custom equation blocks
+    final eqRegex = RegExp(r'\[latex\](.*?)\[/latex\]');
+    html = html.replaceAllMapped(eqRegex, (match) {
+      final math = match.group(1)?.trim() ?? '';
+      return '<span class="math-latex math-inline" data-latex="${Uri.encodeComponent(math)}">$math</span>';
+    });
+
+    // Parse block display math $$...$$
+    final blockMathRegex = RegExp(r'\$\$(.*?)\$\$', dotAll: true);
+    html = html.replaceAllMapped(blockMathRegex, (match) {
+      final math = match.group(1)?.trim() ?? '';
+      return '<div class="math-latex math-block" data-latex="${Uri.encodeComponent(math)}">$math</div>';
+    });
+
+    // Parse inline math $...$
+    final inlineMathRegex = RegExp(r'(?<!\$)\$(?!\$)([^\$\n]+?)(?<!\$)\$(?!\$)');
+    html = html.replaceAllMapped(inlineMathRegex, (match) {
+      final math = match.group(1)?.trim() ?? '';
+      return '<span class="math-latex math-inline" data-latex="${Uri.encodeComponent(math)}">$math</span>';
+    });
+
+    // Code: `code` -> <code>code</code>
+    html = html.replaceAllMapped(RegExp(r'`([^`]+)`'), (match) => '<code style="background-color: rgba(0,0,0,0.06); padding: 2px 4px; border-radius: 4px; font-family: monospace;">${match.group(1)}</code>');
+
     // Bold: **text** or __text__ -> <strong>text</strong>
     html = html.replaceAllMapped(RegExp(r'\*\*([^*]+)\*\*'), (match) => '<strong>${match.group(1)}</strong>');
     html = html.replaceAllMapped(RegExp(r'__([^_]+)__'), (match) => '<strong>${match.group(1)}</strong>');
@@ -156,9 +180,6 @@ class RichTextService {
     // Italic: *text* or _text_ -> <em>text</em>
     html = html.replaceAllMapped(RegExp(r'\*([^*]+)\*'), (match) => '<em>${match.group(1)}</em>');
     html = html.replaceAllMapped(RegExp(r'_([^_]+)_'), (match) => '<em>${match.group(1)}</em>');
-
-    // Underline: __underline__ (if matches custom syntax) or html <u> -> <u>
-    // We already support bold, let's keep it simple.
 
     // Line breaks -> <br>
     html = html.replaceAll('\n', '<br>');

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 import 'package:eduverse/study/domain/models/test_series_entities.dart';
 import 'package:eduverse/feed/models.dart';
+import 'package:eduverse/feed/models/quiz_shuffle.dart';
 import 'package:eduverse/feed/screens/quiz_page.dart';
 
 /// Category display config: label and emoji.
@@ -501,10 +502,14 @@ class TestCard extends StatelessWidget {
     }
 
     // Questions are already in QuizQuestion.toJson() format
-    final quizQuestions = rawQuestions.map((q) {
+    List<QuizQuestion> quizQuestions = rawQuestions.map((q) {
       final map = q as Map<String, dynamic>;
       return QuizQuestion.fromJson(map);
     }).toList();
+
+    if (testData['shuffleOptions'] == true) {
+      quizQuestions = shuffleQuizOptions(quizQuestions);
+    }
 
     final feedItem = FeedItem(
       id: '${testSeriesId}_$testId',

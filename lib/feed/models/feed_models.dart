@@ -181,6 +181,16 @@ class AnswerWritingContent {
 /// Answer types for quiz questions
 enum AnswerType { multipleChoice, trueFalse, shortAnswer }
 
+/// Editorial difficulty tag for a quiz question.
+enum QuestionDifficulty {
+  easy,
+  medium,
+  hard;
+
+  static QuestionDifficulty? tryParse(String? value) =>
+      values.where((d) => d.name == value).firstOrNull;
+}
+
 /// Individual answer option for multiple choice questions
 class AnswerOption {
   final String id;
@@ -189,12 +199,16 @@ class AnswerOption {
   final String? textDelta;
   final String? textHtml;
 
+  /// Why this option is (or is not) the correct answer.
+  final String? rationale;
+
   const AnswerOption({
     required this.id,
     required this.text,
     this.isCorrect = false,
     this.textDelta,
     this.textHtml,
+    this.rationale,
   });
 
   factory AnswerOption.fromJson(Map<String, dynamic> json) {
@@ -204,6 +218,7 @@ class AnswerOption {
       isCorrect: json['isCorrect'] as bool? ?? false,
       textDelta: json['textDelta'] as String?,
       textHtml: json['textHtml'] as String?,
+      rationale: json['rationale'] as String?,
     );
   }
 
@@ -213,6 +228,7 @@ class AnswerOption {
     'isCorrect': isCorrect,
     'textDelta': textDelta,
     'textHtml': textHtml,
+    if (rationale != null) 'rationale': rationale,
   };
 
   AnswerOption copyWith({
@@ -221,6 +237,7 @@ class AnswerOption {
     bool? isCorrect,
     String? textDelta,
     String? textHtml,
+    String? rationale,
   }) {
     return AnswerOption(
       id: id ?? this.id,
@@ -228,6 +245,7 @@ class AnswerOption {
       isCorrect: isCorrect ?? this.isCorrect,
       textDelta: textDelta ?? this.textDelta,
       textHtml: textHtml ?? this.textHtml,
+      rationale: rationale ?? this.rationale,
     );
   }
 }
@@ -248,6 +266,9 @@ class QuizQuestion {
   final String? questionHtml;
   final String? explanationDelta;
   final String? explanationHtml;
+  final String? sectionId;
+  final QuestionDifficulty? difficulty;
+  final bool flaggedForReview;
 
   const QuizQuestion({
     required this.id,
@@ -264,6 +285,9 @@ class QuizQuestion {
     this.questionHtml,
     this.explanationDelta,
     this.explanationHtml,
+    this.sectionId,
+    this.difficulty,
+    this.flaggedForReview = false,
   });
 
   // Legacy compatibility: get question text
@@ -334,6 +358,9 @@ class QuizQuestion {
       questionHtml: json['questionHtml'] as String?,
       explanationDelta: json['explanationDelta'] as String?,
       explanationHtml: json['explanationHtml'] as String?,
+      sectionId: json['sectionId'] as String?,
+      difficulty: QuestionDifficulty.tryParse(json['difficulty'] as String?),
+      flaggedForReview: json['flaggedForReview'] as bool? ?? false,
     );
   }
 
@@ -352,8 +379,13 @@ class QuizQuestion {
     'questionHtml': questionHtml,
     'explanationDelta': explanationDelta,
     'explanationHtml': explanationHtml,
+    if (sectionId != null) 'sectionId': sectionId,
+    if (difficulty != null) 'difficulty': difficulty!.name,
+    if (flaggedForReview) 'flaggedForReview': true,
   };
 
+  /// Nullable fields that need resetting use the explicit `clear*` flags,
+  /// since `null` arguments mean "keep the current value".
   QuizQuestion copyWith({
     String? id,
     String? questionText,
@@ -369,6 +401,11 @@ class QuizQuestion {
     String? questionHtml,
     String? explanationDelta,
     String? explanationHtml,
+    String? sectionId,
+    bool clearSectionId = false,
+    QuestionDifficulty? difficulty,
+    bool clearDifficulty = false,
+    bool? flaggedForReview,
   }) {
     return QuizQuestion(
       id: id ?? this.id,
@@ -385,6 +422,9 @@ class QuizQuestion {
       questionHtml: questionHtml ?? this.questionHtml,
       explanationDelta: explanationDelta ?? this.explanationDelta,
       explanationHtml: explanationHtml ?? this.explanationHtml,
+      sectionId: clearSectionId ? null : sectionId ?? this.sectionId,
+      difficulty: clearDifficulty ? null : difficulty ?? this.difficulty,
+      flaggedForReview: flaggedForReview ?? this.flaggedForReview,
     );
   }
 }

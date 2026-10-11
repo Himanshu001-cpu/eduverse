@@ -46,7 +46,9 @@ class BatchQuizListScreen extends StatelessWidget {
         ),
       ],
       body: StreamBuilder<List<AdminQuiz>>(
-        stream: adminService.getCourseQuizzes(courseId),
+        stream: batchId.isNotEmpty
+            ? adminService.getRecordedBatchQuizzes(courseId, batchId)
+            : adminService.getCourseQuizzes(courseId),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
              return Center(child: Text('Error loading quizzes: ${snapshot.error}'));
@@ -189,7 +191,11 @@ class BatchQuizListScreen extends StatelessWidget {
                             ),
                           );
                           if (confirm == true) {
-                            await adminService.deleteCourseQuiz(courseId, quiz.id);
+                            if (batchId.isNotEmpty) {
+                              await adminService.deleteRecordedBatchQuiz(courseId, batchId, quiz.id);
+                            } else {
+                              await adminService.deleteCourseQuiz(courseId, quiz.id);
+                            }
                           }
                         },
                       ),

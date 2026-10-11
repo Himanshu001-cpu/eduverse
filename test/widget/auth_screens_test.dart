@@ -64,6 +64,7 @@ void main() {
     expect(find.text('Target Examination'), findsOneWidget);
     expect(find.text('Create Secure Password'), findsOneWidget);
     expect(find.text('Create Account'), findsOneWidget);
+    expect(find.text('Sign Up with Google'), findsOneWidget);
     expect(find.text('Login here'), findsOneWidget);
   });
 

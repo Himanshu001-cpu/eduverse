@@ -75,3 +75,42 @@ class QuizQuestion {
     };
   }
 }
+
+/// Represents an editorial section in a test paper (e.g. "Section A: Macro & Budget").
+class TestSection {
+  final String id;
+  final String name;
+
+  const TestSection({required this.id, required this.name});
+
+  factory TestSection.fromJson(Map<String, dynamic> json) {
+    return TestSection(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+  };
+
+  TestSection copyWith({String? id, String? name}) {
+    return TestSection(
+      id: id ?? this.id,
+      name: name ?? this.name,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TestSection &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name;
+
+  @override
+  int get hashCode => id.hashCode ^ name.hashCode;
+}
+

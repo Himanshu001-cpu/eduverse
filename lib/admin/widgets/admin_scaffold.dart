@@ -275,8 +275,8 @@ class AdminScaffold extends StatelessWidget {
                 _sidebarItem(context, 'Dashboard', '/dashboard', Icons.space_dashboard_outlined, currentRoute),
 
                 _sidebarSectionHeader('USERS & ASPIRANTS'),
-                _sidebarItem(context, 'Students', '/users', Icons.people_outline, currentRoute),
-                _sidebarItem(context, 'Teachers & Faculty', '/users', Icons.co_present_outlined, currentRoute),
+                _sidebarItem(context, 'Students', '/students', Icons.people_outline, currentRoute),
+                _sidebarItem(context, 'Teachers & Faculty', '/teachers', Icons.co_present_outlined, currentRoute),
 
                 _sidebarSectionHeader('ACADEMIC & STORE'),
                 _sidebarItem(context, 'Courses & Programs', '/courses', Icons.auto_stories_outlined, currentRoute),

@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-gray":"#F8F9FA","secondary":"#006875","on-primary-container":"#92e1d4","surface-container":"#e7eeff","primary-fixed":"#a2f1e4","primary":"#004c44","on-tertiary-fixed-variant":"#544600","surface-variant":"#d8e3fb","inverse-primary":"#86d5c8","surface-bright":"#f9f9ff","surface":"#f9f9ff","tertiary-fixed":"#ffe16d","on-secondary-container":"#00616d","surface-container-high":"#dee8ff","on-secondary-fixed-variant":"#004f58","error":"#ba1a1a","secondary-fixed":"#9cf0ff","inverse-surface":"#263143","on-secondary-fixed":"#001f24","deep-navy":"#040B14","surface-dim":"#cfdaf2","on-primary":"#ffffff","outline":"#6f7977","on-secondary":"#ffffff","on-tertiary":"#ffffff","outline-variant":"#bec9c6","on-primary-fixed":"#00201c","on-primary-fixed-variant":"#005048","tertiary-fixed-dim":"#e9c400","surface-container-highest":"#d8e3fb","tertiary-container":"#c9a900","surface-container-low":"#f0f3ff","secondary-container":"#00e3fd","surface-container-lowest":"#ffffff","error-container":"#ffdad6","primary-container":"#00665c","on-error-container":"#93000a","on-error":"#ffffff","on-background":"#111c2d","secondary-fixed-dim":"#00daf3","primary-fixed-dim":"#86d5c8","surface-tint":"#0b6a60","on-tertiary-fixed":"#221b00","background":"#f9f9ff","inverse-on-surface":"#ecf1ff","on-tertiary-container":"#4c3e00","tertiary":"#705d00","on-surface-variant":"#3f4947","on-surface":"#111c2d","emerald-vivid":"#0E9272"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"margin-mobile":"16px","gutter":"24px","base":"8px","container-max":"1280px","margin-desktop":"48px","section-gap":"80px"},"fontFamily":{"display-lg":["Playfair Display"],"body-lg":["Inter"],"headline-lg":["Playfair Display"],"headline-md":["Playfair Display"],"body-md":["Inter"],"label-sm":["Inter"],"display-lg-mobile":["Playfair Display"],"label-lg":["Inter"]},"fontSize":{"display-lg":["56px",{"lineHeight":"1.1","fontWeight":"700"}],"body-lg":["18px",{"lineHeight":"1.6","fontWeight":"400"}],"headline-lg":["32px",{"lineHeight":"1.3","fontWeight":"600"}],"headline-md":["24px",{"lineHeight":"1.4","fontWeight":"600"}],"body-md":["16px",{"lineHeight":"1.6","fontWeight":"400"}],"label-sm":["12px",{"lineHeight":"1.2","letterSpacing":"0.02em","fontWeight":"500"}],"display-lg-mobile":["36px",{"lineHeight":"1.2","fontWeight":"700"}],"label-lg":["14px",{"lineHeight":"1.2","letterSpacing":"0.05em","fontWeight":"600"}]}}}}</script><meta content="web_dashboard" name="shell-type"/></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between overflow-y-auto"><div class="p-6"><div class="flex items-center gap-3 pb-6"><div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-on-primary"><span class="material-symbols-outlined text-[24px]">school</span></div><div><span class="font-headline-md text-headline-md text-primary tracking-tight block">Eduverse</span><span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Admin Console</span></div></div><nav class="space-y-6 pt-2" data-active-classes="bg-primary-container text-on-primary font-label-lg rounded-lg shadow-sm"><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Overview</div><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="dashboard" href="#"><span>Dashboard</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Academic &amp; Store</div><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="courses" href="#"><span>Courses</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="combination-packs" href="#"><span>Combination Packs</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="test-series" href="#"><span>Test Series</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="recorded-batches" href="#"><span>Recorded Batches</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="ebooks" href="#"><span>E-books Vault</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="curriculum" href="#"><span>Curriculum Master</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="exam-management" href="#"><span>Exam Taxonomy &amp; Stages</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="feed-editor" href="#"><span>Feed &amp; Current Affairs Studio</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Users &amp; Aspirants</div><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="students" href="#"><span>Students</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="teachers" href="#"><span>Teachers</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="access-control" href="#"><span>Access Control</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Financials</div><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="transactions" href="#"><span>Transactions</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="razorpay-payouts" href="#"><span>Razorpay Payouts</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="coupons" href="#"><span>Coupons</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-sm text-label-sm uppercase tracking-wider text-outline">Platform</div><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="audit-logs" href="#"><span>Audit Logs</span></a><a class="flex items-center px-3 py-2.5 rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-all" data-path="settings" href="#"><span>Settings</span></a></div></nav></div><div class="p-4 m-4 rounded-xl bg-surface-container-low flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-vivid animate-pulse"></span><span class="font-label-sm text-label-sm text-on-surface-variant">v4.2.0-core</span></div><span class="font-label-sm text-label-sm text-outline">Synced</span></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-6"><div class="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low"><span class="w-2 h-2 rounded-full bg-emerald-vivid"></span><span class="font-label-sm text-label-sm text-on-surface font-medium">Systems Normal</span></div><div class="relative flex items-center w-96"><span class="material-symbols-outlined absolute left-3 text-outline text-[20px]">search</span><input class="w-full pl-10 pr-4 py-2 rounded-lg bg-surface-container-low text-on-surface font-body-md text-label-lg placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search students, courses, transactions, faculty..." type="text"/></div></div><div class="flex items-center gap-4"><button class="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest"></span></button><div class="flex items-center gap-3 pl-2"><div class="text-right hidden sm:block"><span class="font-label-lg text-label-lg text-on-surface block leading-tight">Dr. Harrison Vance</span><span class="font-label-sm text-label-sm text-outline block leading-tight">Dean / Superadmin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-background min-h-screen"><div class="flex flex-col w-full">
+<!-- Top Navigation & Breadcrumbs Strip -->
+<div class="w-full bg-surface-container-lowest shadow-sm px-gutter py-3">
+<div class="max-w-container-max mx-auto flex flex-wrap items-center justify-between gap-4">
+<nav class="flex items-center gap-2 font-label-sm text-label-sm text-outline">
+<a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+<span>Curriculum &amp; Assessment</span>
+</a>
+<span class="text-outline-variant">/</span>
+<a class="hover:text-primary transition-colors" href="#">Test Series Catalog</a>
+<span class="text-outline-variant">/</span>
+<a class="hover:text-primary transition-colors" href="#">UPSC CSE 2025 Prelims Mock Marathon</a>
+<span class="text-outline-variant">/</span>
+<a class="hover:text-primary transition-colors" href="#">Test Papers Schedule</a>
+<span class="text-outline-variant">/</span>
+<span class="text-on-surface font-semibold bg-surface-container-low px-2 py-0.5 rounded">Mock #19 Editor</span>
+</nav>
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1.5 font-label-sm text-label-sm text-outline bg-surface-container-low px-2.5 py-1 rounded-full">
+<span class="w-2 h-2 rounded-full bg-emerald-vivid animate-pulse"></span>
+          Autosaved at 11:42:09 AM IST
+        </span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline px-2 py-0.5 bg-surface-container rounded font-mono">
+          ID: TS-PRE-019-V3
+        </span>
+</div>
+</div>
+</div>
+<!-- Studio Header Title & Primary Action Bar -->
+<div class="w-full bg-surface-container-lowest shadow-[0_4px_20px_rgba(0,0,0,0.03)] px-gutter py-5">
+<div class="max-w-container-max mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+<div class="space-y-1">
+<div class="flex flex-wrap items-center gap-3">
+<span class="px-2.5 py-0.5 rounded-full font-label-sm text-label-sm uppercase tracking-wider bg-primary-container text-on-primary font-semibold">
+            Scheduled &amp; Locked
+          </span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-tertiary-fixed text-on-tertiary-fixed font-medium">
+            Stage 1: Prelims Paper-I (GS)
+          </span>
+<span class="text-outline text-label-sm font-label-sm font-mono">CODE: TS-PRE-019</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">
+          Test Paper Studio: Mock #19 — Indian Economy &amp; Fiscal Union 2024-25
+        </h1>
+</div>
+<div class="flex flex-wrap items-center gap-2.5">
+<button class="px-4 py-2.5 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container transition-all font-label-lg text-label-lg flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">replay</span>
+<span>Discard</span>
+</button>
+<button class="px-4 py-2.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container hover:text-on-surface transition-all font-label-lg text-label-lg flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+<span>Preview Engine</span>
+</button>
+<button class="px-4 py-2.5 rounded-lg bg-surface-variant text-on-surface hover:bg-surface-dim transition-all font-label-lg text-label-lg flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">save</span>
+<span>Save Draft</span>
+</button>
+<button class="px-5 py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container transition-all font-label-lg text-label-lg font-semibold flex items-center gap-2 shadow-md">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span>Publish Test Paper</span>
+</button>
+</div>
+</div>
+</div>
+<!-- KPI Blueprint & Test Specifications Bar -->
+<div class="w-full bg-surface-container-low px-gutter py-4">
+<div class="max-w-container-max mx-auto grid grid-cols-2 md:grid-cols-5 gap-3">
+<div class="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container text-on-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">assignment</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Total Questions</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold block leading-tight">100 / 100 Qs</span>
+<span class="font-label-sm text-label-sm text-emerald-vivid font-medium">100% Target Met</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">military_tech</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Total Scoring</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold block leading-tight">200 Marks</span>
+<span class="font-label-sm text-label-sm text-outline block">+2.00 / -0.66 Neg.</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">timer</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Time Allocation</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold block leading-tight">120 Mins</span>
+<span class="font-label-sm text-label-sm text-outline block">Unified Timer Active</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">schema</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Sections Division</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold block leading-tight">3 Sections</span>
+<span class="font-label-sm text-label-sm text-outline block">50 : 30 : 20 Balance</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm flex items-center justify-between col-span-2 md:col-span-1">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">translate</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline block">Translation</span>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold block leading-tight">EN + HI Bi-lingual</span>
+<span class="font-label-sm text-label-sm text-emerald-vivid font-medium">Synced (100%)</span>
+</div>
+</div>
+<div class="w-9 h-5 bg-primary-container rounded-full relative p-0.5 flex items-center justify-end cursor-pointer">
+<div class="w-4 h-4 bg-on-primary rounded-full shadow-sm"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Split Studio Workspace -->
+<div class="w-full px-gutter py-6">
+<div class="max-w-container-max mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- LEFT / MAIN WORKSPACE COLUMN (8 COLS) -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<!-- Section Switcher Tabs & Section Controls -->
+<div class="bg-surface-container-lowest rounded-xl p-3 shadow-sm flex flex-wrap items-center justify-between gap-3">
+<div class="flex flex-wrap items-center gap-2">
+<button class="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-lg text-label-lg flex items-center gap-2 shadow-sm font-medium">
+<span>Section A: Macro &amp; Budget</span>
+<span class="px-2 py-0.5 rounded-full bg-on-primary/20 text-on-primary font-label-sm text-label-sm">50</span>
+</button>
+<button class="px-4 py-2 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-lg text-label-lg flex items-center gap-2 transition-colors">
+<span>Section B: Banking &amp; Monetary</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-variant text-on-surface font-label-sm text-label-sm">30</span>
+</button>
+<button class="px-4 py-2 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-lg text-label-lg flex items-center gap-2 transition-colors">
+<span>Section C: External &amp; Schemes</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-variant text-on-surface font-label-sm text-label-sm">20</span>
+</button>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container transition-all font-label-sm text-label-sm flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span>Add Section</span>
+</button>
+</div>
+<!-- Question Editor Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-6 space-y-6">
+<!-- Question Head Meta: Question No, Difficulty, Subtopic, Marks -->
+<div class="flex flex-wrap items-center justify-between gap-4 pb-4 bg-surface-container-lowest">
+<div class="flex items-center gap-3">
+<span class="w-10 h-10 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center">
+                Q24
+              </span>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Question #24 of 100</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-error-container text-on-error-container font-medium">
+                    UPSC Hard
+                  </span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-container text-primary font-medium">
+                    Single Correct MCQ
+                  </span>
+</div>
+<div class="flex items-center gap-3 text-label-sm font-label-sm text-outline mt-0.5">
+<span>Subject: Indian Economy</span>
+<span>•</span>
+<span>Sub-topic: Fiscal Deficit &amp; FRBM Act</span>
+<span>•</span>
+<span>Taxonomy: Analytical</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1 bg-surface-container-low px-3 py-1 rounded-lg">
+<span class="font-label-sm text-label-sm text-outline">Marks:</span>
+<span class="font-label-lg text-label-lg text-emerald-vivid font-bold">+2.00</span>
+<span class="text-outline-variant font-label-sm text-label-sm">/</span>
+<span class="font-label-lg text-label-lg text-error font-bold">-0.66</span>
+</div>
+<button class="p-2 rounded-lg text-outline hover:bg-surface-container-low hover:text-on-surface transition-colors" title="Bookmark Question">
+<span class="material-symbols-outlined text-[20px]">flag</span>
+</button>
+</div>
+</div>
+<!-- Bilingual Tab Switcher -->
+<div class="flex items-center justify-between bg-surface-container-low p-1.5 rounded-lg">
+<div class="flex items-center gap-1">
+<button class="px-4 py-1.5 rounded-md bg-surface-container-lowest text-on-surface font-label-sm text-label-sm font-semibold shadow-sm flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">language</span>
+<span>English (Master Prompt)</span>
+</button>
+<button class="px-4 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm font-medium flex items-center gap-1.5 transition-colors">
+<span>हिंदी अनुवाद (Hindi Translation)</span>
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-vivid"></span>
+</button>
+</div>
+<div class="flex items-center gap-2 pr-2 font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+<span>Auto-translate Synced</span>
+</div>
+</div>
+<!-- WYSIWYG Formatting Toolbar -->
+<div class="flex flex-wrap items-center gap-1 bg-surface-container-low p-2 rounded-lg">
+<button class="p-1.5 rounded hover:bg-surface-container-lowest text-on-surface-variant" title="Bold"><span class="material-symbols-outlined text-[18px]">format_bold</span></button>
+<button class="p-1.5 rounded hover:bg-surface-container-lowest text-on-surface-variant" title="Italic"><span class="material-symbols-outlined text-[18px]">format_italic</span></button>
+<button class="p-1.5 rounded hover:bg-surface-container-lowest text-on-surface-variant" title="Underline"><span class="material-symbols-outlined text-[18px]">format_underlined</span></button>
+<span class="w-px h-4 bg-outline-variant mx-1"></span>
+<button class="p-1.5 rounded hover:bg-surface-container-lowest text-on-surface-variant" title="Numbered List"><span class="material-symbols-outlined text-[18px]">format_list_numbered</span></button>
+<button class="p-1.5 rounded hover:bg-surface-container-lowest text-on-surface-variant" title="Bulleted List"><span class="material-symbols-outlined text-[18px]">format_list_bulleted</span></button>
+<span class="w-px h-4 bg-outline-variant mx-1"></span>
+<button class="p-1.5 rounded bg-surface-container-lowest text-primary shadow-sm font-semibold" title="Insert LaTeX Equation"><span class="material-symbols-outlined text-[18px]">functions</span></button>
+<button class="p-1.5 rounded hover:bg-surface-container-lowest text-on-surface-variant" title="Insert Table"><span class="material-symbols-outlined text-[18px]">table_chart</span></button>
+<button class="p-1.5 rounded hover:bg-surface-container-lowest text-on-surface-variant" title="Insert Image / Diagram"><span class="material-symbols-outlined text-[18px]">image</span></button>
+<button class="p-1.5 rounded hover:bg-surface-container-lowest text-on-surface-variant" title="Insert Quote / Act Reference"><span class="material-symbols-outlined text-[18px]">format_quote</span></button>
+<div class="ml-auto flex items-center gap-2">
+<button class="px-2.5 py-1 text-label-sm font-label-sm text-outline hover:text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">code</span>
+<span>Raw LaTeX</span>
+</button>
+<button class="px-2.5 py-1 text-label-sm font-label-sm text-primary bg-surface-container-lowest rounded shadow-sm flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[16px]">preview</span>
+<span>Split Preview</span>
+</button>
+</div>
+</div>
+<!-- Question Prompt Textarea & Rich Display -->
+<div class="space-y-3">
+<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center justify-between">
+<span>Question Statement Prompt</span>
+<span class="font-label-sm text-label-sm text-outline">Character count: 482 | Est. Reading Time: 45s</span>
+</label>
+<div class="bg-surface-container-lowest rounded-xl p-4 bg-surface-container-low/50 space-y-3">
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+                With reference to the <strong class="font-semibold text-deep-navy">Fiscal Responsibility and Budget Management (FRBM) Act, 2003</strong> and its subsequent amendments, consider the following statements:
+              </p>
+<div class="pl-4 space-y-1.5 font-body-md text-body-md text-on-surface">
+<p>1. The original Act mandated the Central Government to eliminate the revenue deficit completely by March 31, 2008.</p>
+<p>2. The N.K. Singh Committee (2016) on the FRBM framework recommended a target debt-to-GDP ratio of 60% by 2023, with a 40% limit for the Central Government and 20% for State Governments.</p>
+<p>3. The 'Escape Clause' under the amended FRBM Act allows deviation from the fiscal deficit path up to 1.5% of GDP under exigencies like war or collapse of agriculture.</p>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-semibold pt-2">
+                Which of the statements given above is/are correct?
+              </p>
+</div>
+</div>
+<!-- Rendered LaTeX & Formula Math Box Preview -->
+<div class="bg-surface-container-low rounded-xl p-4 space-y-2">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-semibold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">functions</span>
+                Rendered LaTeX / Math Equation Preview
+              </span>
+<span class="font-label-sm text-label-sm text-primary font-mono bg-surface-container-lowest px-2 py-0.5 rounded shadow-sm">
+                KaTeX Engine 0.16
+              </span>
+</div>
+<div class="bg-surface-container-lowest rounded-lg p-3 text-center font-mono text-body-lg text-deep-navy shadow-inner">
+              \[ \text{Target Debt-to-GDP: } \frac{\text{Debt}}{\text{GDP}} \le 60\% \quad \left( 40\% \text{ Centre} + 20\% \text{ States} \right) \quad \text{with } \Delta \text{Escape} \le 0.5\% \]
+            </div>
+</div>
+<!-- Option Builder & Distractor Settings -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">
+                Answer Options &amp; Distractor Explanations
+              </span>
+<span class="font-label-sm text-label-sm text-outline">Select the radio button corresponding to the correct answer</span>
+</div>
+<!-- Option A -->
+<div class="rounded-xl p-4 bg-surface-container-low hover:bg-surface-container transition-all space-y-3">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3">
+<input class="w-4 h-4 text-primary focus:ring-0 cursor-pointer" id="opt_a" name="correct_opt" type="radio"/>
+<label class="w-7 h-7 rounded-lg bg-surface-container-highest text-on-surface font-bold text-label-md flex items-center justify-center cursor-pointer" for="opt_a">
+                    A
+                  </label>
+<span class="font-body-md text-body-md text-on-surface font-medium">1 and 2 only</span>
+</div>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-highest text-on-surface-variant font-medium">
+                  Correct Answer Key
+                </span>
+</div>
+<div class="pl-10 space-y-1">
+<span class="font-label-sm text-label-sm text-outline block">Distractor Rationale:</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest p-2.5 rounded-lg shadow-sm">
+                  Statement 1 is factual according to the original 2003 statutory text. Statement 2 adheres faithfully to the N.K. Singh committee debt targets. Statement 3 is false as escape ceiling is 0.5%, not 1.5%.
+                </p>
+</div>
+</div>
+<!-- Option B (Marked Correct) -->
+<div class="rounded-xl p-4 bg-surface-container-low hover:bg-surface-container transition-all space-y-3 shadow-sm bg-gradient-to-r from-surface-container-low via-surface-container-low to-primary/5">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3">
+<input checked="" class="w-4 h-4 text-primary focus:ring-0 cursor-pointer" id="opt_b" name="correct_opt" type="radio"/>
+<label class="w-7 h-7 rounded-lg bg-primary text-on-primary font-bold text-label-md flex items-center justify-center cursor-pointer shadow-sm" for="opt_b">
+                    B
+                  </label>
+<span class="font-body-md text-body-md text-on-surface font-semibold">1, 2 and 3</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-0.5 rounded font-label-sm text-label-sm bg-emerald-vivid text-on-primary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                    Official Key (Marked Correct)
+                  </span>
+</div>
+</div>
+<div class="pl-10 space-y-1">
+<span class="font-label-sm text-label-sm text-outline block">Distractor Rationale &amp; Common Trap:</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest p-2.5 rounded-lg shadow-sm">
+                  Often chosen by aspirants assuming the COVID-19 fiscal relaxation expanded the statutory escape clause permanently.
+                </p>
+</div>
+</div>
+<!-- Option C -->
+<div class="rounded-xl p-4 bg-surface-container-low hover:bg-surface-container transition-all space-y-3">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3">
+<input class="w-4 h-4 text-primary focus:ring-0 cursor-pointer" id="opt_c" name="correct_opt" type="radio"/>
+<label class="w-7 h-7 rounded-lg bg-surface-container-highest text-on-surface font-bold text-label-md flex items-center justify-center cursor-pointer" for="opt_c">
+                    C
+                  </label>
+<span class="font-body-md text-body-md text-on-surface font-medium">2 and 3 only</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Distractor</span>
+</div>
+<div class="pl-10 space-y-1">
+<span class="font-label-sm text-label-sm text-outline block">Distractor Rationale:</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest p-2.5 rounded-lg shadow-sm">
+                  Candidate mistakenly views the revenue deficit reduction clause as an amendment rather than original intent.
+                </p>
+</div>
+</div>
+<!-- Option D -->
+<div class="rounded-xl p-4 bg-surface-container-low hover:bg-surface-container transition-all space-y-3">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3">
+<input class="w-4 h-4 text-primary focus:ring-0 cursor-pointer" id="opt_d" name="correct_opt" type="radio"/>
+<label class="w-7 h-7 rounded-lg bg-surface-container-highest text-on-surface font-bold text-label-md flex items-center justify-center cursor-pointer" for="opt_d">
+                    D
+                  </label>
+<span class="font-body-md text-body-md text-on-surface font-medium">1 only</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Distractor</span>
+</div>
+<div class="pl-10 space-y-1">
+<span class="font-label-sm text-label-sm text-outline block">Distractor Rationale:</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest p-2.5 rounded-lg shadow-sm">
+                  Over-cautious distractor chosen by students suspecting incorrect debt-to-GDP proportions.
+                </p>
+</div>
+</div>
+</div>
+<!-- Pedagogical Solution & Authentic Source Citations -->
+<div class="space-y-4 pt-2">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">local_library</span>
+                Pedagogical Explanation &amp; Official Citations
+              </span>
+<button class="text-primary font-label-sm text-label-sm hover:underline flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[16px]">add_link</span>
+<span>Add Citation</span>
+</button>
+</div>
+<div class="bg-surface-container-low rounded-xl p-4 space-y-4">
+<div class="space-y-2">
+<label class="font-label-sm text-label-sm text-outline font-semibold uppercase tracking-wider block">Solution Text (Displayed Post-Test)</label>
+<div class="bg-surface-container-lowest p-4 rounded-lg font-body-md text-body-md text-on-surface space-y-3 shadow-sm">
+<p>
+<strong>Correct Option: A (Statements 1 and 2 are correct).</strong>
+</p>
+<p>
+<span class="text-primary font-semibold">Statement 1 is correct:</span> The FRBM Act, 2003 originally envisaged that the revenue deficit would be brought down to zero by March 31, 2008. The target was subsequently deferred through subsequent finance acts.
+                  </p>
+<p>
+<span class="text-primary font-semibold">Statement 2 is correct:</span> The N.K. Singh Committee recommended transitioning the anchor of fiscal policy from fiscal deficit to public debt, prescribing a combined debt-to-GDP ratio of 60% (40% Central, 20% State) to be achieved by FY2023.
+                  </p>
+<p>
+<span class="text-error font-semibold">Statement 3 is incorrect:</span> Under Section 4(2) of the amended FRBM Act, the Central Government is allowed to deviate from the fiscal deficit target by an amount <strong>not exceeding 0.5% of GDP</strong> (not 1.5%) on grounds of national security, act of war, or serious collapse of agriculture.
+                  </p>
+</div>
+</div>
+<!-- Source Citations Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<div class="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">menu_book</span>
+<div>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold block leading-tight">Economic Survey 2023-24</span>
+<span class="font-label-sm text-label-sm text-outline block">Volume 1, Chapter 2 (Fiscal Dev.)</span>
+<span class="font-label-sm text-label-sm text-secondary font-medium">Page 48–52</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-start gap-2.5">
+<span class="material-symbols-outlined text-secondary text-[20px] shrink-0 mt-0.5">account_balance</span>
+<div>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold block leading-tight">Union Budget 2024-25</span>
+<span class="font-label-sm text-label-sm text-outline block">Medium-Term Fiscal Statement</span>
+<span class="font-label-sm text-label-sm text-secondary font-medium">FRBM Mandate Sec 4</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-start gap-2.5">
+<span class="material-symbols-outlined text-tertiary text-[20px] shrink-0 mt-0.5">history_edu</span>
+<div>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold block leading-tight">UPSC PYQ Cross-Ref</span>
+<span class="font-label-sm text-label-sm text-outline block">UPSC CSE Prelims 2018</span>
+<span class="font-label-sm text-label-sm text-tertiary font-medium">Paper I, Question #14</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Action Bar / Pagination -->
+<div class="pt-4 flex flex-wrap items-center justify-between gap-4">
+<button class="px-4 py-2.5 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container transition-all font-label-lg text-label-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+<span>Previous: Q23 (Macro Indicators)</span>
+</button>
+<div class="flex items-center gap-2">
+<button class="px-3 py-2 rounded-lg bg-surface-container-low text-error hover:bg-error-container transition-all font-label-sm text-label-sm flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+<span>Delete</span>
+</button>
+<button class="px-3 py-2 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container transition-all font-label-sm text-label-sm flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+<span>Duplicate</span>
+</button>
+<button class="px-6 py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container transition-all font-label-lg text-label-lg font-semibold flex items-center gap-2 shadow-md">
+<span>Save &amp; Next: Q25</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT SIDEBAR COLUMN (4 COLS) -->
+<div class="lg:col-span-4 flex flex-col gap-6">
+<!-- Question Navigator Grid Matrix Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-5 space-y-4">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-semibold">100-Q Matrix</h2>
+<span class="font-label-sm text-label-sm text-outline">Real-time status of Section A, B, C</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-1.5 rounded hover:bg-surface-container-low text-outline" title="Filter Questions">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+</button>
+<button class="p-1.5 rounded hover:bg-surface-container-low text-outline" title="Reset View">
+<span class="material-symbols-outlined text-[18px]">fullscreen</span>
+</button>
+</div>
+</div>
+<!-- Status Pill Summary Badges -->
+<div class="flex flex-wrap items-center gap-2">
+<span class="px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-emerald-vivid/10 text-emerald-vivid font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-emerald-vivid"></span>
+              84 Validated
+            </span>
+<span class="px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-tertiary-fixed text-on-tertiary-fixed font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+              12 Review Flagged
+            </span>
+<span class="px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-surface-container text-outline font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+              4 Incomplete
+            </span>
+</div>
+<!-- Question Grid (100 Questions) -->
+<div class="p-3 bg-surface-container-low rounded-xl">
+<div class="grid grid-cols-10 gap-1.5 text-center font-mono font-semibold text-label-sm">
+<!-- Q1 to Q10 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer hover:opacity-90">1</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer hover:opacity-90">2</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer hover:opacity-90">3</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer hover:opacity-90">4</div>
+<div class="h-7 rounded flex items-center justify-center bg-tertiary-container text-on-tertiary-container cursor-pointer">5</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">6</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">7</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">8</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">9</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">10</div>
+<!-- Q11 to Q20 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">11</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">12</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">13</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">14</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">15</div>
+<div class="h-7 rounded flex items-center justify-center bg-tertiary-container text-on-tertiary-container cursor-pointer">16</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">17</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">18</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">19</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">20</div>
+<!-- Q21 to Q30 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">21</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">22</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">23</div>
+<!-- Q24 (Active) with elevated outline/contrast -->
+<div class="h-7 rounded flex items-center justify-center bg-primary text-on-primary shadow-md font-bold scale-110">24</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">25</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">26</div>
+<div class="h-7 rounded flex items-center justify-center bg-tertiary-container text-on-tertiary-container cursor-pointer">27</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">28</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">29</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">30</div>
+<!-- Q31 to Q40 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">31</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">32</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">33</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">34</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">35</div>
+<div class="h-7 rounded flex items-center justify-center bg-surface-container text-outline cursor-pointer">36</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">37</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">38</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">39</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">40</div>
+<!-- Q41 to Q50 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">41</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">42</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">43</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">44</div>
+<div class="h-7 rounded flex items-center justify-center bg-tertiary-container text-on-tertiary-container cursor-pointer">45</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">46</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">47</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">48</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">49</div>
+<div class="h-7 rounded flex items-center justify-center bg-surface-container text-outline cursor-pointer">50</div>
+<!-- Q51 to Q60 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">51</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">52</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">53</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">54</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">55</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">56</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">57</div>
+<div class="h-7 rounded flex items-center justify-center bg-tertiary-container text-on-tertiary-container cursor-pointer">58</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">59</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">60</div>
+<!-- Q61 to Q70 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">61</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">62</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">63</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">64</div>
+<div class="h-7 rounded flex items-center justify-center bg-surface-container text-outline cursor-pointer">65</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">66</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">67</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">68</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">69</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">70</div>
+<!-- Q71 to Q80 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">71</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">72</div>
+<div class="h-7 rounded flex items-center justify-center bg-tertiary-container text-on-tertiary-container cursor-pointer">73</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">74</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">75</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">76</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">77</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">78</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">79</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">80</div>
+<!-- Q81 to Q90 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">81</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">82</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">83</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">84</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">85</div>
+<div class="h-7 rounded flex items-center justify-center bg-surface-container text-outline cursor-pointer">86</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">87</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">88</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">89</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">90</div>
+<!-- Q91 to Q100 -->
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">91</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">92</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">93</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">94</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">95</div>
+<div class="h-7 rounded flex items-center justify-center bg-tertiary-container text-on-tertiary-container cursor-pointer">96</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">97</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">98</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">99</div>
+<div class="h-7 rounded flex items-center justify-center bg-emerald-vivid text-on-primary cursor-pointer">100</div>
+</div>
+</div>
+<!-- Quick Bulk Actions -->
+<div class="flex items-center gap-2 pt-1">
+<button class="w-1/2 py-2 px-3 rounded-lg bg-surface-container-low text-primary hover:bg-surface-container font-label-sm text-label-sm flex items-center justify-center gap-1.5 font-semibold">
+<span class="material-symbols-outlined text-[16px]">library_add</span>
+<span>Import Q-Bank</span>
+</button>
+<button class="w-1/2 py-2 px-3 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-sm text-label-sm flex items-center justify-center gap-1.5 font-semibold">
+<span class="material-symbols-outlined text-[16px]">upload_file</span>
+<span>Upload LaTeX</span>
+</button>
+</div>
+</div>
+<!-- AI Assistant & Bloom's Taxonomy Cognitive Depth Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-5 space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface text-base font-semibold">Cognitive &amp; AI Studio</h3>
+<span class="font-label-sm text-label-sm text-outline">Syllabus &amp; Depth Audit</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full font-label-sm text-label-sm bg-primary-fixed text-on-primary-fixed font-bold">
+              AI Active
+            </span>
+</div>
+<button class="w-full py-2.5 px-3 rounded-lg bg-surface-container-low text-primary hover:bg-surface-container font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[18px] text-primary">psychology</span>
+<span>Auto-suggest Distractor Explanations</span>
+</button>
+<!-- Bloom's Taxonomy Distribution -->
+<div class="space-y-3 pt-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-semibold block">Bloom's Taxonomy Breakdown</span>
+<div class="space-y-1.5">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-on-surface font-medium">Critical Analysis &amp; Synthesis</span>
+<span class="text-primary font-bold">30% (Ideal: 30%)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 30%;"></div>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-on-surface font-medium">Application &amp; Problem Solving</span>
+<span class="text-secondary font-bold">45% (Ideal: 45%)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 45%;"></div>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-on-surface font-medium">Factual Recall &amp; Understanding</span>
+<span class="text-tertiary font-bold">25% (Ideal: 25%)</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-tertiary-container rounded-full" style="width: 25%;"></div>
+</div>
+</div>
+</div>
+<div class="p-3 bg-surface-container-low rounded-lg flex items-center gap-2 text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-emerald-vivid text-[18px]">verified</span>
+<span>UPSC Syllabus Match Score: <strong>98.4%</strong> (High Rigor)</span>
+</div>
+</div>
+<!-- Test Engine & Anti-Cheating Settings Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-5 space-y-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">security</span>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface text-base font-semibold">Test Engine Protocol</h3>
+<span class="font-label-sm text-label-sm text-outline">Proctoring &amp; Permutation Guard</span>
+</div>
+</div>
+<div class="space-y-3 pt-1">
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low">
+<div>
+<span class="font-label-md text-label-md text-on-surface font-semibold block leading-tight">Proctored Fullscreen Guard</span>
+<span class="font-label-sm text-label-sm text-outline">Browser window lockdown</span>
+</div>
+<div class="w-9 h-5 bg-primary-container rounded-full relative p-0.5 flex items-center justify-end cursor-pointer">
+<div class="w-4 h-4 bg-on-primary rounded-full shadow-sm"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low">
+<div>
+<span class="font-label-md text-label-md text-on-surface font-semibold block leading-tight">Max Tab Switch Violations</span>
+<span class="font-label-sm text-label-sm text-outline">Locks exam on 3rd departure</span>
+</div>
+<span class="font-mono font-bold text-label-sm px-2 py-0.5 rounded bg-surface-container-lowest text-primary">3 Attempts</span>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low">
+<div>
+<span class="font-label-md text-label-md text-on-surface font-semibold block leading-tight">Option Shuffle / Permutation</span>
+<span class="font-label-sm text-label-sm text-outline">Varying answer sets per student</span>
+</div>
+<div class="w-9 h-5 bg-primary-container rounded-full relative p-0.5 flex items-center justify-end cursor-pointer">
+<div class="w-4 h-4 bg-on-primary rounded-full shadow-sm"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low">
+<div>
+<span class="font-label-md text-label-md text-on-surface font-semibold block leading-tight">Virtual Calculator</span>
+<span class="font-label-sm text-label-sm text-error font-medium">Disabled (UPSC Policy)</span>
+</div>
+<div class="w-9 h-5 bg-surface-container-highest rounded-full relative p-0.5 flex items-center justify-start cursor-pointer">
+<div class="w-4 h-4 bg-surface-dim rounded-full shadow-sm"></div>
+</div>
+</div>
+</div>
+<!-- Broadcast Time Window -->
+<div class="p-3 bg-surface-container-low rounded-lg space-y-1">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline block font-semibold">Live Broadcast Window</span>
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-deep-navy font-semibold">
+<span class="material-symbols-outlined text-[16px] text-primary">event</span>
+<span>Sunday, 09:30 AM – 11:30 AM IST</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline block">Auto-evaluation &amp; All-India Rank release at 02:00 PM</span>
+</div>
+</div>
+<!-- Faculty Authorship & Peer Review Stamp -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-4 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-label-lg shrink-0">
+            VK
+          </div>
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm text-outline block leading-tight">Authored &amp; Vetted by</span>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold block truncate">Prof. Vikramaditya Kulkarni</span>
+<span class="font-label-sm text-label-sm text-emerald-vivid font-medium block">Lead Faculty — Indian Economy</span>
+</div>
+<span class="material-symbols-outlined text-emerald-vivid text-[22px] ml-auto" title="Peer Verified">verified</span>
+</div>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

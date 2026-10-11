@@ -4,6 +4,7 @@ import 'package:eduverse/core/theme/eduverse_theme.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
 import 'phone_login_page.dart';
+import 'widgets/google_logo.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,6 +20,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   final _authService = AuthService();
 
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
   bool _rememberMe = true;
 
@@ -71,6 +73,23 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isGoogleLoading = true);
+
+    final result = await _authService.signInWithGoogle();
+
+    if (!mounted) return;
+    setState(() => _isGoogleLoading = false);
+
+    if (!result.isSuccess) {
+      if (result.errorMessage != null && !result.errorMessage!.toLowerCase().contains('cancel')) {
+        _showError(result.errorMessage!);
+      }
+    } else {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -87,24 +106,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           ],
         ),
         backgroundColor: EduverseColors.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
-  void _showInfo(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: EduverseColors.secondary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -472,7 +473,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleLogin,
+                onPressed: (_isLoading || _isGoogleLoading) ? null : _handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: EduverseColors.primaryContainer,
                   foregroundColor: EduverseColors.onPrimary,
@@ -542,18 +543,20 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               width: double.infinity,
               height: 48,
               child: OutlinedButton.icon(
-                onPressed: () {
-                  final currentText = _emailController.text.trim();
-                  final isPhoneLike = RegExp(r'^[0-9+ ]{4,}$').hasMatch(currentText);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PhoneLoginPage(
-                        initialPhone: isPhoneLike ? currentText : null,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: (_isLoading || _isGoogleLoading)
+                    ? null
+                    : () {
+                        final currentText = _emailController.text.trim();
+                        final isPhoneLike = RegExp(r'^[0-9+ ]{4,}$').hasMatch(currentText);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PhoneLoginPage(
+                              initialPhone: isPhoneLike ? currentText : null,
+                            ),
+                          ),
+                        );
+                      },
                 icon: const Icon(
                   Icons.smartphone_rounded,
                   color: EduverseColors.secondary,
@@ -581,9 +584,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               width: double.infinity,
               height: 48,
               child: OutlinedButton(
-                onPressed: () {
-                  _showInfo('Connecting to Institutional Single Sign-On...');
-                },
+                onPressed: (_isLoading || _isGoogleLoading) ? null : _handleGoogleSignIn,
                 style: OutlinedButton.styleFrom(
                   backgroundColor: EduverseColors.surfaceContainerLow,
                   side: BorderSide(
@@ -593,31 +594,30 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildGoogleLogo(),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Continue with Google',
-                      style: EduverseTypography.labelLg().copyWith(fontSize: 13.5),
-                    ),
-                  ],
-                ),
+                child: _isGoogleLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: EduverseColors.primary,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const GoogleLogo(),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Continue with Google',
+                            style: EduverseTypography.labelLg().copyWith(fontSize: 13.5),
+                          ),
+                        ],
+                      ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildGoogleLogo() {
-    return SizedBox(
-      width: 18,
-      height: 18,
-      child: CustomPaint(
-        painter: _GoogleLogoPainter(),
       ),
     );
   }
@@ -680,59 +680,4 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       ],
     );
   }
-}
-
-class _GoogleLogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double w = size.width;
-    final double h = size.height;
-
-    // Paint blue right curve
-    final paintBlue = Paint()..color = const Color(0xFF4285F4)..style = PaintingStyle.fill;
-    final pathBlue = Path()
-      ..moveTo(w, h * 0.5)
-      ..arcToPoint(Offset(w * 0.85, h * 0.8), radius: Radius.circular(w * 0.45))
-      ..lineTo(w * 0.5, h * 0.5)
-      ..close();
-    canvas.drawPath(pathBlue, paintBlue);
-
-    // Paint green bottom
-    final paintGreen = Paint()..color = const Color(0xFF34A853)..style = PaintingStyle.fill;
-    final pathGreen = Path()
-      ..moveTo(w * 0.85, h * 0.8)
-      ..arcToPoint(Offset(w * 0.2, h * 0.8), radius: Radius.circular(w * 0.45))
-      ..lineTo(w * 0.5, h * 0.5)
-      ..close();
-    canvas.drawPath(pathGreen, paintGreen);
-
-    // Paint yellow left
-    final paintYellow = Paint()..color = const Color(0xFFFBBC05)..style = PaintingStyle.fill;
-    final pathYellow = Path()
-      ..moveTo(w * 0.2, h * 0.8)
-      ..arcToPoint(Offset(w * 0.2, h * 0.2), radius: Radius.circular(w * 0.45))
-      ..lineTo(w * 0.5, h * 0.5)
-      ..close();
-    canvas.drawPath(pathYellow, paintYellow);
-
-    // Paint red top
-    final paintRed = Paint()..color = const Color(0xFFEA4335)..style = PaintingStyle.fill;
-    final pathRed = Path()
-      ..moveTo(w * 0.2, h * 0.2)
-      ..arcToPoint(Offset(w * 0.85, h * 0.2), radius: Radius.circular(w * 0.45))
-      ..lineTo(w * 0.5, h * 0.5)
-      ..close();
-    canvas.drawPath(pathRed, paintRed);
-
-    // Cutout center
-    final paintWhite = Paint()..color = Colors.white..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.28, paintWhite);
-
-    // Right arm bar of Google 'G'
-    final paintBar = Paint()..color = const Color(0xFF4285F4)..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(w * 0.48, h * 0.38, w * 0.5, h * 0.24), paintBar);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

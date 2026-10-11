@@ -146,6 +146,8 @@ class _LearningAppState extends State<LearningApp> {
                 routeName == '/batch_dpps' ||
                 routeName == '/batch_notes' ||
                 routeName == '/lecture_editor' ||
+                routeName == '/students' ||
+                routeName == '/teachers' ||
                 routeName == '/users' ||
                 routeName == '/user_detail' ||
                 routeName == '/enrollments' ||

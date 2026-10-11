@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:eduverse/core/firebase/user_service.dart';
 import 'package:eduverse/core/firebase/eduverse_firebase.dart';
 
@@ -271,7 +272,97 @@ class AuthService {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // GOOGLE SIGN-IN / SIGN-UP AUTHENTICATION
+  // ─────────────────────────────────────────────────────────────────
+
+  static bool _googleSignInInitialized = false;
+  static Future<void>? _googleSignInInitFuture;
+
+  // Web OAuth Client ID from google-services.json (client_type: 3)
+  static const String _googleServerClientId =
+      '465308079104-5gjlk5saopveqdu9jjtfb8l064bkbslf.apps.googleusercontent.com';
+
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_googleSignInInitialized) return;
+    if (_googleSignInInitFuture != null) {
+      await _googleSignInInitFuture;
+      return;
+    }
+    _googleSignInInitFuture = GoogleSignIn.instance.initialize(
+      serverClientId: _googleServerClientId,
+    );
+    await _googleSignInInitFuture;
+    _googleSignInInitialized = true;
+  }
+
+  /// Authenticates with Google (works seamlessly for both Sign-In and Sign-Up).
+  /// On Web, uses Firebase popup authentication.
+  /// On Mobile, uses native GoogleSignIn and authenticates with Firebase Auth credentials.
+  Future<AuthResult> signInWithGoogle() async {
+    try {
+      UserCredential userCredential;
+
+      if (kIsWeb) {
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.addScope('profile');
+        userCredential = await _auth.signInWithPopup(googleProvider);
+      } else {
+        await _ensureGoogleSignInInitialized();
+        final GoogleSignInAccount googleAccount =
+            await GoogleSignIn.instance.authenticate();
+        final GoogleSignInAuthentication googleAuth = googleAccount.authentication;
+        final String? idToken = googleAuth.idToken;
+
+        if (idToken == null || idToken.isEmpty) {
+          return AuthResult.failure('Failed to obtain Google ID token.');
+        }
+
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          idToken: idToken,
+        );
+
+        userCredential = await _auth.signInWithCredential(credential);
+      }
+
+      final user = userCredential.user;
+      if (user != null) {
+        final displayName = (user.displayName != null && user.displayName!.trim().isNotEmpty)
+            ? user.displayName!.trim()
+            : (user.email?.split('@').first ?? 'Scholar');
+
+        // Create or merge user profile in Firestore
+        await _userService.createUserProfile(
+          user.uid,
+          user.email ?? '',
+          displayName,
+          phone: user.phoneNumber,
+        );
+      }
+
+      return AuthResult.success(userCredential.user);
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        return AuthResult.failure('Google Sign-In was cancelled');
+      }
+      return AuthResult.failure('Google Sign-In error: ${e.description ?? e.code.name}');
+    } on FirebaseAuthException catch (e) {
+      return AuthResult.failure(_mapFirebaseError(e.code));
+    } catch (e) {
+      debugPrint('Google Sign-In unexpected error: $e');
+      return AuthResult.failure('Google Sign-In failed: $e');
+    }
+  }
+
   Future<void> signOut() async {
+    try {
+      if (!kIsWeb) {
+        await GoogleSignIn.instance.signOut();
+      }
+    } catch (e) {
+      debugPrint('GoogleSignIn signOut error (non-fatal): $e');
+    }
     await _auth.signOut();
   }
 
