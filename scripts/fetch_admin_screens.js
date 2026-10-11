@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-const API_KEY = "process.env.STITCH_API_KEY || """;
+const API_KEY = process.env.STITCH_API_KEY || "";
 const PROJECT_ID = "4880358185227461688";
 
 const newScreens = [
